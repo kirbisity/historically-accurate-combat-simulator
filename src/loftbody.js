@@ -355,12 +355,13 @@ export const LOFT = {
   // shoulders' line at the neck, over the shoulder and at its tip. Its panels: before, each from `waist` (m off the middle,
   // its inner and outer edge) at the cords, behind, one `back` (m) either side of the middle there; `pleats` pressed into
   // each front panel, every other line `fold` (m) proud; standing `lift` (m) off the robe, `nape` (m) below the robe's own
-  // collar behind; the lower `soft` of each panel cloth, the rest stiffened; laid on the robe to `taut` of its height and
-  // drawn straight from there to the wing; its outer edges keeping to the trunk and spreading to the tips as the height to
-  // the power `flare`. (The cut, the pleats pressed from the waist
+  // collar behind; laid on the robe to `taut` of its height (cloth on the breast and the back, moving as the robe under it
+  // does) and drawn straight from there to the wing (stiffened, with the wing: a panel stiff to the waist stood still while
+  // the back under it bent, and the robe came through it); its outer edges keeping to the trunk and spreading to the tips
+  // as the height to the power `flare`. (The cut, the pleats pressed from the waist
   // to the shoulder's edge and the stiffening: Dalby, Kimono: Fashioning Culture, 1993; the Kyoto Costume Museum's
   // reconstruction, https://www.iz2.or.jp/english/fukusyoku/busou/23.htm.)
-  kataginu: { wing: 0.1, clear: 0.014, drop: 0.012, peak: 0.008, deep: [0.035, 0.075, 0.04], waist: [0.03, 0.105], back: 0.13, pleats: 3, fold: 0.005, lift: 0.011, nape: 0.035, soft: 0.5, taut: 0.75, flare: 2.2 },
+  kataginu: { wing: 0.1, clear: 0.014, drop: 0.012, peak: 0.008, deep: [0.035, 0.075, 0.04], waist: [0.03, 0.105], back: 0.13, pleats: 3, fold: 0.005, lift: 0.011, nape: 0.035, taut: 0.75, flare: 2.2 },
   board: { wide: 0.26, bow: 0.022, tilt: 0.012, row: 0.05, columns: 8, over: 0.012, give: 0.45, bound: 0.014, hem: 0 },
   // A plate breastplate (`plate`, or a kit's `rigidBreastplate`: [waist, top]
   // up the trunk) is one rigid shell on the chest bone from its lower edge at
@@ -531,13 +532,15 @@ function bodyAt(mesh, ring, angle) {
  * What a hung bag's points carry so that it can fall to the low side of its limb, whatever the limb does (clothsway.js: a
  * kosode's sleeve hangs below a raised forearm, not behind it as it was cut at rest): per point, `off` [the way to its
  * ring's middle (3, m), how far it stands in the bag past the cloth round the limb (m)] and `way` [the limb's line there
- * (3, its length the bag's depth on that ring, m), the angle round from the bag's middle (rad)]. Null where no piece hangs so.
+ * (3, its length the bag's depth on that ring, m), the angle round from the bag's middle (rad) plus seven times (the count
+ * of points round its ring, under 64, plus 64 times its limb's bone: `ring.fall`): one number, the angle within pi of
+ * nought]. Null where no piece hangs so.
  */
 function fallOf(mesh, positions) {
   if (!mesh.falls?.size) return null;
   const count = positions.length / 3;
   const [off, way] = [new Float32Array(count * 4), new Float32Array(count * 4)];
-  for (const [vertex, { ring, angle }] of mesh.falls) {
+  for (const [vertex, { ring, angle, points }] of mesh.falls) {
     if (!(ring.hang > 0)) continue;
     const axis = vec.normalize(vec.cross(ring.depthAxis, ring.widthAxis));
     const at = [positions[vertex * 3], positions[vertex * 3 + 1], positions[vertex * 3 + 2]];
@@ -546,7 +549,7 @@ function fallOf(mesh, positions) {
     if (vec.length(out) < 1e-5) continue;
     const back = vec.scale(ring.depthAxis, -1);
     off.set([...toMiddle, ring.hang * Math.max(0, -Math.cos(angle)) ** LOFT.sleeveBag], vertex * 4);
-    way.set([...vec.scale(axis, ring.hang), Math.atan2(vec.dot(vec.cross(back, out), axis), vec.dot(back, out))], vertex * 4);
+    way.set([...vec.scale(axis, ring.hang), Math.atan2(vec.dot(vec.cross(back, out), axis), vec.dot(back, out)) + 7 * (points + 64 * ring.fall)], vertex * 4);
   }
   return { off, way };
 }
@@ -730,7 +733,7 @@ function loft(mesh, rings, sides, { capStart = true, capEnd = true, color = 'ski
       mesh.ringT[mesh.positions.length / 3 - 1] = ring.t;
       mesh.ringA[mesh.positions.length / 3 - 1] = angle;
       // (A hung bag's points, which fall to the low side of the limb as it moves: fallOf.)
-      if (ring.fall !== undefined && mesh.stiffens) (mesh.falls ??= new Map()).set(mesh.positions.length / 3 - 1, { ring, angle });
+      if (ring.fall !== undefined && mesh.stiffens) (mesh.falls ??= new Map()).set(mesh.positions.length / 3 - 1, { ring, angle, points: sides });
       // (The ring each point was lofted on, where clothes are fitted to a base mesh afterwards: fitClothToBase.)
       if (mesh.ringOf) {
         mesh.ringOf.set(mesh.positions.length / 3 - 1, ring);
@@ -2563,6 +2566,13 @@ function notedPiece(mesh, rings, build) {
   const up = vec.normalize(vec.sub(rings.at(-1).center, rings[0].center));
   return { rings, from, to: mesh.positions.length / 3, corners: [corner, mesh.indices.length], origin: rings[0].center, up, left: rings[0].widthAxis, ahead: rings[0].depthAxis };
 }
+/** A point of the mesh's place in a noted piece's frame (inPiece), kept until the mesh is fitted (relayDecals): a decal asks for the same points many times over. */
+function placeInPiece(mesh, piece, vertex) {
+  const seen = (piece.seen ??= new Map());
+  (mesh.decalPieces ??= new Set()).add(piece);
+  if (!seen.has(vertex)) seen.set(vertex, inPiece(piece, mesh.positions.slice(vertex * 3, vertex * 3 + 3)));
+  return seen.get(vertex);
+}
 /** A point's place in a noted piece's frame: [up, left, ahead] (m). */
 function inPiece(piece, point) {
   const off = vec.sub(point, piece.origin);
@@ -2575,12 +2585,25 @@ function inPiece(piece, point) {
  * where on the rings it is (t, angle); null where the piece is not.
  */
 function pieceFace(mesh, piece, [up, left], facing = 1) {
-  const at = (vertex) => inPiece(piece, mesh.positions.slice(vertex * 3, vertex * 3 + 3));
-  const outermost = ([from, to]) => {
+  const at = (vertex) => placeInPiece(mesh, piece, vertex);
+  // (Each run of faces boxed once in the frame, till the mesh is fitted: most are nowhere near the point asked for.)
+  const boxed = (range) => {
+    const boxes = (piece.boxes ??= new Map());
+    if (!boxes.has(range)) {
+      const list = [];
+      for (let corner = range[0]; corner < range[1]; corner += 3) {
+        const [ia, ib, ic] = [mesh.indices[corner], mesh.indices[corner + 1], mesh.indices[corner + 2]];
+        const [a, b, c] = [at(ia), at(ib), at(ic)];
+        list.push({ ia, ib, ic, a, b, c, low: [Math.min(a[0], b[0], c[0]), Math.min(a[1], b[1], c[1])], high: [Math.max(a[0], b[0], c[0]), Math.max(a[1], b[1], c[1])] });
+      }
+      boxes.set(range, list);
+    }
+    return boxes.get(range);
+  };
+  const outermost = (range) => {
     let best = null;
-    for (let corner = from; corner < to; corner += 3) {
-      const [ia, ib, ic] = [mesh.indices[corner], mesh.indices[corner + 1], mesh.indices[corner + 2]];
-      const [a, b, c] = [at(ia), at(ib), at(ic)];
+    for (const { ia, ib, ic, a, b, c, low, high } of boxed(range)) {
+      if (up < low[0] - 1e-6 || up > high[0] + 1e-6 || left < low[1] - 1e-6 || left > high[1] + 1e-6) continue;
       const det = (b[0] - a[0]) * (c[1] - a[1]) - (c[0] - a[0]) * (b[1] - a[1]);
       if (Math.abs(det) < 1e-12) continue;
       const u = ((up - a[0]) * (c[1] - a[1]) - (c[0] - a[0]) * (left - a[1])) / det;
@@ -2604,12 +2627,15 @@ function pieceFace(mesh, piece, [up, left], facing = 1) {
   return {
     at: [0, 1, 2].map((axis) => mix(best, (vertex) => mesh.positions[vertex * 3 + axis])), normal,
     t: mix(own, (vertex) => mesh.ringT[vertex]), angle: Math.atan2(mix(own, (vertex) => Math.sin(mesh.ringA[vertex])), mix(own, (vertex) => Math.cos(mesh.ringA[vertex]))),
+    // (The piece's own face there, its points and the shares of each: what is laid there is skinned as they are, decalsFollow;
+    // not as a sleeve's head standing over it, which goes with the arm.)
+    host: shares(own),
   };
 }
 
 /**
- * Where each point of one row of a decal goes (decalOn: its targets, `lift`, `facing`, `taut`): { at, t, angle }, or null (off
- * the piece, with nothing of its row on it to stand by).
+ * Where each point of one row of a decal goes (decalOn: its targets, `lift`, `facing`, `taut`): { at, t, angle, host }, or null
+ * (off the piece, with nothing of its row on it to stand by).
  */
 function decalRow(mesh, piece, row, lift, facing, taut) {
   // (A point given whole, { at, t, angle }, is its own.)
@@ -2624,14 +2650,15 @@ function decalRow(mesh, piece, row, lift, facing, taut) {
   return row.map((target, column) => {
     const face = faces[column] ?? beside(column);
     if (!face) return null;
-    if (!Array.isArray(target)) return { at: target.at, t: face.t, angle: face.angle };
+    if (!Array.isArray(target)) return { at: target.at, t: face.t, angle: face.angle, host: face.host };
     const proud = lift + (target[2] ?? 0);
     // (Flat on from the foremost point of the row, or from the last one found where the piece has run out.)
     const from = foremost >= 0 && Math.abs(target[1]) > Math.abs(row[foremost][1]) ? faces[foremost] : faces[column] ? null : face;
-    if (!from) return { at: vec.add(face.at, vec.scale(face.normal, proud)), t: face.t, angle: face.angle };
+    if (!from) return { at: vec.add(face.at, vec.scale(face.normal, proud)), t: face.t, angle: face.angle, host: face.host };
     const [up, left] = inPiece(piece, from.at);
     const flat = vec.add(from.at, vec.add(vec.scale(piece.up, target[0] - up), vec.scale(piece.left, target[1] - left)));
-    return { at: vec.add(flat, vec.scale(piece.ahead, facing * proud)), t: face.t, angle: face.angle };
+    // (Skinned as the cloth straight under it, where there is any: held off a twisting flank by the spine's own turn, the flank came through it.)
+    return { at: vec.add(flat, vec.scale(piece.ahead, facing * proud)), t: face.t, angle: face.angle, host: face.host };
   });
 }
 
@@ -2644,18 +2671,21 @@ function decalRow(mesh, piece, row, lift, facing, taut) {
  * robe's cloth out over the flesh and its neck up the trapezius: a band defined on the lean rings and moved with them was
  * stretched to twice its width there. `taut`: the sheet is drawn tight, not laid into every hollow: out from where each row
  * of it stands foremost it goes on flat, past the body's edge too (a stiff vest over the breast and on before the shoulder).
+ * `stiffFrom`: only its rows from this one on are of the stiff body being built (`mesh.body`), the rows before it cloth: one
+ * sheet, so no gap opens where the stiff part and the cloth move apart.
  */
-function decalOn(mesh, piece, layout, lift, role, bones, { facing = 1, taut = false } = {}) {
+function decalOn(mesh, piece, layout, lift, role, bones, { facing = 1, taut = false, stiffFrom = Infinity } = {}) {
   const start = mesh.positions.length / 3;
   const placed = (row) => decalRow(mesh, piece, row, lift, facing, taut);
   const lay = (fresh) => {
     let vertex = start;
     let last = null;
-    for (const row of layout()) for (const point of placed(row)) {
+    for (const [index, row] of layout().entries()) for (const point of placed(row)) {
       // (A point with nothing to stand by takes the last one's place: its face closes to nothing.)
-      const { at, t, angle } = point ?? last ?? {};
+      const { at, t, angle, host } = point ?? last ?? {};
       if (!at) throw new Error('decalOn: the first point is off the piece');
-      last = { at, t, angle };
+      last = { at, t, angle, host };
+      if (host) (mesh.decalHosts ??= new Map()).set(vertex, host);
       const ring = ringAt(piece.rings, placeAt(piece.rings, t));
       const weighed = onRing(ring, angle, 1);
       if (fresh) {
@@ -2663,7 +2693,7 @@ function decalOn(mesh, piece, layout, lift, role, bones, { facing = 1, taut = fa
         mesh.weightPositions.push(...weighed);
         mesh.colors.push(role);
         mesh.bones.push(bones(piece.rings[Math.round(Math.max(0, Math.min(piece.rings.length - 1, placeAt(piece.rings, t))))], Math.cos(angle)));
-        mesh.stiff.push(bodyAt(mesh, ring, angle));
+        mesh.stiff.push(index >= stiffFrom || stiffFrom === Infinity ? bodyAt(mesh, ring, angle) : 0);
         (mesh.gridRing ??= new Map()).set(vertex, piece.rings[0]);
       } else for (let axis = 0; axis < 3; axis += 1) {
         mesh.positions[vertex * 3 + axis] = at[axis];
@@ -2688,8 +2718,33 @@ function decalOn(mesh, piece, layout, lift, role, bones, { facing = 1, taut = fa
   (mesh.decals ??= []).push(() => lay(false));
 }
 
+/**
+ * What is laid on cloth (decalOn) is skinned as the cloth under it: each point takes the weights of its face's three points
+ * by their shares (the four heaviest bones of the blend), and hangs as loose as they do (`sway`; not a stiff body's point). Weighted on its own, by
+ * where it lies over the body, a band or a vest's back turned a little otherwise than the robe when the trunk bent or the
+ * arms went forward, and the robe came through it.
+ */
+function decalsFollow(mesh, weights, sway, stiff) {
+  for (const [vertex, host] of mesh.decalHosts ?? []) {
+    const blend = new Map();
+    for (const [other, share] of host) for (let slot = 0; slot < 4; slot += 1) {
+      const weight = weights.skinWeight[other * 4 + slot] * share;
+      if (weight > 0) blend.set(weights.skinIndex[other * 4 + slot], (blend.get(weights.skinIndex[other * 4 + slot]) ?? 0) + weight);
+    }
+    const top = [...blend].sort((a, b) => b[1] - a[1]).slice(0, 4);
+    const total = top.reduce((sum, [, weight]) => sum + weight, 0);
+    if (!(total > 0)) continue;
+    for (let slot = 0; slot < 4; slot += 1) {
+      weights.skinIndex[vertex * 4 + slot] = top[slot]?.[0] ?? 0;
+      weights.skinWeight[vertex * 4 + slot] = top[slot] ? top[slot][1] / total : 0;
+    }
+    if (sway && !stiff[vertex]) sway[vertex] = host.reduce((sum, [other, share]) => sum + Math.max(0, sway[other]) * share, 0);
+  }
+}
+
 /** The faces laid on cloth (decalOn) laid again on it as it lies now: once it is fitted to a base body. */
 function relayDecals(mesh) {
+  for (const piece of mesh.decalPieces ?? []) piece.seen = piece.boxes = null;
   for (const lay of mesh.decals ?? []) lay();
 }
 
@@ -2708,7 +2763,7 @@ function wrappedCollarOn(mesh, piece, { wide, side, cross, foot, under }, { neck
   const edge = () => {
     const points = [];
     for (let vertex = piece.from; vertex < piece.to; vertex += 1) {
-      if (mesh.ringT[vertex] === topT && Math.cos(mesh.ringA[vertex]) > 0.1) points.push(inPiece(piece, mesh.positions.slice(vertex * 3, vertex * 3 + 3)));
+      if (mesh.ringT[vertex] === topT && Math.cos(mesh.ringA[vertex]) > 0.1) points.push(placeInPiece(mesh, piece, vertex));
     }
     points.sort((a, b) => a[1] - b[1]);
     return (left) => {
@@ -2739,26 +2794,26 @@ function wrappedCollarOn(mesh, piece, { wide, side, cross, foot, under }, { neck
     return Array.from({ length: rows + 1 }, (_, row) => [-1, -0.66, -0.33, 0, 0.33, 0.66, 1].map((share) => {
       const low = crossAt;
       const left = share * reach;
-      const high = top(left) - 0.004;
+      const high = top(left) - 0.001;
       const up = low + ((high - low) * row) / rows;
       return [up, share * Math.max(0.006, Math.min(reach, slope * (up - crossAt) + wide * 0.2))];
     }));
   };
-  decalOn(mesh, piece, opening, COLLAR_LIFT, inner, bones);
+  decalOn(mesh, piece, opening, COLLAR_LIFT[0], inner, bones);
   // (The under-robe's edges, then the robe's own: the right first, the left over it. Each band that passes under another ends
   // where the upper one first covers its whole width: the under-robe's `under / 2` above the crossing by the slope, the robe's
   // right band at the crossing.)
-  decalOn(mesh, piece, band(-1, (slope) => crossAt + under / (2 * slope) + 0.004, under), COLLAR_LIFT * 2, inner, bones);
-  decalOn(mesh, piece, band(1, (slope) => crossAt + under / (2 * slope) + 0.004, under), COLLAR_LIFT * 3, inner, bones);
-  decalOn(mesh, piece, band(-1, () => crossAt + 0.003, 0), COLLAR_LIFT * 4, role, bones);
-  decalOn(mesh, piece, band(1, () => footAt, 0), COLLAR_LIFT * 5, role, bones);
+  decalOn(mesh, piece, band(-1, (slope) => crossAt + under / (2 * slope) + 0.004, under), COLLAR_LIFT[0] + COLLAR_LIFT[1] * 1, inner, bones);
+  decalOn(mesh, piece, band(1, (slope) => crossAt + under / (2 * slope) + 0.004, under), COLLAR_LIFT[0] + COLLAR_LIFT[1] * 2, inner, bones);
+  decalOn(mesh, piece, band(-1, () => crossAt + 0.003, 0), COLLAR_LIFT[0] + COLLAR_LIFT[1] * 3, role, bones);
+  decalOn(mesh, piece, band(1, () => footAt, 0), COLLAR_LIFT[0] + COLLAR_LIFT[1] * 4, role, bones);
 }
 /**
  * A kataginu over a robe's trunk (`piece`: notedPiece), LOFT.kataginu: the stiff sleeveless vest of the kamishimo. Each
  * shoulder a flat pleated wing from the neck's side out past the arm, held level; from its front edge a panel narrowing to
  * the waist beside the robe's collar, from its back edge one panel across the back narrowing to the waist; all tucked into
- * the hakama. The wings and the upper panels are one stiff body in starched cloth ('coat': it keeps its shape and gives a
- * little with the shoulders), the panels below them cloth on the breast and the back. `shoulders` the two shoulder joints,
+ * the hakama. The wings and the panels' tops drawn up to them are one stiff body in starched cloth ('coat': it keeps its
+ * shape and gives a little with the shoulders), the panels below them cloth on the breast and the back. `shoulders` the two shoulder joints,
  * `armR` the upper arm's radius, `neckLeft` (m) how far off the middle its inner edge lies at the neck, `waistT` where
  * it goes under the cords.
  */
@@ -2775,7 +2830,7 @@ function kataginuOn(mesh, piece, spec, { shoulders, armR, neckLeft, waistT, role
   const robeTop = (left) => {
     let top = -Infinity;
     for (let vertex = piece.from; vertex < piece.to; vertex += 1) {
-      const [up, across] = inPiece(piece, mesh.positions.slice(vertex * 3, vertex * 3 + 3));
+      const [up, across] = placeInPiece(mesh, piece, vertex);
       if (Math.abs(Math.abs(across) - left) < 0.03) top = Math.max(top, up);
     }
     return top;
@@ -2806,15 +2861,14 @@ function kataginuOn(mesh, piece, spec, { shoulders, armR, neckLeft, waistT, role
   };
   spec.body = stiffBody(mesh, 'coat');
   const rows = 12;
-  const split = Math.round(rows * spec.soft);
+  const split = Math.round(rows * spec.taut);
   for (const hand of [1, -1]) {
     // The wing: its back edge, its middle (a low peak: the fold), its front edge.
     stiffly(() => decalOn(mesh, piece, () => shares.map((share) => [-1, 0, 1].map((way) => edge(ridge(), hand, share, way))), 0, role, bones, { facing: 0 }));
     // The front panel: from between `waist[0]` and `waist[1]` off the middle at the waist up to the wing's front edge, its
-    // pleats every other line a hair proud; the lower `soft` of it cloth, the rest of the stiff body.
+    // pleats every other line a hair proud; cloth where it lies on the robe, the rest of the stiff body.
     const front = (from, to) => panel(from, to, 1, shares.map((share) => ({ share, hand, foot: spec.waist[0] + (spec.waist[1] - spec.waist[0]) * share, spread: share })), true);
-    decalOn(mesh, piece, front(0, split), spec.lift, role, bones, { taut: true });
-    stiffly(() => decalOn(mesh, piece, front(split, rows), spec.lift, role, bones, { taut: true }));
+    stiffly(() => decalOn(mesh, piece, front(0, rows), spec.lift, role, bones, { taut: true, stiffFrom: split + 1 }));
   }
   // The back: one panel from both wings' back edges and the nape between them down to `back` (m) either side of the middle at the waist.
   const lines = [...shares.map((share) => -(0.28 + share * 0.72)), -0.14, 0, 0.14, ...shares.map((share) => 0.28 + share * 0.72)].sort((a, b) => a - b).map((column) => ({
@@ -2822,8 +2876,7 @@ function kataginuOn(mesh, piece, spec, { shoulders, armR, neckLeft, waistT, role
     share: (Math.abs(column) - 0.28) / 0.72, hand: Math.sign(column) || 1, nape: Math.abs(column) < 0.28 ? Math.abs(column) / 0.28 : null, foot: spec.back * Math.abs(column), spread: Math.abs(column),
   }));
   const back = (from, to) => panel(from, to, -1, lines, false);
-  decalOn(mesh, piece, back(0, split), spec.lift, role, bones, { facing: -1, taut: true });
-  stiffly(() => decalOn(mesh, piece, back(split, rows), spec.lift, role, bones, { facing: -1, taut: true }));
+  stiffly(() => decalOn(mesh, piece, back(0, rows), spec.lift, role, bones, { facing: -1, taut: true, stiffFrom: split + 1 }));
   // A panel's grid, rows `from` to `to` of `rows` from the waist up, seen from `way` (1 the front, -1 behind): each line of it
   // from `foot` off the middle at the waist to its place on the wing's edge (`share` of the way out, `hand` the side; or
   // `nape`: between the neck's sides, that share of the way to one, under the robe's collar), spreading the faster the
@@ -2836,7 +2889,7 @@ function kataginuOn(mesh, piece, spec, { shoulders, armR, neckLeft, waistT, role
       const target = (column, up) => {
         const { hand, foot, spread } = across[column];
         const out = up ** (1 + (spec.flare - 1) * spread);
-        return [waistUp + (tops[column].up - waistUp) * up, hand * (foot + (tops[column].left - foot) * out), (pleated && column % 2 ? spec.fold : 0) * up - spec.lift * (1 - up) * 0.6];
+        return [waistUp + (tops[column].up - waistUp) * up, hand * (foot + (tops[column].left - foot) * out), (pleated && column % 2 ? spec.fold : 0) * up - spec.lift * 0.6 * Math.max(0, 1 - up * 6)];
       };
       const held = decalRow(mesh, piece, across.map((_, column) => target(column, spec.taut)), spec.lift, way, true);
       const outward = (point) => vec.dot(vec.sub(point, piece.origin), piece.ahead) * way;
@@ -2849,15 +2902,16 @@ function kataginuOn(mesh, piece, spec, { shoulders, armR, neckLeft, waistT, role
           if (!held[column] || (nape !== null && nape !== undefined)) return target(column, up);
           const straight = vec.lerp(held[column].at, edge(line, hand, share, way).at, (up - spec.taut) / (1 - spec.taut));
           const over = up < 1 && laid[column] && outward(laid[column].at) > outward(straight);
-          return { at: over ? laid[column].at : straight, t: held[column].t, angle: held[column].angle };
+          return { at: over ? laid[column].at : straight, t: held[column].t, angle: held[column].angle, host: held[column].host };
         });
       });
     };
   }
 }
 
-// How far (m) each layer of a wrapped collar stands over the one under it: clear of the cloth's own folds between its points.
-const COLLAR_LIFT = 0.0025;
+// How far (m) the lowest layer of a wrapped collar stands over the robe's cloth (clear of the cloth's own folds between its
+// points), and each layer over the one under it.
+const COLLAR_LIFT = [0.0045, 0.002];
 
 /** Where along the rings (a place, as ringAt takes) the piece reaches t. */
 function placeAt(rings, t) {
@@ -5447,8 +5501,8 @@ export function* buildLoftBodySteps(body, { faceted = false, lowDetail = false, 
           ring.hang = hang * share * share * (3 - 2 * share);
         }
         const fore = bagged(widened(forearmRings(0.05, shape.sleeve - 1, count(4)), mid, mouth, hang ? 0 : elbow), hang, hang);
-        // (The bag falls to the low side of the arm: fallOf.)
-        if (hang) for (const ring of [...bag, ...fore]) ring.fall = true;
+        // (The bag falls to the low side of the arm, each part by its own bone's turn: fallOf.)
+        if (hang) for (const [rings, bone] of [[bag, BONE[`${side}UpperArm`]], [fore, BONE[`${side}Forearm`]]]) for (const ring of rings) ring.fall = bone;
         const corner = mesh.indices.length;
         loft(mesh, bag, round, { color: pattern, ...FLARED });
         // (What is laid on the robe's trunk lies over the sleeve's head too: pieceFace.)
@@ -5775,6 +5829,8 @@ export function* buildLoftBodySteps(body, { faceted = false, lowDetail = false, 
       if (sway) sway = pick(sway, 1);
       if (fall) fall = { off: pick(fall.off, 4), way: pick(fall.way, 4) };
       if (heat) heat = Array.from(order, (from) => heat[from]);
+      // (And the points laid on cloth, with the points of the faces they lie on: decalsFollow.)
+      if (mesh.decalHosts) mesh.decalHosts = new Map([...mesh.decalHosts].map(([vertex, host]) => [used[vertex], host.map(([other, share]) => [used[other], share])]).filter(([vertex, host]) => vertex >= 0 && host.every(([other]) => other >= 0)));
       indexArray = Uint32Array.from(kept, (vertex) => used[vertex]);
     }
   }
@@ -5802,6 +5858,7 @@ export function* buildLoftBodySteps(body, { faceted = false, lowDetail = false, 
   // (Rows and a coat's rings take the cloth's weights first, as what is under them does, and are made hoops of afterwards.)
   if (heat) baseHeatWeights(weights, heat, weightPositions, frames, bones.map((list, vertex) => list === chestOnly || ['plate', 'hung'].includes(mesh.kinds.get(stiff[vertex]))));
   else if (baseRig) blendShoulders(weights, weightPositions, frames, baseParts);
+  if (!faceted) decalsFollow(mesh, weights, sway, stiff);
   stiffWeights(weights, stiff, mesh.kinds);
   // The base mesh's fat masses that follow the frame (fatslosh.js): an overweight trunk and up, not in a crowd; each point by the
   // share the trunk's bones carry of it (an arm or a thigh lying against the belly or a breast is not moved with it), not a rigid plate.

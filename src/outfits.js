@@ -1931,7 +1931,7 @@ export const OUTFITS = {
       { label: 'Grey-brown kosode, black hakama', top: { kind: 'kosode', color: '#6b6557', under: '#26262b' }, bottom: { kind: 'hakama', color: '#1e1e22', long: true }, feet: { kind: 'sandal', color: '#5a3a22' }, extras: [{ kind: 'daisho', color: '#15151a', cord: '#3a2a1c' }] },
       // Kamishimo, the formal dress he would wear to fight before a lord: the stiff-shouldered kataginu and hakama of one pale
       // hemp cloth over a kosode (`top.kataginu`: loftbody.js kataginuOn).
-      { label: 'Kamishimo', top: { kind: 'kosode', color: '#8a8794', under: '#d8d1c0', kataginu: true }, bottom: { kind: 'hakama', color: '#b3b8bd', long: true }, feet: { kind: 'sandal', color: '#5a3a22' }, extras: [{ kind: 'daisho', color: '#15151a', cord: '#3a2a1c' }] },
+      { label: 'Kamishimo', top: { kind: 'kosode', color: '#8a8794', trim: '#7b7886', under: '#d8d1c0', kataginu: true }, bottom: { kind: 'hakama', color: '#b3b8bd', long: true }, feet: { kind: 'sandal', color: '#5a3a22' }, extras: [{ kind: 'daisho', color: '#15151a', cord: '#3a2a1c' }] },
     ],
   },
   // ---- Rome: the legions of the early Empire (1st century AD) ----

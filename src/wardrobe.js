@@ -3810,7 +3810,7 @@ function buildKasa(group, r, color, head = {}) {
   const cord = surface(head.tie ?? 0xd8d0bc, { roughness: 0.9 });
   const chin = new THREE.Vector3(0.52 * r, -1.08 * r, 0);
   for (const side of [1, -1]) {
-    const points = [[0.1, rimAt + 0.2, side * 0.98], [0.16, -0.25, side * 0.93], [0.34, -0.8, side * 0.6], [chin.x / r, chin.y / r, side * 0.05]].map(([x, y, z]) => new THREE.Vector3(x * r, y * r, z * r));
+    const points = [[0.12, rimAt + 0.2, side * 0.9], [0.2, -0.2, side * 0.8], [0.4, -0.75, side * 0.5], [chin.x / r, chin.y / r, side * 0.05]].map(([x, y, z]) => new THREE.Vector3(x * r, y * r, z * r));
     group.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points), 10, 0.032 * r, 5), cord));
   }
   const knot = new THREE.Mesh(new THREE.SphereGeometry(0.07 * r, 8, 6), cord);
