@@ -51,6 +51,12 @@ export const HAIR_SWING = {
   // The neck (not one of the body's colliders): a capsule from between the shoulders to the head, this share of the head
   // collider's radius.
   neck: 0.5,
+  // Wet hair (`wet` 0..1 on the swing, set by wetview.js): the water's weight is several times the hair's own, so the cut
+  // no longer holds it up (`stiffness` × this at wet through: it hangs straight down); the strands stick to each other and
+  // move as one damp mass that does not swing on (`damping` × this); and they stick to what they touch: a node within
+  // `reach` (of the head collider's radius) of the head, the neck or the body is drawn onto it by `cling` a substep and
+  // loses its speed there, so wet hair lies to the skull and the neck instead of standing off them.
+  wet: { stiffness: 0.25, damping: 5, cling: 0.3, reach: 0.9 },
   // A head moved more than this in one frame (m; a sprint's head moves 0.15 m a frame at 30 fps) was placed, not moved.
   jump: 0.4,
 };
@@ -116,6 +122,7 @@ export function buildHairSwing(meshes, chainSpecs, head) {
   let scale = 1;
   const lastHead = new THREE.Vector3(Infinity, 0, 0);
   let enabled = true;
+  let wet = 0;
 
   // The head (local): an ellipsoid, fuller in front (the nose and cheeks) than behind; a point inside is pushed out along its
   // scaled direction. Then, for a node cut behind the face, the face's box: out of it by the shorter way, back or sideways.
@@ -155,6 +162,44 @@ export function buildHairSwing(meshes, chainSpecs, head) {
     if (distance < wanted && distance > 1e-6) position.copy(q).addScaledVector(v, wanted / distance);
   }
 
+  // Wet hair drawn onto the nearest of what it hangs by (the head's ellipsoid, the neck, the body's capsules), if within reach.
+  const stuck = new THREE.Vector3();
+  function clingTo(position, previous, i, colliders, share) {
+    const reach = head.radii[2] * scale * config.wet.reach;
+    let nearest = reach;
+    // The head: the point on its ellipsoid along the node's own direction from its centre.
+    v.copy(position).applyMatrix4(inverse).sub(head.centre);
+    const [front, back, ay, az] = head.radii;
+    const ax = v.x > 0 ? front : back;
+    const inside = Math.sqrt((v.x / ax) ** 2 + (v.y / ay) ** 2 + (v.z / az) ** 2);
+    if (inside > 1e-6) {
+      w.copy(v).multiplyScalar(config.clearance / inside).add(head.centre).applyMatrix4(matrix);
+      const gap = w.distanceTo(position);
+      if (gap < nearest) {
+        nearest = gap;
+        stuck.copy(w);
+      }
+    }
+    const capsule = (a, b, radius) => {
+      w.subVectors(b, a);
+      const span = w.lengthSq();
+      const t = span > 1e-12 ? Math.max(0, Math.min(1, q.subVectors(position, a).dot(w) / span)) : 0;
+      q.copy(a).addScaledVector(w, t);
+      v.subVectors(position, q);
+      const distance = v.length();
+      const gap = distance - radius * config.clearance;
+      if (gap >= nearest || distance < 1e-6) return;
+      nearest = gap;
+      stuck.copy(q).addScaledVector(v, (radius * config.clearance) / distance);
+    };
+    if (neck.radius) capsule(neck.a, neck.b, neck.radius);
+    for (const collider of colliders) if (collider.a !== collider.b && collider.part !== 'leg') capsule(collider.a, collider.b, collider.radius);
+    if (nearest >= reach) return;
+    position.lerp(stuck, share);
+    // (Stuck there: most of its speed is lost to what it lies on.)
+    for (let axis = 0; axis < 3; axis += 1) previous[i + axis] += (position.getComponent(axis) - previous[i + axis]) * share;
+  }
+
   const x = new THREE.Vector3();
   const target = new THREE.Vector3();
   const other = new THREE.Vector3();
@@ -172,7 +217,8 @@ export function buildHairSwing(meshes, chainSpecs, head) {
       }
       // The root rides the head.
       v.fromArray(rest, 0).applyMatrix4(matrix).toArray(world, 0);
-      const keep = 1 - chain.damping;
+      const keep = 1 - Math.min(0.9, chain.damping * (1 + (config.wet.damping - 1) * wet));
+      const set = 1 + (config.wet.stiffness - 1) * wet;
       for (let k = 1; k < count; k += 1) {
         const i = k * 3;
         for (let axis = 0; axis < 3; axis += 1) {
@@ -190,7 +236,7 @@ export function buildHairSwing(meshes, chainSpecs, head) {
             // Bent back towards the cut: the rest link (turned with the head) from the node above.
             target.fromArray(rest, i).sub(v.fromArray(rest, i - 3)).transformDirection(matrix).multiplyScalar(segments[k] * scale).add(q);
             const bend = chain.stiffness * (1 - (1 - chain.tipShare) * ((k - 1) / Math.max(1, count - 2)));
-            x.lerp(target, bend);
+            x.lerp(target, bend * set);
           }
           // Held to the link's length.
           v.subVectors(x, q);
@@ -199,6 +245,7 @@ export function buildHairSwing(meshes, chainSpecs, head) {
           keepOffHead(x, chain.behind[k], chain.ahead === undefined ? Infinity : chain.rest[i] + chain.ahead);
           if (neck.radius) pushOutOfCapsule(x, neck.a, neck.b, neck.radius);
           for (const collider of colliders) if (collider.a !== collider.b && collider.part !== 'leg') pushOutOfCapsule(x, collider.a, collider.b, collider.radius);
+          if (wet > 0.05 && pass === config.passes - 1) clingTo(x, previous, i, colliders, config.wet.cling * wet);
           x.toArray(world, i);
         }
       }
@@ -238,6 +285,13 @@ export function buildHairSwing(meshes, chainSpecs, head) {
 
   return {
     chains,
+    /** How wet the hair is, 0..1 (HAIR_SWING.wet). */
+    get wet() {
+      return wet;
+    },
+    set wet(value) {
+      wet = Math.max(0, Math.min(1, value));
+    },
     get enabled() {
       return enabled;
     },

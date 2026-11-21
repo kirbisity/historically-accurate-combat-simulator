@@ -101,6 +101,7 @@ import { deflectsWith } from './physics/deflect.js';
 import { clearGore, machineEvent, severView, spawnBlood, spawnShot, spawnSparks, updateArms, updateArrows, updateBlood, updateDebris, updateShots, updateStumps, updateWhips, woundBlood } from './weaponview.js';
 import { placeFlameTanks, updateFlames } from './flameview.js';
 import { updateClothWind } from './clothwind.js';
+import { wetHold, wetInfo, wetnessOf, wetTier, wetUpdate } from './wetview.js';
 import { envAdapt, envInfo, envSetEnabled, envSetWeather, envUpdate } from './env/index.js';
 import { envDress } from './env/air.js';
 import { updateGroundDust } from './grounddust.js';
@@ -846,6 +847,8 @@ function frame(now) {
     envAdapt(scene, interval, qualityMode);
     // A V7 skin's maps by the stage's tier (render.js setSkinQuality): on 'low', no normal or roughness map.
     setSkinQuality(state.views, state.world?.stage ? resolution.tier ?? 'high' : 'high');
+    // The water on the fighters by the same tier (wetview.js): no beads on 'low', no runs on 'medium'.
+    wetTier(state.world?.stage ? resolution.tier ?? 'high' : qualityMode === 'low' ? 'low' : 'high');
     // A big moment slows the simulation, not the drawing.
     buildQueuedViews();
     // While an army is still being drawn, the fight waits for it.
@@ -1464,6 +1467,8 @@ function drawWorld(dt, drawIt = true) {
   // Dust off dry sand and earth where bodies strike and drag across it (grounddust.js).
   updateGroundDust(scene, world, dt * (state.paused ? 0 : state.speed));
   updateClothWind(scene, world);
+  // Sweat, rain, stood water and mud on the fighters (wetness.js, wetview.js): drawing only.
+  wetUpdate(scene, world, state.views, dt * (state.paused ? 0 : state.speed));
   // The canal town's own people (townfolkview.js): about on an ordinary day, indoors or in their doorways once a fight starts.
   townfolkFrame(scene, world, dt * (state.paused ? 0 : state.speed));
   envUpdate(scene, world, state.mode === 'play' ? player() : null);
@@ -4303,6 +4308,12 @@ const boxer = window.boxer = {
     if (name !== undefined) envSetWeather(scene, name);
     return envInfo(scene);
   },
+  // The water on the fighters (wetness.js, wetview.js), for a review. `wet(amount)`: every man held that wet (0..1) all
+  // over; `wet(amount, { level })`: as if he had stood in water to `level` m over the ground's own height 0; `sweat(amount)`
+  // and `mud(amount)` likewise; null lets them go, to dry and sweat as the world has it. No argument: each man's state now.
+  wet: (amount, { level } = {}) => (amount === undefined ? state.views.map((view) => wetInfo(wetnessOf(view.fighter))) : wetHold(state.views, amount === null ? null : level === undefined ? { water: amount, rain: amount } : { water: amount, level })),
+  sweat: (amount) => (amount === undefined ? boxer.wet() : wetHold(state.views, amount === null ? null : { sweat: amount })),
+  mud: (amount) => (amount === undefined ? boxer.wet() : wetHold(state.views, amount === null ? null : { mud: amount })),
   // The open air on or off (off: every place as it was before it); no argument: what is in force.
   env: (on) => {
     if (on !== undefined) envSetEnabled(scene, on);

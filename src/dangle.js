@@ -9,6 +9,9 @@ export const DANGLE = {
   gravity: 9.81,
   substeps: 3,
   maxStep: 1 / 30,
+  // A hanging thing wet through (`wet` 0..1 on the Dangle, set by wetview.js): heavier by the water in it, so it droops
+  // further from where it was cut or sewn to sit (`sag` × this) and its swing dies (its damping to `damping` of critical).
+  wet: { sag: 1.8, damping: 0.85 },
 };
 
 const tmp = new THREE.Vector3();
@@ -104,6 +107,7 @@ export class Dangle {
     this.length = length;
     this.sag = sag;
     this.dampingShare = damping;
+    this.wet = 0;
     this.rest = new THREE.Vector3(...rest).normalize();
     this.group = new THREE.Group();
     this.group.position.set(...pivot);
@@ -131,8 +135,8 @@ export class Dangle {
     const { pivot, length, restTip } = this.placeInWorld();
     if (!this.tip) this.tip = restTip.clone();
     // Spring and damper from the sag: gravity alone would bend it sag × length.
-    const stiffness = DANGLE.gravity / (this.sag * length);
-    const damping = 2 * Math.sqrt(stiffness) * this.dampingShare;
+    const stiffness = DANGLE.gravity / (this.sag * (1 + (DANGLE.wet.sag - 1) * this.wet) * length);
+    const damping = 2 * Math.sqrt(stiffness) * (this.dampingShare + (DANGLE.wet.damping - this.dampingShare) * this.wet);
     const outward = this.outward ? this.outward.clone().applyMatrix3(new THREE.Matrix3().setFromMatrix4(this.anchor.matrixWorld)).normalize() : null;
     const steps = DANGLE.substeps;
     const h = Math.min(dt, DANGLE.maxStep) / steps;

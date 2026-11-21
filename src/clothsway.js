@@ -37,6 +37,11 @@ export const CLOTH_SWAY = {
   // wherever it lies, its hem on the second spring as armour's, `wind` times the wind it takes otherwise, and a flutter run
   // over it (`flutter`: `amp` m, waves per m down and round) by the wind and by how far it swings, never quite still.
   soft: { ease: 0.5, floor: 0.3, wind: 1.6, flutter: { amp: 0.008, waves: [11, 8], rest: 0.25 } },
+  // Soaked cloth (ClothSwing `wet`, 0..1, set by wetview.js): it carries a few times its own weight in water, so its
+  // swing is slower (the spring's frequency over the root of 1 + `mass` × wet) and dies at once (`damping` at wet
+  // through); and it clings: of what would move it off the body (the swing, the wind's bow, the flap and the flutter)
+  // only `free` is left.
+  wet: { mass: 2, damping: 0.9, free: 0.2 },
 };
 
 /**
@@ -59,6 +64,8 @@ export class ClothSwing {
     // Whether the man has the soft swing (0..1, eased: CLOTH_SWAY.soft); set by render.js each frame.
     this.soft = { value: 0 };
     this.softWanted = 0;
+    // How soaked his clothes are (0..1): CLOTH_SWAY.wet.
+    this.wet = { value: 0 };
   }
 
   update(frames, dt) {
@@ -67,9 +74,13 @@ export class ClothSwing {
     const fresh = !this.at;
     if (fresh) this.at = new Float32Array(this.count * 3);
     if (!fresh && !(dt > 0)) return;
-    const omega = Math.PI * 2 * spec.hz;
+    const wet = this.wet.value;
+    const heavy = 1 / Math.sqrt(1 + spec.wet.mass * wet);
+    const omega = Math.PI * 2 * spec.hz * heavy;
+    const damping = spec.damping + (spec.wet.damping - spec.damping) * wet;
     const chain = spec.armour.chain;
-    const chainOmega = Math.PI * 2 * chain.hz;
+    const chainOmega = Math.PI * 2 * chain.hz * heavy;
+    const chainDamping = chain.damping + (spec.wet.damping - chain.damping) * wet;
     const hem = this.hem.value;
     this.clock.value = (this.clock.value + dt * Math.PI * 2 * spec.armour.ripple.hz) % 1000;
     this.soft.value += (this.softWanted - this.soft.value) * Math.min(1, dt / spec.soft.ease);
@@ -92,9 +103,9 @@ export class ClothSwing {
         this.pace[slot] += (pace - this.pace[slot]) * Math.min(1, dt / 0.08);
         for (let step = 1; step <= steps; step += 1) {
           const goal = this.was[slot] + ((target[axis] - this.was[slot]) * step) / steps;
-          this.speed[slot] += (omega * omega * (goal - this.at[slot]) - 2 * spec.damping * omega * (this.speed[slot] - pace)) * h;
+          this.speed[slot] += (omega * omega * (goal - this.at[slot]) - 2 * damping * omega * (this.speed[slot] - pace)) * h;
           this.at[slot] += this.speed[slot] * h;
-          this.chainSpeed[slot] += (chainOmega * chainOmega * (this.at[slot] - this.chain[slot]) - 2 * chain.damping * chainOmega * (this.chainSpeed[slot] - this.speed[slot])) * h;
+          this.chainSpeed[slot] += (chainOmega * chainOmega * (this.at[slot] - this.chain[slot]) - 2 * chainDamping * chainOmega * (this.chainSpeed[slot] - this.speed[slot])) * h;
           this.chain[slot] += this.chainSpeed[slot] * h;
         }
         this.was[slot] = target[axis];
@@ -126,6 +137,7 @@ uniform vec3 uClothSwing[${bones}];
 uniform vec3 uClothHem[${bones}];
 uniform float uClothClock;
 uniform float uClothSoft;
+uniform float uClothWet;
 uniform float uWindTime; uniform vec2 uWindWay; uniform float uWindStrength;
 `;
 
@@ -163,7 +175,8 @@ const SWAY_MOVE = () => {
 		// The cloth's flutter (soft swing): by the wind and its own swing, a little even still; outward and back to the body.
 		float clothFlutter = sin( clothPhase * 1.7 + position.y * ${f(spec.soft.flutter.waves[0])} + atan( position.z, position.x ) * ${f(spec.soft.flutter.waves[1] * 0.15)} );
 		clothMove += clothOut * ( ( 0.5 + 0.5 * clothFlutter ) * ${f(spec.soft.flutter.amp)} * clothLoose * clothSoftCloth * clamp( uWindStrength + clothStir + ${f(spec.soft.flutter.rest)}, 0.0, 1.5 ) );
-		transformed += clothMove;
+		// (Soaked, it clings.)
+		transformed += clothMove * mix( 1.0, ${f(spec.wet.free)}, uClothWet );
 	}
 #endif
 `;
@@ -182,7 +195,7 @@ export function swayCloth(material, swing) {
   const bones = swing.count;
   material.onBeforeCompile = (shader, renderer) => {
     before?.call(material, shader, renderer);
-    Object.assign(shader.uniforms, clothWindUniforms(), { uClothSwing: swing.uniform, uClothHem: swing.hem, uClothClock: swing.clock, uClothSoft: swing.soft });
+    Object.assign(shader.uniforms, clothWindUniforms(), { uClothSwing: swing.uniform, uClothHem: swing.hem, uClothClock: swing.clock, uClothSoft: swing.soft, uClothWet: swing.wet });
     // (A material already flying in the wind has the wind's uniforms declared.)
     const declared = shader.vertexShader.includes('uniform float uWindTime');
     const declarations = declared ? SWAY_DECLARATIONS(bones).replace(/uniform float uWindTime.*\n/, '') : SWAY_DECLARATIONS(bones);
