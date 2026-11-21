@@ -5138,6 +5138,11 @@ function chooseDetail(world) {
         fighter.detail = 'coarse';
         continue;
       }
+      // An exchange decided by the table, and a ghost (tableduel.js): poses.
+      if (fighter.tableDuel || fighter.ghost) {
+        fighter.detail = 'proxy';
+        continue;
+      }
       let lastHit = -Infinity;
       for (const at of fighter.hitAt) lastHit = Math.max(lastHit, at);
       // In an exchange now: striking, struck at, just hit, holding or held, getting up.
@@ -8618,7 +8623,7 @@ export function wound(defender, kind, joules, key, attacker) {
 const ARTERY_SEGMENTS = new Set(['Thigh', 'UpperArm']);
 
 /** A great vessel opened: he bleeds on top of what he does, to collapse in `seconds` s if nothing else drops him. */
-function openVessel(defender, seconds, attacker) {
+export function openVessel(defender, seconds, attacker) {
   defender.bleed = (defender.bleed ?? 0) + bleedToLose(collapseAt() - (defender.bloodLost ?? 0), seconds);
   defender.lastWoundedBy = attacker.id;
 }

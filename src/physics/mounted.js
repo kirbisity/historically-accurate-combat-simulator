@@ -21,6 +21,7 @@ import { BLADES, bleedRate, bleedToLose, contactShare, harmMix, pointThrough, po
 import { armourHardness, bluntEdge, driveShaft, dullEdge, stopIn } from './wear.js';
 import { afoot, knockOut, bladeFor, bladeStrike, breakWeapon, closestBetween, crashBetween, dropWeapon, crashHardness, crashHarm, crashOf, fall, fighterParty, placeFighter, groundBrace, handVelocityOf, heldBlades, point, poiseOf, shakenLoose, shieldDisc, shieldHarm, shieldParty, shattersOn, stagger, strainGrip, strikeLiveUntil, strokeOf, wholeVelocity } from '../physics.js';
 import { WORLD } from './config.js';
+import { crowdNear } from '../crowdgrid.js';
 import { footingOn, partUnder, treadOn } from './footing.js';
 import { horseBalks, horseFounders, horseMire, horseOnWorks } from './fieldworks.js';
 
@@ -1713,7 +1714,7 @@ function horseEngaged(world, horse) {
   const rider = horse.rider === null ? null : world.fighters[horse.rider];
   if (rider?.mount === horse && rider.detail === 'full') return true;
   const range = spec.range + spec.lead * Math.abs(horse.speed);
-  for (const fighter of world.fighters) {
+  for (const fighter of crowdNear(world, [[horse.at[0], horse.at[1], range]]) ?? world.fighters) {
     if (fighter.corner === horse.corner || fighter.state === 'out' || fighter.dormant || fighter.mount) continue;
     const at = P.pelvis * 3;
     if ((fighter.x[at] - horse.at[0]) ** 2 + (fighter.x[at + 2] - horse.at[1]) ** 2 < range * range) return true;
@@ -1777,7 +1778,8 @@ function manLegSegments(fighter) {
 function rideDown(world, horse) {
   const spec = WORLD.mount.trample;
   const touched = [];
-  for (const fighter of world.fighters) {
+  // (In a step, only the men within its reach: crowdgrid.js, in index order as before.)
+  for (const fighter of crowdNear(world, [[horse.at[0], horse.at[1], 1.6 * horse.withers]]) ?? world.fighters) {
     if (fighter.mount || (fighter.state === 'out' && fighter.outFor > 20)) continue;
     const pelvis = point(fighter.x, P.pelvis);
     if (Math.hypot(pelvis[0] - horse.at[0], pelvis[2] - horse.at[1]) > 1.6 * horse.withers) continue;
@@ -1933,7 +1935,9 @@ function trodOn(world, horse) {
   const rider = horse.rider === null ? null : world.fighters[horse.rider];
   for (const key of horse.landed) {
     const leg = horse.legs[key];
-    const under = partUnder(world.fighters, null, leg.hoof[0], leg.hoof[2], sole, (fighter) => fighter.corner === horse.corner, legLength);
+    // (In a step, the men near the hoof: partUnder looks only within WORLD.bodyReach + the sole each way, a square.)
+    const near = crowdNear(world, [[leg.hoof[0], leg.hoof[2], (WORLD.bodyReach + sole) * Math.SQRT2]]) ?? world.fighters;
+    const under = partUnder(near, null, leg.hoof[0], leg.hoof[2], sole, (fighter) => fighter.corner === horse.corner, legLength);
     if (!under) continue;
     const man = under.fighter;
     const crawling = man.crawling && man.state === 'up';

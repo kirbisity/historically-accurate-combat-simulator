@@ -4,12 +4,13 @@
 
 import { finishTarget, startFinisher, updateFinisher } from './finisher.js';
 import { CROWD_GRID, crowdAnyAlong, crowdFirst, crowdNear, withCrowdGrid } from './crowdgrid.js';
+import { joinTable, keepTable, TABLE_DUEL, tableEligible } from './tableduel.js';
 import { aheadOfSlot, DRILL, fallIn, fromSlot, moveFormations, moveWings, volleyDue, walkToSlot, WINGS } from './formation.js';
 import { keepOrders, obeyOrder, orderedFocus, orderKeepsPlace } from './command.js';
 import { P } from './body.js';
 import { MOVES, pointRoomOf, STRATEGIES, STYLES, moveRange } from './moves.js';
 import { MAIMING, maimFear } from './maiming.js';
-import { aimPoint, armGone, inRiderArc, bladeFor, blockFor, bodyHarm, chinNow, couchedGap, crawlingAway, dazedShare, dropShield, dropWeapon, fightTier, guardReading, holdGuard, hostile, fillGrid, floorGrid, gridAround, inFight, legGone, legShare, limbGone, longPoint, nearestOpponent, perform, point, protectionAt, reachOf, goToGrips, shedStandard, sightAngle, staggerShare, startCrawl, startPickup, strikeThreat, throwPunch, toLocal, useMounted, WORLD, undeflectable } from './physics.js';
+import { aimPoint, armGone, openVessel, inRiderArc, bladeFor, blockFor, bodyHarm, chinNow, couchedGap, crawlingAway, dazedShare, dropShield, dropWeapon, fightTier, guardReading, holdGuard, hostile, fillGrid, floorGrid, gridAround, inFight, legGone, legShare, limbGone, longPoint, nearestOpponent, perform, point, protectionAt, reachOf, goToGrips, shedStandard, sightAngle, staggerShare, startCrawl, startPickup, strikeThreat, throwPunch, toLocal, useMounted, WORLD, undeflectable } from './physics.js';
 import { vec, yawRotate } from './pose.js';
 import { BLADES, GUN, WEAPONS } from './weapons.js';
 import { FACTIONS, factionOf } from './outfits.js';
@@ -803,17 +804,26 @@ function thinkEachMan(world, dt, playerIds) {
     }
     const seen = perceivedBy(view, fighter);
     fighter.unperceived = !seen;
+    // An exchange far off and unperceived, decided by the table (tableduel.js): held to his man, no think step by step.
+    if (TABLE_DUEL.enabled && keepTable(world, fighter, dt, { strike: openVessel })) {
+      if (headcount) recountHead(fighter);
+      continue;
+    }
     // (A rider thinks every step, whatever his detail: a step his AI sets no goal for his horse, it goes by his footwork,
     // physics/mounted.js goalFromFootwork.)
     // (An exchange the player does not perceive, 'unseen' in the physics, is an exchange all the same: physics.js chooseDetail.)
-    const exchanging = fighter.detail === 'full' || fighter.detail === 'unseen' || fighter.detail === undefined;
-    const every = !staggered || fighter.mount || exchanging ? 0 : seen ? AI.idleThinkEvery : AI.perceive.idleEvery;
+    // A ghost (tableduel.js): a man on foot with no missile, unperceived and far off, is a pose (physics.js chooseDetail), thinks
+    // on a slow beat, and fights by the table once at grips.
+    fighter.ghost = (TABLE_DUEL.enabled && staggered && !fighter.mount && !STYLES[fighter.style]?.ranged && tableEligible(world, fighter)) || undefined;
+    const exchanging = !fighter.ghost && (fighter.detail === 'full' || fighter.detail === 'unseen' || fighter.detail === undefined);
+    const every = fighter.ghost ? TABLE_DUEL.ghostEvery : !staggered || fighter.mount || exchanging ? 0 : seen ? AI.idleThinkEvery : AI.perceive.idleEvery;
     if (every === 0) {
       // Cleared, so that once he is staggered he takes up his own beat.
       fighter.aiOwed = undefined;
       if (headcount) headcount.thinking = fighter;
       think(world, fighter, dt);
       keepPlace(world, fighter);
+      if (TABLE_DUEL.enabled) joinTable(world, fighter);
       if (headcount) recountHead(fighter);
       continue;
     }
@@ -823,6 +833,7 @@ function thinkEachMan(world, dt, playerIds) {
     if (headcount) headcount.thinking = fighter;
     think(world, fighter, fighter.aiOwed);
     keepPlace(world, fighter);
+    if (TABLE_DUEL.enabled) joinTable(world, fighter);
     if (headcount) recountHead(fighter);
     fighter.aiOwed = 0;
   }
