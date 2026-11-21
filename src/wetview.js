@@ -77,7 +77,7 @@ export const WET_VIEW = {
   // Hair, cloth and what hangs, wet through: see hairswing.js, clothsway.js, dangle.js (their `wet`).
 };
 
-const SEGMENT_ENDS = WET_SEGMENTS.map((name) => [P[SEGMENTS[name].from], P[SEGMENTS[name].to]]);
+const WET_VIEW_ENDS = WET_SEGMENTS.map((name) => [P[SEGMENTS[name].from], P[SEGMENTS[name].to]]);
 const SEGMENTS_N = WET_SEGMENTS.length;
 
 // Shared by every wet material: the drops, the clock, the tier (0: no drops, 1: drops, 2: and runs).
@@ -409,12 +409,12 @@ export function wetWarm(material, mask = false) {
 // ---- a fighter's state and his dress --------------------------------------------------------------------------------
 
 // A fighter's wetness outlives his drawing (a view is made again when his skin is swapped or his helmet falls).
-const states = new WeakMap();
+const wet_states = new WeakMap();
 
 /** The wetness of a fighter (wetness.js), made dry the first time it is asked for. */
 export function wetnessOf(fighter) {
-  let state = states.get(fighter);
-  if (!state) states.set(fighter, (state = Object.assign(createWetness(), { held: null, sweated: null, wait: 0, mudAt: -Infinity })));
+  let state = wet_states.get(fighter);
+  if (!state) wet_states.set(fighter, (state = Object.assign(createWetness(), { held: null, sweated: null, wait: 0, mudAt: -Infinity })));
   return state;
 }
 
@@ -452,7 +452,7 @@ export function wetDress(fighterView) {
 // A world's bodies of water (a stage's, and a battle's standing on its soft ground), found once.
 const worldWaters = new WeakMap();
 
-function watersOf(world) {
+function wet_watersOf(world) {
   let found = worldWaters.get(world);
   if (!found) {
     const works = world.arena ? worksOf(world.arena) : null;
@@ -506,7 +506,7 @@ function airFor(view, world, fighter, state, dt, rain) {
   const pz = x[P.pelvis * 3 + 2];
   let low = Infinity;
   for (let index = 1; index < x.length; index += 3) if (x[index] < low) low = x[index];
-  const { works, waters } = watersOf(world);
+  const { works, waters } = wet_watersOf(world);
   AIR.water = -Infinity;
   for (const water of waters) {
     if (low > water.at[1] || !waterContains(water, px, pz)) continue;
@@ -544,7 +544,7 @@ function airFor(view, world, fighter, state, dt, rain) {
 
 // ---- each frame ---------------------------------------------------------------------------------------------------------
 
-let frame = 0;
+let wetFrame = 0;
 
 /**
  * Each frame, after the fighters' views are placed: every `WET_VIEW.every`th frame a man's wetness is stepped from
@@ -553,7 +553,7 @@ let frame = 0;
  */
 export function wetUpdate(view, world, fighterViews, dt) {
   if (!world) return;
-  frame += 1;
+  wetFrame += 1;
   if (dt > 0) WET_SHARED.uWetTime.value = (WET_SHARED.uWetTime.value + dt) % 1000;
   const rain = rainNow(view, world);
   for (let index = 0; index < fighterViews.length; index += 1) {
@@ -563,7 +563,7 @@ export function wetUpdate(view, world, fighterViews, dt) {
     const fighter = fighterView.fighter;
     const state = wet.state;
     state.wait += dt;
-    if ((frame + index) % WET_VIEW.every === 0 && (state.wait > 0 || state.held?.fresh)) {
+    if ((wetFrame + index) % WET_VIEW.every === 0 && (state.wait > 0 || state.held?.fresh)) {
       const scale = (fighter.body.heightM ?? 1.75) / 1.75;
       wetHeights(fighter.x, state.heights, scale);
       stepWetness(state, airFor(view, world, fighter, state, state.wait, rain), state.wait);
@@ -583,8 +583,8 @@ export function wetUpdate(view, world, fighterViews, dt) {
     const to = wet.uniforms.uWetTo.value;
     const x = fighter.x;
     for (let segment = 0; segment < SEGMENTS_N; segment += 1) {
-      const a = SEGMENT_ENDS[segment][0] * 3;
-      const b = SEGMENT_ENDS[segment][1] * 3;
+      const a = WET_VIEW_ENDS[segment][0] * 3;
+      const b = WET_VIEW_ENDS[segment][1] * 3;
       from[segment * 4] = x[a];
       from[segment * 4 + 1] = x[a + 1];
       from[segment * 4 + 2] = x[a + 2];
@@ -641,7 +641,7 @@ function drip(view, fighter, state, dt) {
     const point = Math.floor(Math.random() * WET_COUNT);
     const at = point * 4;
     if (Math.max(state.values[at + WET_CHANNEL.water], state.values[at + WET_CHANNEL.rain]) < 0.7) continue;
-    const [a, b] = SEGMENT_ENDS[Math.floor(point / WET_POINTS)];
+    const [a, b] = WET_VIEW_ENDS[Math.floor(point / WET_POINTS)];
     const t = (point % WET_POINTS) / (WET_POINTS - 1);
     const slot = drips.next;
     drips.next = (drips.next + 1) % spec.most;
