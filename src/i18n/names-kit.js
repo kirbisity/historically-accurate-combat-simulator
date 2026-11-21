@@ -324,7 +324,7 @@ export const NAMES_KIT = {
   'Victorian — corset and gown': '维多利亚——束腰长裙',
   'Ball gown (1860s)': '舞会礼服（1860年代）',
   'Bustle dress (1880s)': '裙撑长裙（1880年代）',
-  'Mourning black': '丧服黑',
+  'Walking dress (1890s)': '外出长裙（1890年代）',
   'Gothic A — bubble bloomers': '哥特A——灯笼短裤',
   'Gothic B — high-low train': '哥特B——前短后长拖尾',
   'Gothic C — lace sleeves, tiered skirt': '哥特C——蕾丝袖，层叠裙',

@@ -273,7 +273,7 @@ const finish = (group) => {
  * A hand: a bare fist in skin, a black tactical glove, or a steel gauntlet,
  * in the forearm's frame at the hand point (y along the forearm).
  */
-export function buildHand(body, side, kind, skinColor, steel) {
+export function buildHand(body, side, kind, skinColor, steel, glove = null) {
   const scale = body.heightM / 1.8;
   // The fist from its heel at the wrist (body.js ARM_LENGTHS `wristToFist` behind the hand point, the fist's middle) to its
   // knuckles' face, as far in front of the point as a bare fist strikes with (physics/config.js WORLD.fists.bare.radius).
@@ -283,9 +283,10 @@ export function buildHand(body, side, kind, skinColor, steel) {
   const half = (face + heel) / 2;
   const knuckleRadius = 0.0095 * scale;
   // (A proximity suit's aluminized gloves: their gauntlet cuff over the sleeve.)
-  const material = kind === 'gauntlet' ? steel : kind === 'proximity' ? foilMaterial(steel?.envMap ?? null, 0xc9ccd1) : surface(kind === 'tactical' ? 0x18191d : skinColor);
+  // (`glove`: a dress glove's colour, a design's `gloves`: kid, close as the skin, so the bare hand's shape in its leather.)
+  const material = kind === 'gauntlet' ? steel : kind === 'proximity' ? foilMaterial(steel?.envMap ?? null, 0xc9ccd1) : glove && kind === 'bare' ? surface(glove, { roughness: 0.5 }) : surface(kind === 'tactical' ? 0x18191d : skinColor);
   // (A bare hand is skin, for the water on it: wetview.js.)
-  if (kind !== 'gauntlet' && kind !== 'proximity' && kind !== 'tactical') material.userData.wetKind = 'skin';
+  if (kind !== 'gauntlet' && kind !== 'proximity' && kind !== 'tactical' && !glove) material.userData.wetKind = 'skin';
   const hand = new THREE.Group();
   const palm = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 12), material);
   palm.scale.set(0.034 * scale * (kind === 'bare' ? 1 : 1.1), half, 0.042 * scale * (kind === 'bare' ? 1 : 1.08));
@@ -1002,19 +1003,48 @@ export function buildHeadgear(body, head, colors, steel, cornerHex, { lowDetail 
       break;
     }
     case 'tiltHat': {
-      // An 1880s hat: a small flat crown tipped forward over the brow, a feather curling back.
+      // An 1880s hat: a small flat crown tipped forward over the brow, a ribbon round it, an ostrich feather curling back.
       const felt = cloth;
       const hat = new THREE.Group();
-      const crown = new THREE.Mesh(new THREE.CylinderGeometry(0.75 * r, 0.8 * r, 0.45 * r, 18), felt);
+      const crown = new THREE.Mesh(new THREE.CylinderGeometry(0.72 * r, 0.8 * r, 0.42 * r, 24), felt);
       crown.position.y = 0.3 * r;
-      const brim = new THREE.Mesh(new THREE.CylinderGeometry(1.25 * r, 1.25 * r, 0.05 * r, 22), felt);
+      const brim = new THREE.Mesh(new THREE.LatheGeometry(LADY_HAT.brim.map(([x, y]) => new THREE.Vector2(x * 1.3 * r, y * r)), 32), felt);
       brim.position.y = 0.08 * r;
-      const feather = new THREE.Mesh(new THREE.ConeGeometry(0.16 * r, 1.5 * r, 6), surface(head.plume ?? 0xe8e0cc));
-      feather.position.set(-0.5 * r, 0.6 * r, 0.45 * r);
-      feather.rotation.set(0.3, 0, 1.15);
-      hat.add(crown, brim, feather);
+      const band = new THREE.Mesh(new THREE.CylinderGeometry(0.81 * r, 0.815 * r, 0.14 * r, 24, 1, true), surface(head.plume ?? 0xe8e0cc, { roughness: 0.45 }));
+      band.position.y = 0.17 * r;
+      hat.add(crown, brim, band, hatPlume(r, [[-0.1, 0.2, 0.7], [-0.45, 0.75, 0.75], [-1.05, 0.95, 0.5], [-1.5, 0.6, 0.25], [-1.6, 0.25, 0.2]], 0.3, surface(head.plume ?? 0xe8e0cc, { roughness: 0.9 })));
       hat.position.set(0.25 * r, 0.75 * r, 0);
       hat.rotation.z = -0.28;
+      group.add(hat);
+      hidesHair = false;
+      break;
+    }
+    case 'plumeHat': {
+      // An 1890s hat: a wide brim rolled at its edge, a low crown with a satin band, worn level and a little forward over
+      // hair dressed up; ostrich plumes rising from the front of the crown and falling back over it, a knot of ribbon at
+      // their foot (the plumes swing: hangingSwing).
+      const felt = cloth;
+      const hat = new THREE.Group();
+      const crown = new THREE.Mesh(new THREE.CylinderGeometry(0.8 * r, 0.86 * r, 0.5 * r, 28), felt);
+      crown.position.y = 0.33 * r;
+      const brim = new THREE.Mesh(new THREE.LatheGeometry(LADY_HAT.brim.map(([x, y]) => new THREE.Vector2(x * 1.62 * r, y * r)), 40), felt);
+      brim.position.y = 0.08 * r;
+      const satin = surface(head.band ?? color, { roughness: 0.3 });
+      const band = new THREE.Mesh(new THREE.CylinderGeometry(0.868 * r, 0.875 * r, 0.16 * r, 28, 1, true), satin);
+      band.position.y = 0.18 * r;
+      hat.add(crown, brim, band);
+      const feather = surface(head.plume ?? color, { roughness: 0.92 });
+      for (const [spine, width] of LADY_HAT.plumes) hat.add(hatPlume(r, spine, width, feather));
+      // The knot: loops of the band's satin where the plumes are pinned.
+      for (const [turn, lean] of [[0.5, 0.5], [-0.6, 0.4], [0, -0.2]]) {
+        const loop = new THREE.Mesh(new THREE.TorusGeometry(0.2 * r, 0.07 * r, 6, 12), satin);
+        loop.position.set(0.72 * r, 0.42 * r, 0.42 * r + turn * 0.22 * r);
+        loop.rotation.set(turn, Math.PI / 2 + lean, 0);
+        loop.scale.set(1, 1.5, 0.6);
+        hat.add(loop);
+      }
+      hat.position.set(0.12 * r, 0.8 * r, 0);
+      hat.rotation.set(0.1, 0, -0.14);
       group.add(hat);
       hidesHair = false;
       break;
@@ -3217,6 +3247,60 @@ const MENPO_HAIR = {
   tuft: { count: 26, width: 0.085, y: -0.57, length: 0.11, stand: 0.03 },
   steps: 5, thick: 0.02,
 };
+
+// A lady's hat, in head radii. `brim`: its profile from the crown out (a lathe: [radius as a share of the brim's, height]), flat
+// and rolled up at its edge. `plumes`: each ostrich plume's spine (points from its quill, pinned at the crown's front, to its
+// tip: forward, up, to her left) and its breadth.
+const LADY_HAT = {
+  brim: [[0.45, 0.02], [0.8, 0], [0.94, 0.012], [1, 0.05], [0.985, 0.075], [0.93, 0.045], [0.8, 0.03], [0.45, 0.05]],
+  plumes: [
+    [[[0.75, 0.3, 0.5], [0.55, 0.95, 0.55], [-0.1, 1.3, 0.35], [-0.8, 1.1, 0.15], [-1.25, 0.65, 0.05], [-1.3, 0.35, 0.1]], 0.36],
+    [[[0.78, 0.3, 0.35], [0.7, 0.85, 0.1], [0.2, 1.15, -0.3], [-0.5, 1.0, -0.6], [-0.95, 0.6, -0.7], [-1.0, 0.35, -0.6]], 0.32],
+    [[[0.7, 0.3, 0.6], [0.6, 0.7, 0.95], [0.1, 0.85, 1.25], [-0.5, 0.65, 1.3], [-0.85, 0.35, 1.15]], 0.28],
+    [[[0.8, 0.3, 0.45], [1.0, 0.7, 0.4], [0.95, 1.0, 0.2], [0.6, 1.2, 0.0]], 0.24],
+  ],
+};
+
+/**
+ * An ostrich plume: a soft flattened body along its spine (`spine`: points in head radii `r`, quill first), `width` across at
+ * its fullest, its barbs' ends a ragged edge. It swings from its quill (`userData.hangs`, hangingSwing: that moves a piece by
+ * how far below its top a point lies, so the plume is built upside down, quill uppermost, and the mesh turned over).
+ */
+function hatPlume(r, spine, width, material) {
+  const curve = new THREE.CatmullRomCurve3(spine.map(([x, y, z]) => new THREE.Vector3(x * r, y * r, z * r)));
+  const [along, round] = [18, 12];
+  const positions = [];
+  const indices = [];
+  const up = new THREE.Vector3(0, 1, 0);
+  for (let step = 0; step <= along; step += 1) {
+    const share = step / along;
+    const centre = curve.getPoint(share);
+    const tangent = curve.getTangent(share);
+    const across = new THREE.Vector3().crossVectors(tangent, up).normalize();
+    const out = new THREE.Vector3().crossVectors(across, tangent).normalize();
+    // Narrow at the quill, full two thirds of the way up, a rounded tip that curls over.
+    const full = width * r * Math.sin(Math.min(1, share * 1.25 + 0.12) * Math.PI * 0.86) ** 0.7 * (step === along ? 0.35 : 1);
+    for (let side = 0; side < round; side += 1) {
+      const turn = (side / round) * Math.PI * 2;
+      // (The barbs: every other point of the edge drawn out, alternately along the plume.)
+      const barb = 1 + 0.2 * ((side + step) % 2) * Math.abs(Math.cos(turn));
+      const point = centre.clone().addScaledVector(across, Math.cos(turn) * full * barb).addScaledVector(out, Math.sin(turn) * full * 0.34);
+      positions.push(point.x, -point.y, -point.z);
+    }
+  }
+  for (let step = 0; step < along; step += 1) for (let side = 0; side < round; side += 1) {
+    const [a, b] = [step * round + side, step * round + ((side + 1) % round)];
+    indices.push(a, a + round, b, b, a + round, b + round);
+  }
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  geometry.setIndex(indices);
+  geometry.computeVertexNormals();
+  const plume = new THREE.Mesh(geometry, material);
+  plume.rotation.x = Math.PI;
+  plume.userData.hangs = 'plume';
+  return plume;
+}
 
 /** A helmet's hanging pieces (`userData.hangs`: 'mail' or 'cloth'), their materials made their own to swing. */
 function hangingPieces(group) {
