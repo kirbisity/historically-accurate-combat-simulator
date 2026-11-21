@@ -129,7 +129,7 @@ export const HITFEEL = {
     // An ordinary meeting of blades, a blow stopped: few, dull, falling.
     clash: { count: [4, 24], speed: 1.5, speedMost: [3.5, 7.5], life: [0.12, 0.5], width: [0.004, 0.007], cone: 0.9, loose: 0.5, tint: 0.3, gravity: 1, flash: { size: [0.05, 0.15], colour: [1.4, 1.1, 0.7], seconds: 0.05 }, light: { peak: [0, 1.2], colour: [1, 0.7, 0.4], seconds: 0.03, range: 5 } },
     // A deflect: many, fast, bright, thrown one way, and the flash lights the men.
-    deflect: { count: [45, 100], speed: 4, speedMost: [10, 16], life: [0.15, 0.6], width: [0.006, 0.012], cone: 2.2, loose: 0.3, tint: 0.5, gravity: 0.6, flash: { size: [0.3, 0.5], colour: [3.2, 2, 0.8], seconds: 0.09 }, light: { peak: [5, 9], colour: [1, 0.72, 0.38], seconds: 0.06, range: 8 } },
+    deflect: { count: [55, 120], speed: 4, speedMost: [10, 16], life: [0.15, 0.6], width: [0.009, 0.017], cone: 3, loose: 0.25, tint: 0.6, gravity: 0.6, flash: { size: [0.3, 0.5], colour: [3.2, 2, 0.8], seconds: 0.09 }, light: { peak: [4, 7], colour: [1, 0.72, 0.38], seconds: 0.06, range: 6 } },
     // A big deflect is a deflect and this much more of it.
     big: 1.4,
     // An edge turned off plate (`glance`: no impulse of its own in the event): a few.
@@ -148,7 +148,7 @@ export const HITFEEL = {
   // pale steel, added to the picture; `steps`: the samples laid between two frames (a fast cut turns 15 degrees a frame:
   // the arc is drawn round, not as flats); `samples`: the most kept for a blade; `most`: the blades trailed at once, by
   // the quality tier (the man played's and his man's; never a crowd's).
-  trail: { seconds: 0.13, from: 6, full: 14, inner: 0.3, colour: [0.92, 0.95, 1], peak: 0.5, steps: 3, samples: 40, most: { high: 4, medium: 4, low: 2 } },
+  trail: { seconds: 0.13, from: 6, full: 14, inner: 0.45, colour: [0.92, 0.95, 1], peak: 0.42, steps: 3, samples: 40, most: { high: 4, medium: 4, low: 2 } },
   // Settings kept in this browser under this key.
   key: 'gladiator-hitfeel',
 };
@@ -253,6 +253,9 @@ export function createHitFeel(settings = loadHitFeel(null)) {
     const strength = Math.max(spec?.floor ?? 0, hitStrength(event)) * HITFEEL.share[way];
     if (strength <= 0) return null;
     if (beat === 'execution' && framing) framing.blow = now;
+    // The thrust of an execution lands as any blow does, a step before its `executionBlow`: its hold is the execution's, not
+    // a blow's hold and then the execution's after it.
+    const held = !(beat === 'hit' && way === 'landed' && framing && framing.blow === null);
     // The blow's way: into the struck man (the event's normal points out of him, toward the striker). A meeting with no
     // normal of its own (a parry, the point home): a jolt straight down.
     const normal = event.normal ?? [0, 1, 0];
@@ -260,7 +263,7 @@ export function createHitFeel(settings = loadHitFeel(null)) {
     // The colour drained: the beat's own, or a landed blow's at the very top of its strength.
     const top = HITFEEL.screen;
     const drained = spec ? spec.screen : way === 'landed' && strength >= top.from ? top.hit * hitFeelClamp((strength - top.from) / (1 - top.from) + 0.5) : 0;
-    pulses.push({ start: now, strength, beat, way, into, harm: way === 'taken' ? event.harm ?? 0 : 0, screen: drained, screenSeconds: spec?.screenSeconds ?? top.seconds });
+    pulses.push({ start: now, strength, beat, way, into, held, harm: way === 'taken' ? event.harm ?? 0 : 0, screen: drained, screenSeconds: spec?.screenSeconds ?? top.seconds });
     while (pulses.length > 8) pulses.shift();
     const haptic = level('haptic') * (spec?.haptic ?? 1);
     const thump = level('thump');
@@ -301,7 +304,7 @@ export function createHitFeel(settings = loadHitFeel(null)) {
     forget(now);
     let share = 1;
     for (const pulse of pulses) {
-      const spec = stopOf(pulse);
+      const spec = pulse.held ? stopOf(pulse) : null;
       if (!spec || pulse.strength < spec.from) continue;
       const over = spec.from < 1 ? (pulse.strength - spec.from) / (1 - spec.from) : 1;
       const hold = (spec.seconds.light + (spec.seconds.heavy - spec.seconds.light) * over) * amount;
