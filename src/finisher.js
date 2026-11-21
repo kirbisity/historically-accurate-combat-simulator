@@ -10,6 +10,7 @@
 // The state is `fighter.finisher`; `updateFinisher` runs it each step from `directFighter`.
 
 import { P } from './body.js';
+import { crowdNear } from './crowdgrid.js';
 import { vec, yawRotate } from './pose.js';
 import { MOVES, STYLES } from './moves.js';
 import { WEAPONS } from './weapons.js';
@@ -332,7 +333,8 @@ function within(fighter, man, range) {
  * while the enemies about them had others to fight (an AI man's own judgement: ai.js); the player's button stays off near any.
  */
 function engaged(world, fighter, watched = false) {
-  return world.fighters.some((other) => other !== fighter && hostile(other, fighter) && other.state === 'up' && !other.crawling && !other.dormant && !other.fled && !(other.brokenOpen > 0)
+  const near = crowdNear(world, [[fighter.x[P.pelvis * 3], fighter.x[P.pelvis * 3 + 2], FINISHER.threat]]) ?? world.fighters;
+  return near.some((other) => other !== fighter && hostile(other, fighter) && other.state === 'up' && !other.crawling && !other.dormant && !other.fled && !(other.brokenOpen > 0)
     && !(other.driven && !(world.stage?.aware?.minds?.[other.id]?.state === 'aggro'))
     && (!watched || other.focus === fighter.id) && within(fighter, other, FINISHER.threat));
 }
@@ -348,7 +350,7 @@ export function finishTarget(world, fighter, { anyone = false, locked = null, ra
   const pick = (allowed) => {
     let best = null;
     let bestApart = Infinity;
-    for (const man of world.fighters) {
+    for (const man of crowdNear(world, [[fighter.x[P.pelvis * 3], fighter.x[P.pelvis * 3 + 2], range]]) ?? world.fighters) {
       // (Standing broken open by his big deflect, a man is the player's to execute: executable.)
       if (man === fighter || !(helplessOnFloor(man) || (fighter.player && executable(world, man))) || !allowed(man) || !within(fighter, man, range)) continue;
       const apart = Math.hypot(man.x[P.pelvis * 3] - fighter.x[P.pelvis * 3], man.x[P.pelvis * 3 + 2] - fighter.x[P.pelvis * 3 + 2]) - (man.id === locked ? 0.5 : 0);

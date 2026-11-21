@@ -3,6 +3,7 @@
 // choosing from its style's moves those that reach from where it stands.
 
 import { finishTarget, startFinisher, updateFinisher } from './finisher.js';
+import { CROWD_GRID, crowdAnyAlong, crowdFirst, crowdNear, withCrowdGrid } from './crowdgrid.js';
 import { aheadOfSlot, DRILL, fallIn, fromSlot, moveFormations, moveWings, volleyDue, walkToSlot, WINGS } from './formation.js';
 import { keepOrders, obeyOrder, orderedFocus, orderKeepsPlace } from './command.js';
 import { P } from './body.js';
@@ -361,6 +362,8 @@ export const AI = {
   // men round him there) while the men think: a rider getting down steps WORLD.mount.dismount `beside` (0.9 m) off his
   // horse's side, his hips from the saddle; twice that, for room. Each look reaches this much further into the grid.
   fieldSlack: 2,
+  // m: how far a rider's hips may be, on the floor, from his horse's middle (`mount.at`), a seat well forward or back and leaning.
+  seatSlack: 1.5,
   // The field seen (outnumberedFear): in a battle (a side of `rout.minSide`
   // or more), what a man makes of the whole of it, not the knot before him:
   // how many of his own still fight (on their feet, not broken, not crawling
@@ -717,7 +720,8 @@ export function seeingField(world, think) {
     fieldCorners = [...new Set(world.fighters.map((fighter) => fighter.corner))];
     fillGrid(nearGrid, world.fighters, AI.standing.group + AI.standing.groupFade);
     fillGrid(sightGrid, world.fighters, AI.standing.sight);
-    return think();
+    // And the crowd grid (crowdgrid.js) for the looks along a line and round a point: teamSpacing, shotFouled, finishTarget.
+    return withCrowdGrid('think', world, think);
   } finally {
     fieldSeen = null;
   }
@@ -728,7 +732,49 @@ function menAround(world, grid, x, z, radius, sorted = true) {
   return fieldSeen === world ? gridAround(grid, x, z, radius + AI.fieldSlack, sorted) : null;
 }
 
+// Each side's men still in the fight (inFight), counted once a think rather than by every man who weighs the odds (confidence):
+// what each man was when counted (`was`, by id), and the man thinking now (`thinking`), the only one whose standing his own think
+// can change (a man going down on his knees, a man fleeing the field), counted as he is now. Only while thinkEach's men think.
+let headcount = null;
+
+function countHeads(world) {
+  const counts = new Map();
+  const was = new Uint8Array(world.fighters.length);
+  for (const other of world.fighters) {
+    if (!inFight(other)) continue;
+    was[other.id] = 1;
+    counts.set(other.corner, (counts.get(other.corner) ?? 0) + 1);
+  }
+  return { world, counts, was, thinking: null };
+}
+
+/** After a man's think: his standing as it is now. */
+function recountHead(fighter) {
+  const now = inFight(fighter) ? 1 : 0;
+  const before = headcount.was[fighter.id];
+  if (now !== before) headcount.counts.set(fighter.corner, (headcount.counts.get(fighter.corner) ?? 0) + now - before);
+  headcount.was[fighter.id] = now;
+  headcount.thinking = null;
+}
+
+/** How many of a side still fight: from the think's count, or by counting. */
+function standingOf(world, corner) {
+  if (headcount?.world !== world || headcount.was.length !== world.fighters.length) return world.fighters.filter((other) => other.corner === corner && inFight(other)).length;
+  let count = headcount.counts.get(corner) ?? 0;
+  const man = headcount.thinking;
+  if (man && man.corner === corner) count += (inFight(man) ? 1 : 0) - headcount.was[man.id];
+  return count;
+}
+
 function thinkEach(world, dt, playerIds) {
+  try {
+    return thinkEachMan(world, dt, playerIds);
+  } finally {
+    headcount = null;
+  }
+}
+
+function thinkEachMan(world, dt, playerIds) {
   keepGenerals(world, playerIds);
   keepLeaders(world);
   keepSides(world);
@@ -742,6 +788,7 @@ function thinkEach(world, dt, playerIds) {
   // times a second (each on his own beat) rather than every step; and one the player cannot see deciding, less (AI.perceive).
   const staggered = fightTier(world) >= 3;
   const view = staggered ? perceptionOf(world) : null;
+  headcount = CROWD_GRID.enabled && world.fighters.every((other, index) => other.id === index) ? countHeads(world) : null;
   for (const fighter of world.fighters) {
     if (playerIds.has(fighter.id)) continue;
     // Level mode: a dormant man (his section is not active) is not thought for; nor is a neutral one (corner 'grey': civilians, prisoners), nor one levelmode drives itself (`driven`: unaware, searching, following; levelmode/awareness.js).
@@ -764,15 +811,19 @@ function thinkEach(world, dt, playerIds) {
     if (every === 0) {
       // Cleared, so that once he is staggered he takes up his own beat.
       fighter.aiOwed = undefined;
+      if (headcount) headcount.thinking = fighter;
       think(world, fighter, dt);
       keepPlace(world, fighter);
+      if (headcount) recountHead(fighter);
       continue;
     }
     // Each on his own beat (offset by his id), so the thinking is spread over the steps.
     fighter.aiOwed = (fighter.aiOwed ?? (fighter.id % Math.max(1, Math.round(every / dt))) * dt) + dt;
     if (fighter.aiOwed < every - 1e-9) continue;
+    if (headcount) headcount.thinking = fighter;
     think(world, fighter, fighter.aiOwed);
     keepPlace(world, fighter);
+    if (headcount) recountHead(fighter);
     fighter.aiOwed = 0;
   }
 }
@@ -1674,7 +1725,7 @@ function wayRound(world, fighter, mate, left) {
     const z = mz + sign * left[2] * breadth;
     if (!arena.open && (Math.abs(x) > arena.halfX - WORLD.footing.edgeMargin || Math.abs(z) > arena.halfZ - WORLD.footing.edgeMargin)) continue;
     let clear = true;
-    for (const other of world.fighters) {
+    for (const other of crowdNear(world, [[x, z, breadth]]) ?? world.fighters) {
       if (other === fighter || other === mate || other.state !== 'up' || other.dormant) continue;
       if (Math.hypot(other.x[P.pelvis * 3] - x, other.x[P.pelvis * 3 + 2] - z) < breadth) {
         clear = false;
@@ -1699,7 +1750,10 @@ function teamSpacing(world, fighter, opponent, lineOfFire = AI.lineOfFire) {
   let leanOn = false;
   // A kick or knee sweeps wide: it needs a team-mate-free arc beside me too.
   let kickRoom = true;
-  for (const mate of world.fighters) {
+  // (In a think, only the men who can count: those near him, and those near the line to his man and just past him.)
+  const reach = length + AI.pastTarget;
+  const near = crowdNear(world, [[at[0], at[2], Math.max(AI.mateSpacing, AI.kickClearance)]], [[at[0], at[2], at[0] + ahead[0] * reach, at[2] + ahead[2] * reach, lineOfFire]]) ?? world.fighters;
+  for (const mate of near) {
     if (mate === fighter || mate.corner !== fighter.corner || mate.state === 'out') continue;
     const offset = vec.sub(point(mate.x, P.pelvis), at);
     const along = vec.dot(offset, ahead);
@@ -1714,13 +1768,35 @@ function teamSpacing(world, fighter, opponent, lineOfFire = AI.lineOfFire) {
     if (apart < AI.kickClearance && along > -0.2) kickRoom = false;
   }
   // A man not his to strike (a civilian, a prisoner: no foe of his) close by his man: no lunge, no meeting, no chase past him.
-  for (const other of world.fighters) {
+  for (const other of crowdNear(world, [[at[0], at[2], length + AI.kickClearance]]) ?? world.fighters) {
     if (other === fighter || other === opponent || other.corner === fighter.corner || other.state === 'out' || hostile(other, fighter)) continue;
     const offset = vec.sub(point(other.x, P.pelvis), at);
     if (Math.hypot(offset[0], offset[2]) < length + AI.kickClearance && vec.dot(offset, ahead) > -0.2) kickRoom = false;
   }
   // Facing turns the line: the fighter's own left is the line's left.
   return { strafe: Math.max(-1, Math.min(1, strafe)), blocked, kickRoom, leanOn };
+}
+
+/**
+ * Whether a comrade stands in the way on the line to his man (teamSpacing's `blocked`): between them, or just past his man, near the
+ * line. In a think, from the crowd grid walked outward from him (crowdgrid.js crowdAnyAlong: the man before him ends the look).
+ */
+function lineBlocked(world, fighter, opponent, lineOfFire) {
+  const at = point(fighter.x, P.pelvis);
+  const to = point(opponent.x, P.pelvis);
+  const line = vec.sub(to, at);
+  const length = vec.length(line) || 1e-6;
+  const ahead = vec.scale(line, 1 / length);
+  const left = [-ahead[2], 0, ahead[0]];
+  const reach = length + AI.pastTarget;
+  const inWay = (mate) => {
+    if (mate === fighter || mate.corner !== fighter.corner || mate.state === 'out') return false;
+    const offset = vec.sub(point(mate.x, P.pelvis), at);
+    const along = vec.dot(offset, ahead);
+    return along > 0.1 && along < reach && Math.abs(vec.dot(offset, left)) < lineOfFire;
+  };
+  const gridded = crowdAnyAlong(world, at[0], at[2], at[0] + ahead[0] * reach, at[2] + ahead[2] * reach, lineOfFire, inWay);
+  return gridded ?? teamSpacing(world, fighter, opponent, lineOfFire).blocked;
 }
 
 /** Whether team-mates nearer my man already fill the places to take him on. */
@@ -1731,7 +1807,7 @@ function waitingTurn(world, fighter, opponent) {
   const at = point(opponent.x, P.pelvis);
   const away = (other) => Math.hypot(...[0, 2].map((axis) => point(other.x, P.pelvis)[axis] - at[axis]));
   const mine = away(fighter);
-  const closer = world.fighters.filter((mate) => mate !== fighter && mate.corner === fighter.corner && mate.state === 'up' && mate.focus === opponent.id && away(mate) < mine).length;
+  const closer = (crowdNear(world, [[at[0], at[2], mine]]) ?? world.fighters).filter((mate) => mate !== fighter && mate.corner === fighter.corner && mate.state === 'up' && mate.focus === opponent.id && away(mate) < mine).length;
   return closer >= AI.engageSlots;
 }
 
@@ -1765,7 +1841,7 @@ export function confidence(fighter, opponent, world = null) {
   nerve -= AI.reachFear * Math.max(0, reachOf(opponent) - reachOf(fighter));
   if (world) {
     // Outnumbering is courage; being outnumbered, fear.
-    const standing = (corner) => world.fighters.filter((other) => other.corner === corner && inFight(other)).length;
+    const standing = (corner) => standingOf(world, corner);
     nerve += AI.numbersConfidence * Math.log2(Math.max(1, standing(fighter.corner)) / Math.max(1, standing(opponent.corner)));
   }
   return Math.max(-1, Math.min(1, nerve));
@@ -2868,7 +2944,8 @@ export function shockFear(world, fighter) {
   if (fighter.mount) return guns;
   const at = [fighter.x[P.pelvis * 3], fighter.x[P.pelvis * 3 + 2]];
   let horse = 0;
-  for (const other of world.fighters) {
+  // (In a think, only the riders near enough: a rider's hips sit over his horse, `seatSlack` m from its middle at most.)
+  for (const other of crowdNear(world, [[at[0], at[1], spec.horseFar + AI.seatSlack]]) ?? world.fighters) {
     const mount = other.mount;
     if (!mount || !hostile(other, fighter) || other.hidden || other.dormant || !inFight(other) || mount.speed < spec.horseSpeed) continue;
     const off = [at[0] - mount.at[0], at[1] - mount.at[1]];
@@ -3241,7 +3318,7 @@ function castAside(world, fighter, style) {
  */
 function shotFouled(world, fighter, opponent, { overHeads = false } = {}) {
   const lineOfFire = world.stage ? AI.shotLineOfFire : AI.lineOfFire;
-  if (!overHeads && teamSpacing(world, fighter, opponent, lineOfFire).blocked) return 'line';
+  if (!overHeads && lineBlocked(world, fighter, opponent, lineOfFire)) return 'line';
   const at = point(fighter.x, P.pelvis);
   const mark = point(opponent.x, P.pelvis);
   const length = Math.hypot(mark[0] - at[0], mark[2] - at[2]) || 1e-6;
@@ -3249,7 +3326,8 @@ function shotFouled(world, fighter, opponent, { overHeads = false } = {}) {
   const bow = Boolean(fighter.weapon?.spec.bow);
   const crowd = bow ? AI.arrowCrowd : AI.gunCrowd;
   let fouled = null;
-  for (const mate of world.fighters) {
+  const near = crowdNear(world, [[mark[0], mark[2], crowd]], overHeads ? [[at[0], at[2], mark[0], mark[2], lineOfFire + 0.5]] : []) ?? world.fighters;
+  for (const mate of near) {
     if (mate === fighter || mate.corner !== fighter.corner || mate.state === 'out') continue;
     const there = point(mate.x, P.pelvis);
     if (Math.hypot(there[0] - mark[0], there[2] - mark[2]) < crowd) return 'crowd';
@@ -3287,6 +3365,9 @@ export function laneFouled(world, fighter, opponent) {
 /** Another man within `within` m to lay on, the nearest of them whose lane is clear (laneFouled), or null. */
 function clearLane(world, fighter, within) {
   const at = point(fighter.x, P.pelvis);
+  // (In a think, nearest first: the lane asked of the few nearest, not of every enemy in range.)
+  const gridded = crowdFirst(world, at[0], at[2], within, (other) => foeOf(fighter, other) && other.state === 'up' && !other.fled && !other.hidden, (other) => !laneFouled(world, fighter, other));
+  if (gridded !== undefined) return gridded;
   let best = null;
   let nearest = within;
   for (const other of world.fighters) {
@@ -3314,6 +3395,9 @@ function leanForLane(fighter, blocked, dt) {
 function clearMark(world, fighter, options) {
   const at = point(fighter.x, P.pelvis);
   let best = null;
+  // (In a think, nearest first: the line of fire traced to the few nearest, not to every enemy in range.)
+  const gridded = crowdFirst(world, at[0], at[2], AI.markWithin, (other) => foeOf(fighter, other) && other.state === 'up' && !other.fled && !other.hidden, (other) => !shotFouled(world, fighter, other, options));
+  if (gridded !== undefined) return gridded;
   let nearest = AI.markWithin;
   for (const other of world.fighters) {
     if (!foeOf(fighter, other) || other.state !== 'up' || other.fled || other.hidden) continue;

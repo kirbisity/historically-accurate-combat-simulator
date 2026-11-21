@@ -42,6 +42,7 @@ import { painShare, stepWhips, whipDrive } from './physics/whip.js';
 import { isMounted } from './horses.js';
 import { stepFlame } from './physics/flame.js';
 import { envLieOf } from './env/lie.js';
+import { crowdNearest, withCrowdGrid } from './crowdgrid.js';
 import { collideWorks, faceBetween, faceOutside, FIELDWORKS, floorFor, footSink, keepRootOff, looseFloor, mireStep, reliefAt, slogCost, spentPace, stepOnWorks, worksOf } from './physics/fieldworks.js';
 import { chooseHorseDetail, collideHorses, createHorse, mountFootprint, goalFromFootwork, horseTimers, keepSeat, loseHorse, mountedBehind, riderFacing, ridingLean, saddleReach, mountJump, mountJumpBlocked, mountJumpOf, seatMass, seatRider, SEATED_PARTICLES, stepHorse, stepTurret, strikeHorses, turnCarried } from './physics/mounted.js';
 import { cutSeverity, limbStriker, particleAt, shieldCovering, soundDown, soundEvent, soundHit, soundStep, soundVoice, soundWound, trackPunchSwing, trackSwing, weaponPart, weaponStriker } from './audio/log.js';
@@ -2360,6 +2361,10 @@ export function opponentFor(world, fighter) {
 }
 
 export function nearestOpponent(world, fighter) {
+  // In a step, from its grid (crowdgrid.js): the same man a walk over everyone finds, from among those near him.
+  const at = point(fighter.x, P.pelvis);
+  const gridded = crowdNearest(world, at[0], at[2], (other) => (hostile(other, fighter) && inFight(other) ? vec.length(vec.sub(point(other.x, P.pelvis), at)) : Infinity));
+  if (gridded !== undefined) return gridded;
   let best = null;
   let bestDistance = Infinity;
   for (const other of world.fighters) {
@@ -4391,6 +4396,11 @@ let stepStamp = 0;
 
 /** Advance the world by `dt` seconds (one outer step, several substeps). */
 export function step(world, dt) {
+  // The men's hips in a grid for the step's looks round a man (crowdgrid.js: nearestOpponent's, the same answers).
+  return withCrowdGrid('step', world, () => stepWorld(world, dt));
+}
+
+function stepWorld(world, dt) {
   stepStamp += 1;
   measureNearestFoes(world);
   world.steps = (world.steps ?? 0) + 1;
