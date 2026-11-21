@@ -707,7 +707,12 @@ export const ENV = {
   // with the default grade (no glare, no shafts, no vignette, and edges smoothed by the screen's own samples).
   quality: {
     high: { grass: 1, far: 1, cards: 1, particles: 1, cloudShadow: true, post: 2, airShade: true },
-    medium: { grass: 0.5, far: 0.7, cards: 0.6, particles: 0.6, cloudShadow: true, post: 1 },
+    // (The middle tier, where a phone starts, has the sun's shafts too: they are drawn at a quarter of the picture's
+    // size from the bloom's own half-size copy, a tenth of a millisecond at 3200 by 1800 on the machine this was
+    // measured on, and a wood's morning or an arena's dust without them is a different picture. It has most of what
+    // drifts and falls as well: a mote or a flake is a few pixels, and a thinned snowfall reads as a lighter one.
+    // What it still leaves to the top tier is the walk of the air's shade along every sight line, which is the dear part.)
+    medium: { grass: 0.5, far: 0.7, cards: 0.6, particles: 0.85, cloudShadow: true, post: 2 },
     low: { grass: 0.2, far: 0.4, cards: 0.3, particles: 0.35, cloudShadow: false, post: 0 },
   },
 
