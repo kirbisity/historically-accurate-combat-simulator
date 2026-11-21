@@ -325,6 +325,7 @@ export function drawFrame(view) {
     return;
   }
   if (look.linear) keepLinear(view);
+  look.beforeFrame?.(view);
   // (An open-air place draws its own frame: env/index.js.)
   if (view.drawOver?.(view)) return;
   if (look.renderFrame) look.renderFrame(view);

@@ -351,6 +351,31 @@ export function replaceEnvironment(view, texture) {
 }
 
 /**
+ * Picture the place from (x, y, z) on a cube's six faces, `side` texels each, as the renderer draws it now, and
+ * return it as the renderer's prefiltered environment: what metal there mirrors (replaceEnvironment puts it on).
+ * Only the places and the lights are in it: the fighters, their arms and what lies loose are left out, as a man's
+ * own breastplate is not what it mirrors and the picture is taken among them. On a device that can hold light in
+ * a target the faces hold it (half floats); else display values. The caller disposes the texture it replaces.
+ */
+export function shootSurroundings(view, x, y, z, side) {
+  const renderer = view.renderer;
+  const float = renderer.capabilities.isWebGL2 && !!renderer.extensions.get('EXT_color_buffer_float');
+  const target = new THREE.WebGLCubeRenderTarget(side, { format: THREE.RGBAFormat, type: float ? THREE.HalfFloatType : THREE.UnsignedByteType, encoding: THREE.LinearEncoding, generateMipmaps: false, minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter });
+  const camera = new THREE.CubeCamera(0.3, view.camera.far, target);
+  camera.position.set(x, y, z);
+  const places = new Set(Object.values(view.places));
+  const hidden = view.scene.children.filter((child) => child.visible && !child.isLight && !places.has(child));
+  for (const child of hidden) child.visible = false;
+  camera.update(renderer, view.scene);
+  for (const child of hidden) child.visible = true;
+  const generator = new THREE.PMREMGenerator(renderer);
+  const texture = generator.fromCubemap(target.texture).texture;
+  generator.dispose();
+  target.dispose();
+  return texture;
+}
+
+/**
  * Keep a thing for the look: an Object3D is added to the scene and removed
  * on leaving the look; anything with dispose() (a texture, a render target,
  * a composer's pass) is disposed on leaving. Returns it.

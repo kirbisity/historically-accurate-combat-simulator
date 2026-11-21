@@ -37,7 +37,7 @@ import { envMeter, envPostAble, envPostDraw, envToneOf } from './post.js';
 import { envPressForget, envPressStep } from './press.js';
 import { envLieOf } from './lie.js';
 import { activeLook } from '../looks.js';
-import { FIGURE_SHADE, hidePaintedSky, setShadowMapSize, sweepFigureShade, replaceEnvironment, setRenderer } from '../looks/kit.js';
+import { FIGURE_SHADE, hidePaintedSky, setShadowMapSize, shootSurroundings, sweepFigureShade, replaceEnvironment, setRenderer } from '../looks/kit.js';
 import { probeLiteProject } from '../looks/probe-lite.js';
 import { PLACE_ARENAS, reapplyPlace } from '../render.js';
 import { placeWind, setWindOver } from '../wind.js';
@@ -458,33 +458,20 @@ function envSteelDue(view, state, cloudOnFight) {
 }
 
 /**
- * Picture the place from (x, y, z) on a cube's six faces, in the light the frame is drawn in before the camera's
- * curve, and give it to metal as what it mirrors (the renderer's prefiltered environment, as envSteelSky's). Only
- * the place and its air are in it: the fighters, their arms and what lies loose are left out, as a man's own
- * breastplate is not what it mirrors and the picture is taken among them.
+ * Picture the place from (x, y, z) (looks/kit.js shootSurroundings), in the light the frame is drawn in before the
+ * camera's curve and without the sun's disc, and give it to metal as what it mirrors.
  */
 function envSteelShot(view, x, y, z) {
   const renderer = view.renderer;
   const side = ENV.mirror.side[envChosen.tier] ?? ENV.mirror.side.low;
-  const target = new THREE.WebGLCubeRenderTarget(side, { format: THREE.RGBAFormat, type: THREE.HalfFloatType, encoding: THREE.LinearEncoding, generateMipmaps: false, minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter });
-  const camera = new THREE.CubeCamera(0.3, view.camera.far, target);
-  camera.position.set(x, y, z);
-  const places = new Set(Object.values(view.places));
-  const hidden = view.scene.children.filter((child) => child.visible && !child.isLight && !places.has(child));
-  for (const child of hidden) child.visible = false;
   const exposure = renderer.toneMappingExposure;
   const u = envUniforms();
   // (Under 0 the frame's curve passes light on as it is: air.js envInstallTone.)
   renderer.toneMappingExposure = -1;
   u.uEnvMirrorShot.value = 1;
-  camera.update(renderer, view.scene);
+  const steel = shootSurroundings(view, x, y, z, side);
   u.uEnvMirrorShot.value = 0;
   renderer.toneMappingExposure = exposure;
-  for (const child of hidden) child.visible = true;
-  const generator = new THREE.PMREMGenerator(renderer);
-  const steel = generator.fromCubemap(target.texture).texture;
-  generator.dispose();
-  target.dispose();
   if (!view.envSteelOurs) view.envSteelWas = view.steelEnv;
   const before = view.envSteelOurs;
   replaceEnvironment(view, steel);
