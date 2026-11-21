@@ -1444,7 +1444,7 @@ function drawWorld(dt, drawIt = true) {
     updateStumps(view);
   }
   // The streak behind a fast blade (combatfx.js): the man played's and his man's, or both men of a duel watched; never a crowd's.
-  if (sheet || story.filming) combatFx.trails(NO_MEN, drawnTime);
+  if (story.filming) combatFx.trails(NO_MEN, drawnTime);
   else {
     trailMen[0] = followed ?? (duel ? world.fighters[0] : null);
     trailMen[1] = followed ? lockedTarget() ?? opponentFor(world, followed) : duel ? world.fighters[1] ?? null : null;

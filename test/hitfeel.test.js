@@ -186,6 +186,9 @@ test('hit feel: the four beats are told apart by the physics\' own events, each 
   const kill = createHitFeel(allOn());
   assert.equal(kill.hear({ kind: 'execution', fighter: 1, attacker: 0 }, 0, 0), null);
   assert.ok(kill.frame(0.25) > 0 && kill.frame(0.25) < kill.frame(1), 'the view closes in, eased');
+  // (Its thrust lands as a blow a step before: no hold of its own.)
+  kill.hear(blow(70), 0, 1.99);
+  assert.equal(kill.pace(1.995), 1);
   const home = kill.hear({ kind: 'executionBlow', fighter: 1, attacker: 0 }, 0, 2);
   assert.equal(home.beat, 'execution');
   assert.equal(home.sound.kind, 'boom');
@@ -206,4 +209,16 @@ test('hit feel: the four beats are told apart by the physics\' own events, each 
   quiet.hear({ kind: 'executionBlow', fighter: 1, attacker: 0 }, 0, 1);
   assert.equal(quiet.screen(1.1), 0);
   assert.equal(quiet.frame(1.1), 0);
+});
+
+test('combat beats: each beat\'s own sound is its own shape, heavier is lower and longer', async () => {
+  const { beatParams } = await import('../src/audio/sfx/beat.js');
+  const ring = beatParams('ring', 0.3);
+  const heavyRing = beatParams('ring', 1);
+  assert.ok(ring.modes.length === 3 && ring.modes[0].f > 1500, 'a ring is high partials');
+  assert.ok(heavyRing.modes[0].f < ring.modes[0].f && heavyRing.modes[0].decay > ring.modes[0].decay);
+  const knock = beatParams('knock', 0.5);
+  assert.ok(knock.frequency < 200 && knock.decay < 0.2, 'a knock is low and short');
+  const boom = beatParams('boom', 1);
+  assert.ok(boom.frequency < knock.frequency && boom.decay > 0.5, 'a boom is lower and far longer');
 });
