@@ -12,7 +12,7 @@ import { relax, skinWeights, skinWeightsSteps } from './bodymesh.js';
 import { vec } from './pose.js';
 import { BONE, bindPoints, boneFrames } from './rig.js';
 import { factionOf, glovedFists, outfitOf, RAGS, ragHemTorn, ragSleeveTorn, ragTear, ragTorn } from './outfits.js';
-import { ARMOUR_EDGES, ARMOUR_TILES, armourTileOf, clothMaterialOf, clothUvAt, DETAIL_ARMOUR, DETAIL_MAPS, detailKindOf, isLacedTile, mailUv, measureRings, pieceMaterial, plateUvAt, stripUv, tileSize, tileUv } from './detailmaps.js';
+import { ARMOUR_EDGES, ARMOUR_TILES, armourTileOf, clothMaterialOf, clothUvAt, DETAIL_ARMOUR, DETAIL_MAPS, detailKindOf, isLacedTile, mailUv, measureRings, pieceMaterial, plateUvAt, stripUv, tileSize, tileUv, wholeUv } from './detailmaps.js';
 import { detailUv, FLAT_UV } from './skindetail.js';
 import { SCULPT, SCULPT_TRUNK, limbShapes, sculptProfile, neckShape, sculptCoverShare, sculptTraits, trunkProfiles, trunkShapes } from './sculpt.js';
 import { SLOSH_BONES, sloshFigures, sloshWeights } from './fatslosh.js';
@@ -39,8 +39,16 @@ export const TOPS = {
   waistcoat: { hem: -0.02, neck: 0.93, loose: 1.08, sleeve: 0, inner: 'longsleeve' },
   aloha: { hem: -0.06, neck: 0.98, loose: 1.11, sleeve: 0.55, sleeveLoose: 1.3 },
   haramaki: { hem: -0.02, neck: 0.45, loose: 1.05, sleeve: 0 },
-  // A ball gown's bodice, off the shoulder, with short puffed sleeves.
-  bodice: { hem: 0, neck: 0.86, loose: 1.04, sleeve: 0.32, sleeveLoose: 1.55 },
+  // A ball gown's bodice, off the shoulder, with short puffed sleeves (`puff`: the sleeve gathered into a balloon, `out` times
+  // the arm at `at` along the upper arm, drawn in again by `to`, in `gathers` folds) and a bertha of lace round the neckline
+  // (`bertha`: from, to up the trunk). Worn over the corset, which is drawn over its foot: it ends under the corset's top.
+  bodice: { hem: 0.42, neck: 0.86, loose: 1.04, sleeve: 0.34, sleeveLoose: 1.2, puff: { out: 1.7, at: 0.1, to: 0.36, gathers: 8 }, bertha: [0.74, 0.87] },
+  // A day bodice of the 1880s (a basque): closed to the throat, a standing collar up the neck (`collar`: how far up it, of
+  // the neck's length), close sleeves to the wrist.
+  basque: { hem: 0.42, neck: 0.99, loose: 1.04, sleeve: 1.93, sleeveLoose: 1.1, collar: 0.4 },
+  // The bodice of the 1890s: leg-of-mutton (gigot) sleeves, a great puff at the shoulder gathered in above the elbow and tight
+  // down the forearm; a high collar of lace and a lace jabot falling from it down the chest (`jabot`: its tiers of frills).
+  gigot: { hem: 0.42, neck: 0.99, loose: 1.04, sleeve: 1.93, sleeveLoose: 1.08, collar: 0.55, puff: { out: 1.85, at: 0.06, to: 0.7, gathers: 9 }, jabot: 6 },
   // A kosode worn for the road: wide sleeves to below the elbow, wrapped across, its skirt tucked into the hakama.
   // `sleeveFlare`: a sleeve cut straight and wide (flaredSleeve): close at the shoulder, this many times the elbow's breadth at its mouth.
   // `sleeveHang`: the sleeve close round the arm instead, its bag hanging this far (m) below it, sewn shut at the end.
@@ -61,14 +69,39 @@ export const LOFT = {
   // A corset: the waist drawn in by `cinch` of its width and depth, most at
   // `at` up the trunk (pelvis 0, neck 1), fading over `span` either way.
   corset: { cinch: 0.26, at: 0.32, span: 0.13 },
+  // A boned piece (a corset) drawn with its tile: this many times the usual sides round and rings up it, so its waist is a
+  // curve and not a kink.
+  boned: { sides: 2, rings: 2 },
+  // A fine gown's skirt over the hips, above where it falls free: this share of the standing off it has below.
+  gownHips: 0.9,
+  // A busk's clasps: over this span of the piece's height, each a loop plate (m: long, tall) and a stud and a rivet (their
+  // radii, m), standing `lift` m off the satin (the busks of the 1860s-90s: loops 12-14 mm long, studs 5 mm).
+  // A jabot's frills: from `span[0]` down to `span[1]` up the trunk, their half breadth (rad round the trunk) from the top
+  // frill's to the last's, standing `out` (m) at their gathered top and at their foot, each flute `flute` m deeper, each frill
+  // `lap` of the step to the next long (lapping it), `flutes` to a frill; `tall`: the trunk's length the lace is measured by (m).
+  jabot: { span: [0.985, 0.6], half: [0.3, 0.16], out: [0.006, 0.02], flute: 0.012, lap: 1.5, flutes: 6, tall: 0.5 },
+  busk: { span: [0.13, 0.87], loop: [0.016, 0.012], stud: 0.003, rivet: 0.0016, lift: 0.0018 },
   // Gown skirts: the hem (thigh lengths below the waist), the bell's flare
   // out to the sides (`flare`) and front to back (`depthFlare`), and a bustle
   // standing out behind (a share of the waist's depth) a third of the way down;
   // a narrow skirt is let out over the hips (`hips`) so a stride stays inside it.
+  // `bell`: the power the flare grows by down the skirt (a half: a dome over a crinoline; above one: a trumpet, close over
+  // the hips and flaring to the hem; 0.5 where none is given). `flutes`: the folds the cloth falls in, [how many round, how
+  // deep at the hem as a share of the skirt's radius], shallow at the waist and deepening down. `rings`, `sides`: how finely it
+  // is drawn (not in a crowd). `hemBand`: the hem's own band (thigh lengths deep), in the trim: a braid, or with `flounce`
+  // ([pleats, depth]) a pleated or gathered flounce standing a little off the skirt. `over`: an overskirt draped over it
+  // (gownOver): to `hem`, `fuller` than the skirt under it, hung aslant (`tilt`: [front, side], how much lower the hem lies in
+  // front and on her left than behind and on her right, thigh lengths), its folds swept round as it is drawn up (`sweep`,
+  // rad), edged with lace `lace` deep.
   gowns: {
     crinoline: { hem: 1.35, flare: 1.4, depthFlare: 0.98 },
-    ball: { hem: 1.45, flare: 2.3, depthFlare: 4 },
-    bustle: { hem: 1.45, flare: 0.6, depthFlare: 0.8, bustle: 2.2, hips: 0.3 },
+    // The 1860s: a dome over a cage crinoline, wider behind than before, two lace-edged flounces.
+    ball: { hem: 1.88, flare: 2.5, depthFlare: 4.2, flutes: [18, 0.035], rings: 16, sides: 72, hemBand: 0.16, flounce: [36, 0.03], over: { hem: 1.05, fuller: 1.03, tilt: [0, 0], sweep: 0, lace: 0.13, flutes: [18, 0.04] } },
+    // The 1880s: narrow in front, the bustle a shelf behind, an apron overskirt drawn up to it at the sides, a pleated flounce at the hem.
+    bustle: { hem: 1.88, flare: 0.7, depthFlare: 0.9, bustle: 2.6, hips: 0.3, bell: 0.8, flutes: [10, 0.03], rings: 16, sides: 72, hemBand: 0.22, flounce: [44, 0.035], over: { hem: 0.82, fuller: 1.07, tilt: [0.5, 0], sweep: 0, lace: 0.08, flutes: [7, 0.07] } },
+    // The 1890s walking skirt: gored, smooth over the hips and flaring like a bell to the instep, its fullness behind; an
+    // overskirt draped across it and caught up on one hip, edged with lace.
+    walking: { hem: 1.9, flare: 1.15, depthFlare: 1.9, bustle: 0.9, hips: 0.3, bell: 1.25, flutes: [9, 0.11], rings: 16, sides: 72, hemBand: 0.05, over: { hem: 0.78, fuller: 1.09, tilt: [0.12, 0.34], sweep: 0.9, lace: 0.1, flutes: [6, 0.09] } },
     // A gothic bubble skirt: short, puffed out round the hips (`balloon`: the
     // flare swells and is gathered back in at the hem) over bloomers.
     bubble: { hem: 0.5, flare: 0.75, depthFlare: 1.3, balloon: true, hips: 0.25 },
@@ -253,7 +286,12 @@ export const LOFT = {
   // of its thickness a cuirass keeps at its side, where it is cut to the rib cage. `farthest`: how far past its point (m) a piece
   // goes on looking for skin while skin goes on along its line, set against the family's BMI 100 woman, whose hips and belly
   // stand up to 26 cm past the loft's rings of her shorts (measured by a ray cast through the modelled skin).)
-  fit: { kinds: { plate: { squeeze: 0.8, waist: 0.25 }, rows: { squeeze: 0.6, waist: 0.5 }, coat: { squeeze: 0.4, waist: 0.75 }, panel: { squeeze: 0.4, waist: 0.75 }, hung: { squeeze: 0.4, waist: 0.75 }, soft: { squeeze: 0, waist: 1 } },
+  // (`boned`: a corset is laced, and squeezes where it is laced tightest: at the waist (LOFT.corset.at) it encloses none of
+  // `squeeze` of the flesh standing past its ring, less either way along the trunk (over `reach` of its length), so the hips
+  // and the bust keep their fullness under it and the waist is the corset's own; whatever else is worn on the trunk there,
+  // under it or over it, is drawn in the same.)
+  fit: { kinds: { plate: { squeeze: 0.8, waist: 0.25 }, rows: { squeeze: 0.6, waist: 0.5 }, boned: { squeeze: 0, waist: 0.5 }, coat: { squeeze: 0.4, waist: 0.75 }, panel: { squeeze: 0.4, waist: 0.75 }, hung: { squeeze: 0.4, waist: 0.75 }, soft: { squeeze: 0, waist: 1 } },
+    boned: { squeeze: 0.92, reach: 0.24 },
     ribs: 0.6, waistIn: [0.1, 0.6], alongPasses: 2, tightest: 0.7, alongBand: 0.015, hardSpan: 0.8, overhang: 0.005, across: 0.03, sampling: 0.5, tuck: 0.03, deeper: 0.07, farthest: 0.3, parallel: 0.999, onLine: 0.03, clear: 1.02, capRamp: 0.12, ownBlend: 0.2, armReach: 1.6, armFrom: -0.25, herReach: 0.6, leanRing: 0.13 },
   // Trunk lean radius (m) below which the body looks wasted, and over what
   // span it reaches the BMI floor's look (~0.107 m for a 180 cm man).
@@ -451,6 +489,10 @@ export function stiffnessOf(paint) {
   const material = pieceMaterial(paint);
   if (material === 'studded') return 'coat';
   if (material === 'lamellae' || material === 'scales' || material === 'kozane') return 'rows';
+  // Cloth over bones (a corset, 'boned'): the bones and the lacing hold every girth of it as a hoop, as rows are held, and it
+  // gives only along its length, as the trunk bends. Stiff, so none of it hangs loose: it does not sway or flap as cloth
+  // does (looseness), and it draws in the body it is laced round (LOFT.fit.boned).
+  if (material === 'boned') return 'boned';
   if (paint.lames || paint.rows?.some((role) => PLATE_PAINTS.has(role))) return 'rows';
   return material === 'steel' || material === 'armor' ? 'plate' : null;
 }
@@ -1251,7 +1293,7 @@ export const ARMOR_KINDS = {
   // body under it is drawn in, `cinch`; see LOFT.corset).
   corset: {
     cinch: true,
-    trunk: [-0.02, 0.68, 1.1, { boning: true }],
+    trunk: [-0.02, 0.62, 1.1, { boning: true, busk: 5 }],
   },
   // An overbust corset, worn alone: from the hips to just over the bust
   // (below the shoulders' width, so arms at the sides hang clear of it), the
@@ -1259,12 +1301,12 @@ export const ARMOR_KINDS = {
   // laced up the back, a lace edge along the top.
   overbust: {
     cinch: true,
-    trunk: [[-0.04, 0.74, 1.13, { boning: true, busk: true, brocade: true }], [0.7, 0.75, 1.145, 'lace']],
+    trunk: [[-0.04, 0.8, 1.13, { boning: true, busk: 5, brocade: true }], [0.775, 0.815, 1.14, 'lace']],
   },
   // The same with sheer lace sleeves, shoulder to wrist (a lolita's mourning dress).
   overbustSleeved: {
     cinch: true,
-    trunk: [[-0.04, 0.74, 1.13, { boning: true, busk: true, brocade: true }], [0.7, 0.75, 1.145, 'lace']],
+    trunk: [[-0.04, 0.8, 1.13, { boning: true, busk: 5, brocade: true }], [0.775, 0.815, 1.14, 'lace']],
     upperArm: [-0.12, 1.02, 1.08, { lacework: true }], forearm: [-0.04, -0.02, 1.08, { lacework: true }],
   },
   // Escaupil and ichcahuipilli: quilted cotton, thick, stitched in rows.
@@ -2360,6 +2402,64 @@ function studsOn(mesh, rings, inflate, paint, bones, { within = null } = {}) {
 }
 
 /**
+ * A jabot: `tiers` frills of lace down the middle of the chest from the collar, each gathered at its top and standing out at
+ * its foot in flutes, lapping the next; on the bodice's own rings (`inflate`: how far the bodice stands off them), riding it.
+ * `maps`: with the lace's tile (detailmaps.js).
+ */
+function jabotOn(mesh, rings, inflate, tiers, bones, maps) {
+  const spec = LOFT.jabot;
+  const last = rings.length - 1;
+  const [low, high] = [rings[0].t, rings[last].t];
+  const place = (t) => ((t - low) / (high - low)) * last;
+  const step = (spec.span[0] - spec.span[1]) / tiers;
+  const columns = spec.flutes * 2 + 1;
+  const [tile] = tileSize('lace');
+  for (let tier = tiers - 1; tier >= 0; tier -= 1) {
+    const top = spec.span[0] - tier * step;
+    const half = spec.half[0] + ((spec.half[1] - spec.half[0]) * tier) / Math.max(1, tiers - 1);
+    const ring = ringAt(rings, place(top));
+    const lift = (metres) => inflate + metres / ring.depth;
+    const start = mesh.positions.length / 3;
+    const rows = [[top, spec.out[0], 0], [top - step * 0.7, (spec.out[0] + spec.out[1]) / 2, 0.5], [top - step * spec.lap, spec.out[1], 1]];
+    addGrid(mesh, rings, rows.map(([t, out, fall]) => Array.from({ length: columns }, (_, column) => {
+      const across = (column / (columns - 1)) * 2 - 1;
+      // (Fluted: every other column stands out at the foot; the frill narrower at its gathered top.)
+      return [place(t), across * half * (0.75 + 0.25 * fall), lift(out + (column % 2 ? spec.flute * fall : 0) - 0.004 * across * across)];
+    })), 'trim', bones);
+    if (maps) rows.forEach(([t], row) => {
+      for (let column = 0; column < columns; column += 1) mesh.uvs.set(start + row * columns + column, [DETAIL_ARMOUR.lace.band + (column / (columns - 1)) * Math.max(1, Math.round((2 * half * ring.width * (1 + spec.flute * 8)) / tile)), ((top - t) * spec.tall) / tile]);
+    });
+  }
+}
+
+/**
+ * A corset's busk fastenings down the middle of its front (`paint.busk`: how many): to each a steel loop plate riveted on one
+ * steel and hooked over a stud on the other (the loop-and-stud busk of the 1850s on). On the piece's own rings, proud of it.
+ */
+function buskOn(mesh, rings, inflate, paint, bones) {
+  const spec = LOFT.busk;
+  const { along, length } = measureRings(rings, inflate);
+  const places = (metres) => {
+    const index = Math.max(1, along.findIndex((value) => value >= metres));
+    return index - 1 + (metres - along[index - 1]) / ((along[index] - along[index - 1]) || 1);
+  };
+  for (let clasp = 0; clasp < paint.busk; clasp += 1) {
+    const up = length * (spec.span[0] + ((spec.span[1] - spec.span[0]) * clasp) / Math.max(1, paint.busk - 1));
+    const centre = places(up);
+    const ring = ringAt(rings, centre);
+    const spacing = (along[Math.min(rings.length - 1, Math.floor(centre) + 1)] - along[Math.floor(centre)]) || 0.02;
+    // (A point `across` m round from the front's middle and `high` m up from the clasp's: its place and angle on the rings.)
+    const at = (across, high, lift) => [centre + high / spacing, across / (ring.width * inflate), inflate + lift / ring.depth];
+    const [long, tall] = spec.loop;
+    // The loop: a plate tapering from its riveted end to a rounded eye over the stud.
+    const outline = [[-long, -tall / 2], [-long * 0.25, -tall * 0.36], [0, -tall * 0.22], [long * 0.16, 0], [0, tall * 0.22], [-long * 0.25, tall * 0.36], [-long, tall / 2]];
+    addPatch(mesh, rings, outline.map(([across, high]) => at(across, high, spec.lift)), 'gold', bones);
+    addGrid(mesh, rings, domedDisc(rings, centre, (-long * 0.82) / (ring.width * inflate), spec.rivet, inflate + (spec.lift * 1.1) / ring.depth, spec.rivet * 0.5), 'gold', bones);
+    addGrid(mesh, rings, domedDisc(rings, centre, 0, spec.stud, inflate + (spec.lift * 1.2) / ring.depth, spec.stud * 0.9), 'gold', bones);
+  }
+}
+
+/**
  * A coat's apron panel hanging over its skirt (`paint.apron`: from, to along the piece, its half width round as the sine of the
  * angle): its binding (the coat's `edge`) laid round its four sides, each a strip of faces of its own over the cloth,
  * cut into short lengths so it follows the coat round.
@@ -3364,13 +3464,22 @@ function fitClothToBase(mesh, parts, armoured) {
   if (armoured) {
     const tally = {};
     for (const [vertex, ring] of mesh.ringOf) {
-      if (vertex >= start || mesh.colors[vertex] === 'skin' || kindOf(vertex) === 'soft' || !partOf(ring)) continue;
+      // (Not a boned piece: a corset is not armour the rest is cut to; it draws the waist in, `laced` below.)
+      if (vertex >= start || mesh.colors[vertex] === 'skin' || kindOf(vertex) === 'soft' || kindOf(vertex) === 'boned' || !partOf(ring)) continue;
       const counts = tally[partOf(ring)] ??= {};
       counts[kindOf(vertex)] = (counts[kindOf(vertex)] ?? 0) + 1;
     }
     for (const [name, counts] of Object.entries(tally)) worn[name] = Object.entries(counts).sort((a, b) => b[1] - a[1])[0][0];
   }
-  const cutOf = (vertex, name) => spec.kinds[worn[name] ?? kindOf(vertex)] ?? spec.kinds.soft;
+  // The parts a boned piece is laced round, and how tightly at `t` along one (LOFT.fit.boned).
+  const lacedParts = new Set();
+  for (const ring of mesh.ringOf.values()) if (ring.kind === 'boned' && partOf(ring)) lacedParts.add(partOf(ring));
+  const laced = (name, t) => (lacedParts.has(name) ? spec.boned.squeeze * Math.exp(-(((t - LOFT.corset.at) / spec.boned.reach) ** 2)) : 0);
+  const cutOf = (vertex, name) => {
+    const cut = spec.kinds[worn[name] ?? kindOf(vertex)] ?? spec.kinds.soft;
+    const tight = laced(name, mesh.ringOf.get(vertex)?.t ?? 0);
+    return tight > cut.squeeze ? { ...cut, squeeze: tight } : cut;
+  };
   // A cuirass is cut to the rib cage (`ribCut`: a trunk's piece of plate or of rows): no wider at any height than the trunk's
   // own flesh there, the arm's and the shoulder's cap left to the pieces worn on them, its armholes cut in round the arm's
   // root. `ribsAt` a ring: that flesh's reach to either side of the ring's middle (m; the skin within `alongBand` of it).
@@ -4532,6 +4641,8 @@ export function* buildLoftBodySteps(body, { faceted = false, lowDetail = false, 
   // Cloth drawn with the cloth atlas's maps (detailmaps.js clothMaterialOf: each role's material), not in a crowd or faceted.
   const clothContext = { faction: factionOf(body.inputs), outfit: outfitOf(body.inputs).kind };
   mesh.clothOf = DETAIL_MAPS.on && !lowDetail && !faceted ? (role) => clothMaterialOf(look, role, clothContext) : null;
+  // Lace with its tile (detailmaps.js `lace`: drawn in code), where the maps are drawn.
+  const laceUv = (rings, inflate) => (DETAIL_MAPS.on && !lowDetail ? { uv: tileUv(rings, inflate, 'lace') } : {});
   const plate = armor?.kind === 'plate';
   const lamellar = armor?.kind === 'lamellar';
   const hoplomachus = armor?.kind === 'hoplomachus';
@@ -4591,6 +4702,13 @@ export function* buildLoftBodySteps(body, { faceted = false, lowDetail = false, 
       if (paint.placket) placketOn(mesh, rings, inflate, paint, boned);
       return;
     }
+    // Cloth over bones with its tile (a corset's satin: the whole piece unrolled, detailmaps.js wholeUv): one colour, its
+    // seams, bones, binding and lacing in the picture; the busk's clasps their own steel.
+    if (material === 'boned' && tile) {
+      loft(mesh, rings, sides * LOFT.boned.sides, { color: 'cloth', inflate, capStart: false, capEnd: false, ...(bones ? { bones } : {}), ...(shape ? { shape } : {}), uv: wholeUv(rings, inflate, tile) });
+      if (paint.busk) buskOn(mesh, rings, inflate, paint, boned);
+      return;
+    }
     // A field tile of the kind's own (hoops, riveted lames, mail and plate, etching, a moulded shell): rows painted in a crowd
     // are in the picture, so one colour (a crest painted over it is kept).
     // (A spaulder or a shoulder plate from above the shoulder's joint is closed over the shoulder, a low dome on a fitted body
@@ -4604,6 +4722,11 @@ export function* buildLoftBodySteps(body, { faceted = false, lowDetail = false, 
       if (paint?.lames) lamesOn(mesh, rings, inflate, paint, boned);
       // A plate piece whose edges are turned and riveted (detailmaps.js ARMOUR_EDGES: the foot soldier's spaulders, vambraces, cops).
       if (material === 'steel' && ARMOUR_EDGES[armor?.kind]?.includes(slot)) harnessEdgesOn(mesh, rings, inflate, sides, boned);
+      return;
+    }
+    // A piece all of lace (a corset's top edge) with the lace's tile.
+    if (paint === 'lace' && laceUv(rings, inflate).uv) {
+      loft(mesh, rings, sides * 2, { color: 'lace', inflate, capStart: false, capEnd: false, ...(bones ? { bones } : {}), ...laceUv(rings, inflate) });
       return;
     }
     // Drawn as faces of their own, the rivets and the mirror are not painted as well.
@@ -4755,28 +4878,80 @@ export function* buildLoftBodySteps(body, { faceted = false, lowDetail = false, 
   const gownShape = bottom?.kind === 'gown' ? bottom.shape ?? 'crinoline' : bottom?.gown ?? null;
   if (gownShape) {
     const gown = LOFT.gowns[gownShape];
-    const hemAt = skirtTo(gown.hem);
-    const linear = (u) => Math.max(0, (-0.12 - u) / (-0.12 - hemAt));
-    // The flare's growth down the skirt: a bell's (on to the hem), a bubble's
-    // (swelling, then gathered back in), or tiers (each ruffle stands out from under the last).
-    const down = (u) => {
-      const d = linear(u);
-      if (gown.balloon) return Math.sin(Math.min(1, d) * Math.PI * 0.82) * 0.9;
-      if (gown.tiers) return Math.sqrt(d) * 0.7 + 0.3 * ((d * gown.tiers) % 1);
-      return Math.sqrt(d);
-    };
     const waistDepth = bodyDepth(-0.12);
-    const bustle = (u) => (u >= -0.12 ? 0 : (gown.bustle ?? 0) * waistDepth * Math.exp(-(((down(u) ** 2 - 0.16) / 0.2) ** 2)));
-    const rings = along(at('pelvis'), at('neck'), forward, count(9), hemAt, 0.2,
-      (u) => (u >= -0.12 ? unbulged(bodyDepth, 1)(u) : waistDepth * (1 + gown.depthFlare * down(u))) + bustle(u),
-      (u) => (u >= -0.12 ? bodyWidth(u) : bodyWidth(-0.12) * (1 + (gown.hips ?? 0) * Math.min(1, 3 * down(u)) + gown.flare * down(u))),
-      (u) => unbulged(bodyLean, 0.8)(Math.max(u, -0.12)) - bustle(u));
+    // (Over a corset the skirt's band lies under the corset's foot, which is drawn over it: it starts lower.)
+    const gownTop = corseted ? 0.08 : 0.2;
+    // A skirt of this cut to `hem` (thigh lengths), `fuller` times as full: its rings, hem first.
+    const gownRings = (hem, fuller, rings) => {
+      const hemAt = skirtTo(hem);
+      const fullAt = skirtTo(gown.hem);
+      const linear = (u) => Math.max(0, (-0.12 - u) / (-0.12 - fullAt));
+      // The flare's growth down the skirt: a bell's (on to the hem), a bubble's
+      // (swelling, then gathered back in), or tiers (each ruffle stands out from under the last).
+      const down = (u) => {
+        const d = linear(u);
+        if (gown.balloon) return Math.sin(Math.min(1, d) * Math.PI * 0.82) * 0.9;
+        if (gown.tiers) return Math.sqrt(d) * 0.7 + 0.3 * ((d * gown.tiers) % 1);
+        return d ** (gown.bell ?? 0.5);
+      };
+      // (`fuller`: by the skirt's own hem, growing from none at the waist, where it is gathered into the same band.)
+      const fullness = (u) => 1 + (fuller - 1) * Math.min(1, Math.max(0, (-0.12 - u) / (-0.12 - hemAt)) * 2);
+      const bustle = (u) => (u >= -0.12 ? 0 : (gown.bustle ?? 0) * waistDepth * Math.exp(-(((down(u) ** 2 - 0.16) / 0.2) ** 2)));
+      const made = along(at('pelvis'), at('neck'), forward, rings, hemAt, gownTop,
+        (u) => ((u >= -0.12 ? unbulged(bodyDepth, 1)(u) : waistDepth * (1 + gown.depthFlare * down(u))) + bustle(u)) * fullness(u),
+        (u) => (u >= -0.12 ? bodyWidth(u) : bodyWidth(-0.12) * (1 + (gown.hips ?? 0) * Math.min(1, 3 * down(u)) + gown.flare * down(u)) * fullness(u)),
+        (u) => unbulged(bodyLean, 0.8)(Math.max(u, -0.12)) - bustle(u));
+      // (How far down its own length each ring lies, 0 at the waist to 1 at its hem: what its folds deepen by.)
+      for (const ring of made) ring.fall = Math.max(0, (-0.12 - ring.t) / (-0.12 - hemAt));
+      return { made, linear };
+    };
+    // The folds a skirt falls in (`flutes`): none at the waist, deepening to the hem, uneven as cloth is (a second, slower
+    // fold over the first), swept round by `sweep` rad from waist to hem.
+    const fluted = ([folds, deep], sweep = 0) => (ring, angle) => {
+      const turn = angle + sweep * ring.fall;
+      // (Over the hips the skirt lies closer than it hangs below them: LOFT.gownHips of its standing off.)
+      return (ring.fall > 0 ? 1 : LOFT.gownHips) * (1 + deep * ring.fall ** 1.3 * (Math.cos(turn * folds) + 0.45 * Math.cos(turn * (folds - 3) + 1.3)));
+    };
+    const fine = !lowDetail && Boolean(gown.sides);
+    const gownSides = fine ? gown.sides : sides;
+    // (Drawn fine, a ring at the head of the hem's band and one within it, so the band lies on the skirt's own rings.)
+    const [hemAt, bandAt] = [skirtTo(gown.hem), skirtTo(gown.hem - (gown.hemBand ?? 0))];
+    const stops = fine ? [...new Set([...Array.from({ length: gown.rings + 1 }, (_, index) => hemAt + ((gownTop - hemAt) * index) / gown.rings).filter((t) => !gown.hemBand || t > bandAt + 0.01 || t === hemAt), ...(gown.hemBand ? [(hemAt + bandAt) / 2, bandAt] : [])])].sort((a, b) => a - b) : count(9);
+    const { made: rings, linear } = gownRings(gown.hem, 1, stops);
     // Gathered cloth: darker folds every few steps; tiers, a darker hem to each ruffle.
     const gathered = (ring, angle, index, step) => {
       if (gown.tiers && (linear(ring.t) * gown.tiers) % 1 > 0.82) return 'trim2';
       return (gown.balloon || gown.tiers) && step % 3 === 0 ? 'trim2' : 'kit';
     };
-    loft(mesh, rings, sides, { color: gathered, inflate: 1.2, capStart: false, capEnd: false, bones: () => hanging3 });
+    loft(mesh, rings, gownSides, { color: gathered, inflate: 1.2, capStart: false, capEnd: false, bones: () => hanging3, ...(fine ? { shape: fluted(gown.flutes ?? [0, 0]) } : {}) });
+    // The hem's band: a braid sewn round it, or a flounce pleated on, standing a little off the skirt.
+    if (gown.hemBand && fine) {
+      const band = rings.filter((ring) => ring.t <= bandAt + 1e-9).map((ring) => ({ ...ring }));
+      const folds = fluted(gown.flutes ?? [0, 0]);
+      // (How far down the band a ring lies: a flounce is gathered flat at its head and stands in pleats at its foot.)
+      const into = (ring) => Math.max(0, 1 - (1 - ring.fall) / (gown.hemBand / gown.hem));
+      const pleats = gown.flounce ? (ring, angle) => folds(ring, angle) * (1 + gown.flounce[1] * into(ring) * Math.abs(Math.sin((angle * gown.flounce[0]) / 2))) : folds;
+      loft(mesh, band, gownSides * (gown.flounce ? 2 : 1), { color: 'trim2', inflate: 1.2 + (gown.flounce ? 0.03 : 0.012), capStart: false, capEnd: false, bones: () => hanging3, shape: pleats });
+    }
+    // An overskirt (`over`): draped over the skirt, hung aslant, its folds swept round, its hem edged with lace.
+    if (gown.over && fine) {
+      const over = gown.over;
+      const { made } = gownRings(over.hem, over.fuller, gown.rings);
+      const up = vec.normalize(vec.sub(at('neck'), at('pelvis')));
+      for (const ring of made) {
+        // (Aslant: each ring leant about its middle, the hem most, so the front and her left hang lower.)
+        const [front, side] = over.tilt.map((drop) => (drop * L.thigh * ring.fall ** 1.5));
+        ring.depthAxis = vec.normalize(vec.sub(vec.scale(ring.depthAxis, ring.depth), vec.scale(up, front)));
+        ring.widthAxis = vec.normalize(vec.sub(vec.scale(ring.widthAxis, ring.width), vec.scale(up, side)));
+      }
+      const drape = fluted(over.flutes, over.sweep);
+      loft(mesh, made.slice(1), gownSides, { color: 'kit', inflate: 1.2, capStart: false, capEnd: false, bones: () => hanging3, shape: drape });
+      // (The lace: from the cloth's edge down, its own edge scalloped.)
+      const edge = gownRings(over.hem + over.lace, over.fuller, [skirtTo(over.hem + over.lace), made[1].t]).made;
+      edge[0].fall = edge[1].fall = 1;
+      for (const [index, ring] of edge.entries()) Object.assign(ring, { depthAxis: made[1].depthAxis, widthAxis: made[1].widthAxis, ...(index === 0 ? { center: vec.add(made[1].center, vec.scale(up, -over.lace * L.thigh)), depth: made[1].depth * 1.03, width: made[1].width * 1.03 } : { center: made[1].center, depth: made[1].depth, width: made[1].width }) });
+      loft(mesh, edge, gownSides, { color: 'trim2', inflate: 1.205, capStart: false, capEnd: false, bones: () => hanging3, shape: (ring, angle) => drape(ring, angle) * (ring === edge[0] ? 1 + 0.012 * Math.cos(angle * 40) : 1), ...laceUv(edge, 1.2) });
+    }
   }
   if (bottom?.kind === 'loincloth') loft(mesh, skirtRings(skirtTo(0.22), count(2), 0.5), sides, { color: 'kit', inflate: 1.16, capStart: false, capEnd: false, bones: () => hanging3 });
   // The balteus: a gladiator's broad bronze belt.
@@ -4798,7 +4973,14 @@ export function* buildLoftBodySteps(body, { faceted = false, lowDetail = false, 
     // through the gambeson's in teeth. In front it goes on up, under the coat's opening and the gorget.)
     const coatTop = Math.max(-Infinity, ...armorPieces(kit, 'trunk', 'l').map(([, to]) => to));
     const behind = coatTop >= LOFT.closedJoint.top.trunk && coatTop < topShape.neck && !lowDetail ? { holes: (t, angle) => t > coatTop && Math.cos(angle) < 0 } : {};
-    loft(mesh, trunkRings(topShape.hem, topShape.neck, count(Math.max(4, Math.round(14 * (topShape.neck - topShape.hem))))), trunkSides, { color: topPattern, inflate: topShape.loose, capStart: false, capEnd: false, bones: abdomen, ...bendTrunk, ...behind });
+    const topRings = trunkRings(topShape.hem, topShape.neck, count(Math.max(4, Math.round(14 * (topShape.neck - topShape.hem)))));
+    loft(mesh, topRings, trunkSides, { color: topPattern, inflate: topShape.loose, capStart: false, capEnd: false, bones: abdomen, ...bendTrunk, ...behind });
+    // A bertha: a deep band of lace round an off-the-shoulder neckline. A jabot: frills of lace down the chest (not in a crowd).
+    if (topShape.bertha) {
+      const bertha = trunkRings(topShape.bertha[0], topShape.bertha[1], count(3));
+      loft(mesh, bertha, trunkSides * (lowDetail ? 1 : 2), { color: 'trim', inflate: topShape.loose + 0.05, shape: (ring, angle) => 1 + 0.02 * (ring === bertha[0] ? 1 : 0) * Math.cos(angle * 24), capStart: false, capEnd: false, bones: abdomen, ...laceUv(bertha, topShape.loose + 0.05) });
+    }
+    if (topShape.jabot && !lowDetail) jabotOn(mesh, topRings, topShape.loose, topShape.jabot, abdomen, DETAIL_MAPS.on);
     if (topShape.ribbed) loft(mesh, trunkRings(topShape.hem, topShape.hem + 0.06, 1), trunkSides, { color: 'trim', inflate: topShape.loose + 0.012, capStart: false, capEnd: false, bones: abdomen, ...bendTrunk });
   }
   if (armor) {
@@ -4831,7 +5013,8 @@ export function* buildLoftBodySteps(body, { faceted = false, lowDetail = false, 
   // A field per pale is drawn sharp down the middle (paleOn), except in a crowd; a device over it (chargeOn) likewise.
   const sharpPale = (paint) => paint?.heraldry && armor?.heraldry === 'pale' && !lowDetail;
   for (const [from, to, inflate, paint] of armorPieces(kit, 'trunk', 'l')) {
-    const rings = (kit.straight ? straightRings : trunkRings)(from, to, count(Math.max(4, Math.round(14 * (to - from)))));
+    // (A boned piece is cut close and curved all the way up: LOFT.boned.rings times the rings.)
+    const rings = (kit.straight ? straightRings : trunkRings)(from, to, count(Math.max(4, Math.round(14 * (paint?.boning && !lowDetail ? LOFT.boned.rings : 1) * (to - from)))));
     // A kit's steel breastplate (rigidBreastplate) is ridged, its borders roped.
     const ridgedPiece = kit?.rigidBreastplate && paint === 'steel';
     tablePiece(rings, inflate, ridgedPiece ? (ring, angle, index, step) => roped(ring, step) ?? 'steel' : sharpPale(paint) ? 'cloth' : paint, abdomen, ridgedPiece ? ridgedPlate : null, 'trunk', pieceMaterial(paint));
@@ -4940,6 +5123,11 @@ export function* buildLoftBodySteps(body, { faceted = false, lowDetail = false, 
     loft(mesh, collarRings, sides, { color: kit?.collar ? paintFor(kit.collar, armor) : plate ? 'steel' : 'armor', capStart: false, capEnd: false, ...mailMaps });
     if (plate && brassStrips) gorgetBorder(mesh, collarRings);
   }
+  // A bodice's standing collar (TOPS `collar`): a band of lace close up the neck, its top edge turned out a little.
+  if (topShape?.collar) {
+    const band = tagged('neck', along(at('neck'), at('head'), forward, count(3), -0.14, topShape.collar, (t) => neckR * neckGirth * (1.1 + 0.06 * Math.max(0, t / topShape.collar) ** 4), (t) => neckR * 1.05 * neckGirth * (1.1 + 0.06 * Math.max(0, t / topShape.collar) ** 4)));
+    loft(mesh, band, sides, { color: 'trim', capStart: false, capEnd: false, ...laceUv(band, 1) });
+  }
   // (Stiff as its paint is: one plate, or rows where it is painted in rows of plates and lacing.)
   const armorPiece = (rings, inflate, role = plate ? 'steel' : 'armor') => loft(mesh, stiffen(mesh, rings, typeof role === 'function' ? 'rows' : stiffnessOf(role)), sides, { color: role, inflate, capStart: false, capEnd: false });
   // A plate harness's piece (with the maps): its edges turned and roped, rivets inside them (harnessEdgesOn); a couter's or a
@@ -5018,6 +5206,20 @@ export function* buildLoftBodySteps(body, { faceted = false, lowDetail = false, 
         const round = hang && !lowDetail ? sides * 2 : sides;
         loft(mesh, bagged(widened(upper, 1.1, mid), 0, hang), round, { color: pattern, ...FLARED });
         loft(mesh, bagged(widened(forearmRings(0.05, shape.sleeve - 1, count(4)), mid, mouth, hang ? 0 : elbow), hang, hang), round, { color: pattern, ...FLARED, capEnd: hang > 0 });
+        return;
+      }
+      // A puffed sleeve (TOPS `puff`): gathered into the armhole, swelling to its fullest at `at` and gathered in again by `to`,
+      // the gathers folds round it, deepest where it is fullest; below that the sleeve is close (a gigot's forearm).
+      if (shape.puff) {
+        const { out, at: fullest, to, gathers } = shape.puff;
+        const ease = (x) => Math.max(0, Math.min(1, x)) ** 2 * (3 - 2 * Math.max(0, Math.min(1, x)));
+        const swell = (t) => (t <= fullest ? ease((t + 0.3) / (fullest + 0.3)) : 1 - ease((t - fullest) / (to - fullest)));
+        const upper = upperArmRings(-0.3, shape.sleeve > 1 ? 1.05 : shape.sleeve, count(shape.sleeve > 1 ? 12 : 6));
+        for (const ring of upper) Object.assign(ring, { flare: shape.sleeveLoose * (1 + (out - 1) * swell(ring.t)), swell: swell(ring.t) });
+        loft(mesh, upper, lowDetail ? sides : sides * 2, { color: pattern, ...FLARED, shape: (ring, angle) => ring.flare * (1 + 0.04 * ring.swell * Math.cos(angle * gathers)) });
+        if (shape.sleeve > 1) loft(mesh, forearmRings(-0.06, shape.sleeve - 1, count(5)), sides, { color: pattern, inflate: shape.sleeveLoose, capStart: false, capEnd: false });
+        // (A short puff's band: the sleeve gathered into a band of the trim round the arm.)
+        else loft(mesh, upperArmRings(shape.sleeve - 0.05, shape.sleeve + 0.02, 1), sides, { color: 'trim', inflate: shape.sleeveLoose + 0.03, capStart: false, capEnd: false });
         return;
       }
       // (Under a harness's pauldron the sleeve's head ends inside the cap, not above it.)

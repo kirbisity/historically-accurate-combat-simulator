@@ -563,7 +563,7 @@ export const HEEL_FOOTING_PER_RADIAN = 1.1;
 const GOTHIC = {
   // A small dark-red flower on one side of the head, over whatever her hair is.
   head: { kind: 'flower', color: '#5c0b16', lace: '#0d0c0f', side: 1 },
-  armor: { kind: 'overbust', color: '#0f0f12', cloth: '#121216', cloth2: '#26262d', lace: '#2e2e36', gold: '#b8bcc4' },
+  armor: { kind: 'overbust', color: '#0f0f12', cloth: '#1b1b20', cloth2: '#26262d', lace: '#34343c', gold: '#c9ccd2' },
   feet: { kind: 'platformShoe', color: '#0b0b0d', heels: PLATFORM_HEELS },
   face: { skinTone: 'porcelain', makeup: { eyes: 'smoky', liner: 'winged', lowerLash: 'heavy', lips: '#0b090b' } },
 };
@@ -2889,7 +2889,8 @@ export const OUTFITS = {
   // A Victorian lady: a corset under the bodice, a long gown, high-heeled
   // pointed boots (their heel sets her footing, see heelFooting). The
   // corset's boning turns a little of a cut (30%), nothing of a blow or a
-  // point. The game shuffles her three silhouettes of the reign.
+  // point. The game shuffles her three silhouettes of the reign: the crinoline of the 1860s, the bustle of the 1880s, the
+  // leg-of-mutton sleeves and bell skirt of the 1890s.
   victorianLady: {
     // Trained: a civilian: never trained to fight (`skill`: OUTFITS' tiers).
     skill: 0.1,
@@ -2901,9 +2902,12 @@ export const OUTFITS = {
     // Dealt: the three silhouettes of the reign, and the gothic high-low (design 4, chosen 2026-10-08).
     picked: [0, 1, 2, 4],
     designs: [
-      { label: 'Ball gown (1860s)', top: { kind: 'bodice', color: '#e6eef2' }, bottom: { kind: 'gown', shape: 'ball', color: '#9ab8d0' }, armor: { kind: 'corset', color: '#5a7ea6', cloth: '#5a7ea6', cloth2: '#e6eef2', lace: '#e6eef2' }, feet: { kind: 'heelAnkleBoot', color: '#e6e0d4', heels: LADY_HEELS } },
-      { label: 'Bustle dress (1880s)', top: { kind: 'longsleeve', color: '#5a1a2a' }, bottom: { kind: 'gown', shape: 'bustle', color: '#6a2234' }, armor: { kind: 'corset', color: '#16161a', cloth: '#16161a', cloth2: '#6a2234', lace: '#d6c7a3' }, head: { kind: 'tiltHat', color: '#2a0a12', plume: '#e8e0cc' }, feet: { kind: 'heelAnkleBoot', color: '#141416', heels: LADY_HEELS } },
-      { label: 'Mourning black', top: { kind: 'longsleeve', color: '#1a1a1e' }, bottom: { kind: 'gown', color: '#141418' }, armor: { kind: 'corset', color: '#34343c', cloth: '#34343c', cloth2: '#141418', lace: '#8a8a92' }, head: { kind: 'widowCap', color: '#141418', cap: '#f2efe8' }, feet: { kind: 'heelAnkleBoot', color: '#141416', heels: LADY_HEELS } },
+      { label: 'Ball gown (1860s)', top: { kind: 'bodice', color: '#e6eef2', trim: '#f4f1e8' }, bottom: { kind: 'gown', shape: 'ball', color: '#9ab8d0', trim: '#f4f1e8' }, armor: { kind: 'corset', color: '#5a7ea6', cloth: '#5a7ea6', cloth2: '#e6eef2', lace: '#e6eef2', gold: '#c9ccd2' }, feet: { kind: 'heelAnkleBoot', color: '#e6e0d4', heels: LADY_HEELS } },
+      { label: 'Bustle dress (1880s)', top: { kind: 'basque', color: '#5a1a2a', trim: '#d6c7a3' }, bottom: { kind: 'gown', shape: 'bustle', color: '#6a2234', trim: '#4a1420' }, armor: { kind: 'corset', color: '#16161a', cloth: '#16161a', cloth2: '#6a2234', lace: '#d6c7a3', gold: '#c9ccd2' }, head: { kind: 'tiltHat', color: '#2a0a12', plume: '#e8e0cc' }, feet: { kind: 'heelAnkleBoot', color: '#141416', heels: LADY_HEELS } },
+      // The 1890s walking dress, all in black (was the widow's mourning black; the user's call, 2026-11-21): leg-of-mutton
+      // sleeves, a high lace collar and jabot, the bodice hard to the corseted waist, a draped overskirt edged with lace,
+      // kid gloves, a hat with ostrich plumes.
+      { label: 'Walking dress (1890s)', top: { kind: 'gigot', color: '#1d1d22', trim: '#2c2c33' }, bottom: { kind: 'gown', shape: 'walking', color: '#1a1a1f', trim: '#2c2c33', stuff: 'satin' }, armor: { kind: 'corset', color: '#1b1b20', cloth: '#1b1b20', cloth2: '#141418', lace: '#34343c', gold: '#c9ccd2' }, head: { kind: 'plumeHat', color: '#151518', plume: '#1b1b20' }, feet: { kind: 'heelAnkleBoot', color: '#141416', heels: LADY_HEELS }, gloves: '#121215' },
       // Victorian Gothic, all in black: a strapless overbust corset (brocade,
       // a steel busk's clasps, laced behind), platform Mary Janes, a beaded
       // lace choker; porcelain powder, smoky eyes, black lips (`face`, laid

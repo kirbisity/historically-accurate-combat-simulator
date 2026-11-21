@@ -2497,7 +2497,7 @@ function detailedView(view, fighter, simple) {
       }
       hand.add(fist, thumb, cuff);
       hand.matrixAutoUpdate = false;
-    } else hand = buildHand(body, side, hands, skinColor, plainSteel);
+    } else hand = buildHand(body, side, hands, skinColor, plainSteel, dress.look?.gloves ?? null);
     layers.skin.add(hand);
     attachments.push({ object: hand, bone: BONE[`${side}Forearm`], at: P[`${side}Hand`] });
     const shoe = buildFootwear(body, dress.feet.kind, garmentColors, skinColor, plainSteel, dress.feet.heels ?? null, dress.feet);
@@ -2700,6 +2700,8 @@ function skinNow(body, style) {
   return { ...built, positions: built.positions.slice() };
 }
 
+// How strongly the sky is mirrored in a fabric tile's face (satin, lace: skinParts), of what steel takes.
+const FABRIC_SHEEN = 0.9;
 // The armour tiles a harness's decoration is drawn over (detailmaps.js DETAIL_ARMOUR): its plate, its fluting, its edges.
 const DECOR_TILES = ['plate', 'fluted', 'harnessEdge'];
 
@@ -2762,14 +2764,22 @@ function skinParts(view, fighter, built, bodyStyle, bones, { machine, lacquer, s
     const cord = dress.armor?.cord ?? FACTIONS[factionOf(body.inputs)]?.lamellarCord;
     const laces = cord ? [new THREE.Color(cord), new THREE.Color(cord)] : [roles.lace, roles.lace];
     // The other tiles' masks (detailmaps.js DETAIL_ARMOUR `masks`): rivet heads and fittings in the kit's gilt, lacing in its lace.
-    const masked = { gold: [roles.gold, roles.gold], lace: [roles.lace, roles.lace] };
+    // (`fittings`: a corset's, its eyelets in the gilt and its lace in the lace.)
+    const masked = { gold: [roles.gold, roles.gold], lace: [roles.lace, roles.lace], fittings: [roles.gold, roles.lace] };
     const cords = { ...Object.fromEntries(Object.entries(DETAIL_ARMOUR).filter(([, spec]) => spec.masks).map(([kind, spec]) => [kind, masked[spec.masks]])), lamellae: laces, kozane: [roles.lace, roles.lace] };
     for (const [kind, indices] of Object.entries(detailIndices)) {
-      const base = matte ? new THREE.MeshStandardMaterial({ color: 0xffffff, vertexColors: true, skinning: true, roughness: 1, metalness: 0 }) : steelMaterial(view.steelEnv, { skinning: true, ...lacquer });
-      const metalness = lacquer.metalness ?? (kind === 'kozane' ? 0.5 : 1);
+      // A fabric tile (detailmaps.js DETAIL_ARMOUR `fabric`: satin, lace) is cloth, in its role's own colour: its roughness and
+      // what little of it is metal (eyelets) are the tile's, and the sky shows faintly in it as it does in any smooth face
+      // (FABRIC_SHEEN: satin's sheen is that reflection, drawn out along its floats by the tile's relief).
+      const fabric = Boolean(DETAIL_ARMOUR[kind]?.fabric);
+      const base = fabric ? new THREE.MeshStandardMaterial({ color: 0xffffff, vertexColors: true, skinning: true, envMap: view.steelEnv, envMapIntensity: FABRIC_SHEEN })
+        : matte ? new THREE.MeshStandardMaterial({ color: 0xffffff, vertexColors: true, skinning: true, roughness: 1, metalness: 0 }) : steelMaterial(view.steelEnv, { skinning: true, ...lacquer });
+      const metalness = fabric ? 1 : lacquer.metalness ?? (kind === 'kozane' ? 0.5 : 1);
       // (A laced tile's plates each their own tone: armourDetailMaterial `plates`.)
       const laced = DETAIL_ARMOUR[kind]?.masks === 'lace' && DETAIL_ARMOUR[kind].columns ? [DETAIL_ARMOUR[kind].columns, DETAIL_ARMOUR[kind].rows] : null;
-      const material = doubleSided(armourDetailMaterial(base, kind, { cords: cords[kind] ?? null, matte, metalness, plates: laced }));
+      const material = doubleSided(armourDetailMaterial(base, kind, { cords: cords[kind] ?? null, matte: matte && !fabric, metalness, plates: laced }));
+      // (The tile's roughness as drawn, not polished as kept steel is.)
+      if (fabric) material.roughness = 1;
       // The decoration over a plate harness (outfits.js ARMOUR_DECOR): its bands along the plates' field and fluting, its
       // borders gilt along the edge strips.
       if (dress.armor?.decor && DECOR_TILES.includes(kind)) armourDecorMaterial(material, dress.armor.decor, { tile: tileSize(kind)[0], edge: kind === 'harnessEdge' });
