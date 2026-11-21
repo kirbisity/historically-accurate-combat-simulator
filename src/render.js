@@ -60,6 +60,7 @@ import { worksOf } from './physics/fieldworks.js';
 import { buildCanalTown, CANAL_TOWN_LIGHT } from './places/canaltown.js';
 import { PLACE_ENV } from './env/config.js';
 import { envDress } from './env/air.js';
+import { envFbm, envValueNoise } from './env/noise.js';
 import { COLOSSEUM } from './props/arenasize.js';
 import { buildPyongyang, buildPyongyangTown, PYONGYANG_LIGHT } from './places/pyongyang.js';
 // (The kit's door to the open air: townkit/air.js puts env/'s registration where the kit's places find it.)
@@ -1167,35 +1168,26 @@ function buildCoast({ fort }) {
   }
   const guard = coastFarPlaneGuard(ships);
   place.add(...guard);
-  // Zeelandia joins the open air (env/config.js PLACE_ENV.coastFort): there the camera sees to the horizon, so the
-  // beach runs on inland and along the shore and the sea out to it (drawn only then: under the other looks the
-  // painted band stands for the far sea, and stands down here), and the air is told of the sun's own shadow map.
-  let shown = null;
+  // The shore joins the open air (env/config.js PLACE_ENV.coastFort, .coastVillage): there the camera sees to the
+  // horizon, so the beach runs on inland and along the shore and the sea out to it (drawn only then: under the other
+  // looks the painted band stands for the far sea, and stands down here), and the air is told of the sun's own
+  // shadow map (joinOpenAir).
   const beyond = [];
-  if (fort) {
-    const farSand = new THREE.Mesh(new THREE.PlaneGeometry(9000, 9000), lit(0xa8966a));
-    farSand.rotation.x = -Math.PI / 2;
-    farSand.position.set(shoreX - 4500, -0.03, 0);
-    farSand.receiveShadow = true;
-    const farSea = new THREE.Mesh(new THREE.PlaneGeometry(9000, 9000), sea.material);
-    farSea.rotation.x = -Math.PI / 2;
-    farSea.position.set(shoreX + 4500, -0.06, 0);
-    beyond.push(farSand, farSea);
-    for (const mesh of beyond) mesh.visible = false;
-    place.add(...beyond);
-    place.userData.bind = (view) => {
-      shown = view;
-      const shadow = view.lights.sun.shadow;
-      PLACE_ENV.coastFort.sunMap = { matrix: shadow.matrix, texture: () => shadow.map?.texture ?? null };
-    };
-    place.traverse((object) => {
-      for (const material of [].concat(object.material ?? [])) envDress(material);
-    });
-  }
+  const farSand = new THREE.Mesh(new THREE.PlaneGeometry(9000, 9000), lit(0xa8966a));
+  farSand.rotation.x = -Math.PI / 2;
+  farSand.position.set(shoreX - 4500, -0.03, 0);
+  farSand.receiveShadow = true;
+  const farSea = new THREE.Mesh(new THREE.PlaneGeometry(9000, 9000), sea.material);
+  farSea.rotation.x = -Math.PI / 2;
+  farSea.position.set(shoreX + 4500, -0.06, 0);
+  beyond.push(farSand, farSea);
+  for (const mesh of beyond) mesh.visible = false;
+  place.add(...beyond);
+  const shownIn = joinOpenAir(place, fort ? 'coastFort' : 'coastVillage');
   place.userData.tick = (time) => {
-    const open = Boolean(shown?.env?.on);
+    const open = Boolean(shownIn()?.env?.on);
     for (const mesh of beyond) mesh.visible = open;
-    if (fort) guard[1].visible = !open;
+    guard[1].visible = !open;
     for (const ship of ships) {
       ship.position.y = Math.sin(time * 0.7 + ship.userData.phase) * 0.18;
       ship.rotation.z = Math.sin(time * 0.55 + ship.userData.phase) * 0.03;
@@ -1322,6 +1314,106 @@ function buildSengoku(arena = PLACE_ARENAS.sengoku) {
  * them), a hamlet's roofs and a church tower beyond, low bare ridges round. The mud of the field itself is the
  * works' (its surface over the ground).
  */
+/**
+ * A place that draws itself joins the open air (env/config.js PLACE_ENV[key], `own`): when it is shown the air is
+ * told of the sun's own shadow map, so its walls and roofs shade the haze and what falls as they shade the ground.
+ * What the place already does when it is shown (`userData.bind`) is kept. Returns a function giving the view it
+ * was last shown in (null before that), for a place that draws something only in the open air.
+ */
+function joinOpenAir(place, key, { land = null } = {}) {
+  const before = place.userData.bind;
+  let shown = null;
+  place.userData.bind = (view) => {
+    before?.(view);
+    shown = view;
+    const shadow = view.lights.sun.shadow;
+    PLACE_ENV[key].sunMap = { matrix: shadow.matrix, texture: () => shadow.map?.texture ?? null };
+  };
+  if (land) {
+    // The country round it, seen over its roofs and down its streets where the camera sees that far (farLand): in
+    // the open air only, where the place's own near hills (tagged `scenery: 'hills'`, made for a camera that saw
+    // sixty metres) stand down for it.
+    const far = farLand(land);
+    far.visible = false;
+    place.add(far);
+    const near = [];
+    place.traverse((object) => {
+      if (object.userData.scenery === 'hills' || object.userData.scenery === 'mountains') near.push(object);
+    });
+    const tick = place.userData.tick;
+    place.userData.tick = (...args) => {
+      tick?.(...args);
+      const open = Boolean(shown?.env?.on);
+      far.visible = open;
+      for (const object of near) object.visible = !open;
+    };
+  }
+  return () => shown;
+}
+
+/**
+ * The country round a place that draws itself, as one mesh: level ground from `from` m out (the place's own ground
+ * ends before that) rising over `foot` m into hills that stand `height` m at the most by `to` m, their rolls
+ * `length` m long (`ridged`: sharp crests, a mountain range; else rounded downs). Coloured by what grows on it:
+ * `fields` on the level, `wood` on the slopes, `rock` on the steepest and highest ground, `snow` above the height
+ * that names (m; left out: none). It takes the open air's haze as everything of the place does (setPlace), which
+ * is what sets the ranges one behind another.
+ */
+function farLand({ seed, from, to, foot, height, length, ridged = false, fields, wood, rock, snow = null }) {
+  const rings = 56;
+  const spokes = 220;
+  const positions = [];
+  const colours = [];
+  const tint = new THREE.Color();
+  const [low, mid, high, white] = [new THREE.Color(fields), new THREE.Color(wood), new THREE.Color(rock), new THREE.Color(0xf2f4f8)];
+  const heightAt = (x, z, r) => {
+    const rise = Math.min(1, Math.max(0, (r - from) / foot));
+    const eased = rise * rise * (3 - 2 * rise);
+    const far = Math.min(1, (r - from) / (to - from));
+    const roll = envFbm(x / length, z / length, seed, 5, ridged);
+    const small = envFbm(x / (length * 0.18), z / (length * 0.18), seed + 31, 3, false) - 0.5;
+    return eased * height * (0.25 + 0.75 * far) * Math.max(0, (ridged ? roll : roll * 1.3 - 0.15) + small * 0.16);
+  };
+  for (let ring = 0; ring <= rings; ring += 1) {
+    // (Rings closer together near the place, where a slope is seen from below.)
+    const t = ring / rings;
+    const r = from + (to - from) * t * t;
+    for (let spoke = 0; spoke <= spokes; spoke += 1) {
+      const angle = (spoke / spokes) * Math.PI * 2;
+      const x = Math.cos(angle) * r;
+      const z = Math.sin(angle) * r;
+      const y = heightAt(x, z, r);
+      positions.push(x, y - 0.12, z);
+      const slope = Math.abs(heightAt(x + 6, z, r) - y) + Math.abs(heightAt(x, z + 6, r) - y);
+      const patch = envValueNoise(x / 90, z / 90, seed + 77);
+      const wooded = Math.min(1, Math.max(0, y / (height * 0.06)) * (0.55 + 0.6 * patch));
+      const bare = Math.min(1, Math.max(0, (slope / 6 - 0.55) * 2.2) + Math.max(0, y / height - 0.55) * 1.6);
+      tint.copy(low).lerp(mid, wooded).lerp(high, bare);
+      if (snow !== null) tint.lerp(white, Math.min(1, Math.max(0, (y - snow) / (height * 0.08) + (patch - 0.5))));
+      // (Fields in strips and patches on the level: a lighter and a darker crop.)
+      if (wooded < 0.3) tint.multiplyScalar(0.86 + 0.28 * envValueNoise(x / 38, z / 14, seed + 5));
+      colours.push(tint.r, tint.g, tint.b);
+    }
+  }
+  const indices = [];
+  for (let ring = 0; ring < rings; ring += 1) {
+    for (let spoke = 0; spoke < spokes; spoke += 1) {
+      const a = ring * (spokes + 1) + spoke;
+      const b = a + spokes + 1;
+      indices.push(a, a + 1, b, b, a + 1, b + 1);
+    }
+  }
+  const geometry = new THREE.BufferGeometry();
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  geometry.setAttribute('color', new THREE.Float32BufferAttribute(colours, 3));
+  geometry.setIndex(indices);
+  geometry.computeVertexNormals();
+  const mesh = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({ color: 0xffffff, vertexColors: true, roughness: 1 }));
+  mesh.receiveShadow = true;
+  mesh.name = 'far-land';
+  return mesh;
+}
+
 function buildAgincourt(arena = PLACE_ARENAS.agincourt) {
   const place = new THREE.Group();
   const outX = Math.max(0, arena.halfX - PLACE_ARENAS.agincourt.halfX);
@@ -1725,6 +1817,8 @@ function buildTown() {
 
   // The houses, the church, the market: built for real in src/props/town.js.
   townSquare(place, { halfX, halfZ });
+  // (Low wooded downs and strip fields beyond the walls.)
+  joinOpenAir(place, 'town', { land: { seed: 211, from: 46, to: 3200, foot: 500, height: 150, length: 900, fields: 0x5a6e34, wood: 0x2e4826, rock: 0x6a6a5c } });
   return place;
 }
 
@@ -1789,6 +1883,8 @@ function buildJiangnan(arena = null) {
   bank.position.set(0, 0.02, far + 25);
   place.add(bank);
   jiangnanTown(place);
+  // (Zhejiang's hills behind the town: steep, wooded to the crest, rice in the level between.)
+  joinOpenAir(place, 'jiangnan', { land: { seed: 223, from: 78, to: 5200, foot: 380, height: 520, length: 1300, ridged: true, fields: 0x587038, wood: 0x26452a, rock: 0x4a5a44 } });
   return place;
 }
 
@@ -1799,7 +1895,10 @@ function buildJiangnan(arena = null) {
 function buildCajamarca() {
   const place = new THREE.Group();
   place.add(daySky());
-  return cajamarcaTown(place);
+  cajamarcaTown(place);
+  // (The valley's floor, green in November, and the cordillera's bare ranges round it, 800 to 1,000 m over the town.)
+  joinOpenAir(place, 'cajamarca', { land: { seed: 233, from: 60, to: 9000, foot: 900, height: 1000, length: 2600, ridged: true, fields: 0x66783a, wood: 0x6a7044, rock: 0x7a6a54 } });
+  return place;
 }
 
 /**
