@@ -98,7 +98,7 @@ export function armourDetailMaterial(material, name, { cords = null, matte = fal
   if (!entry) return material;
   Object.assign(material, {
     map: entry.map, normalMap: entry.normalMap, roughnessMap: entry.ormMap, metalnessMap: matte ? null : entry.ormMap,
-    aoMap: repeat ? null : entry.ormMap, roughness: 1, metalness: matte ? 0 : metalness,
+    aoMap: repeat ? null : entry.ormMap, roughness: matte ? 1 : DETAIL_MAPS.polish, metalness: matte ? 0 : metalness,
   });
   if (!cords && !repeat) return material;
   const uniforms = {

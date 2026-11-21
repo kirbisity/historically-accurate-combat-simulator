@@ -355,7 +355,10 @@ export const PROBE_LITE_LOOK = defineLook({
 
   steel(envMap, options) {
     const tune = PROBE_LITE_TUNE;
-    const roughness = Math.min(1, (options.roughness ?? 0.4) + tune.steelRoughnessAdd);
+    // (Plate kept bright is polished: at 0.24 it shows what stands round it, the sky on what is turned up, the ground's
+    // colour on what is turned down and the walls or the wood on its sides, and the sun as a highlight. At 0.4 the
+    // sun's highlight spread over every plate turned toward it and a harness in sunlight was white all over.)
+    const roughness = Math.min(1, Math.max(0.1, (options.roughness ?? 0.24) + tune.steelRoughnessAdd));
     return new THREE.MeshStandardMaterial({ color: 0xffffff, vertexColors: true, metalness: 0.9, ...options, roughness, envMap, envMapIntensity: tune.steelEnvIntensity });
   },
 

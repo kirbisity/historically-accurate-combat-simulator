@@ -13,7 +13,12 @@ export function detailMapsWanted(hash = '') {
 }
 
 /** Whether the detail maps are drawn (read once from the address). */
-export const DETAIL_MAPS = { on: detailMapsWanted(typeof location !== 'undefined' ? location.hash ?? '' : '') };
+// `polish`: what a metal tile's baked roughness is multiplied by. The tiles were baked near 0.45, a satin finish, on
+// which the sun's highlight spreads over every plate turned toward it: a harness in sunlight was white all over and
+// showed nothing of the place. Kept armour is brighter than that (white harness was burnished, and scoured with
+// sand and oil): at 0.55 of the baked figure a plate shows the sky where it is turned up, the ground's colour
+// where it is turned down and the walls or the wood on its sides, and the sun as a highlight. By eye in the arena.
+export const DETAIL_MAPS = { on: detailMapsWanted(typeof location !== 'undefined' ? location.hash ?? '' : ''), polish: 0.55 };
 
 /**
  * The armour tiles. `band`: each kind's texture coordinates are offset by its band in u (a whole number of tiles, so the picture

@@ -261,6 +261,9 @@ export const ENV_UNIFORMS = {
   // The camera's exposure this frame (post.js envMeter): what a place's own emissive or added light multiplies
   // itself against so that it sits in the frame as the land does. 1 where no open-air place is shown.
   uEnvExposure: { value: 1 },
+  // 1 while the place is being pictured for what metal mirrors (index.js envSteelShot): the sky then leaves out
+  // the sun's disc, which the sun's own light already puts on the plate as its highlight.
+  uEnvMirrorShot: { value: 0 },
   // A place's own sun map (a place that draws itself and casts its own shadows: config.js `sunMap`), read by
   // the air's walk and by whatever falls through the air, so that its walls and roofs shade the mist and the
   // flakes as its crowns would. `uEnvPlaceSunBy`: world to the map's [0, 1] cube (a light's shadow.matrix);
@@ -364,6 +367,7 @@ uniform sampler2D uEnvCover;
 uniform vec4 uEnvShade;
 uniform vec2 uEnvShadeSway;
 uniform float uEnvExposure;
+uniform float uEnvMirrorShot;
 uniform sampler2D uEnvPlaceSun;
 uniform mat4 uEnvPlaceSunBy;
 uniform vec2 uEnvPlaceSunOn;
