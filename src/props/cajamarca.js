@@ -292,6 +292,9 @@ export function cajamarcaTown(place) {
   way.position.set(east - 0.42, 0.01, 0);
   place.add(way, cajamarcaBox(materials.lintel, { x: east, z: 0, length: 2 * gate + 0.6, thick: 0.8, y0: wallHeight - 0.4, y1: wallHeight, alongZ: true }));
   place.add(cajamarcaUshnu(materials));
-  place.add(cajamarcaHills(random));
+  // (Tagged, so the open air's far ranges stand in for them: render.js joinOpenAir.)
+  const hills = cajamarcaHills(random);
+  hills.userData.scenery = 'hills';
+  place.add(hills);
   return place;
 }

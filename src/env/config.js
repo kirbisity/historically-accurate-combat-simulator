@@ -972,6 +972,80 @@ export const PLACE_ENV = {
     far: 9000,
     drift: [{ kind: 'motes', share: 0.3, colours: [0xf2e8d0] }],
   },
+  // The fishing village on the Zhejiang shore (render.js buildCoast, the wokou's landing): Zeelandia's beach and sea
+  // in a morning's light, the sun 26 degrees up over the water to the right of a fight as it is first watched (the
+  // coast faces east), a sea haze on the junks and the far headlands, the whitewash of the houses taking the sun.
+  coastVillage: {
+    ...ENV_PLACE_PLAIN,
+    own: true,
+    weather: 'clear',
+    weatherHere: { grade: { contrast: 1.35, saturation: 1.04, warmth: 0.02, split: 0.1, bloom: 1.3 } },
+    sun: { azimuth: -0.6, elevation: 26 },
+    air: { visibility: 12000, hazeHeight: 600 },
+    clouds: { cover: 0.4 },
+    ground: { ...ENV_PLACE_PLAIN.ground, albedo: 0.3 },
+    shadowBox: { half: 34, depth: 110, size: 2048 },
+    far: 9000,
+    drift: [{ kind: 'motes', share: 0.3, colours: [0xf2ecd8] }],
+  },
+  // The market square (render.js buildTown, props/town.js): a walled town's morning in late summer, the sun 36
+  // degrees up over the roofs ahead and to the left, so the east side's gables lay their shadow half across the
+  // cobbles and the jetties shade the shop fronts; woodsmoke and the dust of the market in the air (9 km, by eye),
+  // enough that the sun shows in it where it comes between the houses. The floor sees about three fifths of the sky
+  // over houses of two and three storeys round a square 25 m across (approximate, as the wood's clearing).
+  town: {
+    ...ENV_PLACE_PLAIN,
+    own: true,
+    weather: 'clear',
+    weatherHere: { visibility: 9000, hazeHeight: 300, shafts: 1.3, grade: { contrast: 1.4, saturation: 1.02, warmth: 0.03, split: 0.12, bloom: 1.4 } },
+    sun: { azimuth: -2.5, elevation: 36 },
+    air: { visibility: 9000, hazeHeight: 300 },
+    clouds: { cover: 0.35 },
+    ground: { ...ENV_PLACE_PLAIN.ground, albedo: 0.22 },
+    shadowBox: { half: 34, depth: 110, size: 2048 },
+    far: 4000,
+    meter: { sky: 0.6, frame: 0.12 },
+    litAt: [0, 30, 0],
+    drift: [{ kind: 'motes', share: 0.8, colours: [0xf2e6c8, 0xe6d8b0] }],
+  },
+  // The water town's square (render.js buildJiangnan, props/jiangnan.js): Jiangnan's damp air in the forenoon, the
+  // sun 32 degrees up through a thin high overcast that softens every shadow, the far bank's houses and the hills
+  // behind them paled by a haze a few kilometres thick (7 km: approximate, that country's summer air), the canal
+  // taking the sky.
+  jiangnan: {
+    ...ENV_PLACE_PLAIN,
+    own: true,
+    weather: 'clear',
+    weatherHere: { visibility: 7000, hazeHeight: 300, sun: 0.8, grade: { contrast: 1.3, saturation: 0.95, warmth: 0.0, split: 0.1, bloom: 1.2 } },
+    sun: { azimuth: -2.4, elevation: 32 },
+    air: { visibility: 7000, hazeHeight: 300 },
+    clouds: { cover: 0.55 },
+    ground: { ...ENV_PLACE_PLAIN.ground, albedo: 0.25 },
+    shadowBox: { half: 34, depth: 110, size: 2048 },
+    far: 6500,
+    meter: { sky: 0.75, frame: 0.2 },
+    litAt: [0, 30, 0],
+    drift: [{ kind: 'motes', share: 0.4, colours: [0xeef0e6] }],
+  },
+  // The square of Cajamarca late on 16 November 1532 (render.js buildCajamarca, props/cajamarca.js): the Inca came
+  // into the square near sunset. A high valley's thin clear air (2,700 m: the sky deep, the far ranges sharp), the
+  // sun 17 degrees up to the right of a fight as it is first watched, low across the square so every man throws a long
+  // shadow and the halls' fronts take it warm, building cloud over the cordillera (the rains begin that month).
+  cajamarca: {
+    ...ENV_PLACE_PLAIN,
+    own: true,
+    weather: 'clear',
+    weatherHere: { grade: { contrast: 1.45, saturation: 1.06, warmth: 0.05, split: 0.14, bloom: 1.5 } },
+    sun: { azimuth: -0.5, elevation: 17 },
+    air: { visibility: 60000, hazeHeight: 1200 },
+    clouds: { cover: 0.45 },
+    ground: { ...ENV_PLACE_PLAIN.ground, albedo: 0.28 },
+    shadowBox: { half: 40, depth: 130, size: 2048 },
+    far: 11000,
+    meter: { sky: 0.85, frame: 0.2 },
+    litAt: [0, 30, 0],
+    drift: [{ kind: 'motes', share: 0.5, colours: [0xf2e2c0] }],
+  },
   // A village green on the brow of a down late on a summer afternoon under heavy broken cloud, the sun low over the
   // left shoulder: the grass uncut beyond the fence, the land in shade with light crossing it and falling away to
   // wooded hills that fade ridge behind ridge into the haze (the first reference).
