@@ -284,6 +284,8 @@ export function buildHand(body, side, kind, skinColor, steel) {
   const knuckleRadius = 0.0095 * scale;
   // (A proximity suit's aluminized gloves: their gauntlet cuff over the sleeve.)
   const material = kind === 'gauntlet' ? steel : kind === 'proximity' ? foilMaterial(steel?.envMap ?? null, 0xc9ccd1) : surface(kind === 'tactical' ? 0x18191d : skinColor);
+  // (A bare hand is skin, for the water on it: wetview.js.)
+  if (kind !== 'gauntlet' && kind !== 'proximity' && kind !== 'tactical') material.userData.wetKind = 'skin';
   const hand = new THREE.Group();
   const palm = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 12), material);
   palm.scale.set(0.034 * scale * (kind === 'bare' ? 1 : 1.1), half, 0.042 * scale * (kind === 'bare' ? 1 : 1.08));
@@ -345,6 +347,7 @@ export function buildFootwear(body, kind, colors, skinColor, steel, heels, feet 
   const stuff = wornMaterial(body, 'feet', kind);
   const upperMaterial = kind === 'sabaton' ? steel : spec.foil ? foilMaterial(steel?.envMap ?? null, upperColor, stuff) : kind === 'bare' || spec.skin ? surface(skinColor) : surface(upperColor, { roughness: spec.patent ? 0.12 : 0.5 });
   if (kind !== 'sabaton' && kind !== 'bare' && !spec.skin && !spec.foil) clothPropMaterial(upperMaterial, stuff);
+  if (kind === 'bare' || spec.skin) upperMaterial.userData.wetKind = 'skin';
   const upper = new THREE.Mesh(new THREE.SphereGeometry(1, 18, 12), upperMaterial);
   upper.scale.set(spec.width, length / 2, spec.height);
   upper.position.set(-0.012, length * 0.28, 0);
