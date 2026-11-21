@@ -17,6 +17,10 @@ const HITFEEL_WORDS = {
   haptic: { label: { en: 'Vibration', zh: '振动' }, note: { en: 'A buzz on phones that have it', zh: '支持的手机会震一下' } },
   thump: { label: { en: 'Body thump', zh: '闷响' }, note: { en: 'A low thud under the blow', zh: '这一击底下一声低沉的闷响' } },
   fov: { label: { en: 'Focus punch', zh: '视野收缩' }, note: { en: 'The view narrows for an instant', zh: '视野一瞬间收窄' } },
+  sparks: { label: { en: 'Contact sparks', zh: '兵刃火花' }, note: { en: 'Sparks and a flash where steel meets steel', zh: '钢铁相击处迸出火花和闪光' } },
+  trail: { label: { en: 'Blade trails', zh: '刀光' }, note: { en: 'A pale streak behind a fast blade', zh: '快刀身后一道淡淡的光痕' } },
+  screen: { label: { en: 'Screen pulse', zh: '画面褪色' }, note: { en: 'Colour drains from the edges on the biggest moments', zh: '最重的一刻，画面四周褪去颜色' } },
+  frame: { label: { en: 'Finisher framing', zh: '处决镜头' }, note: { en: 'The view closes in through an execution', zh: '处决时镜头推近' } },
 };
 
 export const HITFEEL_VIEW = {
@@ -47,10 +51,11 @@ export function hitFeelMistTexture() {
 }
 
 /**
- * The view of the feel in `view` (render.js's scene), its dark edges on `layer` (an element over the stage, or null).
+ * The view of the feel in `view` (render.js's scene), its dark edges on `layer` (an element over the stage, or null), the colour
+ * drained from the edges on `screenLayer` (the same).
  * apply(feel, now, dt) each frame after the camera is placed; felt(result) with what hear() returned; reset().
  */
-export function createHitFeelView(view, { layer = null, dimLayer = null, audio = null, vibrate = null } = {}) {
+export function createHitFeelView(view, { layer = null, dimLayer = null, screenLayer = null, audio = null, vibrate = null } = {}) {
   let texture = null;
   const mists = [];
   const jolt = [0, 0, 0];
@@ -73,6 +78,8 @@ export function createHitFeelView(view, { layer = null, dimLayer = null, audio =
     if (!result) return;
     if (result.vibrate > 0) vibrate?.(result.vibrate);
     if (result.thump > 0) audio?.thump?.(result.thump, result.strength);
+    // The beat's own sound (a block's knock, a deflect's ring, an execution's boom: audio/sfx/beat.js).
+    if (result.sound) audio?.beat?.(result.sound.kind, result.sound.gain, result.sound.strength);
     if (result.puff) {
       const mist = mistSprite();
       const { point, normal } = result.puff;
@@ -93,7 +100,8 @@ export function createHitFeelView(view, { layer = null, dimLayer = null, audio =
     camera.position.y += jolt[1];
     camera.position.z += jolt[2];
     // The view narrowed, as a zoom (nothing else in the game zooms the lens: its fov is left to the cameras that own it).
-    const narrow = feel.fov(now);
+    // (An execution's framing is the same lens, held: the two add.)
+    const narrow = feel.fov(now) + feel.frame(now);
     if (narrow !== narrowed) {
       const half = (camera.fov * Math.PI) / 360;
       camera.zoom = narrow > 0 ? Math.tan(half) / Math.tan(half - (narrow * Math.PI) / 360) : 1;
@@ -110,6 +118,15 @@ export function createHitFeelView(view, { layer = null, dimLayer = null, audio =
       const dimmed = feel.dim(now);
       const shown = dimmed > 0.003 ? dimmed.toFixed(3) : '0';
       if (dimLayer.style.opacity !== shown) dimLayer.style.opacity = shown;
+    }
+    // The colour drained from the edges (a layer blended as saturation: off the page while there is none, so it costs nothing).
+    if (screenLayer) {
+      const drained = feel.screen(now);
+      const shown = drained > 0.003 ? drained.toFixed(3) : '0';
+      if (screenLayer.style.opacity !== shown) {
+        screenLayer.style.opacity = shown;
+        screenLayer.style.display = shown === '0' ? 'none' : 'block';
+      }
     }
     for (const mist of mists) {
       if (!mist.sprite.visible) continue;
@@ -136,6 +153,10 @@ export function createHitFeelView(view, { layer = null, dimLayer = null, audio =
     }
     if (layer) layer.style.opacity = '0';
     if (dimLayer) dimLayer.style.opacity = '0';
+    if (screenLayer) {
+      screenLayer.style.opacity = '0';
+      screenLayer.style.display = 'none';
+    }
   }
 
   return { felt, apply, reset, spec: HITFEEL };

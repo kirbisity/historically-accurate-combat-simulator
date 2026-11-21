@@ -82,6 +82,7 @@ import { stageWaters } from './levelmode/water.js';
 import { createAudioEngine } from './audio/engine.js';
 import { createHitFeel, hitFeelFromHash, loadHitFeel, saveHitFeel } from './hitfeel.js';
 import { createHitFeelView } from './hitfeelview.js';
+import { createCombatFx } from './combatfx.js';
 import { createArtDrama } from './artdrama.js';
 import { createArtDramaView } from './artdramaview.js';
 import { createChargeFeel } from './chargefeel.js';
@@ -95,7 +96,7 @@ import { createLastGateView } from './lastgateview.js';
 import { loadPhotoFaces, photoFaceRegions, photoFaceStats, photoFacesOn, releaseUnusedPhotoFaces, resetPhotoCasting, setPhotoFaces, setPhotoFill } from './photoface.js';
 import { hasOrigin, originOf, REGION_ORIGINS, regionName, regionTone, setShade, settleOrigin, skinShadeOf, toneSpan } from './faceregions.js';
 import { shadeGradient, shadeTone, toneShade } from './skintones.js';
-import { deflectBurst, deflectCue } from './deflectlook.js';
+import { deflectCue } from './deflectlook.js';
 import { deflectsWith } from './physics/deflect.js';
 import { clearGore, machineEvent, severView, spawnBlood, spawnShot, spawnSparks, updateArms, updateArrows, updateBlood, updateDebris, updateShots, updateStumps, updateWhips, woundBlood } from './weaponview.js';
 import { placeFlameTanks, updateFlames } from './flameview.js';
@@ -210,7 +211,11 @@ const hitFeelStorage = (() => {
   }
 })();
 const hitFeel = createHitFeel(hitFeelFromHash(loadHitFeel(hitFeelStorage), location.hash));
-const hitFeelView = createHitFeelView(scene, { layer: $('#hit-vignette'), dimLayer: $('#hit-dim'), audio, vibrate: (ms) => navigator.vibrate?.(ms) });
+const hitFeelView = createHitFeelView(scene, { layer: $('#hit-vignette'), dimLayer: $('#hit-dim'), screenLayer: $('#hit-screen'), audio, vibrate: (ms) => navigator.vibrate?.(ms) });
+// What a meeting of steel throws into the scene and the streak behind a fast blade (combatfx.js), by the same settings.
+const combatFx = createCombatFx(scene, hitFeel.settings);
+/** The quality tier the combat's effects are drawn at: the one chosen, or (on auto) the one the frame times have settled on. */
+const combatFxTier = () => (qualityMode === 'auto' ? resolution.tier ?? 'high' : qualityMode);
 // The player's weapon arts made an event of (artdrama.js): toned down for a visitor who asks for less motion.
 const artDrama = createArtDrama({ reduced: Boolean(globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches) });
 const artDramaView = createArtDramaView(scene, { flash: $('#art-flash'), caption: $('#art-name'), audio, vibrate: (ms) => navigator.vibrate?.(ms) });
@@ -1396,7 +1401,8 @@ function drawWorld(dt, drawIt = true) {
   // The player's blows felt (hitfeel.js): the camera's jolt along the blow, the narrowing, the dark edges, the mist.
   hitFeelView.apply(hitFeel, realSeconds(), state.paused ? 0 : dt);
   // A weapon art's push-in, tilt and shake (the camera only when it is the player's own), its gleam, trail, dust, glare and name.
-  artDramaView.apply(artDrama, realSeconds(), state.paused ? 0 : dt, world, { camera: Boolean(followed) && !cutsceneDirector.active && !endingCam });
+  // (Its own trail only when the blades' trails are off: combatfx.js draws every fast blade's, an art's among them.)
+  artDramaView.apply(artDrama, realSeconds(), state.paused ? 0 : dt, world, { camera: Boolean(followed) && !cutsceneDirector.active && !endingCam, trail: !hitFeel.settings.trail?.on });
   showCameraBar(!followed && !sheet);
   // Crowd weapons, shields and banners are drawn as instanced batches, filled as the views update.
   beginCrowdBatches(scene);
@@ -1436,6 +1442,13 @@ function drawWorld(dt, drawIt = true) {
     updateFighterView(view, dt * (state.paused ? 0 : state.speed), world.time);
     updateArms(scene, view, drawnTime);
     updateStumps(view);
+  }
+  // The streak behind a fast blade (combatfx.js): the man played's and his man's, or both men of a duel watched; never a crowd's.
+  if (sheet || story.filming) combatFx.trails(NO_MEN, drawnTime);
+  else {
+    trailMen[0] = followed ?? (duel ? world.fighters[0] : null);
+    trailMen[1] = followed ? lockedTarget() ?? opponentFor(world, followed) : duel ? world.fighters[1] ?? null : null;
+    combatFx.trails(trailMen, drawnTime, combatFxTier());
   }
   updateProps(scene, state.views, world);
   updateDebris(scene, world);
@@ -1481,9 +1494,15 @@ function drawWorld(dt, drawIt = true) {
   tutorial.update();
 }
 
+// The men whose blades are trailed this frame (filled again each frame: combatfx.js), and nobody.
+const trailMen = [null, null];
+const NO_MEN = [];
+
 function consumeEvents() {
   const events = state.world.events;
   const feltBy = state.mode === 'play' && state.game !== 'intro' && state.eventCursor < events.length ? player()?.id ?? null : null;
+  // Whose meetings of steel are drawn in full and lit (combatfx.js): the man played's and his man's.
+  const fxFor = state.eventCursor < events.length ? { playerId: feltBy, opponentId: feltBy !== null ? (lockedTarget() ?? opponentFor(state.world, player()))?.id ?? null : null, tier: combatFxTier() } : null;
   while (state.eventCursor < events.length) {
     const event = events[state.eventCursor];
     state.eventCursor += 1;
@@ -1505,14 +1524,11 @@ function consumeEvents() {
     if (event.weapon && event.kind === 'landed' && state.world.fighters[event.defender]?.body.gear.assist) spawnSparks(scene, event.point, 6);
     // (A robot dog struck, robotdogs.js `machine`: sparks off its shell, not blood.)
     if (event.kind === 'horseHit' && event.cut + event.pierce > 1) (state.world.horses?.[event.horse]?.spec?.machine ? spawnSparks(scene, event.point, 10) : woundBlood(scene, event));
-    // A deflect (physics/deflect.js): its look (deflectlook.js), the sparks thrown back at the man deflected; the man played
-    // deflecting, the screen's cue. (Its clash has none of its own.)
-    if (event.kind === 'deflect') {
-      const striker = state.world.fighters[event.attacker];
-      const chest = striker ? [striker.x[P.neck * 3], striker.x[P.neck * 3 + 1] - 0.15, striker.x[P.neck * 3 + 2]] : event.point;
-      deflectBurst(scene, event.point, [chest[0] - event.point[0], chest[1] - event.point[1] + 0.2, chest[2] - event.point[2]]);
-      if (state.mode === 'play' && event.fighter === player()?.id) deflectCue($('#deflect-cue'));
-    } else if ((event.kind === 'clash' && !event.deflect) || event.kind === 'glance') spawnSparks(scene, event.point);
+    // Steel on steel (combatfx.js): a clash's few dull sparks, a deflect's burst and its flash on the men (physics/deflect.js),
+    // an edge turned off plate, the flash of an execution's point home; each by what met and how hard. The man played
+    // deflecting: the screen's cue (deflectlook.js).
+    combatFx.contact(event, state.world, fxFor);
+    if (event.kind === 'deflect' && state.mode === 'play' && event.fighter === player()?.id) deflectCue($('#deflect-cue'));
     // (A gun's ball, physics/artillery.js: its own blood or grit, its flash at the muzzle with the 'cannon' event: artilleryview.js.)
     if (event.kind === 'shot') (event.gun ? artilleryHit(scene, event) : spawnShot(scene, machine ? { ...event, harm: 0 } : event));
     if (event.kind === 'cannon') artilleryFired(scene, event);
@@ -4433,6 +4449,10 @@ const boxer = window.boxer = {
   // The hit feel (hitfeel.js): its settings (changed in place), what it is doing now; its view (felt(result): a blow's mist, thump, vibration).
   hitFeel,
   hitFeelView,
+  // The beats' sparks, light and blade trails (combatfx.js): burst(kind, at, { strength, along }), its ribbons.
+  combatFx,
+  // The page's pace now (1, or less in a hit-stop or a slow moment): for tests and shots.
+  pace: () => fightPace(),
   // The weapon arts' drama (artdrama.js): what it is doing now; its view.
   artDrama,
   artDramaView,
@@ -4449,11 +4469,12 @@ const boxer = window.boxer = {
     if (on !== undefined) crowdLod.enabled = Boolean(on);
     return crowdLod.enabled;
   },
-  // Play `count` real frames of `dt` s each, as the page's own loop would (tests, profiling).
-  playFrames: (count, dt = 1 / 60) => {
+  // Play `count` real frames of `dt` s each, as the page's own loop would (tests, profiling). With `feel`, the hit-stops and a
+  // weapon art's pace too, as the page's loop has them (shots of the combat's beats); without, never (the trailer's capture).
+  playFrames: (count, dt = 1 / 60, { feel = false } = {}) => {
     for (let index = 0; index < count; index += 1) {
       buildQueuedViews();
-      if (!state.paused && !state.viewQueue?.length) tick(dt * state.speed * paceNow(), state.captureHeld ? { budget: Infinity } : undefined);
+      if (!state.paused && !state.viewQueue?.length) tick(dt * state.speed * (feel ? fightPace() : paceNow()), state.captureHeld ? { budget: Infinity } : undefined);
       draw(dt);
       pumpSkinBuilds(scene);
     }
@@ -4592,7 +4613,8 @@ const boxer = window.boxer = {
     sparks: (at, count) => spawnSparks(scene, at, count),
     // A deflect's look at a point, thrown `toward` (deflectlook.js); with `cue`, the screen's cue too.
     deflect: (at, toward = [1, 0.3, 0], cue = true) => {
-      deflectBurst(scene, at, toward);
+      const length = Math.hypot(...toward) || 1;
+      combatFx.burst('deflect', at, { strength: 0.6, along: toward.map((part) => part / length) });
       if (cue) deflectCue($('#deflect-cue'));
     },
     step: (seconds, dt = 1 / 60) => {

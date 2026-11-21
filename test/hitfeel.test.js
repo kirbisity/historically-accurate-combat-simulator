@@ -71,13 +71,17 @@ test('hit feel: hit-stop holds the pace only for a heavy blow landed, briefly, a
   assert.equal(feel.pace(0.01), 1, 'a blow taken does not');
   feel.hear(blow(70), 0, 1);
   assert.ok(feel.pace(1.01) <= HITFEEL.hitStop.slowest + 1e-9);
-  assert.ok(feel.pace(1 + HITFEEL.hitStop.seconds.heavy + HITFEEL.hitStop.ease + 0.01) === 1);
+  // Let go, it runs a little slow for a moment (its `dilate`), never slower than that, and then at full pace.
+  const letGo = 1 + HITFEEL.hitStop.seconds.heavy + HITFEEL.hitStop.ease + 0.001;
+  assert.ok(feel.pace(letGo) >= HITFEEL.hitStop.dilate.to - 1e-9 && feel.pace(letGo) < 1, `${feel.pace(letGo)}`);
+  assert.ok(feel.pace(letGo + HITFEEL.hitStop.dilate.seconds + 0.01) === 1);
   // A middling blow holds it for less than a heavy one.
   const middling = createHitFeel(allOn());
   middling.hear(blow(25), 0, 0);
   const held = (one) => {
     let at = 0;
-    while (one.pace(at) < 0.999 && at < 1) at += 0.001;
+    // (The hold itself: the little slowing after it is not a stop.)
+    while (one.pace(at) < 0.5 && at < 1) at += 0.001;
     return at;
   };
   const heavy = createHitFeel(allOn());
@@ -149,4 +153,57 @@ test('hit feel: hearing the blows leaves the physics untouched', () => {
   assert.deepEqual(Array.from(felt.fighters[0].x), Array.from(plain.fighters[0].x));
   assert.deepEqual(Array.from(felt.fighters[1].x), Array.from(plain.fighters[1].x));
   assert.equal(felt.events.length, plain.events.length);
+});
+
+test('hit feel: the four beats are told apart by the physics\' own events, each with its own hold and sound', () => {
+  const steel = { point: [0, 1.3, 0], normal: [1, 0, 0], impulse: 12, energy: 40, weapon: 'katana' };
+  const feel = createHitFeel(allOn());
+  // A blow stopped on his guard: a knock, a short hold or none, no mist.
+  const guarded = feel.hear({ kind: 'parry', fighter: 0, attacker: 1, ...steel }, 0, 0);
+  assert.equal(guarded.beat, 'block');
+  assert.equal(guarded.way, 'guarded');
+  assert.equal(guarded.sound.kind, 'knock');
+  assert.ok(!guarded.puff && guarded.thump === 0);
+  const blockHeld = feel.pace(0.01);
+  // A deflect: a ring, held hard however light the blow, then on at nearly full pace within a third of a second.
+  const deflect = createHitFeel(allOn());
+  const turned = deflect.hear({ kind: 'deflect', fighter: 0, attacker: 1, ...steel }, 0, 0);
+  assert.equal(turned.beat, 'deflect');
+  assert.equal(turned.sound.kind, 'ring');
+  assert.ok(turned.strength >= HITFEEL.beats.deflect.floor);
+  assert.ok(deflect.pace(0.02) <= HITFEEL.beats.deflect.stop.slowest + 1e-9 && deflect.pace(0.02) < blockHeld, 'a deflect holds harder than a block');
+  assert.ok(deflect.pace(0.2) > 0.6 && deflect.pace(0.5) === 1, `${deflect.pace(0.2)} ${deflect.pace(0.5)}`);
+  assert.equal(deflect.screen(0.1), 0, 'an ordinary deflect drains no colour');
+  // His own blow deflected is felt less; another man's deflect not at all.
+  assert.ok(createHitFeel(allOn()).hear({ kind: 'deflect', fighter: 1, attacker: 0, ...steel }, 0, 0).strength < turned.strength);
+  assert.equal(createHitFeel(allOn()).hear({ kind: 'deflect', fighter: 2, attacker: 3, ...steel }, 0, 0), null);
+  // The big deflect and the execution: the longest holds, and the colour drains.
+  const big = createHitFeel(allOn());
+  assert.equal(big.hear({ kind: 'deflect', big: true, fighter: 0, attacker: 1, ...steel }, 0, 0).beat, 'bigDeflect');
+  assert.ok(big.pace(HITFEEL.beats.deflect.stop.seconds.heavy + 0.01) <= HITFEEL.beats.bigDeflect.stop.slowest + 1e-9, 'held longer than a deflect');
+  const drained = big.screen(0.1);
+  assert.ok(drained > 0.3 && big.screen(2) === 0);
+  const kill = createHitFeel(allOn());
+  assert.equal(kill.hear({ kind: 'execution', fighter: 1, attacker: 0 }, 0, 0), null);
+  assert.ok(kill.frame(0.25) > 0 && kill.frame(0.25) < kill.frame(1), 'the view closes in, eased');
+  const home = kill.hear({ kind: 'executionBlow', fighter: 1, attacker: 0 }, 0, 2);
+  assert.equal(home.beat, 'execution');
+  assert.equal(home.sound.kind, 'boom');
+  assert.ok(kill.frame(2.01) > kill.frame(1.9), 'a punch in as the point goes home');
+  assert.ok(kill.pace(2.05) <= HITFEEL.beats.execution.stop.slowest + 1e-9);
+  assert.ok(kill.screen(2.1) > drained);
+  assert.equal(kill.frame(2 + HITFEEL.frame.hold + HITFEEL.frame.out + 0.01), 0, 'and lets go');
+  // An execution he is put off lets the view go by itself.
+  const lost = createHitFeel(allOn());
+  lost.hear({ kind: 'execution', fighter: 1, attacker: 0 }, 0, 0);
+  assert.equal(lost.frame(HITFEEL.frame.most + HITFEEL.frame.out + 0.01), 0);
+  // Each of the new effects off does nothing.
+  const off = allOn();
+  off.screen.on = false;
+  off.frame.on = false;
+  const quiet = createHitFeel(off);
+  quiet.hear({ kind: 'execution', fighter: 1, attacker: 0 }, 0, 0);
+  quiet.hear({ kind: 'executionBlow', fighter: 1, attacker: 0 }, 0, 1);
+  assert.equal(quiet.screen(1.1), 0);
+  assert.equal(quiet.frame(1.1), 0);
 });
