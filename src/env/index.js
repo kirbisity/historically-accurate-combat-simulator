@@ -162,6 +162,33 @@ function envFootprints(group) {
   return prints;
 }
 
+/**
+ * Set what is marked `userData.onLand` under `root` down on the land (`height`: (x, z) => m; null: back at the
+ * heights it was built at). An object is moved whole by the height under its own origin; a scatter (an
+ * InstancedMesh) each piece by the height under it.
+ */
+function envSettle(root, height) {
+  const matrix = new THREE.Matrix4();
+  const at = new THREE.Vector3();
+  root.traverse((object) => {
+    if (!object.userData.onLand) return;
+    if (object.isInstancedMesh) {
+      const was = (object.userData.landWas ??= Float32Array.from({ length: object.count }, (_, index) => object.instanceMatrix.array[index * 16 + 13]));
+      object.updateMatrixWorld();
+      for (let index = 0; index < object.count; index += 1) {
+        object.getMatrixAt(index, matrix);
+        at.setFromMatrixPosition(matrix).applyMatrix4(object.matrixWorld);
+        object.instanceMatrix.array[index * 16 + 13] = was[index] + (height ? height(at.x, at.z) : 0);
+      }
+      object.instanceMatrix.needsUpdate = true;
+      return;
+    }
+    object.userData.landWas ??= object.position.y;
+    object.getWorldPosition(at);
+    object.position.y = object.userData.landWas + (height ? height(at.x, at.z) : 0);
+  });
+}
+
 /** The variant's group for a place: sky, land, grass, trees and the air's drift, built once from its description. */
 export function envBuild({ place, view, spec }) {
   const group = new THREE.Group();
@@ -260,6 +287,9 @@ export function envApply({ place, view, spec, group }) {
   // (A place described again since this was made, by envRegisterPlace, is made again; so is one whose day has
   // changed with the weather: the sun's place is in the shadows laid on its land.)
   if (group.userData.envOf !== own) envFill(group, place, view, spec, own);
+  // What the place has built beyond its floor and marked to stand on the land (`userData.onLand`: a hamlet, a
+  // vineyard's rows, a baggage train) is set down on it; back at the height it was built at when the place is left.
+  if (!own.own) envSettle(view.places[place], group.userData.envHeight);
   const air = envAirState(own, weather);
   const lights = view.lights;
   const st = view.lookState?.['probe-lite'];
@@ -373,6 +403,7 @@ export function envLeave(view) {
   shadow.radius = view.env.radius;
   ['left', 'right', 'top', 'bottom', 'near', 'far'].forEach((side, at) => { shadow.camera[side] = view.env.box[at]; });
   shadow.camera.updateProjectionMatrix();
+  if (view.places?.[view.env.place]) envSettle(view.places[view.env.place], null);
   setPhotoFill(view.env.fill, view.scene);
   view.scene.remove(view.env.probe);
   setWindOver(null);

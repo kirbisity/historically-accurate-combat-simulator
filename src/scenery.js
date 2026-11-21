@@ -71,6 +71,20 @@ export const PLACE_SCENERY = {
     mountains: [],
     trees: { kind: 'none', count: 0, from: 0, to: 0, colour: 0x6a8a6a, bark: 0x4a3626 },
   },
+  // Cerignola (1503): vineyards and olives at the foot of the town's hill.
+  cerignola: {
+    keepOut: [34, 13], groundColour: 0x7a6a44,
+    hills: { from: 50, to: 95, height: [3, 9], colour: 0x8a8a5a, character: 'dry' },
+    mountains: [],
+    trees: { kind: 'broadleaf', count: 26, from: 22, to: 40, colour: 0x7a8a6a, bark: 0x5a4a38 },
+  },
+  // The Last Gate's field: wet earth between close woods.
+  lastgate: {
+    keepOut: [20, 12.5], groundColour: 0x463a2e,
+    hills: { from: 48, to: 90, height: [3, 9], colour: 0x4e544a, character: 'rolling' },
+    mountains: [],
+    trees: { kind: 'broadleaf', count: 40, from: 24, to: 60, colour: 0x34502a, bark: 0x4a3626 },
+  },
   // Sarhu (April 1619): the wooded hills by the Hun River, the Jiefan ridge beyond the far side, pine and larch on them.
   sarhu: {
     keepOut: [32, 22], groundColour: 0x8a7e52,

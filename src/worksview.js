@@ -96,7 +96,7 @@ export function showWorks(view, arena, place = null) {
   group.userData.bloodDyeWater = [worksBloodWater(works)];
   const water = worksStandingWater(view, works, group);
   // (A place that draws its own walls and banks, townkit/works.js, says so: `placeDraws`. The ladders and the rest are still drawn here.)
-  if (!spec.placeDraws) for (const ditch of works.ditches) group.add(ditch.bends ? worksRoughDitch(works, ditch, random) : worksDitchStrip(works, ditch));
+  if (!spec.placeDraws) for (const ditch of works.ditches) group.add(ditch.bends ? worksRoughDitch(works, ditch, random) : worksDitchStrip(works, ditch, place));
   // (In an open-air place the wood edges are the place's own trees, planted by env/index.js: env/trees.js envPlantWoodEdges.)
   const envDrawsWoods = Boolean(PLACE_ENV[place] && !PLACE_ENV[place].own);
   const stakes = worksStakeMeshes(works.stakes);
@@ -637,8 +637,13 @@ function worksSoftGround(area, random) {
 }
 
 /** A ditch's strip of ground: its profile across, along its whole length, the cut faces darker, the bank's top grassed. */
-function worksDitchStrip(works, ditch) {
-  const spec = WORKS_VIEW.ditch;
+function worksDitchStrip(works, ditch, place = null) {
+  // (Dug through land the open air draws, env/config.js PLACE_ENV: the spoil thrown up is that land's own soil, bare
+  // on the bank's top as on its faces, a ditch dug for the battle having had no time to grass over; the cut faces
+  // are the soil where it is damp and out of the light.)
+  const land = PLACE_ENV[place] && !PLACE_ENV[place].own ? PLACE_ENV[place].ground : null;
+  const soil = land ? new THREE.Color(land.soil) : null;
+  const spec = land ? { ...WORKS_VIEW.ditch, grass: soil.clone().multiplyScalar(0.9).getHex(), earth: land.soil, cut: soil.clone().multiplyScalar(0.6).getHex() } : WORKS_VIEW.ditch;
   const from = ditch.profile[0][0];
   const to = ditch.profile[ditch.profile.length - 1][0];
   const across = Math.max(2, Math.ceil((to - from) / spec.across));

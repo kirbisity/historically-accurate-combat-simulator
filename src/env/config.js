@@ -769,6 +769,9 @@ export const ENV_TREES = {
   thorn: { height: [0.3, 0.6], crown: { wide: 0.7, tall: 0.45, at: 0.5 }, shape: 'tuft', limbs: 1, fork: 1.0, card: 0.7, cards: 10, leaf: [0x7a8458, 0x8a9066, 0x6a744c], bark: 0x6e6648, trunk: 0.012, picture: 'frond' },
   // Bracken and fern: fronds fanning from the foot, to a man's waist or chest.
   bracken: { height: [0.7, 1.5], crown: { wide: 0.55, tall: 0.45, at: 0.5 }, shape: 'tuft', limbs: 1, fork: 1.0, card: 0.9, cards: 8, leaf: [0x3a5622, 0x4c6a2a, 0x2c441e], bark: 0x3a4a26, trunk: 0.01, picture: 'frond' },
+  // An olive in an Apulian grove: 4 to 7 m, a broad low crown of small grey-green leaves on a short thick trunk that
+  // divides low (old trees are a metre through at the foot: approximate).
+  olive: { height: [4, 7], crown: { wide: 0.5, tall: 0.34, at: 0.64 }, shape: 'round', limbs: 6, fork: 1.1, card: 0.15, leaf: [0x6e7c5c, 0x8a9678, 0x566448], bark: 0x5a5042, trunk: 0.05, picture: 'leaf' },
   // Autumn broadleaf among the pines (maple, zelkova): the valley's colour in October.
   autumn: { height: [8, 14], crown: { wide: 0.42, tall: 0.34, at: 0.62 }, shape: 'round', limbs: 6, fork: 0.85, card: 0.125, leaf: [0xa8642a, 0xb8862e, 0x8a3a22], bark: 0x43352a, trunk: 0.027, picture: 'leaf' },
 };
@@ -1143,7 +1146,7 @@ export const PLACE_ENV = {
 };
 
 // The Gobi's northern edge (Mobei, 119 BC; render.js OPEN_PLAINS.mobei): a gravel plain, level where the armies met and
-// rising in long low swells to dark bare ridges, thin steppe grass in clumps and nothing taller. Its day is the
+// lying in long low swells that rise to dark bare ridges, thin steppe grass in clumps and nothing taller. Its day is the
 // battle's: late in the afternoon a great wind got up and drove sand and gravel into the men's faces until neither
 // army could see the other (Shiji 111; the hour and the wind are the source's, their figures are not: by eye).
 // So the sun stands 22 degrees up ahead and to the left of a fight as it is first watched, through blown dust that
@@ -1160,8 +1163,10 @@ PLACE_ENV.mobei = {
   terrain: {
     seed: 51,
     layers: [
-      { from: 1, full: 120, height: 1.6, length: 140, shape: 'roll' },
-      { from: 1, full: 15, height: 0.12, length: 7, shape: 'roll' },
+      // (The swells run on under the armies, gentler there: lie.js. A gravel plain is never a table; over the 90 m
+      // of the floor it rises and falls by about a metre, which hides a horse's legs at its far side and no more.)
+      { from: 0, full: 120, height: 2.2, length: 150, shape: 'roll' },
+      { from: 0, full: 15, height: 0.12, length: 7, shape: 'roll' },
       { from: 260, full: 1400, height: 34, length: 1100, shape: 'roll' },
       { from: 2400, full: 6000, height: 420, length: 3400, shape: 'ridge' },
     ],
@@ -1192,8 +1197,9 @@ PLACE_ENV.carrhae = {
   terrain: {
     seed: 67,
     layers: [
-      { from: 1, full: 140, height: 1.1, length: 170, shape: 'roll' },
-      { from: 1, full: 15, height: 0.1, length: 8, shape: 'roll' },
+      // (Long low swells of blown sand under the fight too, lie.js: about three quarters of a metre over the floor.)
+      { from: 0, full: 140, height: 1.6, length: 170, shape: 'roll' },
+      { from: 0, full: 15, height: 0.1, length: 8, shape: 'roll' },
       { from: 500, full: 2600, height: 60, length: 1800, shape: 'roll' },
       { from: 4200, full: 8000, height: 260, length: 4200, shape: 'ridge' },
     ],
@@ -1217,4 +1223,144 @@ PLACE_ENV.carrhae = {
 PLACE_ENV.sarhu = {
   ...PLACE_ENV.field,
   terrain: { ...PLACE_ENV.field.terrain, layers: PLACE_ENV.field.terrain.layers.map((layer) => (layer.from === 0 ? { ...layer, from: 1 } : layer)) },
+};
+
+// The Catalaunian Plains (20 June 451; OPEN_PLAINS.catalaunian): the chalk downs of Champagne at midsummer, open and
+// treeless where the armies met, the grass in seed and going gold with poppies and cornflower in it, woods along
+// the far valleys. The fight was for rising ground (Jordanes, Getica 38: the field rose to a ridge both sides
+// raced for), so the downs roll under the armies too, about a metre and a half over the floor, and more beyond.
+// The battle was joined about the ninth hour (Jordanes): mid-afternoon, the sun high to the left of the fight as it
+// is first watched, under fair-weather cumulus. (The sun's height at that hour and latitude is about 45 degrees.)
+PLACE_ENV.catalaunian = {
+  weather: 'clear',
+  sun: { azimuth: -2.5, elevation: 44 },
+  air: { visibility: 28000, hazeHeight: 900 },
+  clouds: { cover: 0.4 },
+  terrain: {
+    seed: 83,
+    layers: [
+      { from: 0, full: 110, height: 3.0, length: 120, shape: 'roll' },
+      { from: 0, full: 15, height: 0.16, length: 6, shape: 'roll' },
+      { from: 160, full: 800, height: 30, length: 760, shape: 'roll' },
+      { from: 1400, full: 4200, height: 110, length: 2800, shape: 'ridge' },
+    ],
+  },
+  // Chalk grassland, ungrazed that summer: thin pale soil with flint in it where it shows.
+  ground: { grass: 0x4e642c, dry: 0x9a9048, soil: 0x8e8468, rock: 0xb4b0a2, wear: 0.08, paths: [{ points: [[-170, -20], [-60, -6], [0, 2], [70, 5], [180, 18]], width: 1.6, by: 0.6 }], worn: [] },
+  grass: { height: [0.35, 0.8], grazed: 0.15, kept: 0.12, dry: 0.55, flowers: 0.07, flowerColours: [0xc8322a, 0xf2efe0, 0x4a62c0, 0xe8c83a] },
+  rocks: [{ count: 8, from: 30, to: 220, clump: 0.3, size: [0.2, 0.6] }, { count: 200, from: 0, to: 80, clump: 0.4, size: [0.03, 0.09] }],
+  trees: [
+    { kind: 'dock', count: 20, from: 14, to: 120, clump: 0.5 },
+    { kind: 'shrub', count: 22, from: 50, to: 220, clump: 0.8 },
+    { kind: 'broadleaf', count: 18, from: 90, to: 260, clump: 0.9 },
+    { kind: 'broadleaf', count: 380, from: 260, to: 800, clump: 0.95 },
+    { kind: 'broadleaf', count: 2200, from: 700, to: 2600, clump: 0.98 },
+    { kind: 'rosette', count: 120, from: 0, to: 70, clump: 0.5 },
+  ],
+  woods: { cover: 0.35, colour: 0x34502a },
+  drift: [{ kind: 'motes', share: 0.6, colours: [0xf2ecd0] }, { kind: 'petals', share: 0.25, colours: [0xc8322a, 0xf2efe0] }, { kind: 'litter', share: 0.6, colours: [0xb0a060, 0x9a8a48] }],
+};
+
+// A dry upland plain (render.js buildPlain: the legion's what-if battle, and the story's river flats and village
+// ground): short bunch grass gone to straw over pale earth, stones, a line of mountains far off. The fought ground
+// is level here, as Sarhu's is and for the same reason: the story's scenes are set on it by hand (their figures and
+// what lies about them stand at the floor's height), so the rolls begin a metre past the floor.
+PLACE_ENV.plain = {
+  weather: 'clear',
+  sun: { azimuth: -2.4, elevation: 38 },
+  air: { visibility: 34000, hazeHeight: 1000 },
+  clouds: { cover: 0.3 },
+  terrain: {
+    seed: 97,
+    layers: [
+      { from: 1, full: 90, height: 1.8, length: 110, shape: 'roll' },
+      { from: 1, full: 15, height: 0.14, length: 6, shape: 'roll' },
+      { from: 220, full: 1200, height: 40, length: 1000, shape: 'roll' },
+      { from: 2400, full: 6500, height: 620, length: 3600, shape: 'ridge' },
+    ],
+  },
+  ground: { grass: 0x66702e, dry: 0x9c9250, soil: 0x86734c, rock: 0x6a6258, wear: 0.45, paths: [{ points: [[-120, 10], [-30, 3], [0, 0], [40, -4], [130, -14]], width: 1.6, by: 0.8 }], worn: [] },
+  grass: { height: [0.18, 0.4], grazed: 0.3, kept: 0.14, dry: 0.7, flowers: 0.01, flowerColours: [0xe8c83a], share: 0.7 },
+  rocks: [{ count: 18, from: 20, to: 240, clump: 0.4, size: [0.25, 0.9] }, { count: 320, from: 0, to: 70, clump: 0.4, size: [0.03, 0.1] }],
+  trees: [
+    { kind: 'bunch', count: 500, from: 0, to: 100, clump: 0.5 },
+    { kind: 'thorn', count: 60, from: 12, to: 160, clump: 0.5 },
+    { kind: 'shrub', count: 26, from: 40, to: 260, clump: 0.8 },
+    { kind: 'broadleaf', count: 40, from: 120, to: 600, clump: 0.9 },
+  ],
+  woods: { cover: 0.12, colour: 0x4a5a34 },
+  drift: [{ kind: 'motes', share: 0.6, colours: [0xeadfc0] }, { kind: 'litter', share: 0.5, colours: [0xa89858, 0x8a7a48] }],
+};
+
+// Cerignola at dusk, 28 April 1503 (render.js buildCerignola): the foot of an Apulian slope, vines on their stakes and
+// olives behind the Spanish line, the town on its hill beyond. The battle began an hour or so before sunset and was
+// over in the dusk: the sun stands 8 degrees up, ahead and to the left of the fight as it is first watched, warm
+// on the stone and the dust the horse raise. The fought ground is level: the Spanish ditch and its bank are cut
+// across it (the level's works, drawn and stood on as they are dug), and the slope begins behind them.
+PLACE_ENV.cerignola = {
+  weather: 'clear',
+  weatherHere: { grade: { contrast: 1.4, saturation: 1.05, warmth: 0.06, split: 0.14, bloom: 1.5 } },
+  sun: { azimuth: -2.5, elevation: 8 },
+  air: { visibility: 16000, hazeHeight: 800 },
+  clouds: { cover: 0.3, deck: 1 },
+  other: { than: 'clear', sun: { azimuth: -2.5, elevation: 30 }, clouds: { cover: 0.4 } },
+  terrain: {
+    seed: 109,
+    layers: [
+      { from: 1, full: 80, height: 2.6, length: 100, shape: 'roll' },
+      { from: 1, full: 15, height: 0.14, length: 6, shape: 'roll' },
+      { from: 150, full: 900, height: 44, length: 700, shape: 'roll' },
+      { from: 1800, full: 5000, height: 240, length: 3000, shape: 'ridge' },
+    ],
+  },
+  // Spring on the Tavoliere: the grass still green, the tilled earth between the vines red-brown and bare.
+  ground: { grass: 0x55692e, dry: 0x8e8848, soil: 0x7e5e40, rock: 0xa89c84, wear: 0.4, paths: [{ points: [[-140, 6], [-40, 2], [0, 0], [30, -2]], width: 2.0, by: 0.8 }], worn: [] },
+  grass: { height: [0.25, 0.55], grazed: 0.3, kept: 0.12, dry: 0.2, flowers: 0.06, flowerColours: [0xc8322a, 0xe8c83a, 0xf2efe0] },
+  rocks: [{ count: 14, from: 20, to: 200, clump: 0.4, size: [0.2, 0.7] }, { count: 240, from: 0, to: 70, clump: 0.4, size: [0.03, 0.1] }],
+  trees: [
+    { kind: 'olive', count: 60, from: 20, to: 150, clump: 0.6 },
+    { kind: 'olive', count: 500, from: 150, to: 700, clump: 0.8 },
+    { kind: 'shrub', count: 20, from: 24, to: 160, clump: 0.7 },
+    { kind: 'dock', count: 20, from: 13, to: 90, clump: 0.5 },
+    { kind: 'broadleaf', count: 600, from: 600, to: 2400, clump: 0.95 },
+    { kind: 'rosette', count: 100, from: 0, to: 60, clump: 0.5 },
+  ],
+  woods: { cover: 0.3, colour: 0x4a5a3a },
+  drift: [{ kind: 'motes', share: 1, colours: [0xf6e2b8, 0xeed0a0] }, { kind: 'litter', share: 0.4, colours: [0x9a8a52, 0x7a6a3a] }],
+};
+
+// The field before the Last Gate (render.js buildLastGateField, lastgate.js): trodden wet earth between close woods
+// in a cold dawn mist, the castle's gate behind the squad. The level brings its own mist (its foes come out of it);
+// the place's own day is that mist with the sun barely up behind the wood. The floor is level: the gate, its wall
+// and the standing water are the level's works, built and stood on at the floor's height.
+PLACE_ENV.lastgate = {
+  weather: 'mist',
+  weatherHere: { grade: { contrast: 1.35, saturation: 0.8, warmth: -0.04, split: 0.1 } },
+  sun: { azimuth: -0.7, elevation: 9 },
+  air: { visibility: 12000, hazeHeight: 600 },
+  clouds: { cover: 0.7 },
+  meter: { sky: 0.7, frame: 0.05 },
+  terrain: {
+    seed: 127,
+    layers: [
+      { from: 1, full: 50, height: 1.0, length: 44, shape: 'roll' },
+      { from: 1, full: 15, height: 0.16, length: 5, shape: 'roll' },
+      { from: 80, full: 600, height: 60, length: 520, shape: 'ridge' },
+      { from: 800, full: 3000, height: 260, length: 2200, shape: 'ridge' },
+    ],
+  },
+  ground: { grass: 0x3c5228, dry: 0x70683a, soil: 0x443828, rock: 0x6a6860, wear: 0.75, paths: [{ points: [[-12, 0], [10, 0.5], [40, -2], [110, 4]], width: 3.2, by: 0.95 }], worn: [{ x: -2, z: 0, rx: 14, rz: 9, turn: 0, by: 0.8 }] },
+  grass: { height: [0.25, 0.6], grazed: 0.2, kept: 0.1, dry: 0.15, flowers: 0, flowerColours: [], share: 0.6 },
+  rocks: [{ count: 20, from: 14, to: 120, clump: 0.5, size: [0.25, 1.0] }, { count: 260, from: 0, to: 60, clump: 0.5, size: [0.03, 0.12] }],
+  trees: [
+    { kind: 'bracken', count: 50, from: 12, to: 100, clump: 0.5 },
+    { kind: 'dock', count: 40, from: 12, to: 90, clump: 0.5 },
+    { kind: 'broadleaf', count: 240, from: 22, to: 110, clump: 0.5 },
+    { kind: 'pine', count: 120, from: 26, to: 120, clump: 0.5 },
+    { kind: 'shrub', count: 40, from: 20, to: 110, clump: 0.5 },
+    { kind: 'broadleaf', count: 500, from: 110, to: 520, clump: 0.6 },
+    { kind: 'pine', count: 1800, from: 480, to: 2400, clump: 0.6 },
+  ],
+  woods: { cover: 0.85, colour: 0x283c26 },
+  drift: [{ kind: 'leaves', share: 0.5, colours: [0x6a5a2a, 0x7a6a3a, 0x5a4a22] }, { kind: 'litter', share: 0.6, colours: [0x6a5a2a, 0x5a4a22] }],
 };

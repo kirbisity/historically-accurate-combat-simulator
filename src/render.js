@@ -157,6 +157,13 @@ export function setPlace(view, place, arena, weather = null) {
   const builders = { ring: buildRing, subway: buildSubway, colosseum: buildColosseum, meadow: buildMeadow, stadium: buildStadium, town: buildTown, port: buildPort, sengoku: buildSengoku, canaltown: buildCanalTown, pyongyang: buildPyongyang, pyongyangtown: buildPyongyangTown, plain: buildPlain, field: buildField, coastFort: () => buildCoast({ fort: true }), coastVillage: () => buildCoast({ fort: false }), jiangnan: buildJiangnan, cajamarca: buildCajamarca, mobei: () => buildOpenPlain('mobei', arena), catalaunian: () => buildOpenPlain('catalaunian', arena), carrhae: () => buildOpenPlain('carrhae', arena), sarhu: () => buildOpenPlain('sarhu', arena), agincourt: buildAgincourt, cerignola: buildCerignola, lastgate: buildLastGateField, stage: buildStageSky, dunnottar: () => buildStormPlace({ buildRain }) };
   if (!view.places[place] && builders[place]) {
     view.places[place] = builders[place](arena);
+    // A place the open air draws (env/config.js PLACE_ENV) has what it built itself take that air's haze as the
+    // land does (env/air.js envDress; a material is dressed once, and is as it was made with the open air off).
+    if (PLACE_ENV[place]) {
+      view.places[place].traverse((object) => {
+        for (const material of [].concat(object.material ?? [])) envDress(material);
+      });
+    }
     // A wet or polished surface reflects the sky (the steel's environment), faintly.
     view.places[place].traverse((object) => {
       const share = object.material?.userData?.reflects;
@@ -967,7 +974,8 @@ function buildPlain(arena = PLACE_ARENAS.plain) {
     place.add(plant);
   }
   // Dry bunch grass and volcanic stones over the plain.
-  place.add(...fieldLitter(31, arena, { grass: 0x8a8448, stone: 0x5a524a, tufts: 800, stones: 160, half: [50, 40] }));
+  // (Tagged, so the open air's own grass and stones stand in for them: scenery.js OPEN_AIR.)
+  place.add(...fieldLitter(31, arena, { grass: 0x8a8448, stone: 0x5a524a, tufts: 800, stones: 160, half: [50, 40] }).map((mesh) => Object.assign(mesh, { userData: { ...mesh.userData, scenery: 'litter' } })));
   return place;
 }
 
@@ -1365,7 +1373,8 @@ function buildAgincourt(arena = PLACE_ARENAS.agincourt) {
   spire.position.set(tower.position.x, 13.5, 6);
   place.add(tower, spire);
   // Tufts of stubble and a few stones beyond the plough.
-  place.add(...fieldLitter(83, arena, { grass: 0x6a6a3a, stone: 0x7a766c, tufts: 500, stones: 80, half: [55, 45] }));
+  // (Tagged, so the open air's own grass and stones stand in for them: scenery.js OPEN_AIR.)
+  place.add(...fieldLitter(83, arena, { grass: 0x6a6a3a, stone: 0x7a766c, tufts: 500, stones: 80, half: [55, 45] }).map((mesh) => Object.assign(mesh, { userData: { ...mesh.userData, scenery: 'litter' } })));
   return place;
 }
 
@@ -1407,7 +1416,8 @@ function buildLastGateField(arena = PLACE_ARENAS.lastgate) {
     hill.userData.scenery = 'hills';
     place.add(hill);
   }
-  place.add(...fieldLitter(97, arena, { grass: 0x5a5a36, stone: 0x6e6a62, tufts: 300, stones: 120, half: [45, 38] }));
+  // (Tagged, so the open air's own grass and stones stand in for them: scenery.js OPEN_AIR.)
+  place.add(...fieldLitter(97, arena, { grass: 0x5a5a36, stone: 0x6e6a62, tufts: 300, stones: 120, half: [45, 38] }).map((mesh) => Object.assign(mesh, { userData: { ...mesh.userData, scenery: 'litter' } })));
   return place;
 }
 
@@ -1454,12 +1464,21 @@ function buildCerignola(arena = PLACE_ARENAS.cerignola) {
     from = end;
   }
   // The vineyard behind the Spanish: rows of vines on their stakes, from behind the line up the slope.
-  const vine = new THREE.IcosahedronGeometry(0.45, 0);
-  vine.scale(1, 0.8, 1.4);
-  vine.translate(0, 0.75, 0);
+  // (A vine trained on its stake in April: a leafy head a little over knee height, the row's stakes standing above it.)
+  const vine = new THREE.IcosahedronGeometry(0.34, 1);
+  vine.scale(1, 0.75, 1.5);
+  vine.translate(0, 0.7, 0);
   const vines = [];
   for (let x = arena.halfX * 0.55; x < arena.halfX + 30; x += 2.2) for (let z = -40; z < 40; z += 1.4) if (x > arena.halfX + 1 || Math.abs(z) > arena.halfZ + 1.5) vines.push([x, z, 0.8 + Math.random() * 0.4, Math.random() * 6]);
-  place.add(scatter(vine, lit(0x5a7a34, { flatShading: true }), vines));
+  const vineyard = scatter(vine, lit(0x44602a), vines);
+  const stake = new THREE.CylinderGeometry(0.025, 0.03, 1.5, 5);
+  stake.translate(0, 0.75, 0);
+  const stakes = scatter(stake, lit(0x6a5a44), vines.map(([x, z]) => [x, z, 1, 0]));
+  stakes.userData.onLand = true;
+  place.add(stakes);
+  // (On the land where it rolls beyond the floor: env/index.js envSettle.)
+  vineyard.userData.onLand = true;
+  place.add(vineyard);
   // Olive trees about the slope, silver-green.
   const random = scatterRandom(91);
   for (let index = 0; index < 26; index += 1) {
@@ -1479,13 +1498,8 @@ function buildCerignola(arena = PLACE_ARENAS.cerignola) {
     tree.userData.scenery = 'trees';
     place.add(tree);
   }
-  // The town of Cerignola on its rise beyond, warm stone in the low sun; low hills round the plain.
-  const stone = lit(0xd8c8a0);
-  for (let index = 0; index < 9; index += 1) {
-    const house = new THREE.Mesh(new THREE.BoxGeometry(4 + random() * 3, 3 + random() * 4, 4 + random() * 2), stone);
-    house.position.set(arena.halfX + 34 + random() * 10, 2 + random(), -16 + index * 4);
-    place.add(house);
-  }
+  // The town of Cerignola on its rise beyond the vines, warm stone in the low sun (hillTown below); low hills round the plain.
+  place.add(...hillTown({ at: [arena.halfX + 150, -30], seed: 91 }));
   for (let index = 0; index < 10; index += 1) {
     const angle = (index / 10) * Math.PI * 2;
     const hill = new THREE.Mesh(new THREE.ConeGeometry(12 + Math.random() * 6, 3 + Math.random() * 3, 8), lit(0x8a8a5a));
@@ -1493,8 +1507,111 @@ function buildCerignola(arena = PLACE_ARENAS.cerignola) {
     hill.userData.scenery = 'hills';
     place.add(hill);
   }
-  place.add(...fieldLitter(97, arena, { grass: 0x8a8a48, stone: 0x9a8e74, tufts: 600, stones: 100, half: [50, 40] }));
+  // (Tagged, so the open air's own grass and stones stand in for them: scenery.js OPEN_AIR.)
+  place.add(...fieldLitter(97, arena, { grass: 0x8a8a48, stone: 0x9a8e74, tufts: 600, stones: 100, half: [50, 40] }).map((mesh) => Object.assign(mesh, { userData: { ...mesh.userData, scenery: 'litter' } })));
   return place;
+}
+
+/**
+ * A small southern hill town seen from the fields below it: houses of pale limestone and limewash under low
+ * roofs of red clay tile, packed along lanes that climb to a church with its bell tower and a lord's square keep
+ * (Cerignola in 1503 was a walled town of a few thousand with a castle: the sizes here are a town house's, 6 to
+ * 10 m on a side and two or three floors, by eye). `at` [x, z]: its middle; it covers about 150 by 110 m. Drawn in
+ * four draws (walls, roofs, towers, their caps), each piece set down on the land where the place is drawn in the
+ * open air (`onLand`: env/index.js envSettle).
+ */
+function hillTown({ at, seed }) {
+  const random = scatterRandom(seed);
+  // A wall's face: coursed stone under patchy limewash, small dark windows in two rows, a door.
+  const wallTexture = paintedTexture(256, 256, (g, w, h) => {
+    g.fillStyle = '#d6c6a2';
+    g.fillRect(0, 0, w, h);
+    for (let index = 0; index < 1400; index += 1) {
+      const shade = Math.random();
+      g.fillStyle = `rgba(${150 + shade * 80},${135 + shade * 75},${100 + shade * 60},${0.12 + Math.random() * 0.2})`;
+      g.fillRect(Math.random() * w, Math.random() * h, 6 + Math.random() * 18, 3 + Math.random() * 5);
+    }
+    for (let row = 0; row < 2; row += 1) {
+      for (let column = 0; column < 3; column += 1) {
+        const x = 34 + column * 84 + (Math.random() - 0.5) * 14;
+        const y = 44 + row * 96;
+        g.fillStyle = '#2a2420';
+        g.fillRect(x, y, 20, 34);
+        g.fillStyle = 'rgba(90,70,50,0.8)';
+        g.fillRect(x - 3, y + 34, 26, 4);
+      }
+    }
+    // Rain streaks under the eaves.
+    for (let index = 0; index < 40; index += 1) {
+      g.fillStyle = `rgba(90,80,64,${0.05 + Math.random() * 0.1})`;
+      g.fillRect(Math.random() * w, 0, 2 + Math.random() * 4, 30 + Math.random() * 90);
+    }
+  });
+  const tileTexture = paintedTexture(128, 128, (g, w, h) => {
+    g.fillStyle = '#a8603c';
+    g.fillRect(0, 0, w, h);
+    for (let row = 0; row < 16; row += 1) {
+      for (let column = 0; column < 16; column += 1) {
+        const shade = Math.random();
+        g.fillStyle = `rgb(${150 + shade * 50},${80 + shade * 36},${50 + shade * 26})`;
+        g.fillRect(column * 8 + 1, row * 8, 6, 8);
+      }
+      g.fillStyle = 'rgba(40,20,12,0.35)';
+      g.fillRect(0, row * 8 + 7, w, 1);
+    }
+  }, [3, 2]);
+  const wall = new THREE.MeshStandardMaterial({ color: 0xffffff, map: wallTexture, roughness: 0.95 });
+  const tile = new THREE.MeshStandardMaterial({ color: 0xffffff, map: tileTexture, roughness: 0.9 });
+  const stone = new THREE.MeshStandardMaterial({ color: 0xc8b890, map: wallTexture, roughness: 0.95 });
+  const box = new THREE.BoxGeometry(1, 1, 1);
+  box.translate(0, 0.5, 0);
+  // A gabled roof one unit square and one high, the ridge along x, a little eave all round.
+  const gable = new THREE.BufferGeometry();
+  const e = 0.56;
+  gable.setAttribute('position', new THREE.Float32BufferAttribute([
+    -e, 0, e, e, 0, e, e, 1, 0, -e, 0, e, e, 1, 0, -e, 1, 0,
+    e, 0, -e, -e, 0, -e, -e, 1, 0, e, 0, -e, -e, 1, 0, e, 1, 0,
+    -e, 0, -e, -e, 0, e, -e, 1, 0, e, 0, e, e, 0, -e, e, 1, 0,
+  ], 3));
+  gable.setAttribute('uv', new THREE.Float32BufferAttribute([0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 0, 1, 1, 0, 0, 1, 1, 0, 1, 0, 0, 1, 0, 0.5, 1, 0, 0, 1, 0, 0.5, 1], 2));
+  gable.computeVertexNormals();
+  const houses = [];
+  for (let index = 0; index < 64; index += 1) {
+    // (Closer packed toward the middle, where the church and the keep stand.)
+    const angle = random() * Math.PI * 2;
+    const reach = Math.sqrt(random());
+    houses.push({ x: at[0] + Math.cos(angle) * reach * 75, z: at[1] + Math.sin(angle) * reach * 55, w: 6 + random() * 5, d: 5 + random() * 4, h: 4.5 + random() * 4.5, turn: Math.round(random() * 3) * (Math.PI / 2) + (random() - 0.5) * 0.3 });
+  }
+  const frame = new THREE.Object3D();
+  const set = (mesh, index, x, y, z, sx, sy, sz, turn) => {
+    frame.position.set(x, y, z);
+    frame.rotation.set(0, turn, 0);
+    frame.scale.set(sx, sy, sz);
+    frame.updateMatrix();
+    mesh.setMatrixAt(index, frame.matrix);
+  };
+  const walls = new THREE.InstancedMesh(box, wall, houses.length);
+  const roofs = new THREE.InstancedMesh(gable, tile, houses.length);
+  houses.forEach((house, index) => {
+    // (Sunk a little, so a house on a slope has no gap under its lower side.)
+    set(walls, index, house.x, -1.5, house.z, house.w, house.h + 1.5, house.d, house.turn);
+    set(roofs, index, house.x, house.h, house.z, house.w, 1.2 + house.d * 0.16, house.d, house.turn);
+  });
+  // The church's nave and bell tower, and the castle's keep.
+  const towers = new THREE.InstancedMesh(box, stone, 3);
+  const caps = new THREE.InstancedMesh(gable, tile, 2);
+  set(towers, 0, at[0] - 6, -1.5, at[1] + 4, 22, 11.5, 10, 0.1);
+  set(towers, 1, at[0] + 8, -1.5, at[1] + 10, 5, 23.5, 5, 0.1);
+  set(towers, 2, at[0] + 30, -1.5, at[1] - 18, 12, 19.5, 12, 0.3);
+  set(caps, 0, at[0] - 6, 10, at[1] + 4, 22, 4, 10, 0.1);
+  set(caps, 1, at[0] + 8, 22, at[1] + 10, 5, 3.5, 5, 0.1);
+  const all = [walls, roofs, towers, caps];
+  for (const mesh of all) {
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    mesh.userData.onLand = true;
+  }
+  return all;
 }
 
 /** A low overcast sky: a grey dome, lighter toward the horizon, behind everything and out of the fog. */
