@@ -1157,7 +1157,7 @@ const CERIGNOLA_LEVEL = {
   place: 'Cerignola, Apulia · 28 April 1503',
   blurb: { en: "Gonzalo de Córdoba's men stand behind a fresh ditch and its bank on a vineyard slope: a rank of German pikes along the bank, his arquebusiers three deep close behind them firing between the pikemen's files, the rest of the pikes and the sword-and-buckler men behind. At dusk the French gendarmes in plate on barded horses charge it, and the Swiss columns follow them in: the ditch stops the horse, the pikes hold the bank, and the volleys come rank after rank. Thirty-five of Spain against eight gendarmes, twenty-two Swiss and five crossbowmen.", zh: '贡萨洛·德·科尔多瓦的人守在葡萄园坡上，前面一道新挖的壕沟、一道土堤：堤上一排德意志长枪，火绳枪手三排紧贴在后，从枪兵行间开火；其余长枪和圆盾剑士押在后头。黄昏，法兰西重骑披板甲、骑披甲马冲上来，瑞士方阵跟着压上：沟挡住了马，枪守住了堤，排枪一排接一排。西班牙三十五人，对法兰西重骑八名、瑞士枪兵二十二名、弩手五名。' },
   scene: 'cerignola',
-  weather: { fog: [18, 110], sky: 0.35, pale: 0.3, sun: 0.7 },
+  // (No weather of its own: the dusk is the place's, env/config.js PLACE_ENV.cerignola, and the older looks' render.js PLACE_LIGHT.)
   arena: { ...CERIGNOLA.arena, works: cerignolaWorks() },
   spread: 1,
   camera: { yaw: -0.5, pitch: 0.42, distance: 22, maxDistance: 30 },

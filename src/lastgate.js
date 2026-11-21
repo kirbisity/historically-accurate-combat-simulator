@@ -49,7 +49,8 @@ export const LAST_GATE = {
   arena: { halfX: 18, halfZ: 10.5 },
   // A grey dawn mist (render.js applyWeather): clear to 3 m from the camera, gone by 26, cold blue-grey (`colour`); the sky the fog's, the sun weak through it.
   // Set against the spawn line: a foe is woken some 28–32 m from a camera behind the gate, past the fog's far edge.
-  weather: { fog: [3, 26], sky: 0.85, colour: 0x8e99a3, sun: 0.7 },
+  // (No colour of its own any more: the mist is the open air's, env/config.js PLACE_ENV.lastgate, and takes the dawn's.)
+  weather: { fog: [3, 26], sky: 0.85, sun: 0.7 },
   // The gate: its line at x (the wall along z), open |z| < halfWidth (a gateway a cart goes through, ~5 m). The squad's back to it.
   gate: { x: -12, halfWidth: 2.5, wallHeight: 3.2, towerHeight: 5.2 },
   // Where the squad may be placed (musterview.js, lastgate's zone): `ahead` m in front of the gate's line, `edge` m short of the woods.

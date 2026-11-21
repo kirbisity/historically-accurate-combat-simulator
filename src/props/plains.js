@@ -174,12 +174,22 @@ export function plainsTrainSpots({ halfX }) {
  */
 export function plainsCamelTrain(arena) {
   const random = plainsRandom(53);
-  const batch = plainsBatch();
   const { camels, handlers } = plainsTrainSpots(arena);
-  for (const [x, z, yaw, laden] of camels) plainsCamel(batch, plainsFrame(x, z, yaw), random, laden);
-  for (const [x, z, yaw] of handlers) plainsHandler(batch, plainsFrame(x, z, yaw), random);
   const group = new THREE.Group();
-  group.add(batch.mesh(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95 })));
+  const material = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95 });
+  // Each beast and man its own mesh about its own feet, so each stands on the land where it rolls (`onLand`:
+  // env/index.js envSettle).
+  const stand = (x, z, build) => {
+    const batch = plainsBatch();
+    build(batch);
+    const mesh = batch.mesh(material);
+    mesh.geometry.translate(-x, 0, -z);
+    mesh.position.set(x, 0, z);
+    mesh.userData.onLand = true;
+    group.add(mesh);
+  };
+  for (const [x, z, yaw, laden] of camels) stand(x, z, (batch) => plainsCamel(batch, plainsFrame(x, z, yaw), random, laden));
+  for (const [x, z, yaw] of handlers) stand(x, z, (batch) => plainsHandler(batch, plainsFrame(x, z, yaw), random));
   group.userData.plains = 'train';
   return group;
 }
