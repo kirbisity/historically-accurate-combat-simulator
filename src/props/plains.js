@@ -215,7 +215,7 @@ function plainsWagon(batch, frame, random) {
     for (const along of [-1.05, 1.05]) batch.add(new THREE.CylinderGeometry(0.58, 0.58, 0.09, 14), spec.wheel, [along, 0.58, side * 0.84], [Math.PI / 2, 0, 0], frame);
   }
   // The tilt: hides or felt over bent hoops, open at the ends; one in four carts stands bare.
-  if (random() > 0.25) batch.add(new THREE.CylinderGeometry(0.78, 0.78, 2.9, 12, 1, true, -Math.PI / 2, Math.PI), random() < 0.5 ? spec.tilt : spec.tiltDark, [0, 1.42, 0], [0, 0, Math.PI / 2], frame);
+  if (random() > 0.25) batch.add(new THREE.CylinderGeometry(0.78, 0.78, 2.9, 12, 1, true, 0, Math.PI), random() < 0.5 ? spec.tilt : spec.tiltDark, [0, 1.42, 0], [0, 0, Math.PI / 2], frame);
   // The draught pole, down on the grass with the beasts unyoked.
   batch.add(new THREE.BoxGeometry(2.6, 0.08, 0.08), spec.wheel, [2.75, 0.5, 0], [0, 0, -0.28], frame);
 }
