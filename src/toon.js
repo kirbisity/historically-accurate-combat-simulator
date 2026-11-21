@@ -44,9 +44,12 @@ export function surface(color, { skinning = false, vertexColors = false, roughne
   const look = activeLook();
   // A look may build its own skin and cloth; it answers nothing to leave it to the style.
   const custom = look.surface?.(color, { skinning, vertexColors, roughness, opacity, steps });
+  // (A look's material may have no roughness of its own: how rough the thing was asked to be is kept for what must know
+  // a polished glove from a cotton shirt, as the water on them does: wetview.js.)
+  if (custom && !custom.isMeshStandardMaterial) custom.userData.wetRough = roughness;
   if (custom) return custom;
   const common = { color, skinning, vertexColors, transparent: opacity < 1, opacity, depthWrite: opacity >= 1 };
-  if (look.style === 'toon') return new THREE.MeshToonMaterial({ ...common, gradientMap: gradientMap(steps) });
+  if (look.style === 'toon') return Object.assign(new THREE.MeshToonMaterial({ ...common, gradientMap: gradientMap(steps) }), { userData: { wetRough: roughness } });
   return new THREE.MeshStandardMaterial({ ...common, roughness, metalness: 0 });
 }
 

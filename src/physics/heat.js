@@ -11,7 +11,7 @@ import { WORLD } from './config.js';
 
 /** A fighter's heat state, fresh: at the resting core, nothing drawn yet. (Declared on every fighter: physics.js createFighter.) */
 export function freshHeat() {
-  return { core: WORLD.heat.core, last: 1, debt: 0, kit: null };
+  return { core: WORLD.heat.core, last: 1, debt: 0, kit: null, toSweat: 0 };
 }
 
 /** Saturation vapour pressure of water (kPa) at `celsius` (Magnus formula). */
@@ -124,10 +124,19 @@ export function stepHeat(world, fighter, dt) {
   const made = spec.restWatts * bodyKg + metabolic * (1 - spec.efficiency);
   const climate = world.climate ?? climateOf(null);
   const dry = kit.conductance * (spec.skin - climate.air);
-  const sweat = Math.min(spec.sweatMost, Math.max(0, spec.sweatPerDegree * (heat.core - spec.sweatFrom)));
+  // (A record, read by no physics: the heat his dry skin could not lose, J since the fight began. What the drawing makes his
+  // sweat of: wetview.js.)
+  heat.toSweat = (heat.toSweat ?? 0) + Math.max(0, made - dry) * dt;
+  const sweat = sweatWatts(heat.core);
   const evaporated = sweat * (1 - spec.evapBlocked * kit.cover) * evaporationShare(climate);
   heat.core = Math.max(spec.core, heat.core + ((made - dry - evaporated) * dt) / (spec.heatCapacity * bodyKg));
   // (Read after his recovery: physics.js marks the bar as it leaves the step, heatMark.)
+}
+
+/** The sweat his core's heat calls for now, as W of evaporation (WORLD.heat sweatFrom, sweatPerDegree, sweatMost). */
+export function sweatWatts(core) {
+  const spec = WORLD.heat;
+  return Math.min(spec.sweatMost, Math.max(0, spec.sweatPerDegree * (core - spec.sweatFrom)));
 }
 
 /** The bar as it leaves this step, for the next step's reading of what was drawn. */
