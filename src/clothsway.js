@@ -42,6 +42,14 @@ export const CLOTH_SWAY = {
   // through); and it clings: of what would move it off the body (the swing, the wind's bow, the flap and the flutter)
   // only `free` is left.
   wet: { mass: 2, damping: 0.9, free: 0.2 },
+  // A bag hung from a limb (a kosode's sleeve: loftbody.js fallOf) falls to the limb's low side: its lobe drawn round the
+  // limb straight below it, not where it was cut (`narrow`: the lobe's fall-off round the ring, the cosine to this power, as
+  // loftbody.js LOFT.sleeveBag cuts it). The cloth round the limb is not turned, only where the bag stands out of it. A limb
+  // hanging plumb has no low side: there the bag hangs in folds along it, where it was cut, drawn in to `plumb` of its depth;
+  // as the limb tilts (`tilt`: the sine of its angle off plumb, from and to) the folds are taken up, gone at `turn` of the
+  // way, and from there the bag opens out below the limb to its full depth. (Never swung round the limb from one side to
+  // the other: an arm carried a little back has its low side in front.)
+  fall: { narrow: 22, tilt: [0.15, 0.62], turn: 0.35, plumb: 0.4 },
 };
 
 /**
@@ -133,6 +141,11 @@ export class ClothSwing {
 
 const SWAY_DECLARATIONS = (bones) => `
 attribute float clothSway;
+attribute vec4 clothFallOff;
+attribute vec4 clothFallWay;
+vec3 clothTurned( vec3 v, vec3 axis, float angle ) {
+	return v * cos( angle ) + cross( axis, v ) * sin( angle ) + axis * dot( axis, v ) * ( 1.0 - cos( angle ) );
+}
 uniform vec3 uClothSwing[${bones}];
 uniform vec3 uClothHem[${bones}];
 uniform float uClothClock;
@@ -141,11 +154,39 @@ uniform float uClothWet;
 uniform float uWindTime; uniform vec2 uWindWay; uniform float uWindStrength;
 `;
 
-const SWAY_MOVE = () => {
+// `normals`: the material lights by a normal carried to the fragment (not a Lambert one, lit at the point before this runs).
+const SWAY_MOVE = (normals = true) => {
   const spec = CLOTH_SWAY;
   const f = (value) => value.toFixed(4);
   return `
 #ifdef USE_SKINNING
+	// A hung bag falls to the low side of its limb (CLOTH_SWAY.fall): the lobe drawn again round the limb's line, straight below it.
+	float clothFallHang = length( clothFallWay.xyz );
+	float clothFallLong = length( clothFallOff.xyz );
+	if ( clothFallHang > 0.0005 && clothFallLong > 0.00001 ) {
+		mat3 clothFallSkin = mat3( bindMatrixInverse * ( boneMatX * skinWeight.x + boneMatY * skinWeight.y + boneMatZ * skinWeight.z + boneMatW * skinWeight.w ) * bindMatrix );
+		vec3 clothFallAxis = normalize( clothFallSkin * clothFallWay.xyz );
+		vec3 clothFallOut = - clothFallSkin * clothFallOff.xyz;
+		clothFallOut -= clothFallAxis * dot( clothFallOut, clothFallAxis );
+		if ( length( clothFallOut ) > 0.00001 ) {
+			vec3 clothFallDir = normalize( clothFallOut );
+			vec3 clothFallBack = clothTurned( clothFallDir, clothFallAxis, - clothFallWay.w );
+			vec3 clothFallDown = vec3( 0.0, -1.0, 0.0 ) - clothFallAxis * dot( vec3( 0.0, -1.0, 0.0 ), clothFallAxis );
+			float clothFallOpen = smoothstep( ${f(spec.fall.tilt[0])}, ${f(spec.fall.tilt[1])}, length( clothFallDown ) );
+			bool clothFallTurns = clothFallOpen > ${f(spec.fall.turn)};
+			// (How far round from the bag's middle as it now hangs, and how deep it hangs there.)
+			float clothFallRound = clothFallWay.w - ( clothFallTurns ? atan( dot( cross( clothFallBack, clothFallDown ), clothFallAxis ), dot( clothFallBack, clothFallDown ) ) : 0.0 );
+			float clothFallDepth = clothFallHang * ( clothFallTurns ? ( clothFallOpen - ${f(spec.fall.turn)} ) / ${f(1 - spec.fall.turn)} : ${f(spec.fall.plumb)} * ( 1.0 - clothFallOpen / ${f(spec.fall.turn)} ) );
+			float clothFallLobe = clothFallDepth * pow( max( 0.0, cos( clothFallRound ) ), ${f(spec.fall.narrow)} );
+			transformed += clothFallDir * ( clothFallLobe - clothFallOff.w );
+${normals ? `#ifndef FLAT_SHADED
+			// (Its faces' normals: the outline's own round the limb, r out less its slope round along the tangent.)
+			float clothFallSlope = - clothFallDepth * ${f(spec.fall.narrow)} * pow( max( 0.0, cos( clothFallRound ) ), ${f(spec.fall.narrow - 1)} ) * sin( clothFallRound );
+			float clothFallReach = max( 0.01, clothFallLong - clothFallOff.w + clothFallLobe );
+			vNormal = normalize( mat3( modelViewMatrix ) * ( clothFallDir * clothFallReach - cross( clothFallAxis, clothFallDir ) * clothFallSlope ) );
+#endif` : ''}
+		}
+	}
 	if ( clothSway != 0.0 ) {
 		// (Armour, negative: its swing, its hem's lag, the ripple; a share of the wind. Cloth, positive: as it was.)
 		float clothArmour = clothSway < 0.0 ? 1.0 : 0.0;
@@ -201,7 +242,7 @@ export function swayCloth(material, swing) {
     const declarations = declared ? SWAY_DECLARATIONS(bones).replace(/uniform float uWindTime.*\n/, '') : SWAY_DECLARATIONS(bones);
     shader.vertexShader = shader.vertexShader
       .replace('#include <skinning_pars_vertex>', `#include <skinning_pars_vertex>\n${declarations}`)
-      .replace('#include <skinning_vertex>', `#include <skinning_vertex>\n${SWAY_MOVE()}`);
+      .replace('#include <skinning_vertex>', `#include <skinning_vertex>\n${SWAY_MOVE(!material.isMeshLambertMaterial)}`);
   };
   material.customProgramCacheKey = () => `${baseKey}|clothSway`;
   material.needsUpdate = true;

@@ -1927,7 +1927,11 @@ export const OUTFITS = {
     protection: { blunt: 0, cut: 0.05, pierce: 0, bullet: { head: 0, torso: 0, limb: 0 } },
     courage: 0.9,
     designs: [
-      { label: 'Dark kosode, grey hakama', special: true, top: { kind: 'kosode', color: '#2a2a30' }, bottom: { kind: 'hakama', color: '#5a5a60', long: true }, feet: { kind: 'sandal', color: '#5a3a22' }, extras: [{ kind: 'sashEnds', color: '#1a1a1e' }, { kind: 'daisho', color: '#15151a', cord: '#3a2a1c' }] },
+      // A duellist's on the road: a grey-brown kosode over a dark under-robe, black hakama.
+      { label: 'Grey-brown kosode, black hakama', top: { kind: 'kosode', color: '#6b6557', under: '#26262b' }, bottom: { kind: 'hakama', color: '#1e1e22', long: true }, feet: { kind: 'sandal', color: '#5a3a22' }, extras: [{ kind: 'daisho', color: '#15151a', cord: '#3a2a1c' }] },
+      // Kamishimo, the formal dress he would wear to fight before a lord: the stiff-shouldered kataginu and hakama of one pale
+      // hemp cloth over a kosode (`top.kataginu`: loftbody.js kataginuOn).
+      { label: 'Kamishimo', top: { kind: 'kosode', color: '#8a8794', under: '#d8d1c0', kataginu: true }, bottom: { kind: 'hakama', color: '#b3b8bd', long: true }, feet: { kind: 'sandal', color: '#5a3a22' }, extras: [{ kind: 'daisho', color: '#15151a', cord: '#3a2a1c' }] },
     ],
   },
   // ---- Rome: the legions of the early Empire (1st century AD) ----

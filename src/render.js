@@ -2284,6 +2284,11 @@ function skinnedMesh(built, bones, colors, { indices = built.indices, material =
     geometry.setAttribute('skinWeight', new THREE.Float32BufferAttribute(built.skinWeight, 4));
     // How loose each point of the cloth hangs (clothsway.js); none on a crowd's body.
     if (built.sway) geometry.setAttribute('clothSway', new THREE.BufferAttribute(built.sway, 1));
+    // A hung sleeve's bag, which falls to the low side of the arm (clothsway.js; loftbody.js fallOf).
+    if (built.sway && built.fall) {
+      geometry.setAttribute('clothFallOff', new THREE.BufferAttribute(built.fall.off, 4));
+      geometry.setAttribute('clothFallWay', new THREE.BufferAttribute(built.fall.way, 4));
+    }
     // Which points are bare skin (paintBody), for the water on them: sweat beads on skin and only damps cloth (wetview.js).
     if (built.skinMask) geometry.setAttribute('wetSkin', new THREE.BufferAttribute(Float32Array.from(built.skinMask, Number), 1));
     // The detail style's coordinates: the bump map's, and the same again for the occlusion map.
