@@ -35,6 +35,7 @@ import { createFlameSound } from './flamesound.js';
 import { createWake } from './wake.js';
 import { playUi, uiParams } from './sfx/ui.js';
 import { playThump, thumpParams } from './sfx/thump.js';
+import { beatParams, playBeat } from './sfx/beat.js';
 import { artDrawParams, artImpactParams, playArtDraw, playArtImpact } from './sfx/art.js';
 
 /** The mixer's settings: the five levels (0..1), the Speakers toggle (null: the machine's default), mute. Kept in this browser. */
@@ -798,6 +799,13 @@ export function createAudioEngine(env = typeof window === 'undefined' ? null : w
     playThump(voice, voice.out, thumpParams(strength), state.ctx.currentTime + 0.002, Math.min(1, gain));
   }
 
+  /** A combat beat's own sound (hitfeel.js, sfx/beat.js): a block's 'knock', a deflect's 'ring', an execution's 'boom', at `gain` (0..1), by `strength` (0..1). */
+  function beat(kind, gain, strength = 1) {
+    if (!state.ctx || state.ctx.state !== 'running' || !(gain > 0)) return;
+    const voice = sfxVoice(state.ctx, state.buses.effects.dry);
+    playBeat(voice, voice.out, beatParams(kind, strength), state.ctx.currentTime + 0.002, Math.min(1, gain));
+  }
+
   /**
    * A weapon art's own layer (artdrama.js), straight into the effects bus: 'draw' at its start (`blade`: with the steel's ring),
    * 'impact' at its contact, by `strength` (0..1; `metal`: with a ring of steel), at `gain` (0..1).
@@ -864,6 +872,7 @@ export function createAudioEngine(env = typeof window === 'undefined' ? null : w
     frame,
     ui,
     thump,
+    beat,
     art,
     deafen,
     stun,
