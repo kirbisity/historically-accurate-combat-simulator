@@ -321,6 +321,8 @@ export function sheenMaterial(colour, map, { alphaTest = 0 } = {}) {
 #endif`);
   };
   material.customProgramCacheKey = () => 'photohair-sheen';
+  // (Hair: it takes water as cloth does, wetview.js.)
+  material.userData.wetKind = 'hair';
   return material;
 }
 

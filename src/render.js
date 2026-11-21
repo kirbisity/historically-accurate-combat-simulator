@@ -60,6 +60,7 @@ import { worksOf } from './physics/fieldworks.js';
 import { buildCanalTown, CANAL_TOWN_LIGHT } from './places/canaltown.js';
 import { PLACE_ENV } from './env/config.js';
 import { envDress } from './env/air.js';
+import { wetDress, wetWarm } from './wetview.js';
 import { COLOSSEUM } from './props/arenasize.js';
 import { buildPyongyang, buildPyongyangTown, PYONGYANG_LIGHT } from './places/pyongyang.js';
 // (The kit's door to the open air: townkit/air.js puts env/'s registration where the kit's places find it.)
@@ -553,6 +554,9 @@ function shaderWarmers() {
   // A fighter's cloth in the cloth atlas (skinParts), where the detail maps are drawn.
   const cloth = new THREE.SkinnedMesh(skinnedGeometry, clothMaterial());
   cloth.bind(skinV7.skeleton, new THREE.Matrix4());
+  // (As a fighter's are: the wetness patch is part of the program, wetview.js; these bodies' meshes say which points are skin.)
+  skinnedGeometry.setAttribute('wetSkin', new THREE.Float32BufferAttribute(new Float32Array(3), 1));
+  for (const mesh of [skinV7, skinV7Low, cloth]) wetWarm(mesh.material, true);
   group.add(severed, outlineFor(severed), skinV7, outlineFor(skinV7), skinV7Low, cloth, drops, stains, vane, tracer, cord);
   group.traverse((object) => {
     object.frustumCulled = false;
@@ -2181,6 +2185,8 @@ function skinnedMesh(built, bones, colors, { indices = built.indices, material =
     geometry.setAttribute('skinWeight', new THREE.Float32BufferAttribute(built.skinWeight, 4));
     // How loose each point of the cloth hangs (clothsway.js); none on a crowd's body.
     if (built.sway) geometry.setAttribute('clothSway', new THREE.BufferAttribute(built.sway, 1));
+    // Which points are bare skin (paintBody), for the water on them: sweat beads on skin and only damps cloth (wetview.js).
+    if (built.skinMask) geometry.setAttribute('wetSkin', new THREE.BufferAttribute(Float32Array.from(built.skinMask, Number), 1));
     // The detail style's coordinates: the bump map's, and the same again for the occlusion map.
     if (built.uvs) {
       geometry.setAttribute('uv', new THREE.BufferAttribute(built.uvs, 2));
@@ -2281,9 +2287,10 @@ export function buildFighterView(view, fighter, { simple: crowd = false } = {}) 
     view.crowdTemplates ??= new Map();
     const key = crowdKey(fighter);
     if (!view.crowdTemplates.has(key)) view.crowdTemplates.set(key, bakeCrowdTemplate(view, fighter));
-    return crowdView(view, fighter, view.crowdTemplates.get(key));
+    return wetDress(crowdView(view, fighter, view.crowdTemplates.get(key)));
   }
-  return detailedView(view, fighter, false);
+  // (Sweat, water and mud drawn on everything he is made of: wetview.js, laid before any other sweep of his materials.)
+  return wetDress(detailedView(view, fighter, false));
 }
 
 /** `simple`: low detail, no skeleton, no soft flesh (the first of a crowd template, before baking). */
@@ -2927,8 +2934,9 @@ function swapSkin(view, fighterView, style, made = null) {
   const entry = fighterView.shells.find((shell) => shell.key === 'body');
   if (entry && skin.shell) entry.shell = skin.shell;
   fighterView.slosh = skin.slosh;
-  // As he was drawn: ghosted or not, his ink, his shadow.
+  // As he was drawn: ghosted or not, his ink, his shadow; and as wet (wetview.js).
   setLayer(fighterView, fighterView.layer);
+  wetDress(fighterView);
   return true;
 }
 
@@ -3102,6 +3110,8 @@ function crowdView(view, fighter, template) {
     const geometry = new THREE.BufferGeometry();
     for (const [name, attribute] of Object.entries(source.attributes)) geometry.setAttribute(name, attribute);
     geometry.setAttribute('color', new THREE.BufferAttribute(source.colors.slice(), 3));
+    // (Which points are bare skin, shared by the crowd as the rest is: wetview.js.)
+    geometry.setAttribute('wetSkin', (source.attributes.wetSkin ??= new THREE.BufferAttribute(Float32Array.from(source.vertexSegment, (segment) => (segment ? 1 : 0)), 1)));
     geometry.setIndex(new THREE.BufferAttribute(source.bodyIndex.slice(), 1));
     geometry.userData.sharedAttributes = Object.keys(source.attributes);
     const skinned = (meshGeometry, material) => {

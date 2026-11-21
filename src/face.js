@@ -378,6 +378,9 @@ export function buildHead(body, lookInput, skinHex, cornerHex) {
   }
   const baseSkin = skinMaterial.color.clone();
   const hairMaterial = surface(look.hairColor);
+  // (What these two are, for the water on them: wetview.js.)
+  skinMaterial.userData.wetKind = 'skin';
+  hairMaterial.userData.wetKind = 'hair';
   const ink = 0x24181a;
 
   let skullGeometry;
