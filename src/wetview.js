@@ -56,7 +56,7 @@ export const WET_VIEW = {
   rim: 0.45,
   // A bead bends the light through it: the surface under its rim is this much darker (what shows a bead in flat light),
   // and wet skin a little darker all over (`skin`: the film lets more light into it).
-  lens: 0.35,
+  lens: 0.18,
   skin: 0.1,
   // Pores full: a porous surface's colour raised to 1 + `deepen` (darker and more saturated at once, as a wet
   // cloth's is) and dimmed by `dim` (white cloth greys).
@@ -281,7 +281,7 @@ if ( uWetOn > 0.5 && ( vWet.x + vWet.y + vWet.z ) > 0.004 ) {
 	float wetDark = wetPorous * max( wetDeep, wetDamp );
 	diffuseColor.rgb = pow( max( diffuseColor.rgb, vec3( 0.0 ) ), vec3( 1.0 + ${glsl(WET_VIEW.deepen)} * wetDark ) ) * ( 1.0 - ${glsl(WET_VIEW.dim)} * wetDark );
 	// The film: at once on a smooth surface, on a porous one only when its pores are full.
-	wetFilm = max( wetDeep * mix( 1.0, smoothstep( 0.45, 0.9, wetWater ), wetPorous ), wetSheen * 0.55 );
+	wetFilm = max( wetDeep * mix( 1.0, smoothstep( 0.45, 0.9, wetWater ), wetPorous ), wetSheen * 0.8 );
 	// Beads on a smooth surface (each forms at its own wetness), and runs down it when it streams.
 	float wetBeads = wetSmooth * max( wetSkin * smoothstep( 0.2, 0.95, vWet.y ), wetSoaked * 0.9 );
 	vec2 wetSlope = vec2( 0.0 );

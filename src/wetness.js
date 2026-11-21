@@ -39,6 +39,12 @@ export const WET = {
     lUpperArm: [1.4, 1, 0.8, 0.8], rUpperArm: [1.4, 1, 0.8, 0.8], lForearm: [0.8, 0.7, 0.6, 0.5], rForearm: [0.8, 0.7, 0.6, 0.5],
     lThigh: [0.9, 0.7, 0.6, 0.6], rThigh: [0.9, 0.7, 0.6, 0.6], lShank: [0.6, 0.5, 0.4, 0.3], rShank: [0.6, 0.5, 0.4, 0.3],
   },
+  // The sweat's clock. A bout here is over in a minute or two, and in that time a real body has made a few grams of
+  // sweat to the square metre: nothing to see. The game's fights are a round's work pressed into tens of seconds (its
+  // stamina empties as fast), so the glands answer and make sweat `pace` times faster than the body's own: a man who
+  // has fought hard for a minute looks as one who has fought a few rounds. What the air takes off is left at its own
+  // rate (he does not dry in seconds once he stops). 1 is the body's own time.
+  pace: 4,
   // The sweat glands answer the heat to be lost with a lag (s): sweating starts within a minute or so of hard work and
   // takes minutes to stop after it.
   sweatLag: 45,
@@ -123,7 +129,7 @@ export function stepWetness(state, air, dt) {
   const evaporation = air.evaporation ?? 1;
   const wind = air.wind ?? 0;
   // The glands follow the heat to be lost.
-  state.drive += ((air.sweat ?? 0) - state.drive) * (1 - Math.exp(-dt / WET.sweatLag));
+  state.drive += ((air.sweat ?? 0) - state.drive) * (1 - Math.exp((-dt * WET.pace) / WET.sweatLag));
   const most = evaporationMost(evaporation, wind, air.cover ?? 0);
   const drying = (dt / WET.dry) * evaporation * (1 + WET.windShare * wind) * (1 + WET.sunShare * (air.sun ?? 0)) * (1 - rain);
   const thrown = mud > -Infinity ? Math.min(WET.splashMost, WET.splash * (air.speed ?? 0)) : 0;
@@ -146,7 +152,7 @@ export function stepWetness(state, air, dt) {
     // Sweat: what the glands make here less what the air takes off the wetted share of the skin.
     const film = values[at + 1];
     const made = state.drive * SWEAT_SHARE[index];
-    values[at + 1] = Math.max(0, Math.min(1, film + ((made - most * Math.min(1, film / WET.filmWet)) * dt) / WET.filmJoules));
+    values[at + 1] = Math.max(0, Math.min(1, film + ((made * WET.pace - most * Math.min(1, film / WET.filmWet)) * dt) / WET.filmJoules));
   }
   return wetSummary(state);
 }
