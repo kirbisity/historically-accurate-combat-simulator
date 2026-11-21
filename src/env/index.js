@@ -399,6 +399,68 @@ function envSteelSwap(view, air, open, share) {
   view.envSteelShare = share;
 }
 
+/**
+ * Whether the place is to be pictured again for what metal mirrors (ENV.mirror), and the picture taken if so: at
+ * the first frames after it is lit, when the cloud's shade over the fight has changed by ENV.steel.again, and when
+ * the fight has moved on. Until the first is taken, and on a device that cannot hold light in a target, metal
+ * mirrors the worked sky and land of envSteelSky.
+ */
+function envSteelDue(view, state, cloudOnFight) {
+  const tune = ENV.mirror;
+  state.mirrorFrames = (state.mirrorFrames ?? 0) + 1;
+  if (!envPostAble(view.renderer)) {
+    if (Math.abs(cloudOnFight - (view.envSteelShare ?? cloudOnFight)) > ENV.steel.again) envSteelSwap(view, state.air, state.own.meter?.sky ?? 1, cloudOnFight);
+    return;
+  }
+  const at = view.orbit?.target ?? view.camera.position;
+  const now = performance.now() / 1000;
+  const first = tune.first.includes(state.mirrorFrames);
+  const shot = state.mirrorShot;
+  const rested = shot && now - shot.when > tune.rest && state.mirrorFrames > tune.first[tune.first.length - 1];
+  const moved = rested && Math.hypot(at.x - shot.x, at.z - shot.z) > tune.moved;
+  const shaded = rested && Math.abs(cloudOnFight - shot.share) > ENV.steel.again;
+  if (!first && !moved && !shaded) return;
+  const y = state.group.userData.envHeight(at.x, at.z) + tune.eye;
+  envSteelShot(view, at.x, Math.max(y, at.y - 0.5), at.z);
+  state.mirrorShot = { x: at.x, z: at.z, share: cloudOnFight, when: now };
+  view.envSteelShare = cloudOnFight;
+}
+
+/**
+ * Picture the place from (x, y, z) on a cube's six faces, in the light the frame is drawn in before the camera's
+ * curve, and give it to metal as what it mirrors (the renderer's prefiltered environment, as envSteelSky's). Only
+ * the place and its air are in it: the fighters, their arms and what lies loose are left out, as a man's own
+ * breastplate is not what it mirrors and the picture is taken among them.
+ */
+function envSteelShot(view, x, y, z) {
+  const renderer = view.renderer;
+  const side = ENV.mirror.side[envChosen.tier] ?? ENV.mirror.side.low;
+  const target = new THREE.WebGLCubeRenderTarget(side, { format: THREE.RGBAFormat, type: THREE.HalfFloatType, encoding: THREE.LinearEncoding, generateMipmaps: false, minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter });
+  const camera = new THREE.CubeCamera(0.3, view.camera.far, target);
+  camera.position.set(x, y, z);
+  const places = new Set(Object.values(view.places));
+  const hidden = view.scene.children.filter((child) => child.visible && !child.isLight && !places.has(child));
+  for (const child of hidden) child.visible = false;
+  const exposure = renderer.toneMappingExposure;
+  const u = envUniforms();
+  // (Under 0 the frame's curve passes light on as it is: air.js envInstallTone.)
+  renderer.toneMappingExposure = -1;
+  u.uEnvMirrorShot.value = 1;
+  camera.update(renderer, view.scene);
+  u.uEnvMirrorShot.value = 0;
+  renderer.toneMappingExposure = exposure;
+  for (const child of hidden) child.visible = true;
+  const generator = new THREE.PMREMGenerator(renderer);
+  const steel = generator.fromCubemap(target.texture).texture;
+  generator.dispose();
+  target.dispose();
+  if (!view.envSteelOurs) view.envSteelWas = view.steelEnv;
+  const before = view.envSteelOurs;
+  replaceEnvironment(view, steel);
+  before?.dispose();
+  view.envSteelOurs = steel;
+}
+
 function envSteelSky(renderer, air, open, share) {
   const [width, height] = ENV.steel.size;
   const half = new Uint16Array(width * height * 4);
@@ -619,7 +681,7 @@ export function envUpdate(view, world, lead = null) {
   const sunOnAll = ENV.quality[envChosen.tier].cloudShadow ? 1 : cloudOnFight;
   u.uEnvSunColour.value.set(state.air.sunColour[0] * sunOnAll, state.air.sunColour[1] * sunOnAll, state.air.sunColour[2] * sunOnAll);
   // The ground metal mirrors lies in the same cloud's shade: made again when that has moved on (ENV.steel.again).
-  if (Math.abs(cloudOnFight - (view.envSteelShare ?? cloudOnFight)) > ENV.steel.again) envSteelSwap(view, state.air, state.own.meter?.sky ?? 1, cloudOnFight);
+  envSteelDue(view, state, cloudOnFight);
   const own = state.own;
   const parts = state.group.userData.envParts;
   const eye = view.camera.position;

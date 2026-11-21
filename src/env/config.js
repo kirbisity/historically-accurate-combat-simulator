@@ -689,6 +689,14 @@ export const ENV = {
   // ground lies in that cloud's shade; a tenth, by eye: a change the plate shows, made no more than as often as
   // a cloud's edge crosses the fight).
   steel: { size: [128, 64], cloudLit: 0.3, again: 0.1 },
+  // What metal mirrors once the place stands (index.js envSteelShot): the place itself, pictured on the six faces of
+  // a cube from where the fight is, so plate turned up shows the sky, turned level the stands, the wood or the wall
+  // as the sun leaves them, and turned down the ground in its own colour. `side`: a face's side in texels at each
+  // tier (a plate's reflection is spread over tens of degrees: more would not show); `eye`: m over the ground the
+  // picture is taken from, a breastplate's height; `first`: the frames after a place is lit at which it is taken
+  // (the sun's shadow map is drawn by the first, late pieces of a place by the second); `moved`: m the fight must
+  // have gone from where the last was taken for another, and `rest`: the seconds between two at the least.
+  mirror: { side: { high: 128, medium: 96, low: 64 }, eye: 1.3, first: [3, 90], moved: 10, rest: 1.5 },
 
   // ---- what a weak device drops ---------------------------------------------------------------------------------------
   // The share of each thing drawn at each quality tier (levelmode/quality.js names them; adaptres.js steps
