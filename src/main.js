@@ -4451,8 +4451,18 @@ const boxer = window.boxer = {
   hitFeelView,
   // The beats' sparks, light and blade trails (combatfx.js): burst(kind, at, { strength, along }), its ribbons.
   combatFx,
-  // The page's pace now (1, or less in a hit-stop or a slow moment): for tests and shots.
+  // The page's pace now (1, or less in a hit-stop or a slow moment), and frames played with it as the page's own loop plays
+  // them, hit-stops and all: for shots of the beats, frame by frame (boxer.capture(true) first, as for playFrames, which never
+  // has a hit-stop).
   pace: () => fightPace(),
+  feelFrames: (count, dt = 1 / 60) => {
+    for (let index = 0; index < count; index += 1) {
+      buildQueuedViews();
+      if (!state.paused && !state.viewQueue?.length) tick(dt * state.speed * fightPace(), { budget: Infinity });
+      draw(dt);
+      pumpSkinBuilds(scene);
+    }
+  },
   // The weapon arts' drama (artdrama.js): what it is doing now; its view.
   artDrama,
   artDramaView,
@@ -4469,12 +4479,11 @@ const boxer = window.boxer = {
     if (on !== undefined) crowdLod.enabled = Boolean(on);
     return crowdLod.enabled;
   },
-  // Play `count` real frames of `dt` s each, as the page's own loop would (tests, profiling). With `feel`, the hit-stops and a
-  // weapon art's pace too, as the page's loop has them (shots of the combat's beats); without, never (the trailer's capture).
-  playFrames: (count, dt = 1 / 60, { feel = false } = {}) => {
+  // Play `count` real frames of `dt` s each, as the page's own loop would (tests, profiling).
+  playFrames: (count, dt = 1 / 60) => {
     for (let index = 0; index < count; index += 1) {
       buildQueuedViews();
-      if (!state.paused && !state.viewQueue?.length) tick(dt * state.speed * (feel ? fightPace() : paceNow()), state.captureHeld ? { budget: Infinity } : undefined);
+      if (!state.paused && !state.viewQueue?.length) tick(dt * state.speed * paceNow(), state.captureHeld ? { budget: Infinity } : undefined);
       draw(dt);
       pumpSkinBuilds(scene);
     }
