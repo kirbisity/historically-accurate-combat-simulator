@@ -11,12 +11,14 @@ import { uiIconMarkup } from './uiicons.js';
 export const DRAMA = {
   // Simulated seconds per real second at the slowest, how long the moment
   // lasts (real s), and the share of it held slow before easing back.
-  knockout: { slowest: 0.15, seconds: 2.8, hold: 0.55, shake: 0.09, pushIn: 0.62, flash: 0.75 },
-  knockdown: { slowest: 0.4, seconds: 1.4, hold: 0.4, shake: 0.045, pushIn: 0.85, flash: 0.3 },
+  // (The screen's white flash is a fraction of what it was, 0.75 for a knockout and 0.5 for a kill: a blow home now
+  // has its own light at the point it lands, combatfx.js, and the two together on a sunlit floor left a white frame.)
+  knockout: { slowest: 0.15, seconds: 2.8, hold: 0.55, shake: 0.09, pushIn: 0.62, flash: 0.3 },
+  knockdown: { slowest: 0.4, seconds: 1.4, hold: 0.4, shake: 0.045, pushIn: 0.85, flash: 0.15 },
   broken: { slowest: 0.5, seconds: 0.9, hold: 0.3, shake: 0.03, pushIn: 1, flash: 0 },
   // A blade ends it: slower, longer, nearer than a knockout.
-  severed: { slowest: 0.12, seconds: 3.2, hold: 0.6, shake: 0.08, pushIn: 0.6, flash: 0.6 },
-  killed: { slowest: 0.15, seconds: 2.8, hold: 0.55, shake: 0.06, pushIn: 0.62, flash: 0.5 },
+  severed: { slowest: 0.12, seconds: 3.2, hold: 0.6, shake: 0.08, pushIn: 0.6, flash: 0.25 },
+  killed: { slowest: 0.15, seconds: 2.8, hold: 0.55, shake: 0.06, pushIn: 0.62, flash: 0.2 },
   bledOut: { slowest: 0.4, seconds: 1.6, hold: 0.4, shake: 0, pushIn: 0.8, flash: 0 },
   disarmed: { slowest: 0.6, seconds: 0.8, hold: 0.3, shake: 0.02, pushIn: 1, flash: 0 },
   staggered: { slowest: 0.55, seconds: 0.9, hold: 0.3, shake: 0.04, pushIn: 0.85, flash: 0 },
