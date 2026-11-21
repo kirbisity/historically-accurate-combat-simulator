@@ -10,6 +10,7 @@
 /* global THREE */
 
 import { CLOTH_WIND, clothWindUniforms } from './clothwind.js';
+import { BONE } from './rig.js';
 
 export const CLOTH_SWAY = {
   // The spring behind a bone: its own frequency (Hz) and damping ratio (under 1: it swings past and back), the trail (s of
@@ -42,6 +43,16 @@ export const CLOTH_SWAY = {
   // through); and it clings: of what would move it off the body (the swing, the wind's bow, the flap and the flutter)
   // only `free` is left.
   wet: { mass: 2, damping: 0.9, free: 0.2 },
+  // A bag hung from a limb (a kosode's sleeve: loftbody.js fallOf) falls to the limb's low side: its lobe drawn on the line
+  // of the cloth straight below the limb, not where it was cut, and hanging plumb from there (`narrow`: the lobe's fall-off
+  // round the ring, the cosine to this power, as loftbody.js LOFT.sleeveBag cuts it). The cloth round the limb is not turned,
+  // only where the bag stands out of it. A limb hanging plumb has no low side: there the bag hangs in folds along it, behind
+  // it as the man stands (by his chest's facing, not the arm's own twist: with the forearms turned in to a two-handed grip
+  // the back of the upper arm faces the spine), drawn in to `plumb` of its depth; as the limb tilts (`tilt`: the sine of
+  // its angle off plumb, from and to) the folds are taken up, gone at `turn` of the way, and from there the bag opens out
+  // below the limb to its full depth. (Never swung round the limb from one side to the other: an arm carried a little back
+  // has its low side in front.)
+  fall: { narrow: 22, tilt: [0.15, 0.62], turn: 0.35, plumb: 0.4 },
 };
 
 /**
@@ -133,6 +144,11 @@ export class ClothSwing {
 
 const SWAY_DECLARATIONS = (bones) => `
 attribute float clothSway;
+attribute vec4 clothFallOff;
+attribute vec4 clothFallWay;
+vec3 clothTurned( vec3 v, vec3 axis, float angle ) {
+	return v * cos( angle ) + cross( axis, v ) * sin( angle ) + axis * dot( axis, v ) * ( 1.0 - cos( angle ) );
+}
 uniform vec3 uClothSwing[${bones}];
 uniform vec3 uClothHem[${bones}];
 uniform float uClothClock;
@@ -141,11 +157,60 @@ uniform float uClothWet;
 uniform float uWindTime; uniform vec2 uWindWay; uniform float uWindStrength;
 `;
 
-const SWAY_MOVE = () => {
+// `normals`: the material lights by a normal carried to the fragment (not a Lambert one, lit at the point before this runs).
+const SWAY_MOVE = (normals = true) => {
   const spec = CLOTH_SWAY;
   const f = (value) => value.toFixed(4);
   return `
 #ifdef USE_SKINNING
+	// A hung bag falls to the low side of its limb (CLOTH_SWAY.fall): the lobe drawn again round the limb's line, straight below it.
+	float clothFallHang = length( clothFallWay.xyz );
+	float clothFallLong = length( clothFallOff.xyz );
+	if ( clothFallHang > 0.0005 && clothFallLong > 0.00001 ) {
+		// (The angle round from the bag's middle as it was cut, the ring's points round and the limb's bone: fallOf packs them in one number.)
+		float clothFallPacked = floor( ( clothFallWay.w + 3.5 ) / 7.0 );
+		float clothFallAt = clothFallWay.w - 7.0 * clothFallPacked;
+		float clothFallPoints = mod( clothFallPacked, 64.0 );
+		// The limb's own turn, its bone's alone: every ring of the bag asks the same way down, and the lobe runs along one line
+		// of points. (By each point's own blend of bones, the rings near a joint each chose a different line, and it stood in teeth.)
+		mat3 clothFallLimb = mat3( bindMatrixInverse * getBoneMatrix( floor( clothFallPacked / 64.0 ) ) * bindMatrix );
+		mat3 clothFallSkin = mat3( bindMatrixInverse * ( boneMatX * skinWeight.x + boneMatY * skinWeight.y + boneMatZ * skinWeight.z + boneMatW * skinWeight.w ) * bindMatrix );
+		vec3 clothFallRest = normalize( clothFallWay.xyz );
+		vec3 clothFallAxis = normalize( clothFallLimb * clothFallRest );
+		vec3 clothFallCut = - clothFallOff.xyz + clothFallRest * dot( clothFallOff.xyz, clothFallRest );
+		vec3 clothFallOut = - clothFallSkin * clothFallOff.xyz;
+		vec3 clothFallOwn = normalize( clothFallSkin * clothFallRest );
+		clothFallOut -= clothFallOwn * dot( clothFallOut, clothFallOwn );
+		if ( length( clothFallOut ) > 0.00001 && length( clothFallCut ) > 0.00001 ) {
+			vec3 clothFallDir = normalize( clothFallOut );
+			vec3 clothFallBack = normalize( clothFallLimb * clothTurned( normalize( clothFallCut ), clothFallRest, - clothFallAt ) );
+			vec3 clothFallDown = vec3( 0.0, -1.0, 0.0 ) - clothFallAxis * dot( vec3( 0.0, -1.0, 0.0 ), clothFallAxis );
+			float clothFallOpen = smoothstep( ${f(spec.fall.tilt[0])}, ${f(spec.fall.tilt[1])}, length( clothFallDown ) );
+			bool clothFallTurns = clothFallOpen > ${f(spec.fall.turn)};
+			// (Behind him: his chest's own facing, the loft's forward axis as the chest bone has turned it, square to the limb.)
+			vec3 clothFallBehind = - ( mat3( bindMatrixInverse * getBoneMatrix( ${BONE.chest}.0 ) * bindMatrix ) * vec3( 1.0, 0.0, 0.0 ) );
+			clothFallBehind -= clothFallAxis * dot( clothFallBehind, clothFallAxis );
+			vec3 clothFallTo = clothFallTurns ? clothFallDown : length( clothFallBehind ) > 0.0001 ? clothFallBehind : clothFallBack;
+			float clothFallTurn = atan( dot( cross( clothFallBack, clothFallTo ), clothFallAxis ), dot( clothFallBack, clothFallTo ) );
+			// (The lobe is drawn on the line of points nearest below the limb, and the ring turned the rest of the way, less
+			// than half a step: a lobe a few points wide drawn between two lines of them stood in teeth from ring to ring.)
+			float clothFallStep = 6.2832 / max( 3.0, clothFallPoints );
+			float clothFallOn = floor( clothFallTurn / clothFallStep + 0.5 ) * clothFallStep;
+			vec3 clothFallNew = clothTurned( clothFallDir, clothFallOwn, clothFallTurn - clothFallOn );
+			float clothFallRound = clothFallAt - clothFallOn;
+			float clothFallDepth = clothFallHang * ( clothFallTurns ? ( clothFallOpen - ${f(spec.fall.turn)} ) / ${f(1 - spec.fall.turn)} : ${f(spec.fall.plumb)} * ( 1.0 - clothFallOpen / ${f(spec.fall.turn)} ) );
+			float clothFallLobe = clothFallDepth * pow( max( 0.0, cos( clothFallRound ) ), ${f(spec.fall.narrow)} );
+			float clothFallReach = length( clothFallOut );
+			// (The lobe hangs plumb from the line it is drawn on, not square to the limb: under an arm held out to the side, square to
+			// it is in towards the trunk, and the bag lay through his back; and the steeper the limb the closer it lies along it.)
+			transformed += clothFallNew * ( clothFallReach - clothFallOff.w ) - clothFallOut + vec3( 0.0, - clothFallLobe, 0.0 );
+${normals ? `#ifndef FLAT_SHADED
+			// (Its faces' normals: the outline's own round the limb, r out and its slope round across the way it hangs.)
+			float clothFallSlope = - clothFallDepth * ${f(spec.fall.narrow)} * pow( max( 0.0, cos( clothFallRound ) ), ${f(spec.fall.narrow - 1)} ) * sin( clothFallRound );
+			vNormal = normalize( mat3( modelViewMatrix ) * ( clothFallNew * max( 0.01, clothFallReach - clothFallOff.w ) + cross( vec3( 0.0, -1.0, 0.0 ), clothFallOwn ) * clothFallSlope ) );
+#endif` : ''}
+		}
+	}
 	if ( clothSway != 0.0 ) {
 		// (Armour, negative: its swing, its hem's lag, the ripple; a share of the wind. Cloth, positive: as it was.)
 		float clothArmour = clothSway < 0.0 ? 1.0 : 0.0;
@@ -201,7 +266,7 @@ export function swayCloth(material, swing) {
     const declarations = declared ? SWAY_DECLARATIONS(bones).replace(/uniform float uWindTime.*\n/, '') : SWAY_DECLARATIONS(bones);
     shader.vertexShader = shader.vertexShader
       .replace('#include <skinning_pars_vertex>', `#include <skinning_pars_vertex>\n${declarations}`)
-      .replace('#include <skinning_vertex>', `#include <skinning_vertex>\n${SWAY_MOVE()}`);
+      .replace('#include <skinning_vertex>', `#include <skinning_vertex>\n${SWAY_MOVE(!material.isMeshLambertMaterial)}`);
   };
   material.customProgramCacheKey = () => `${baseKey}|clothSway`;
   material.needsUpdate = true;

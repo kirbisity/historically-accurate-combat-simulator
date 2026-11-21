@@ -814,7 +814,7 @@ export function buildHeadgear(body, head, colors, steel, cornerHex, { lowDetail 
       crown.position.y = 0.1 * r;
       const knot = new THREE.Mesh(new THREE.SphereGeometry(0.48 * r, 14, 10), cloth);
       knot.position.set(-0.55 * r, 0.86 * r, 0);
-      const band = new THREE.Mesh(new THREE.CylinderGeometry(1.17 * r, 1.19 * r, 0.2 * r, 24, 1, true), surface(new THREE.Color(color).multiplyScalar(0.7).getHex()));
+      const band = new THREE.Mesh(new THREE.CylinderGeometry(1.17 * r, 1.19 * r, 0.2 * r, 24, 1, true), surface(new THREE.Color(color).multiplyScalar(0.62).getHex()));
       band.position.y = 0.14 * r;
       const jewel = new THREE.Mesh(new THREE.SphereGeometry(0.14 * r, 10, 8), surface(new THREE.Color(head.gold ?? '#d6a743').getHex(), { roughness: 0.35 }));
       jewel.scale.set(0.5, 1, 1.3);
@@ -3842,53 +3842,65 @@ const KAWARI_CRESTS = {
  * nothing for it to sit on.
  */
 /**
- * A traveller's sugegasa: a broad, shallow cone of plaited sedge, its ribs
- * radiating from the peak, a dark bound rim, tied under the chin; worn low,
- * it shades the eyes. Worn as a helmet would be, or as a loose hat (a prop
- * that a blow or a fall can knock off).
+ * A traveller's or a rōnin's straw hat: a low rounded dome of sewn sedge (a shallow bowl, not a cone), its blades running
+ * from the crown to a bound rim, a few rows of stitching round it, tied under the chin; worn low, it shades the eyes. Worn
+ * as a helmet would be, or as a loose hat (a prop that a blow or a fall can knock off).
  */
-// A sugegasa: a cone of woven sedge on a bamboo frame, `wide` head radii at its rim and `tall` from rim to point, the rim
-// `rim` above the head's middle (below it: the brim comes down over the brow and shades the face); `ribs` ribs, `hoops` rows.
-const KASA = { wide: 2.75, tall: 1.75, rim: -0.12, ribs: 16, hoops: 7 };
+// The dome: `wide` head radii at its rim and `tall` from rim to crown (clear of a topknot under it), the rim `rim` above the
+// head's middle; its profile a superellipse of power `round` (flat over the crown, turning down ever more steeply to the
+// rim, where it stands upright; `soft` under 1 eases the shoulder of that turn); `rows` rows of stitching, `blades` creases of the sedge down it; tipped `tilt` rad forward over the brow. Sized as the rounded
+// travelling hats are worn: well clear of the shoulders, some 40-45 cm across and a hand tall (https://hatguide.co.uk/kasa).
+const KASA = { wide: 2.2, tall: 1.12, rim: 0.38, round: 2.4, soft: 0.7, rows: 5, blades: 48, tilt: 0.14 };
 function buildKasa(group, r, color, head = {}) {
-  const { wide, tall, rim: rimAt, ribs: ribCount, hoops } = KASA;
-  const straw = surface(color, { roughness: 0.95 });
-  straw.flatShading = true;
+  const { wide, tall, rim: rimAt, round, soft, rows, blades, tilt } = KASA;
+  const hat = new THREE.Group();
+  // (Tipped about the head's middle, so the brim comes down in front and lifts behind.)
+  hat.rotation.z = -tilt;
+  const straw = clothPropMaterial(surface(color, { roughness: 0.95 }), 'straw');
   straw.side = THREE.DoubleSide;
-  const cone = new THREE.Mesh(new THREE.ConeGeometry(wide * r, tall * r, 40, 1, true), straw);
-  cone.position.y = (rimAt + tall / 2) * r;
-  const dark = surface(new THREE.Color(color).multiplyScalar(0.72).getHex(), { roughness: 1 });
-  // The frame's ribs down the slope, and the rows of the weave round it.
-  const slope = Math.hypot(wide, tall);
-  for (let rib = 0; rib < ribCount; rib += 1) {
-    const angle = (rib / ribCount) * Math.PI * 2;
-    const line = new THREE.Mesh(new THREE.BoxGeometry(slope * 1.01 * r, 0.025 * r, 0.04 * r), dark);
-    line.position.set(Math.cos(angle) * (wide / 2) * r, (rimAt + tall / 2 + 0.02) * r, Math.sin(angle) * (wide / 2) * r);
-    line.rotation.set(0, -angle, -Math.atan2(tall, wide));
-    line.userData.noOutline = true;
-    group.add(line);
+  // Where the dome is, `share` of the way from the crown (0) to the rim (1): [radius, height], head radii.
+  const domeAt = (share) => [wide * share, rimAt + tall * (1 - share ** round) ** soft];
+  const steps = 18;
+  // (Closer steps towards the rim, where it turns.)
+  const profile = Array.from({ length: steps + 1 }, (_, step) => domeAt(Math.sin(((step / steps) * Math.PI) / 2))).map(([x, y]) => new THREE.Vector2(Math.max(1e-4, x * r), y * r));
+  const dome = new THREE.Mesh(new THREE.LatheGeometry(profile, 48), straw);
+  const dark = surface(new THREE.Color(color).multiplyScalar(0.62).getHex(), { roughness: 1 });
+  // The sedge's blades: fine creases from the crown to the rim, a hair proud of the dome.
+  for (let blade = 0; blade < blades; blade += 1) {
+    const angle = (blade / blades) * Math.PI * 2;
+    const points = Array.from({ length: 7 }, (_, step) => domeAt(0.06 + 0.94 * Math.sin(((step / 6) * Math.PI) / 2))).map(([x, y]) => new THREE.Vector3(Math.cos(angle) * x * r, (y + 0.006) * r, Math.sin(angle) * x * r));
+    const crease = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points), 8, 0.009 * r, 3), dark);
+    crease.userData.noOutline = true;
+    hat.add(crease);
   }
-  for (let hoop = 1; hoop < hoops; hoop += 1) {
-    const share = hoop / hoops;
-    const row = new THREE.Mesh(new THREE.TorusGeometry(wide * share * r, 0.016 * r, 4, 36), dark);
-    row.rotation.x = Math.PI / 2;
-    row.position.y = (rimAt + tall * (1 - share) + 0.012) * r;
-    row.userData.noOutline = true;
-    group.add(row);
+  // The rows of stitching that hold the blades to the frame.
+  for (let row = 1; row < rows; row += 1) {
+    const [x, y] = domeAt(row / rows);
+    const stitch = new THREE.Mesh(new THREE.TorusGeometry(x * r, 0.011 * r, 4, 40), dark);
+    stitch.rotation.x = Math.PI / 2;
+    stitch.position.y = (y + 0.008) * r;
+    stitch.userData.noOutline = true;
+    hat.add(stitch);
   }
-  const rim = new THREE.Mesh(new THREE.TorusGeometry(wide * r, 0.06 * r, 5, 40), surface(head.rim ?? 0x1c1a18, { roughness: 0.8 }));
+  // The crown's plaited button, and the rim bound in a strip of dark bamboo.
+  const button = new THREE.Mesh(new THREE.SphereGeometry(0.13 * r, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2), dark);
+  button.position.y = (rimAt + tall - 0.03) * r;
+  const rim = new THREE.Mesh(new THREE.TorusGeometry(wide * r, 0.035 * r, 6, 48), surface(head.rim ?? 0x3a2c1c, { roughness: 0.8 }));
   rim.rotation.x = Math.PI / 2;
   rim.position.y = rimAt * r;
-  // The padded ring inside that sits on the head, and the chin cords from it.
-  const band = new THREE.Mesh(new THREE.CylinderGeometry(1.0 * r, 1.08 * r, 0.32 * r, 18, 1, true), surface(0x2a2420));
-  band.position.y = 0.22 * r;
+  // The padded ring inside that sits on the head, and the chin cords from it, down past the ears to a knot under the chin.
+  const band = new THREE.Mesh(new THREE.CylinderGeometry(0.98 * r, 1.04 * r, 0.3 * r, 18, 1, true), surface(0x2a2420));
+  band.position.y = (rimAt + 0.22) * r;
+  const cord = surface(head.tie ?? 0xd8d0bc, { roughness: 0.9 });
+  const chin = new THREE.Vector3(0.52 * r, -1.08 * r, 0);
   for (const side of [1, -1]) {
-    const tie = new THREE.Mesh(new THREE.BoxGeometry(0.05 * r, 1.25 * r, 0.05 * r), surface(head.tie ?? 0xe8e2d2));
-    tie.position.set(0.25 * r, -0.2 * r, side * 0.9 * r);
-    tie.rotation.set(side * 0.18, 0, 0.2);
-    group.add(tie);
+    const points = [[0.12, rimAt + 0.2, side * 0.9], [0.2, -0.2, side * 0.8], [0.4, -0.75, side * 0.5], [chin.x / r, chin.y / r, side * 0.05]].map(([x, y, z]) => new THREE.Vector3(x * r, y * r, z * r));
+    group.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points), 10, 0.032 * r, 5), cord));
   }
-  group.add(cone, rim, band);
+  const knot = new THREE.Mesh(new THREE.SphereGeometry(0.07 * r, 8, 6), cord);
+  knot.position.copy(chin);
+  hat.add(dome, button, rim, band);
+  group.add(hat, knot);
 }
 
 export function buildHeadProp(kind, body, dress, colors, steel, cornerHex) {

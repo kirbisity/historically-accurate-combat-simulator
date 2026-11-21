@@ -27,11 +27,13 @@ test('armour stops each kind of harm by its own share, and adds its weight', asy
   // Japanese limb armour is made against a cut, and each kit keeps its own order: the tōsei's kote over the ashigaru's light ones.
   const { protectionAt: armOf } = await import('../src/physics.js');
   const arm = (kind) => armOf(wearing(kind), 'lForearm');
-  for (const kind of ['samurai', 'samuraiTosei', 'oyoroi', 'ashigaru', 'ronin', 'sohei']) assert.ok(arm(kind).blunt < wearing(kind).protection.blunt && arm(kind).pierce < wearing(kind).protection.pierce, `${kind}: ${JSON.stringify(arm(kind))}`);
-  // (The ashigaru's forearms are his cloth sleeves, nothing drawn over them: bare, coverage.js. The rōnin's kusari-kote is mail
-  // with a splint.)
-  assert.ok(arm('samuraiTosei').blunt > arm('samurai').blunt && arm('samurai').blunt > arm('ronin').blunt && arm('ronin').blunt > arm('ashigaru').blunt);
+  for (const kind of ['samurai', 'samuraiTosei', 'oyoroi', 'ashigaru', 'sohei']) assert.ok(arm(kind).blunt < wearing(kind).protection.blunt && arm(kind).pierce < wearing(kind).protection.pierce, `${kind}: ${JSON.stringify(arm(kind))}`);
+  // (The ashigaru's forearms are his cloth sleeves, nothing drawn over them: bare, coverage.js. The rōnin wears no armour at
+  // all, the user's call, 2026-11-21: his forearm is his kosode's sleeve, as the sword saint's.)
+  assert.ok(arm('samuraiTosei').blunt > arm('samurai').blunt && arm('samurai').blunt > arm('ashigaru').blunt);
   assert.equal(arm('ashigaru').cut, 0);
+  assert.deepEqual(wearing('ronin').protection, wearing('kensei').protection);
+  assert.deepEqual(arm('ronin'), arm('kensei'));
   // A gladiator: the chest bare, the helmet, the arm and the legs covered, each its own way.
   const { protectionAt } = await import('../src/physics.js');
   const hoplomachus = wearing('hoplomachus');

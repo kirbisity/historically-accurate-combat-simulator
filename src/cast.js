@@ -353,7 +353,7 @@ export function mexicaWarrior(random = Math.random, style = 'macuahuitl', rank =
 }
 
 /**
- * A masterless samurai (katana, naginata) in odd pieces of armour; light on
+ * A masterless samurai (katana, naginata) in kimono and hakama, no armour; light on
  * his feet, he comes on at a run (`charging`). A swordsman among them fights
  * with both his swords (`RONIN_TWO_SWORDS` of them: nitō), as Musashi taught.
  */

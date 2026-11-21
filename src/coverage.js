@@ -72,8 +72,7 @@ export function coverageOf(armorKind, { fists = null, hands = null, feet = null,
   if (also === 'whole') return whole('pad')({ fists, hands, feet });
   if (FULL[armorKind]) return FULL[armorKind]({ fists, hands, feet });
   const kind = { ...(ARMOR_KINDS[armorKind] ?? {}) };
-  // Armour that is there but not drawn by the table (a kit's `coverAlso`): hidden under a robe (Guan Yu's scale, the rōnin's
-  // tatami-dō sewn inside his kosode), or drawn by a module of its own (the ō-yoroi's box, oyoroi.js). Each slot's pieces
+  // Armour that is there but not drawn by the table (a kit's `coverAlso`): hidden under a robe (Guan Yu's scale), or drawn by a module of its own (the ō-yoroi's box, oyoroi.js). Each slot's pieces
   // [from, to, stuff] (a skirt's [hem, stuff]), added to what is drawn.
   for (const [slot, extra] of Object.entries(also ?? {})) {
     const own = pieces(kind, slot, side);
