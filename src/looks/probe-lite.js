@@ -10,7 +10,7 @@
 // to the download but this file.
 
 /* global THREE */
-import { defineLook, hidePaintedSky, own, replaceEnvironment, setRenderer, setShadowMapSize, stateOf, SHADOW_MAP } from './kit.js';
+import { defineLook, hidePaintedSky, own, replaceEnvironment, setRenderer, setShadowMapSize, shootSurroundings, stateOf, SHADOW_MAP } from './kit.js';
 
 const PROBE_LITE_ID = 'probe-lite';
 
@@ -23,6 +23,10 @@ export const PROBE_LITE_TUNE = {
   hallProbeIntensity: 1.0,
   steelEnvIntensity: 1.15,
   steelRoughnessAdd: 0,
+  // The place pictured for what metal mirrors (beforeFrame): a face's side in texels, the height it is taken from at
+  // the least (m), the frames after a place is lit at which it is taken, how far the fight must have moved for
+  // another (m) and the frames between two at the least.
+  mirror: { side: 96, eye: 1.3, first: [3, 90], moved: 8, rest: 90 },
   sunGain: 1.0,
 };
 
@@ -271,8 +275,38 @@ export const PROBE_LITE_LOOK = defineLook({
   linear: false,
   renderer: { toneMapping: 0, toneMappingExposure: 1, shadowMapType: SHADOW_MAP.pcf },
 
+  /**
+   * What metal mirrors in a place the open air does not draw (a hall, a station, a quay at night): the place as it
+   * stands under its own lamps, pictured from where the fight is (kit.js shootSurroundings) at the first frames
+   * after it is lit and again when the fight has moved on, where it had mirrored one painted studio sky in every
+   * place. So plate under a ring's lamps shows the lit canvas below and the dark hall round it, and on the quay
+   * the sodium lamps and the wet concrete. (The open air takes its own: env/index.js envSteelDue.)
+   */
+  beforeFrame(view) {
+    const st = stateOf(view, PROBE_LITE_ID);
+    if (view.env?.on) return;
+    const tune = PROBE_LITE_TUNE.mirror;
+    const mirror = (st.mirror ??= { frames: 0, at: null, ours: null });
+    mirror.frames += 1;
+    const at = view.orbit?.target ?? view.camera.position;
+    const first = tune.first.includes(mirror.frames);
+    const moved = mirror.at && mirror.frames > tune.first[tune.first.length - 1] && mirror.frames - mirror.shotAt > tune.rest && Math.hypot(at.x - mirror.at[0], at.z - mirror.at[1]) > tune.moved;
+    if (!first && !moved) return;
+    const steel = shootSurroundings(view, at.x, Math.max(at.y, tune.eye), at.z, tune.side);
+    const before = mirror.ours;
+    replaceEnvironment(view, steel);
+    // (The one before is ours to free only while it is still the one in force: the look puts its own back when the place is lit again.)
+    before?.dispose();
+    mirror.ours = steel;
+    mirror.at = [at.x, at.z];
+    mirror.shotAt = mirror.frames;
+  },
+
   apply(view, place) {
     const st = stateOf(view, PROBE_LITE_ID);
+    // (The place is lit again: metal has the look's own map back, looks.js; the picture of the last place is done with.)
+    st.mirror?.ours?.dispose();
+    st.mirror = null;
     const record = probeLiteBuild(st, place, view);
     const { lights } = view;
     for (const light of Object.values(lights)) light.visible = true;
