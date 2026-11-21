@@ -5190,7 +5190,7 @@ export function* buildLoftBodySteps(body, { faceted = false, lowDetail = false, 
     const ahead = Math.cos(angle);
     const side = Math.abs(Math.sin(angle));
     // (A wrapped robe's collar round the nape: its own top edge, behind the neck's sides where the bands down the front begin: wrappedCollarOn.)
-    if (topShape.standCollar && u > topShape.neck - 0.01 && ahead < 0.5) return 'trim';
+    if (topShape.collar && u > topShape.neck - 0.01 && ahead < 0.5) return 'trim';
     switch (top.kind) {
       case 'jacket': case 'hoodie':
         return top.zip && ahead > 0 && side < 0.06 ? 'trim' : 'top';
