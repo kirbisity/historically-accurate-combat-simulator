@@ -148,7 +148,7 @@ export const HITFEEL = {
   // pale steel, added to the picture; `steps`: the samples laid between two frames (a fast cut turns 15 degrees a frame:
   // the arc is drawn round, not as flats); `samples`: the most kept for a blade; `most`: the blades trailed at once, by
   // the quality tier (the man played's and his man's; never a crowd's).
-  trail: { seconds: 0.13, from: 6, full: 14, inner: 0.45, colour: [0.92, 0.95, 1], peak: 0.42, steps: 3, samples: 40, most: { high: 4, medium: 4, low: 2 } },
+  trail: { seconds: 0.13, from: 6, full: 14, inner: 0.45, colour: [0.92, 0.95, 1], peak: 0.32, steps: 3, samples: 40, most: { high: 4, medium: 4, low: 2 } },
   // Settings kept in this browser under this key.
   key: 'gladiator-hitfeel',
 };
