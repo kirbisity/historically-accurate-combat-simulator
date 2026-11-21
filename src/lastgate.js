@@ -308,8 +308,8 @@ export const LAST_GATE_FOES = {
   staff: (random, people) => lastGateRebel(random, 'staff', people),
   ragSpear: (random, people) => lastGateRebel(random, 'ragSpear', people),
   spear: (random, people) => lastGateRebel(random, 'spear', people),
-  // Japanese (cast.js): an ashigaru with the yari in okegawa-dō and jingasa; a rōnin with the katana (or both swords) in odd
-  // pieces of armour, who comes on at a run; a sōhei with the naginata in kesa and hood; a samurai with the katana in ō-yoroi or tōsei gusoku.
+  // Japanese (cast.js): an ashigaru with the yari in okegawa-dō and jingasa; a rōnin with the katana (or both swords) in kimono
+  // and hakama, unarmoured, who comes on at a run; a sōhei with the naginata in kesa and hood; a samurai with the katana in ō-yoroi or tōsei gusoku.
   ashigaru: (random) => sengokuWarrior(random, LG_REBEL_SIDE, 'spear', 'ashigaru'),
   ronin: (random) => roninWarrior(random, 'ronin'),
   sohei: (random) => soheiMonk(random),

@@ -1105,15 +1105,6 @@ export const ARMOR_KINDS = {
     rigidBreastplate: [0.32, 0.96],
     upperArm: [-0.3, 1.04, 1.14, MAIL], forearm: [-0.04, -0.04, 1.3, SPLINTED_SLEEVE], thigh: [0.25, 0.85, 1.3, LACED], shin: [0.04, 0.86, 1.3, SPLINTED_SHIN],
   },
-  // A rōnin on a private errand, his armour hidden under the kosode: only the manchira's mail showing at the collar, the
-  // kusari-kote's dark linen sleeves with an iron splint along each forearm, a sash of two colours, the kyahan's linen
-  // wraps over the shins (the tatami-dō is sewn inside the robe: not drawn).
-  roninDo: {
-    collar: 'mail',
-    belt: [0.02, 0.14, 1.3, { rows: ['cloth2', 'gold', 'cloth2'] }],
-    forearm: [[-0.06, -0.02, 1.2, 'cloth'], [0.15, 0.05, 1.26, 'steel']],
-    shin: [0.08, 0.88, 1.3, 'cloth'],
-  },
   // Ashigaru: a plain lacquered okegawa-do with the lord's mon, a short skirt,
   // cloth sleeves and simple shin guards.
   okegawa: {
@@ -4923,7 +4914,7 @@ export function* buildLoftBodySteps(body, { faceted = false, lowDetail = false, 
   // A collar up the neck: plate's gorget, or heavy riot armour's padded collar.
   // The riot collar starts lower and flares out over the trapezius, so no skin shows between it and the vest.
   // Plate's gorget flares down over the tops of the breast and back plates, closing the gap between them and the helmet.
-  // (A collar worn under a coat to the neck, the rōnin's manchira under his kosode, `underCoat`, starts on the neck itself,
+  // (A collar worn under a coat to the neck, a mail bib under a robe, `underCoat`, starts on the neck itself,
   // LOFT.collarUnder: from below the neck's foot it was fitted as the trunk's outermost piece, over the trapezius and down the
   // back, and showed there through the coat as a tongue of mail between the coat's collar edges.)
   const underCoat = Boolean(kit?.collar) && !kit.trunk && !plate && !lamellar && Boolean(topShape) && !topShape.torn && topShape.neck >= LOFT.closedJoint.top.trunk;
