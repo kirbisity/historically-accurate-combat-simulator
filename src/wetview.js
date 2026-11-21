@@ -345,7 +345,7 @@ const wetLight = () => `if ( wetFilm > 0.002 ) {
 		wetSky += mix( hemisphereLights[ i ].groundColor, hemisphereLights[ i ].skyColor, 0.5 + 0.5 * dot( wetR, hemisphereLights[ i ].direction ) );
 	}
 	#endif
-	// (At a glance a film on a body is never the perfect mirror still water is: its mirror face is held to `rim`.)
+	// (At a glance a film on a body is never the perfect mirror still water is: its mirror face is held to WET_VIEW.rim.)
 	float wetRim = 0.02 + ${glsl(WET_VIEW.rim - 0.02)} * pow( 1.0 - clamp( dot( wetFlat, wetV ), 0.0, 1.0 ), 5.0 );
 	gl_FragColor.rgb += wetFilm * ( wetGlint * ${glsl(WET_VIEW.sun)} + wetSky * wetRim * ${glsl(WET_VIEW.sky)} * mix( 0.6, 1.0, wetShade ) );
 }
