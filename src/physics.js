@@ -8854,7 +8854,7 @@ function registerWeaponImpact(world, attacker, defender, striker, closest, capsu
   if (assistedDeflect(world, attacker, punch, defender)) {
     punch.stopped = true;
     const big = bigDeflect(defender, world.time);
-    const event = { time: world.time, kind: 'deflect', fighter: defender.id, byPlayer: Boolean(defender.player), attacker: attacker.id, punch: punch.type, weapon: defender.weapon.kind, point: closest.onFirst, normal, impulse, energy, assisted: true, effects: [`deflected with the ${defender.weapon.spec.label.toLowerCase()}`] };
+    const event = { time: world.time, kind: 'deflect', fighter: defender.id, byPlayer: Boolean(defender.player), attacker: attacker.id, punch: punch.type, weapon: defender.weapon.kind, point: closest.onFirst, normal, impulse, energy, parts: ['blade', weaponPart(weapon, distance)], slide: relative, assisted: true, effects: [`deflected with the ${defender.weapon.spec.label.toLowerCase()}`] };
     world.pendingImpulses.push({ fighter: attacker, shares: [[main, 1], [P[`${weapon.main}Elbow`], 0.5]], direction: normal, impulse });
     reel(world, attacker, energy, event);
     if (big) throwDownOpen(world, attacker, event);
@@ -9254,7 +9254,8 @@ function registerShieldImpact(world, attacker, defender, striker, disc, hit, awa
   // (A lance on a shield is kept: it shatters only on heavy armour, `shatters`.)
   if (striker.weapon && !striker.weapon.spec.shatters && !broke) strainGrip(world, attacker, impulse * 0.25, [0, 0, 0], striker.weapon);
   world.events.push(event);
-  if (striker.weapon) world.events.push({ time: world.time, kind: 'clash', fighter: defender.id, point: hit.point, normal: away, impulse });
+  // (`parts`, `slide`: as the weapons' clash, for the picture: a steel edge on a board throws no sparks.)
+  if (striker.weapon) world.events.push({ time: world.time, kind: 'clash', fighter: defender.id, point: hit.point, normal: away, impulse, parts: [weaponPart(striker.weapon, Infinity), shieldCovering(defender.shield)], slide: relative });
   if (broke) breakWeapon(world, attacker, striker.weapon, broke.part, broke.reason, hit.point);
   // Heard: the blow on the shield's face, braced behind it when he meant the block.
   if (world.ear) {
@@ -9488,7 +9489,11 @@ function clashWeapons(world, first, second, a = first.weapon, b = second.weapon)
   // Met on time by a blade put up fresh (WORLD.deflect): a deflect.
   // (Not a stroke too heavy to deflect, its red mark: undeflectable. Met near his hilt, his blade may still stop it: a parry.)
   const deflected = parried && !beaten && deflecting(parried[0], world.time) && !tooHeavyToDeflect(parried[2], parried[3], parried[0]);
-  world.events.push({ time: world.time, kind: 'clash', fighter: first.id, other: second.id, point: met, normal, impulse, deflect: deflected || undefined, effects: ['blades meet'] });
+  // (For the picture, main.js: what of each met, an edge, a head or a haft (`parts`), and how the faster of the two was moving
+  // across the other as they met (`slide`, m/s: the way its edge scrapes, and the sparks it tears off fly). Read by nothing here.)
+  const parts = [weaponPart(a, one.along), weaponPart(b, two.along)];
+  const slide = vec.length(one.velocity) >= vec.length(two.velocity) ? vec.sub(one.velocity, two.velocity) : vec.sub(two.velocity, one.velocity);
+  world.events.push({ time: world.time, kind: 'clash', fighter: first.id, other: second.id, point: met, normal, impulse, parts, slide, deflect: deflected || undefined, effects: ['blades meet'] });
   // Heard: how fast they met, what of each (an edge, a haft, a head), and whether a point was turned along the blade (a scrape).
   // (The man played's deflect, and whether big: WORLD.deflect.big; its own sound, audio/sfx/sampled.js.)
   const deflectedBy = deflected ? parried[0] : null;
@@ -9504,7 +9509,7 @@ function clashWeapons(world, first, second, a = first.weapon, b = second.weapon)
     const energy = 0.5 * ((massA * massB) / (massA + massB)) * Math.max(0, closing) ** 2;
     // (As a parry's: which of his blades, and whether his other was cutting as it did.)
     const answering = parrier.punch && strokeOf(parrier, blade) === null && parrier.punch.t <= parrier.punch.spec.extendUntil;
-    const event = { time: world.time, kind: 'deflect', fighter: parrier.id, byPlayer: Boolean(parrier.player), attacker: striker.id, punch: stroke.type, weapon: blade.kind, off: blade === parrier.offWeapon || undefined, answering: answering || undefined, point: met, normal, impulse, energy, effects: [`deflected with the ${blade.spec.label.toLowerCase()}`] };
+    const event = { time: world.time, kind: 'deflect', fighter: parrier.id, byPlayer: Boolean(parrier.player), attacker: striker.id, punch: stroke.type, weapon: blade.kind, off: blade === parrier.offWeapon || undefined, answering: answering || undefined, point: met, normal, impulse, energy, parts, slide, effects: [`deflected with the ${blade.spec.label.toLowerCase()}`] };
     reel(world, striker, energy, event);
     if (big) throwDownOpen(world, striker, event);
     world.events.push(event);

@@ -27,8 +27,11 @@ export const DRAMA = {
   pinned: { slowest: 0.5, seconds: 1.6, hold: 0.4, shake: 0, pushIn: 0.75, flash: 0 },
   // A thing rising out of the filth to fight (levelmode/awareness.js `lurk`): the camera drawn in on him and a tremor as he comes up, a little slowed.
   rise: { slowest: 0.75, seconds: 2.6, hold: 0.6, shake: 0.035, pushIn: 0.8, flash: 0 },
-  // The player's deflect: the fight slowed to a fifth for a moment, his man reeling, his art charged (weaponarts.js): time to press it.
-  deflect: { slowest: 0.2, seconds: 1.4, hold: 0.6, shake: 0.02, pushIn: 0.9, flash: 0 },
+  // The player's deflect: the camera eased in a little on his blade's hand, and no slow motion of its own (it was a fifth of the
+  // pace for most of 1.4 s, { slowest: 0.2, seconds: 1.4, hold: 0.6 }: a scene after every deflect, which broke the run of a deflect
+  // and its answer). Its hold and the little slowing after it are the hit feel's (hitfeel.js HITFEEL.beats.deflect: a few frames,
+  // then on). The user's call, 2026-11-21.
+  deflect: { slowest: 1, seconds: 0.5, hold: 0.3, shake: 0.02, pushIn: 0.93, flash: 0 },
   // The big deflect (WORLD.deflect.big): slower and longer, the camera in closer and a jolt, while the striker stands broken open.
   bigDeflect: { slowest: 0.12, seconds: 2.2, hold: 1.0, shake: 0.05, pushIn: 0.82, flash: 0 },
   // The execution after a big deflect (finisher.js): slower still, the camera closing hard on the man's head as the player kneels to

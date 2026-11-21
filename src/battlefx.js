@@ -467,6 +467,8 @@ export function battleFxShot(view, { from, dir, powder, long, pan }) {
   fx.light.color.fromArray(colour);
   fx.lightAge = 0;
   fx.lightPeak = BATTLE_FX.lightPeak * (powder ? 1 : 0.7);
+  fx.lightSeconds = BATTLE_FX.lightSeconds;
+  fx.lightRange = BATTLE_FX.lightRange;
   for (const puff of battleFxShotPuffs({ from, dir, powder, long, pan })) {
     // Full: the oldest gives way.
     if (fx.puffs.length >= BATTLE_FX.maxPuffs) fx.puffs.shift();
@@ -513,6 +515,8 @@ export function battleFxBlast(view, at, frag) {
   fx.light.color.fromArray(colour);
   fx.lightAge = 0;
   fx.lightPeak = BATTLE_FX.lightPeak * (frag ? 12 : 20);
+  fx.lightSeconds = BATTLE_FX.lightSeconds;
+  fx.lightRange = BATTLE_FX.lightRange;
   for (const puff of battleFxBlastPuffs(at, frag)) {
     if (fx.puffs.length >= BATTLE_FX.maxPuffs) fx.puffs.shift();
     puff.spin = Math.random() * Math.PI * 2;
@@ -521,6 +525,23 @@ export function battleFxBlast(view, at, frag) {
     puff.shelter = battleFxShelter(view, puff.at);
     fx.puffs.push(puff);
   }
+}
+
+/**
+ * The flash's light lent to a meeting of steel (combatfx.js): at `at`, of `colour`, `peak` at its brightest, dying with the
+ * time constant `seconds`, reaching `range` m. The one light every flash shares (never a second: a light added would build
+ * every lit program again), so a brighter flash still up keeps it.
+ */
+export function battleFxLight(view, at, colour, peak, seconds = BATTLE_FX.lightSeconds, range = BATTLE_FX.lightRange) {
+  const fx = battleFxOf(view);
+  const current = fx.lightAge < 0.2 ? (fx.lightPeak ?? 0) * Math.exp(-fx.lightAge / (fx.lightSeconds ?? BATTLE_FX.lightSeconds)) : 0;
+  if (!(peak > current)) return;
+  fx.light.position.set(at[0], at[1], at[2]);
+  fx.light.color.fromArray(colour);
+  fx.lightAge = 0;
+  fx.lightPeak = peak;
+  fx.lightSeconds = seconds;
+  fx.lightRange = range;
 }
 
 /** A brief flash of light where steel struck steel. */
@@ -561,6 +582,8 @@ export function battleFxElectricFlash(view, at, size = 0.3, peak = BATTLE_FX.lig
   fx.light.color.fromArray(BATTLE_FX.arcLight);
   fx.lightAge = 0;
   fx.lightPeak = peak;
+  fx.lightSeconds = BATTLE_FX.lightSeconds;
+  fx.lightRange = BATTLE_FX.lightRange;
 }
 
 /** A glint to draw this frame (world point, strength 0..1, colour of the light, size m). */
@@ -713,9 +736,10 @@ export function battleFxUpdate(view, dt, sparks = []) {
   battleFxLighting(view, fx);
   // The light: up at once, gone in a few hundredths of a second.
   fx.lightAge += dt;
-  const flicker = fx.lightAge < 0.2 ? Math.exp(-fx.lightAge / BATTLE_FX.lightSeconds) : 0;
+  // (A meeting of steel's own time and reach, battleFxLight; a shot's are BATTLE_FX's.)
+  const flicker = fx.lightAge < 0.2 ? Math.exp(-fx.lightAge / (fx.lightSeconds ?? BATTLE_FX.lightSeconds)) : 0;
   fx.light.intensity = (fx.lightPeak ?? BATTLE_FX.lightPeak) * flicker;
-  fx.light.distance = BATTLE_FX.lightRange;
+  fx.light.distance = fx.lightRange ?? BATTLE_FX.lightRange;
   const fire = fx.fireLight;
   if (fire && fire.intensity > fx.light.intensity) {
     fx.light.position.set(fire.at[0], fire.at[1], fire.at[2]);
