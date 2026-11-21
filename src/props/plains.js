@@ -194,6 +194,57 @@ export function plainsCamelTrain(arena) {
   return group;
 }
 
+// ---- the Catalaunian Plains: Attila's wagons -------------------------------------------
+//
+// Attila's camp was shut in with his wagons, and he fell back inside them when the day went against him (Jordanes,
+// Getica 210: "he had fortified his camp with wagons"). They stand beyond the Hunnic (blue, +x) end of the floor
+// in a shallow arc, end to end with gaps a rider can pass: four-wheeled carts with a hide tilt on bent hoops, the
+// steppe's house on wheels (their size by eye against reconstructions of nomad carts: a bed three metres long,
+// wheels over a metre across; approximate). Drawn only. Each is its own mesh about its own wheels, so it stands on
+// the land where it rolls (`onLand`: env/index.js envSettle).
+
+export const PLAINS_WAGONS = { count: 13, beyond: 15, arc: 9, across: 64, body: 0x6a5238, wheel: 0x4a3a28, tilt: 0xb0a488, tiltDark: 0x8e8468 };
+
+function plainsWagon(batch, frame, random) {
+  const spec = PLAINS_WAGONS;
+  const bed = new THREE.BoxGeometry(3.1, 0.42, 1.45);
+  batch.add(bed, spec.body, [0, 0.95, 0], [], frame);
+  for (const side of [-1, 1]) {
+    // (The side boards and the axles' wheels: a solid disc of planks, as steppe carts had.)
+    batch.add(new THREE.BoxGeometry(3.1, 0.34, 0.06), spec.body, [0, 1.3, side * 0.7], [], frame);
+    for (const along of [-1.05, 1.05]) batch.add(new THREE.CylinderGeometry(0.58, 0.58, 0.09, 14), spec.wheel, [along, 0.58, side * 0.84], [Math.PI / 2, 0, 0], frame);
+  }
+  // The tilt: hides or felt over bent hoops, open at the ends; one in four carts stands bare.
+  if (random() > 0.25) batch.add(new THREE.CylinderGeometry(0.78, 0.78, 2.9, 12, 1, true, -Math.PI / 2, Math.PI), random() < 0.5 ? spec.tilt : spec.tiltDark, [0, 1.42, 0], [0, 0, Math.PI / 2], frame);
+  // The draught pole, down on the grass with the beasts unyoked.
+  batch.add(new THREE.BoxGeometry(2.6, 0.08, 0.08), spec.wheel, [2.75, 0.5, 0], [0, 0, -0.28], frame);
+}
+
+/** Attila's wagons beyond the +x end of the floor: PLAINS_WAGONS.count of them in an arc `across` m wide. */
+export function plainsWagonCamp({ halfX }) {
+  const spec = PLAINS_WAGONS;
+  const random = plainsRandom(451);
+  const group = new THREE.Group();
+  const material = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95, side: THREE.DoubleSide });
+  for (let index = 0; index < spec.count; index += 1) {
+    const t = index / (spec.count - 1) - 0.5;
+    const x = halfX + spec.beyond + spec.arc * (1 - 4 * t * t) * -1 + spec.arc + (random() - 0.5) * 1.2;
+    const z = t * spec.across + (random() - 0.5) * 1.0;
+    // (End to end along the arc, each a little off the line.)
+    const yaw = Math.PI / 2 + t * 0.9 + (random() - 0.5) * 0.3;
+    const batch = plainsBatch();
+    plainsWagon(batch, plainsFrame(x, z, yaw), random);
+    const mesh = batch.mesh(material);
+    mesh.geometry.translate(-x, 0, -z);
+    mesh.position.set(x, 0, z);
+    mesh.castShadow = true;
+    mesh.userData.onLand = true;
+    group.add(mesh);
+  }
+  group.userData.plains = 'wagons';
+  return group;
+}
+
 // ---- the Catalaunian ridge (classic look) ---------------------------------------------
 //
 // Jordanes (Getica 197–201) has the battle turn on a ridge rising gently

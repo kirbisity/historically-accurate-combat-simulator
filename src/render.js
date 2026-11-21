@@ -53,7 +53,7 @@ import { CAMERA_NEAR } from './depthrange.js';
 import { applyLook, captureViewDefaults, drawFrame, resetForLook, resizeLook } from './looks.js';
 import { prepareScenery, updateSceneryLod } from './scenerylod.js';
 import { ruralFieldRail, ruralMeadowProps, ruralSengokuCamps } from './props/rural.js';
-import { plainsCamelTrain, plainsRidge } from './props/plains.js';
+import { plainsCamelTrain, plainsRidge, plainsWagonCamp } from './props/plains.js';
 import { buildStormPlace, stormRelease } from './levelmode/storm.js';
 import { showWorks, updateWorksView } from './worksview.js';
 import { worksOf } from './physics/fieldworks.js';
@@ -1010,7 +1010,7 @@ export const OPEN_PLAINS = {
     ground: { base: '#7c8a44', speckle: [[100, 165], [110, 165], [40, 75]], strokes: 22000, repeat: [8, 8] },
     hills: { count: 9, radius: [16, 26], height: [0.14, 0.3], colour: 0x6f8444, distance: [62, 60] },
     litter: { grass: 0x9a9a4e, stone: 0x8a8478, tufts: 900, stones: 60 },
-    props: (arena) => [plainsRidge(arena)],
+    props: (arena) => [plainsRidge(arena), plainsWagonCamp(arena)],
   },
   sarhu: {
     ground: { base: '#8a7e52', speckle: [[100, 150], [95, 140], [60, 95]], strokes: 20000, repeat: [8, 8] },
