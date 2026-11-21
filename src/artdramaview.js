@@ -56,8 +56,8 @@ function artGleamTexture() {
 
 /**
  * The view of the drama in `view` (render.js's scene). `layers`: { flash, caption } (elements over the stage, or null).
- * felt(result, world) with what hear() returned; apply(drama, now, dt, world, { camera }) each frame after the camera is placed
- * (`camera`: whether this camera is the player's to move); reset().
+ * felt(result, world) with what hear() returned; apply(drama, now, dt, world, { camera, trail }) each frame after the camera is placed
+ * (`camera`: whether this camera is the player's to move; `trail`: whether the art's own trail is drawn); reset().
  */
 export function createArtDramaView(view, { flash = null, caption = null, audio = null, vibrate = null } = {}) {
   let gleamTexture = null;
@@ -215,7 +215,7 @@ export function createArtDramaView(view, { flash = null, caption = null, audio =
     mesh.geometry.setDrawRange(0, (samples.length - 1) * 6);
   }
 
-  function apply(drama, now, dt, currentWorld, { camera: moveCamera = true } = {}) {
+  function apply(drama, now, dt, currentWorld, { camera: moveCamera = true, trail = true } = {}) {
     if (currentWorld !== world) {
       if (world) reset(drama);
       world = currentWorld;
@@ -283,7 +283,9 @@ export function createArtDramaView(view, { flash = null, caption = null, audio =
       puff.sprite.scale.setScalar(puff.size * (1 + ARTDRAMA_VIEW.dustSwell * (1 - (1 - t) ** 2)));
       puff.sprite.material.opacity = puff.opacity * Math.min(1, t / 0.06) * (1 - t) ** 1.6;
     }
-    drawTrail(drama, currentWorld);
+    // (Its own trail unless the blades' trails are drawn for every fast blade: combatfx.js.)
+    if (trail) drawTrail(drama, currentWorld);
+    else if (ribbon?.visible) ribbon.visible = false;
   }
 
   function reset(drama = null) {

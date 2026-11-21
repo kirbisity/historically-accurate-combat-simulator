@@ -5,6 +5,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { normaliseInputs, PRESETS } from '../src/body.js';
 import { DRAMA, momentFor } from '../src/drama.js';
+import { HITFEEL } from '../src/hitfeel.js';
 import { createWorld } from '../src/physics.js';
 import { ARTS, artPrimed, feelAdrenaline } from '../src/weaponarts.js';
 
@@ -20,11 +21,16 @@ test('a deflect of the player\'s charges his weapon art at once', () => {
   assert.ok(artPrimed(me) && me.adrenaline >= ARTS.ready * 0.99);
 });
 
-test('the player\'s deflect is a slow-motion moment in any fight; an AI man\'s is not', () => {
+test('the player\'s deflect is a moment in any fight, held a few frames and let go; an AI man\'s is not', () => {
   const mine = momentFor({ kind: 'deflect', byPlayer: true, fighter: 0, effects: [] });
   assert.equal(mine.kind, 'deflect');
   assert.ok(mine.always);
-  assert.ok(DRAMA.deflect.slowest <= 0.25 && DRAMA.deflect.seconds >= 1);
+  // No slow-motion scene of its own (it was a fifth of the pace for over a second): its hold is the hit feel's, a tenth of a
+  // second at most, and the fight is back at nearly full pace within a third of one. The big deflect keeps its slow motion.
+  assert.equal(DRAMA.deflect.slowest, 1);
+  const stop = HITFEEL.beats.deflect.stop;
+  assert.ok(stop.slowest <= 0.05 && stop.seconds.heavy <= 0.12 && stop.seconds.heavy + stop.ease + stop.dilate.seconds <= 0.45);
+  assert.ok(DRAMA.bigDeflect.slowest <= 0.25 && DRAMA.bigDeflect.seconds >= 1);
   assert.equal(momentFor({ kind: 'deflect', byPlayer: false, fighter: 1, effects: [] }), null);
 });
 
