@@ -292,9 +292,10 @@ export const LOFT = {
   // (`boned`: a corset is laced, and squeezes where it is laced tightest: at the waist (LOFT.corset.at) it encloses none of
   // `squeeze` of the flesh standing past its ring, less either way along the trunk (over `reach` of its length), so the hips
   // and the bust keep their fullness under it and the waist is the corset's own; whatever else is worn on the trunk there,
-  // under it or over it, is drawn in the same.)
+  // under it or over it, is drawn in the same. `reach`: [below the waist, above it]: further below, where the busk's steels
+  // lie flat down the belly, than above, where the corset is cut full for the ribs and the bust.)
   fit: { kinds: { plate: { squeeze: 0.8, waist: 0.25 }, rows: { squeeze: 0.6, waist: 0.5 }, boned: { squeeze: 0, waist: 0.5 }, coat: { squeeze: 0.4, waist: 0.75 }, panel: { squeeze: 0.4, waist: 0.75 }, hung: { squeeze: 0.4, waist: 0.75 }, soft: { squeeze: 0, waist: 1 } },
-    boned: { squeeze: 0.92, reach: 0.24 },
+    boned: { squeeze: 0.92, reach: [0.45, 0.24] },
     ribs: 0.6, waistIn: [0.1, 0.6], alongPasses: 2, tightest: 0.7, alongBand: 0.015, hardSpan: 0.8, overhang: 0.005, across: 0.03, sampling: 0.5, tuck: 0.03, deeper: 0.07, farthest: 0.3, parallel: 0.999, onLine: 0.03, clear: 1.02, capRamp: 0.12, ownBlend: 0.2, armReach: 1.6, armFrom: -0.25, herReach: 0.6, leanRing: 0.13 },
   // Trunk lean radius (m) below which the body looks wasted, and over what
   // span it reaches the BMI floor's look (~0.107 m for a 180 cm man).
@@ -1304,12 +1305,12 @@ export const ARMOR_KINDS = {
   // laced up the back, a lace edge along the top.
   overbust: {
     cinch: true,
-    trunk: [[-0.04, 0.86, 1.13, { boning: true, busk: 5, brocade: true }], [0.835, 0.875, 1.14, 'lace']],
+    trunk: [[-0.04, 0.86, 1.13, { boning: true, busk: 5, brocade: true }], [0.835, 0.875, 1.14, { base: 'lace', frill: true }]],
   },
   // The same with sheer lace sleeves, shoulder to wrist (a lolita's mourning dress).
   overbustSleeved: {
     cinch: true,
-    trunk: [[-0.04, 0.86, 1.13, { boning: true, busk: 5, brocade: true }], [0.835, 0.875, 1.14, 'lace']],
+    trunk: [[-0.04, 0.86, 1.13, { boning: true, busk: 5, brocade: true }], [0.835, 0.875, 1.14, { base: 'lace', frill: true }]],
     upperArm: [-0.12, 1.02, 1.08, { lacework: true }], forearm: [-0.04, -0.02, 1.08, { lacework: true }],
   },
   // Escaupil and ichcahuipilli: quilted cotton, thick, stitched in rows.
@@ -1700,7 +1701,7 @@ function paintFor(paint, armor) {
     // in pairs, `busk`), a bone every few panels, brocade between them.
     if (paint.boning) {
       if (Math.cos(angle) < -0.93) return 'lace';
-      if (Math.cos(angle) > 0.97) return paint.busk && index % 3 === 1 ? 'gold' : 'cloth2';
+      if (Math.cos(angle) > 0.97) return paint.busk && index % 4 === 2 ? 'gold' : 'cloth';
       if (step % 3 === 0) return 'cloth2';
       if (paint.brocade && (index * 5 + step * 3) % 7 === 0) return 'cloth2';
       return 'cloth';
@@ -3477,7 +3478,7 @@ function fitClothToBase(mesh, parts, armoured) {
   // The parts a boned piece is laced round, and how tightly at `t` along one (LOFT.fit.boned).
   const lacedParts = new Set();
   for (const ring of mesh.ringOf.values()) if (ring.kind === 'boned' && partOf(ring)) lacedParts.add(partOf(ring));
-  const laced = (name, t) => (lacedParts.has(name) ? spec.boned.squeeze * Math.exp(-(((t - LOFT.corset.at) / spec.boned.reach) ** 2)) : 0);
+  const laced = (name, t) => (lacedParts.has(name) ? spec.boned.squeeze * Math.exp(-(((t - LOFT.corset.at) / spec.boned.reach[t < LOFT.corset.at ? 0 : 1]) ** 2)) : 0);
   const cutOf = (vertex, name) => {
     const cut = spec.kinds[worn[name] ?? kindOf(vertex)] ?? spec.kinds.soft;
     const tight = laced(name, mesh.ringOf.get(vertex)?.t ?? 0);
@@ -4727,8 +4728,8 @@ export function* buildLoftBodySteps(body, { faceted = false, lowDetail = false, 
       if (material === 'steel' && ARMOUR_EDGES[armor?.kind]?.includes(slot)) harnessEdgesOn(mesh, rings, inflate, sides, boned);
       return;
     }
-    // A piece all of lace (a corset's top edge) with the lace's tile.
-    if (paint === 'lace' && laceUv(rings, inflate).uv) {
+    // A frill of lace (`frill`: a corset's top edge) with the lace's tile.
+    if (paint?.frill && laceUv(rings, inflate).uv) {
       loft(mesh, rings, sides * 2, { color: 'lace', inflate, capStart: false, capEnd: false, ...(bones ? { bones } : {}), ...laceUv(rings, inflate) });
       return;
     }

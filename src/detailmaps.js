@@ -186,7 +186,7 @@ export const ARMOUR_COVERAGE = {
   mongolDeel: null, mongolLamellar: ['lamellae'], mongolIron: ['lamellae', 'plate'], kheshig: ['scale', 'plate'], girdle: null,
   cataphract: ['scale', 'plate'], deel: null, dolama: null, krug: ['krug', 'mail', 'plate'], krugDisc: ['mail', 'plate'], bekhter: ['mail', 'plate'], cumanMail: ['mail', 'plate'], mailMirror: ['mail', 'plate'], kazaghand: ['mail', 'plate'],
   conquistador: ['etched', 'mail', 'plate'], escaupil: null, ichcahuipilli: null, jaguarSuit: null, featherSuit: null,
-  uncu: null, uncuChecks: null, uncuTocapu: null, uncuRoyal: null, corset: null, overbust: null, overbustSleeved: null,
+  uncu: null, uncuChecks: null, uncuTocapu: null, uncuRoyal: null, corset: ['corsetSatin', 'plate', 'lace'], overbust: ['corsetSatin', 'plate', 'lace'], overbustSleeved: ['corsetSatin', 'plate', 'lace'],
   silverback: null, robot: ['panels'],
 };
 
