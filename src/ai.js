@@ -4,7 +4,7 @@
 
 import { finishTarget, startFinisher, updateFinisher } from './finisher.js';
 import { CROWD_GRID, crowdAnyAlong, crowdFirst, crowdNear, withCrowdGrid } from './crowdgrid.js';
-import { joinTable, keepTable, TABLE_DUEL, tableEligible } from './tableduel.js';
+import { ghostNow, joinTable, keepTable, keptInFull, TABLE_DUEL } from './tableduel.js';
 import { aheadOfSlot, DRILL, fallIn, fromSlot, moveFormations, moveWings, volleyDue, walkToSlot, WINGS } from './formation.js';
 import { keepOrders, obeyOrder, orderedFocus, orderKeepsPlace } from './command.js';
 import { P } from './body.js';
@@ -790,6 +790,8 @@ function thinkEachMan(world, dt, playerIds) {
   const staggered = fightTier(world) >= 3;
   const view = staggered ? perceptionOf(world) : null;
   headcount = CROWD_GRID.enabled && world.fighters.every((other, index) => other.id === index) ? countHeads(world) : null;
+  // With the table on, only the most telling of the men he perceives are thought for and stepped in full (tableduel.js keptInFull).
+  const inFull = TABLE_DUEL.enabled && view ? keptInFull(world, view, (fighter) => perceivedBy(view, fighter)) : null;
   for (const fighter of world.fighters) {
     if (playerIds.has(fighter.id)) continue;
     // Level mode: a dormant man (his section is not active) is not thought for; nor is a neutral one (corner 'grey': civilians, prisoners), nor one levelmode drives itself (`driven`: unaware, searching, following; levelmode/awareness.js).
@@ -802,7 +804,7 @@ function thinkEachMan(world, dt, playerIds) {
       fighter.defence = null;
       continue;
     }
-    const seen = perceivedBy(view, fighter);
+    const seen = perceivedBy(view, fighter) && (!inFull || inFull.has(fighter.id));
     fighter.unperceived = !seen;
     // An exchange far off and unperceived, decided by the table (tableduel.js): held to his man, no think step by step.
     if (TABLE_DUEL.enabled && keepTable(world, fighter, dt, { strike: openVessel })) {
@@ -814,7 +816,7 @@ function thinkEachMan(world, dt, playerIds) {
     // (An exchange the player does not perceive, 'unseen' in the physics, is an exchange all the same: physics.js chooseDetail.)
     // A ghost (tableduel.js): a man on foot with no missile, unperceived and far off, is a pose (physics.js chooseDetail), thinks
     // on a slow beat, and fights by the table once at grips.
-    fighter.ghost = (TABLE_DUEL.enabled && staggered && !fighter.mount && !STYLES[fighter.style]?.ranged && tableEligible(world, fighter)) || undefined;
+    fighter.ghost = (TABLE_DUEL.enabled && staggered && ghostNow(world, fighter)) || undefined;
     const exchanging = !fighter.ghost && (fighter.detail === 'full' || fighter.detail === 'unseen' || fighter.detail === undefined);
     const every = fighter.ghost ? TABLE_DUEL.ghostEvery : !staggered || fighter.mount || exchanging ? 0 : seen ? AI.idleThinkEvery : AI.perceive.idleEvery;
     if (every === 0) {

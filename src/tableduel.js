@@ -11,6 +11,8 @@
 import { P } from './body.js';
 import { RATINGS } from './ratings.js';
 import { outfitOf } from './outfits.js';
+import { STYLES } from './moves.js';
+import { crowdNear } from './crowdgrid.js';
 
 /**
  * `far` m: how far from the man played and from the camera's eye an exchange must be, besides unperceived (out of the camera's
@@ -19,9 +21,14 @@ import { outfitOf } from './outfits.js';
  * (red, blue) 1.5/1, 14.5/6, 39.5/8, 55/10 with the table against 2/1, 14.5/4, 40/8, 55/8.5 in the physics alone; 6 s fell too fast).
  * `collapse` s: how soon the loser goes down. `recheck` s: how often a pair looks whether it is still unperceived and far.
  * `ghostEvery` s: how often a ghost (a man on foot with no missile, eligible, not yet at grips: ai.js) thinks.
+ * `inFull`: how many of the men he perceives are kept in full at most (the rest, past `far`, are poses fighting by the table). `keep`:
+ * a man in full last think counts as this much nearer, so men at the edge of the count do not come and go.
+ * `near` m: an enemy within this who cannot be a ghost keeps a man out of the ghosts (ghostNow).
+ * `sharpness`: the odds' power, s^k / (s^k + r^k): a battle's exchange (the man beside, behind, the line holding) tells for the better man
+ * more than a bout alone; fitted as `meanSeconds` is.
  * `strength`: for a man the ratings do not hold, nor any of his kit or style (Maximus is 100).
  */
-export const TABLE_DUEL = { enabled: false, far: 12, reach: 2.6, meanSeconds: 16, collapse: 2.5, recheck: 0.5, strength: 100, ghostEvery: 0.5 };
+export const TABLE_DUEL = { enabled: false, far: 12, reach: 2.6, meanSeconds: 16, collapse: 2.5, recheck: 0.5, strength: 100, ghostEvery: 0.5, inFull: 60, keep: 0.8, near: 4, sharpness: 1 };
 
 // Strengths by `style|kind` (a rated character's own), and the mean by kit and by style, for men of the armies not on the roster.
 let strengths = null;
@@ -72,6 +79,27 @@ export function tableEligible(world, fighter) {
   return true;
 }
 
+/** Whether a man may be a ghost or fight by the table at all: eligible (tableEligible), on foot, without a missile weapon. */
+export function ghostable(world, fighter) {
+  return !fighter.mount && !STYLES[fighter.style]?.ranged && tableEligible(world, fighter);
+}
+
+/**
+ * Whether a ghostable man may be a ghost now: no enemy within `near` m of him who is not (a man in the physics, a rider, a
+ * shooter: a pose could neither be struck by him nor strike him). Men at grips go to the table or stay in the physics together.
+ */
+export function ghostNow(world, fighter) {
+  if (!ghostable(world, fighter)) return false;
+  const x = fighter.x[P.pelvis * 3];
+  const z = fighter.x[P.pelvis * 3 + 2];
+  const around = crowdNear(world, [[x, z, TABLE_DUEL.near]]) ?? world.fighters;
+  for (const other of around) {
+    if (other === fighter || other.corner === fighter.corner || other.corner === 'grey' || other.state !== 'up') continue;
+    if (Math.hypot(other.x[P.pelvis * 3] - x, other.x[P.pelvis * 3 + 2] - z) < TABLE_DUEL.near && !ghostable(world, other)) return false;
+  }
+  return true;
+}
+
 /** Let a man go from the table: he thinks and fights in the physics again from where he stands. */
 export function leaveTable(fighter) {
   fighter.tableDuel = undefined;
@@ -90,7 +118,7 @@ export function keepTable(world, fighter, dt, { strike }) {
     return false;
   }
   if (world.time >= duel.checkAt) {
-    if (!tableEligible(world, fighter) || !tableEligible(world, foe)) {
+    if (!ghostNow(world, fighter) || !ghostNow(world, foe)) {
       leaveTable(fighter);
       return false;
     }
@@ -104,10 +132,12 @@ export function keepTable(world, fighter, dt, { strike }) {
   fighter.faceFoe = true;
   // Each step the exchange may end: one of the two goes down.
   if (world.random() < dt / TABLE_DUEL.meanSeconds) {
-    const mine = fightingStrength(fighter);
-    const theirs = fightingStrength(foe);
+    const mine = fightingStrength(fighter) ** TABLE_DUEL.sharpness;
+    const theirs = fightingStrength(foe) ** TABLE_DUEL.sharpness;
     const [winner, loser] = world.random() < mine / (mine + theirs) ? [fighter, foe] : [foe, fighter];
     strike(loser, TABLE_DUEL.collapse, winner);
+    // (Counted, for tools/tableduel.js: the men the table put down, by side.)
+    (world.tableDowned ??= {})[loser.corner] = (world.tableDowned[loser.corner] ?? 0) + 1;
     leaveTable(fighter);
     if (foe.tableDuel?.foe === fighter.id) leaveTable(foe);
   }
@@ -118,6 +148,34 @@ export function keepTable(world, fighter, dt, { strike }) {
 export function joinTable(world, fighter) {
   if (fighter.tableDuel || fighter.focus === undefined) return;
   const foe = world.fighters[fighter.focus];
-  if (!foe || apartFrom(fighter, hips(foe)) > TABLE_DUEL.reach || !tableEligible(world, fighter) || !tableEligible(world, foe)) return;
+  if (!foe || apartFrom(fighter, hips(foe)) > TABLE_DUEL.reach || !ghostNow(world, fighter) || !ghostNow(world, foe)) return;
   fighter.tableDuel = { foe: foe.id, since: world.time, checkAt: world.time + TABLE_DUEL.recheck };
+}
+
+/**
+ * The men perceived (`perceived(man)`) who stay in full (a Set of ids): every one within `far` of the man played or the camera, and
+ * of the rest the nearest to him (a man kept last think counted `keep` as far), up to TABLE_DUEL.inFull in all. The others perceived
+ * are let go to the poses and the table: seen across the field, not the men he is among.
+ */
+export function keptInFull(world, view, perceived) {
+  const before = world.inFull ?? new Set();
+  const close = [];
+  const rest = [];
+  const eye = view.eye;
+  for (const fighter of world.fighters) {
+    if (fighter.state === 'out' || fighter.dormant || !perceived(fighter)) continue;
+    const fromMan = Math.hypot(fighter.x[P.pelvis * 3] - view.at[0], fighter.x[P.pelvis * 3 + 2] - view.at[1]);
+    const fromEye = Math.hypot(fighter.x[P.pelvis * 3] - eye[0], fighter.x[P.pelvis * 3 + 2] - eye[1]);
+    const apart = Math.min(fromMan, fromEye);
+    if (apart < TABLE_DUEL.far || fighter.mount || view.engaged?.has(fighter.id)) close.push(fighter.id);
+    else rest.push({ id: fighter.id, score: apart * (before.has(fighter.id) ? TABLE_DUEL.keep : 1) });
+  }
+  rest.sort((a, b) => a.score - b.score || a.id - b.id);
+  const kept = new Set(close);
+  for (const { id } of rest) {
+    if (kept.size >= TABLE_DUEL.inFull) break;
+    kept.add(id);
+  }
+  world.inFull = kept;
+  return kept;
 }
