@@ -675,7 +675,8 @@ const CARRHAE = {
 const RHODES = {
   hospitallers: { knight: { longsword: 6, warhammer: 2 }, sergeant: { spear: 4, matchlock: 3 } },
   // The whole army was a hundred thousand, but a breach is narrow: these are the men of one wave who reach the defenders.
-  ottomans: { heavy: { maceShield: 2, kilijShield: 1 }, janissary: { yatagan: 4, matchlock: 3 }, azap: { spear: 4, steppeBow: 3 } },
+  // (Nearly three to each of the Order's men; was 17: the user's call, 2026-11-23.)
+  ottomans: { heavy: { maceShield: 5, kilijShield: 2 }, janissary: { yatagan: 10, matchlock: 8 }, azap: { spear: 10, steppeBow: 7 } },
 };
 
 /**
@@ -1507,7 +1508,7 @@ export const SCENARIOS = {
     scene: 'coastFort',
     arena: { halfX: 15, halfZ: 10 },
     camera: { yaw: -0.5, pitch: 0.42, distance: 16, maxDistance: 20 },
-    roster: { en: 'Fifteen of the Order · a wave of seventeen Ottomans', zh: '骑士团十五人 · 奥斯曼军一波十七人' },
+    roster: { en: 'Fifteen of the Order · a wave of forty-two Ottomans', zh: '骑士团十五人 · 奥斯曼军一波四十二人' },
     formation: { red: { front: 5, spacing: 1.2, rowSpacing: 1.5, shootersFront: SHOOTERS_FRONT_GAP, perRow: 8, loose: 0.15 }, blue: { front: 5, spacing: 1.2, rowSpacing: 1.6, shootersFront: SHOOTERS_FRONT_GAP, perRow: 10, loose: 0.4 } },
     cast: (random) => ({
       red: shootersBehind([...company(RHODES.hospitallers.knight, (style) => hospitaller(random, style, 'knight')), ...company(RHODES.hospitallers.sergeant, (style) => hospitaller(random, style, 'sergeant'))]),
