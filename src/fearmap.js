@@ -5,7 +5,7 @@
 // AI.standing group and groupFade); the same of its men in the fight (the enemies a knot is made of); and its nearest man in the
 // fight to each cell. Read between cell middles (bilinear), as the field was when it was made (at most `every` s ago: a man not
 // perceived already weighs the field only every AI.perceive.appraiseEvery s). Only on open ground with two sides (no works to
-// walk round, no third side): elsewhere standingFear counts the men as before. Off unless TABLE_DUEL.enabled (ai.js).
+// walk round, no third side): elsewhere standingFear counts the men as before. Off unless the table is on (tableduel.js tableOn).
 
 import { P } from './body.js';
 

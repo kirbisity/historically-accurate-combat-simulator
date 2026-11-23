@@ -516,7 +516,7 @@ export function musterScreen(root, { key, level, onStart, onBack, onChange = nul
         if (index >= 0) remove(corner, index);
         refresh();
       };
-      // A row a kind of man: tap it to put that kind down on the map; − and + take one off or add one (+5 five), drawn up in the side's order.
+      // A row a kind of man: tap it to put that kind down on the map; − and + take one off or add one (+5 five, +50 fifty where the ground holds hundreds), drawn up in the side's order.
       const rows = units[corner].map((unit) => {
         const name = musterWords(unit.label);
         return musterEl('div', { className: `muster-unit-row${unit.id === view.brush[corner] ? ' on' : ''}` },
@@ -526,7 +526,9 @@ export function musterScreen(root, { key, level, onStart, onBack, onChange = nul
           }, musterEl('span', {}, unit.mounted ? uiIcon('horse', 'glyph label-glyph') : null, name), musterEl('b', { textContent: String(counts[unit.id] ?? 0) })),
           musterEl('button', { type: 'button', className: 'step', textContent: '−', ariaLabel: t('squad.fewer', { unit: name }), disabled: !counts[unit.id], onclick: () => fewer(unit) }),
           musterEl('button', { type: 'button', className: 'step', textContent: '+', ariaLabel: t('squad.more', { unit: name }), onclick: () => { add(corner, unit.id, 1); refresh(); } }),
-          musterEl('button', { type: 'button', className: 'step', textContent: '+5', ariaLabel: t('muster.fiveMore', { unit: name }), onclick: () => { add(corner, unit.id, 5); refresh(); } }));
+          musterEl('button', { type: 'button', className: 'step', textContent: '+5', ariaLabel: t('muster.fiveMore', { unit: name }), onclick: () => { add(corner, unit.id, 5); refresh(); } }),
+          // (A ground that holds hundreds a side, a custom battle's: fifty at a time.)
+          ...(caps.side >= 100 ? [musterEl('button', { type: 'button', className: 'step', textContent: '+50', ariaLabel: t('muster.fiftyMore', { unit: name }), onclick: () => { add(corner, unit.id, 50); refresh(); } })] : []));
       });
       const total = Number.isFinite(caps.total) ? t('muster.inAll', { n: sides.red.men.length + sides.blue.men.length, total: caps.total }) : '';
       panel.replaceChildren(musterEl('p', { className: 'muster-note' }, musterEl('b', { textContent: `${army.men.length} / ${caps.side}` }), t('muster.unitsNote', { total })), musterEl('div', { className: 'muster-units' }, ...rows));

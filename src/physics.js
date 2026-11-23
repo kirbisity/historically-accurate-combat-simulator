@@ -43,7 +43,7 @@ import { isMounted } from './horses.js';
 import { stepFlame } from './physics/flame.js';
 import { envLieOf } from './env/lie.js';
 import { crowdNearest, withCrowdGrid } from './crowdgrid.js';
-import { TABLE_DUEL } from './tableduel.js';
+import { TABLE_DUEL, tableOn } from './tableduel.js';
 import { collideWorks, faceBetween, faceOutside, FIELDWORKS, floorFor, footSink, keepRootOff, looseFloor, mireStep, reliefAt, slogCost, spentPace, stepOnWorks, worksOf } from './physics/fieldworks.js';
 import { chooseHorseDetail, collideHorses, createHorse, mountFootprint, goalFromFootwork, horseTimers, keepSeat, loseHorse, mountedBehind, riderFacing, ridingLean, saddleReach, mountJump, mountJumpBlocked, mountJumpOf, seatMass, seatRider, SEATED_PARTICLES, stepHorse, stepTurret, strikeHorses, turnCarried } from './physics/mounted.js';
 import { cutSeverity, limbStriker, particleAt, shieldCovering, soundDown, soundEvent, soundHit, soundStep, soundVoice, soundWound, trackPunchSwing, trackSwing, weaponPart, weaponStriker } from './audio/log.js';
@@ -4422,7 +4422,7 @@ function stepWorld(world, dt) {
     // out of the poses has what is owed him run with his step. (Walked every step still: walked on the beat, Sarhu's poses came
     // to grips the later, and fewer went down.)
     const owed = (fighter.poseOwed ?? 0) + dt;
-    if (TABLE_DUEL.enabled && TABLE_DUEL.poseBeat && fighter.detail === 'proxy' && !fighter.mount) {
+    if (tableOn(world) && TABLE_DUEL.poseBeat && fighter.detail === 'proxy' && !fighter.mount) {
       fighter.poseOwed = owed;
       if (!proxyBeat(world, fighter)) continue;
     }

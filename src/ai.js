@@ -4,7 +4,7 @@
 
 import { finishTarget, startFinisher, updateFinisher } from './finisher.js';
 import { CROWD_GRID, crowdAnyAlong, crowdFirst, crowdNear, withCrowdGrid } from './crowdgrid.js';
-import { ghostStill, joinTable, keepTable, keptInFull, TABLE_DUEL, tableEligible } from './tableduel.js';
+import { ghostStill, joinTable, keepTable, keptInFull, TABLE_DUEL, tableEligible, tableOn } from './tableduel.js';
 import { keepFearMap, nearestOnMap, readMap } from './fearmap.js';
 import { aheadOfSlot, DRILL, fallIn, fromSlot, moveFormations, moveWings, volleyDue, walkToSlot, WINGS } from './formation.js';
 import { keepOrders, obeyOrder, orderedFocus, orderKeepsPlace } from './command.js';
@@ -771,7 +771,7 @@ function standingOf(world, corner) {
 function thinkEach(world, dt, playerIds) {
   try {
     // With the table on, the sides' strength over the field (fearmap.js), for the men the player does not perceive.
-    fieldMap = TABLE_DUEL.enabled && TABLE_DUEL.fearMap ? keepFearMap(world, AI.standing, strengthNow, inFight) : null;
+    fieldMap = tableOn(world) && TABLE_DUEL.fearMap ? keepFearMap(world, AI.standing, strengthNow, inFight) : null;
     return thinkEachMan(world, dt, playerIds);
   } finally {
     headcount = null;
@@ -809,7 +809,7 @@ function thinkEachMan(world, dt, playerIds) {
   const view = staggered ? perceptionOf(world) : null;
   headcount = CROWD_GRID.enabled && world.fighters.every((other, index) => other.id === index) ? countHeads(world) : null;
   // With the table on, only the most telling of the men he perceives are thought for and stepped in full (tableduel.js keptInFull).
-  const inFull = TABLE_DUEL.enabled && view ? keptInFull(world, view, (fighter) => perceivedBy(view, fighter)) : null;
+  const inFull = tableOn(world) && view ? keptInFull(world, view, (fighter) => perceivedBy(view, fighter)) : null;
   for (const fighter of world.fighters) {
     if (playerIds.has(fighter.id)) continue;
     // Level mode: a dormant man (his section is not active) is not thought for; nor is a neutral one (corner 'grey': civilians, prisoners), nor one levelmode drives itself (`driven`: unaware, searching, following; levelmode/awareness.js).
@@ -825,7 +825,7 @@ function thinkEachMan(world, dt, playerIds) {
     const seen = perceivedBy(view, fighter) && (!inFull || inFull.has(fighter.id));
     fighter.unperceived = !seen;
     // An exchange far off and unperceived, decided by the table (tableduel.js): held to his man, no think step by step.
-    if (TABLE_DUEL.enabled && keepTable(world, fighter, dt, { strike: openVessel })) {
+    if (tableOn(world) && keepTable(world, fighter, dt, { strike: openVessel })) {
       if (headcount) recountHead(fighter);
       continue;
     }
@@ -834,9 +834,9 @@ function thinkEachMan(world, dt, playerIds) {
     // (An exchange the player does not perceive, 'unseen' in the physics, is an exchange all the same: physics.js chooseDetail.)
     // A ghost (tableduel.js): a man on foot with no missile, unperceived and far off, is a pose (physics.js chooseDetail), thinks
     // on a slow beat, and fights by the table once at grips.
-    fighter.ghost = (TABLE_DUEL.enabled && staggered && ghostStill(world, fighter)) || undefined;
+    fighter.ghost = (tableOn(world) && staggered && ghostStill(world, fighter)) || undefined;
     const exchanging = !fighter.ghost && (fighter.detail === 'full' || fighter.detail === 'unseen' || fighter.detail === undefined);
-    const shooter = TABLE_DUEL.enabled && TABLE_DUEL.shooterEvery > 0 && staggered && !exchanging && !fighter.mount && STYLES[fighter.style]?.ranged && tableEligible(world, fighter);
+    const shooter = tableOn(world) && TABLE_DUEL.shooterEvery > 0 && staggered && !exchanging && !fighter.mount && STYLES[fighter.style]?.ranged && tableEligible(world, fighter);
     // (And far from the fighting, on foot with no missile: on a slower beat still, TABLE_DUEL farEvery.)
     const far = !fighter.ghost && !shooter && staggered && !exchanging && !seen && !fighter.mount && !STYLES[fighter.style]?.ranged && farFromFoes(world, fighter);
     const every = fighter.ghost && !fighter.mount ? TABLE_DUEL.ghostEvery : shooter ? TABLE_DUEL.shooterEvery : !staggered || fighter.mount || exchanging ? 0 : seen ? AI.idleThinkEvery : far ? TABLE_DUEL.farEvery : AI.perceive.idleEvery;
@@ -846,7 +846,7 @@ function thinkEachMan(world, dt, playerIds) {
       if (headcount) headcount.thinking = fighter;
       think(world, fighter, dt);
       keepPlace(world, fighter);
-      if (TABLE_DUEL.enabled) joinTable(world, fighter);
+      if (tableOn(world)) joinTable(world, fighter);
       if (headcount) recountHead(fighter);
       continue;
     }
@@ -856,7 +856,7 @@ function thinkEachMan(world, dt, playerIds) {
     if (headcount) headcount.thinking = fighter;
     think(world, fighter, fighter.aiOwed);
     keepPlace(world, fighter);
-    if (TABLE_DUEL.enabled) joinTable(world, fighter);
+    if (tableOn(world)) joinTable(world, fighter);
     if (headcount) recountHead(fighter);
     fighter.aiOwed = 0;
   }
@@ -3456,7 +3456,7 @@ function leanForLane(fighter, blocked, dt) {
 function clearMark(world, fighter, options) {
   // Not perceived (table on): the clear mark he or a man of his company found last, while it is fresh and his own line to it
   // is clear, before the lines to the rest are traced (TABLE_DUEL markFor). The volley goes where the company's eyes went.
-  if (!TABLE_DUEL.enabled || !fighter.unperceived || !(TABLE_DUEL.markFor > 0)) return findClearMark(world, fighter, options);
+  if (!tableOn(world) || !fighter.unperceived || !(TABLE_DUEL.markFor > 0)) return findClearMark(world, fighter, options);
   const marks = (world.companyMarks ??= new Map());
   const company = `${fighter.corner}|${fighter.formation ?? ''}|${options?.overHeads ? 'over' : 'level'}`;
   for (const kept of [fighter.clearMarkKept, marks.get(company)]) {

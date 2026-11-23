@@ -6,7 +6,7 @@
 // what drops a man in the physics itself, a great vessel opened (physics.js openVessel): he bleeds and collapses as any man.
 // The same man all through (his blood, wounds, man, place): the moment either comes into the player's sight or near him or the
 // camera, the pair is let go and the physics takes them up from the pose, as it does any man leaving the ranks' poses.
-// Off unless TABLE_DUEL.enabled. Not drawing: the poses are drawn as every pose is.
+// Off unless on (tableOn). Not drawing: the poses are drawn as every pose is.
 
 import { P } from './body.js';
 import { RATINGS } from './ratings.js';
@@ -44,6 +44,13 @@ const LEAN = { fearMap: true, foeFrom: 10, focusEvery: 1, farEvery: 0.4, markFor
  * 96/23.5 at 2.5, against 103/13.5 in the physics alone).
  */
 export const TABLE_DUEL = { enabled: false, far: 12, reach: 2.6, meanSeconds: 18, collapse: 2.5, recheck: 0.5, ghostEvery: 0.5, ghostCheck: 6, shooterEvery: 0, inFull: 60, keep: 0.8, near: 4, sharpness: 4, ...LEAN };
+
+/**
+ * Whether the table, and the far tiers' cheaper ways with it, are on in this world: everywhere (TABLE_DUEL.enabled, the tools' and
+ * tests' switch), or in a battle big enough to need them (`world.largeBattle`: a custom battle of more than CUSTOM_BATTLE
+ * `tableFrom` men, main.js).
+ */
+export const tableOn = (world) => TABLE_DUEL.enabled || Boolean(world.largeBattle);
 
 // Strengths by `style|kind` (a rated character's own), and for a pairing not rated (men of the armies not on the roster, a man
 // disarmed or fighting with what he picked up) a fitted guess: log strength as a style's part plus a kit's part, least squares over

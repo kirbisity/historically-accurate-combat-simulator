@@ -10,7 +10,7 @@ import { boltedOn, canRide, isMounted } from './horses.js';
 import { STYLES } from './moves.js';
 import { FACTIONS } from './outfits.js';
 import { WARRIORS } from './roster.js';
-import { drawUp, intoZone, MUSTER } from './muster.js';
+import { drawUp, intoZone, MUSTER, zoneOf } from './muster.js';
 import { tname } from './i18n.js';
 import { SUBWAY_ARENA } from './props/subway.js';
 import { wallWorks } from './story/ground/walls.js';
@@ -22,9 +22,16 @@ export const CUSTOM_BATTLE = {
   key: 'custom',
   title: 'Custom Battle',
   storageKey: 'gladiator.customBattle.v1',
-  // The men a side, and both together: no more than the biggest set battles field (Cajamarca's fifty-two Inca a side;
-  // about seventy in all: the physics steps each man every frame).
-  caps: { side: MUSTER.cap, total: 70 },
+  // The men a side, and both together, at most: on each ground no more than its sides' zones hold at `packing` m² a man
+  // (a block's 1 m files by 1.2 m ranks; groundCaps): the meadow a hundred a side, the open field the whole 500. Past
+  // `tableFrom` men in all (the biggest set battles, about seventy) the battle is fought as a large one: the exchanges far
+  // from the man played and the camera decided by the table, the men there posed and thought for more cheaply
+  // (tableduel.js tableOn; main.js).
+  // Never fewer than `least`, the caps every ground had before (the biggest set battle's side, about seventy in all).
+  caps: { side: 500, total: 500 },
+  least: { side: MUSTER.cap, total: 70 },
+  packing: 1.2,
+  tableFrom: 70,
   // The ground: the places a battle is fought in, each with the floor and the camera its set battles have there
   // (scenarios.js, drawn apart: the riders' room to charge and wheel; the town, the water town and the port only as wide
   // as their house fronts, shops and containers leave), `icon` (uiicons.js) for its card where it has no picture.
@@ -158,6 +165,20 @@ function customPyongyang() {
 /** The ground a battle is fought on (its map's, else the first's). */
 const mapOf = (battle) => CUSTOM_BATTLE.maps[battle.map] ?? CUSTOM_BATTLE.maps[CUSTOM_BATTLE.first.map];
 
+/**
+ * The caps on a level's ground: CUSTOM_BATTLE.caps, a side no more than the smaller side's zone holds at `packing` m² a man, and
+ * never under `least`.
+ */
+export function groundCaps(level) {
+  const holds = Math.min(...CUSTOM_CORNERS.map((corner) => {
+    const zone = zoneOf(level, corner);
+    return Math.floor(((zone.x[1] - zone.x[0]) * (zone.z[1] - zone.z[0])) / CUSTOM_BATTLE.packing);
+  }));
+  const { caps, least } = CUSTOM_BATTLE;
+  const side = Math.max(least.side, Math.min(caps.side, holds));
+  return { side, total: Math.max(least.total, Math.min(caps.total, 2 * side)) };
+}
+
 /** A side's order: CUSTOM_BATTLE.order, its front a share of the floor's half-length (formation.js `front`). */
 function customOrder(arena) {
   const { spacing, rowSpacing, perRow, shootersFront, frontShare, frontMost } = CUSTOM_BATTLE.order;
@@ -186,13 +207,13 @@ export function customLevel(battle) {
     camera: { ...map.camera },
     formation: { red: customOrder(map.arena), blue: customOrder(map.arena) },
     units,
-    caps: { ...CUSTOM_BATTLE.caps },
     sideNames,
     custom: true,
     fighters: [],
   };
   const men = Object.fromEntries(CUSTOM_CORNERS.map((corner) => [corner, battle.sides[corner].men.map((man) => units[corner].find((unit) => unit.id === man.unit)).filter(Boolean)]));
   // Each side in its faction's colours (armythemes.js), the blue in its alternate where the two would look alike.
+  level.caps = groundCaps(level);
   level.themes = factionThemes(battle.factions);
   level.cast = () => themedSides(Object.fromEntries(CUSTOM_CORNERS.map((corner) => [corner, men[corner].map((unit) => unit.make())])), level.themes);
   level.places = Object.fromEntries(CUSTOM_CORNERS.map((corner) => [corner, battle.sides[corner].men.filter((man) => units[corner].some((unit) => unit.id === man.unit)).map((man) => man.at)]));
@@ -228,12 +249,12 @@ export function settleBattle(battle) {
     const known = new Set(level.units[corner].map((unit) => unit.id));
     const men = (Array.isArray(battle?.sides?.[corner]?.men) ? battle.sides[corner].men : [])
       .filter((man) => known.has(man?.unit) && Array.isArray(man.at) && man.at.every(Number.isFinite))
-      .slice(0, CUSTOM_BATTLE.caps.side)
+      .slice(0, level.caps.side)
       .map((man) => ({ unit: man.unit, at: intoZone(level, corner, man.at) }));
     const formation = battle?.sides?.[corner]?.formation;
     settled.sides[corner] = { men, formation: formation === 'level' || formation === 'hand' || formation in MUSTER.formations ? formation : 'level' };
   }
-  while (settled.sides.red.men.length + settled.sides.blue.men.length > CUSTOM_BATTLE.caps.total) {
+  while (settled.sides.red.men.length + settled.sides.blue.men.length > level.caps.total) {
     const bigger = settled.sides.red.men.length >= settled.sides.blue.men.length ? 'red' : 'blue';
     settled.sides[bigger].men.pop();
   }

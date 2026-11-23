@@ -5,7 +5,7 @@ import { canRide, isMounted } from '../src/horses.js';
 import { createWorld } from '../src/physics.js';
 import { WARRIORS } from '../src/roster.js';
 import { inZone, MUSTER, musterLevel, roomFor, unitOf } from '../src/muster.js';
-import { changeBattle, CUSTOM_BATTLE, customFactions, customLevel, customSetup, customUnitsOf, firstBattle, readCustomBattle, settleBattle, writeCustomBattle } from '../src/custombattle.js';
+import { changeBattle, CUSTOM_BATTLE, customFactions, customLevel, customSetup, customUnitsOf, firstBattle, groundCaps, readCustomBattle, settleBattle, writeCustomBattle } from '../src/custombattle.js';
 
 const memoryStorage = () => {
   const kept = new Map();
@@ -40,7 +40,7 @@ test('a custom battle is a level on its chosen ground: its floor, its units, the
   const level = customLevel(battle);
   assert.equal(level.scene, 'sengoku');
   assert.deepEqual(level.arena, CUSTOM_BATTLE.maps.sengoku.arena);
-  assert.deepEqual(level.caps, CUSTOM_BATTLE.caps);
+  assert.deepEqual(level.caps, { side: 500, total: 500 }, 'the valley holds the whole 500');
   assert.deepEqual(level.sideNames, { red: 'Rome', blue: 'Steppe' });
   const cast = level.cast();
   assert.equal(cast.red.length, 6);
@@ -69,9 +69,18 @@ test('a battle is kept inside its bounds: the caps a side and in all, known grou
   const big = settleBattle({ map: 'nowhere', factions: { red: 'knights', blue: 'atlantis' }, sides: { red: { men: [...men('plate', 60, [-5, 0]), ...men('ghost', 3)] }, blue: { men: men('oyoroi', 40, [5, 0]) } } });
   assert.equal(big.map, CUSTOM_BATTLE.first.map);
   assert.equal(big.factions.blue, CUSTOM_BATTLE.first.factions.blue);
-  assert.ok(big.sides.red.men.length <= CUSTOM_BATTLE.caps.side);
-  assert.ok(big.sides.red.men.length + big.sides.blue.men.length <= CUSTOM_BATTLE.caps.total);
-  assert.equal(big.sides.red.men.length + big.sides.blue.men.length, CUSTOM_BATTLE.caps.total);
+  assert.equal(big.sides.red.men.length + big.sides.blue.men.length, 100, 'the first ground holds them all (no ghosts among the knights)');
+  // A small ground: a side no more than its zone holds, both together no more than twice that.
+  const crowded = settleBattle({ map: 'port', factions: { red: 'knights', blue: 'japanese' }, sides: { red: { men: men('plate', 100, [-5, 0]) }, blue: { men: men('oyoroi', 90, [5, 0]) } } });
+  const port = groundCaps(customLevel(crowded));
+  assert.ok(port.side < 100 && port.side >= CUSTOM_BATTLE.least.side, `the harbour: ${port.side} a side`);
+  assert.equal(crowded.sides.red.men.length, port.side);
+  assert.equal(crowded.sides.red.men.length + crowded.sides.blue.men.length, Math.min(port.total, port.side + 90));
+  // Never under the caps every ground had before.
+  for (const map of Object.keys(CUSTOM_BATTLE.maps)) {
+    const caps = customLevel(settleBattle({ map, factions: CUSTOM_BATTLE.first.factions, sides: { red: { men: [] }, blue: { men: [] } } })).caps;
+    assert.ok(caps.side >= CUSTOM_BATTLE.least.side && caps.total >= CUSTOM_BATTLE.least.total && caps.total <= 500, `${map}: ${JSON.stringify(caps)}`);
+  }
   assert.ok(big.sides.red.men.every((man) => man.unit === 'plate'), 'no unit the faction has not');
   // A man put on the enemy's ground is brought back onto his own.
   const strayed = settleBattle({ map: 'town', factions: { red: 'knights', blue: 'japanese' }, sides: { red: { men: men('plate', 1, [40, 30]) }, blue: { men: men('oyoroi', 1, [-40, 0]) } }, lead: { corner: 'blue', index: 5 } });
@@ -80,8 +89,8 @@ test('a battle is kept inside its bounds: the caps a side and in all, known grou
   assert.ok(inZone(level, 'blue', strayed.sides.blue.men[0].at));
   assert.equal(strayed.lead, null, 'a man played who is not there is nobody');
   // The setup screen's room under the caps: a side's, then both together's.
-  assert.equal(roomFor({ caps: CUSTOM_BATTLE.caps }, { red: 50, blue: 0 }, 'red', 5), 2);
-  assert.equal(roomFor({ caps: CUSTOM_BATTLE.caps }, { red: 40, blue: 28 }, 'blue', 5), 2);
+  assert.equal(roomFor({ caps: CUSTOM_BATTLE.least }, { red: 50, blue: 0 }, 'red', 5), 2);
+  assert.equal(roomFor({ caps: CUSTOM_BATTLE.least }, { red: 40, blue: 28 }, 'blue', 5), 2);
   assert.equal(roomFor({}, { red: 10, blue: 50 }, 'red', 5), 5, 'a set battle: MUSTER.cap a side, no cap in all');
   assert.equal(roomFor({}, { red: MUSTER.cap, blue: 0 }, 'red', 1), 0);
 });

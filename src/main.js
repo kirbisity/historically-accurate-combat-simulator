@@ -487,6 +487,8 @@ function newBout() {
   // In a battle the man played is his side's general, drawn up in the middle of his arm (physics.js centreGeneral); the sandbox already stands its lead in the middle.
   const general = scenario && state.game !== 'tutorial' ? { corner: state.playSide, index: state.lead[state.playSide] ?? 0 } : null;
   state.world = createWorld([...sides[0], ...sides[1]], { seed: state.seed, arena, rules: scenario?.rules, formation: scenario?.formation, place, climate: scenario?.climate, general });
+  // A custom battle of more than CUSTOM_BATTLE tableFrom men: fought as a large one (tableduel.js tableOn).
+  state.world.largeBattle = Boolean(scenario?.custom) && state.world.fighters.length > CUSTOM_BATTLE.tableFrom;
   presentWorld(place, arena, scenario);
   if (state.game === 'tutorial') placeYard();
 }

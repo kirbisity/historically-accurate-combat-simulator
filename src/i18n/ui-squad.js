@@ -100,6 +100,7 @@ export const UI_SQUAD = {
   'muster.hidePanel': { en: 'Hide the panel', zh: '收起面板' },
   'muster.placeUnit': { en: 'Tap the map to place {unit}', zh: '点地图放置{unit}' },
   'muster.fiveMore': { en: 'Five more {unit}', zh: '多五名{unit}' },
+  'muster.fiftyMore': { en: 'Fifty more {unit}', zh: '多五十名{unit}' },
   'muster.inAll': { en: ' · {n} / {total} in all', zh: ' · 全场 {n} / {total}' },
   'muster.unitsNote': { en: ' men{total} · ★ kind: tap the map to place', zh: ' 人{total} · ★ 兵种：点地图放置' },
   'muster.byHand': { en: 'Placed by hand. Pick a formation to draw them all up again.', zh: '已手动布置。选一个阵形，可以让全队重新列阵。' },
