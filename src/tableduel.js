@@ -17,53 +17,65 @@ import { crowdNear } from './crowdgrid.js';
 /**
  * `far` m: how far from the man played and from the camera's eye an exchange must be, besides unperceived (out of the camera's
  * frame or past AI.perceive's `sharp`, 25 m, and not on him): past arm's length and a few strides, out of Hall's public distance. `reach` m: hips apart within which two men at each other are at grips. `meanSeconds`: how long
- * such an exchange lasts on average (fitted, tools/tableduel.js: Sarhu at 200 men, two seeds, 40 s, men down at 10 s intervals
- * (red, blue) 1.5/1, 14.5/6, 39.5/8, 55/10 with the table against 2/1, 14.5/4, 40/8, 55/8.5 in the physics alone; 6 s fell too fast).
+ * such an exchange lasts on average (fitted, tools/tableduel.js, four seeds, 30 s, men down (red, blue): Sarhu at 600 men 98/16.5 with
+ * the table against 112/13.5 in the physics alone, Wokou at 400 men 25/51 against 23/62; 16 s put down 180 of Sarhu's red, 24 s 87).
  * `collapse` s: how soon the loser goes down. `recheck` s: how often a pair looks whether it is still unperceived and far.
- * `ghostEvery` s: how often a ghost (a man on foot with no missile, eligible, not yet at grips: ai.js) thinks.
+ * `shooterEvery` s: how often a man with a missile weapon thinks while eligible and in no exchange (0: as any man unperceived;
+ * 0.5 put fewer men down by missile at Wokou, 400 men, four seeds: 18/49 down at 30 s against 23/64.5 at 0 and 23/62 in the physics).
+ * `ghostEvery` s: how often a ghost (a man with no missile, eligible, not yet at grips: ai.js) thinks; a rider every step.
  * `inFull`: how many of the men he perceives are kept in full at most (the rest, past `far`, are poses fighting by the table). `keep`:
  * a man in full last think counts as this much nearer, so men at the edge of the count do not come and go.
  * `near` m: an enemy within this who cannot be a ghost keeps a man out of the ghosts (ghostNow).
  * `sharpness`: the odds' power, s^k / (s^k + r^k): a battle's exchange (the man beside, behind, the line holding) tells for the better man
- * more than a bout alone; fitted as `meanSeconds` is (Sarhu at 600 men, two seeds, 30 s: men down (red, blue) at 30 s 105/18.5 at 4,
+ * more than a bout alone; fitted as `meanSeconds` is (Sarhu at 600 men, two seeds, 30 s, before a man going down was kept from being put down again: men down (red, blue) at 30 s 105/18.5 at 4,
  * 96/23.5 at 2.5, against 103/13.5 in the physics alone).
- * `strength`: for a man the ratings do not hold, nor any of his kit or style (Maximus is 100).
  */
-export const TABLE_DUEL = { enabled: false, far: 12, reach: 2.6, meanSeconds: 16, collapse: 2.5, recheck: 0.5, strength: 100, ghostEvery: 0.5, inFull: 60, keep: 0.8, near: 4, sharpness: 4 };
+export const TABLE_DUEL = { enabled: false, far: 12, reach: 2.6, meanSeconds: 18, collapse: 2.5, recheck: 0.5, ghostEvery: 0.5, shooterEvery: 0, inFull: 60, keep: 0.8, near: 4, sharpness: 4 };
 
-// Strengths by `style|kind` (a rated character's own), and the mean by kit and by style, for men of the armies not on the roster.
+// Strengths by `style|kind` (a rated character's own), and for a pairing not rated (men of the armies not on the roster, a man
+// disarmed or fighting with what he picked up) a fitted guess: log strength as a style's part plus a kit's part, least squares over
+// the rated characters (a little drawn to nothing, so a style or kit seen once is not taken wholly at its one man's word).
 let strengths = null;
 function strengthTables() {
   if (strengths) return strengths;
-  const byType = new Map();
-  const byKind = new Map();
-  const byStyle = new Map();
-  const add = (map, key, score) => {
-    const entry = map.get(key) ?? { sum: 0, count: 0 };
-    entry.sum += score;
-    entry.count += 1;
-    map.set(key, entry);
+  const rated = Object.values(RATINGS.characters ?? {}).filter((character) => character.type && character.score > 0)
+    .map((character) => [...character.type.split('|'), Math.log(character.score)]);
+  const byType = new Map(rated.map(([style, kind, log]) => [`${style}|${kind}`, Math.exp(log)]));
+  const centre = rated.reduce((sum, [, , log]) => sum + log, 0) / Math.max(1, rated.length);
+  const ofStyle = new Map();
+  const ofKind = new Map();
+  // (Alternating: each style's part given the kits', then each kit's given the styles'; the ridge, 1, as one man's worth at nothing.)
+  const fit = (parts, key, other, otherKey) => {
+    const sums = new Map();
+    for (const row of rated) {
+      const entry = sums.get(row[key]) ?? [0, 0];
+      entry[0] += row[2] - centre - (other.get(row[otherKey]) ?? 0);
+      entry[1] += 1;
+      sums.set(row[key], entry);
+    }
+    for (const [name, [sum, count]] of sums) parts.set(name, sum / (count + 1));
   };
-  for (const character of Object.values(RATINGS.characters ?? {})) {
-    if (!character.type || !(character.score > 0)) continue;
-    const [style, kind] = character.type.split('|');
-    add(byType, character.type, character.score);
-    add(byKind, kind, character.score);
-    add(byStyle, style, character.score);
+  for (let round = 0; round < 30; round += 1) {
+    fit(ofStyle, 0, ofKind, 1);
+    fit(ofKind, 1, ofStyle, 0);
   }
-  const mean = (map) => new Map([...map].map(([key, { sum, count }]) => [key, sum / count]));
-  strengths = { byType: mean(byType), byKind: mean(byKind), byStyle: mean(byStyle) };
+  strengths = { byType, centre, ofStyle, ofKind };
   return strengths;
 }
 
-/** A man's fighting strength (Maximus 100): his own kit and style's, else his kit's mean, else his style's, else TABLE_DUEL.strength. */
+/**
+ * A man's fighting strength (Maximus 100): his own kit and style's if rated; else the fitted guess from his style's part and his
+ * kit's (strengthTables; a style or kit never rated adds nothing). Worked out again when his style changes (disarmed, taking up a
+ * weapon from the ground).
+ */
 export function fightingStrength(fighter) {
-  if (fighter.tableStrength !== undefined) return fighter.tableStrength;
-  const { byType, byKind, byStyle } = strengthTables();
+  if (fighter.tableStrength?.style === fighter.style) return fighter.tableStrength.value;
+  const { byType, centre, ofStyle, ofKind } = strengthTables();
   const kind = outfitOf(fighter.body.inputs).kind;
   const style = fighter.style;
-  fighter.tableStrength = byType.get(`${style}|${kind}`) ?? byKind.get(kind) ?? byStyle.get(style) ?? TABLE_DUEL.strength;
-  return fighter.tableStrength;
+  const value = byType.get(`${style}|${kind}`) ?? Math.exp(centre + (ofStyle.get(style) ?? 0) + (ofKind.get(kind) ?? 0));
+  fighter.tableStrength = { style, value };
+  return value;
 }
 
 const hips = (fighter) => [fighter.x[P.pelvis * 3], fighter.x[P.pelvis * 3 + 2]];
@@ -120,7 +132,7 @@ export function keepTable(world, fighter, dt, { strike }) {
   const duel = fighter.tableDuel;
   if (!duel) return false;
   const foe = world.fighters[duel.foe];
-  if (!foe || foe.state !== 'up' || fighter.state !== 'up') {
+  if (!foe || foe.state !== 'up' || fighter.state !== 'up' || foe.tableStruck || fighter.tableStruck) {
     leaveTable(fighter);
     return false;
   }
@@ -143,6 +155,8 @@ export function keepTable(world, fighter, dt, { strike }) {
     const theirs = fightingStrength(foe) ** TABLE_DUEL.sharpness;
     const [winner, loser] = world.random() < mine / (mine + theirs) ? [fighter, foe] : [foe, fighter];
     strike(loser, TABLE_DUEL.collapse, winner);
+    // (Going down: no more exchanges for him at the table, his others let go; a pose still, he falls as any man bleeding out.)
+    loser.tableStruck = true;
     // (Counted, for tools/tableduel.js: the men the table put down, by side.)
     (world.tableDowned ??= {})[loser.corner] = (world.tableDowned[loser.corner] ?? 0) + 1;
     leaveTable(fighter);
@@ -155,7 +169,7 @@ export function keepTable(world, fighter, dt, { strike }) {
 export function joinTable(world, fighter) {
   if (fighter.tableDuel || fighter.focus === undefined) return;
   const foe = world.fighters[fighter.focus];
-  if (!foe || apartFrom(fighter, hips(foe)) > TABLE_DUEL.reach || !ghostNow(world, fighter) || !ghostNow(world, foe)) return;
+  if (!foe || fighter.tableStruck || foe.tableStruck || apartFrom(fighter, hips(foe)) > TABLE_DUEL.reach || !ghostNow(world, fighter) || !ghostNow(world, foe)) return;
   fighter.tableDuel = { foe: foe.id, since: world.time, checkAt: world.time + TABLE_DUEL.recheck };
 }
 

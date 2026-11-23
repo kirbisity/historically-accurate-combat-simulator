@@ -4,7 +4,7 @@
 
 import { finishTarget, startFinisher, updateFinisher } from './finisher.js';
 import { CROWD_GRID, crowdAnyAlong, crowdFirst, crowdNear, withCrowdGrid } from './crowdgrid.js';
-import { ghostNow, joinTable, keepTable, keptInFull, TABLE_DUEL } from './tableduel.js';
+import { ghostNow, joinTable, keepTable, keptInFull, TABLE_DUEL, tableEligible } from './tableduel.js';
 import { aheadOfSlot, DRILL, fallIn, fromSlot, moveFormations, moveWings, volleyDue, walkToSlot, WINGS } from './formation.js';
 import { keepOrders, obeyOrder, orderedFocus, orderKeepsPlace } from './command.js';
 import { P } from './body.js';
@@ -818,7 +818,8 @@ function thinkEachMan(world, dt, playerIds) {
     // on a slow beat, and fights by the table once at grips.
     fighter.ghost = (TABLE_DUEL.enabled && staggered && ghostNow(world, fighter)) || undefined;
     const exchanging = !fighter.ghost && (fighter.detail === 'full' || fighter.detail === 'unseen' || fighter.detail === undefined);
-    const every = fighter.ghost && !fighter.mount ? TABLE_DUEL.ghostEvery : !staggered || fighter.mount || exchanging ? 0 : seen ? AI.idleThinkEvery : AI.perceive.idleEvery;
+    const shooter = TABLE_DUEL.enabled && TABLE_DUEL.shooterEvery > 0 && staggered && !exchanging && !fighter.mount && STYLES[fighter.style]?.ranged && tableEligible(world, fighter);
+    const every = fighter.ghost && !fighter.mount ? TABLE_DUEL.ghostEvery : shooter ? TABLE_DUEL.shooterEvery : !staggered || fighter.mount || exchanging ? 0 : seen ? AI.idleThinkEvery : AI.perceive.idleEvery;
     if (every === 0) {
       // Cleared, so that once he is staggered he takes up his own beat.
       fighter.aiOwed = undefined;

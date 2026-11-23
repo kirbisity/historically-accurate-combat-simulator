@@ -51,6 +51,27 @@ test('a pair at the table is let go once either comes into sight', () => {
   assert.equal(a.tableDuel, undefined);
 });
 
+test('a man the table puts down is put down once: the others at him let him go', () => {
+  const world = scaledBattle('sarhu', 60, 1);
+  const before = TABLE_DUEL.meanSeconds;
+  const [a, b, c] = [world.fighters[0], world.fighters[1], world.fighters.at(-1)];
+  world.time = 0;
+  for (const man of [a, b]) man.tableDuel = { foe: c.id, since: 0, checkAt: Infinity };
+  const struck = [];
+  try {
+    TABLE_DUEL.meanSeconds = 1e-9;
+    // (The odds all one way: c loses.)
+    c.tableStrength = { style: c.style, value: 1e-6 };
+    keepTable(world, a, 1 / 60, { strike: (loser) => struck.push(loser.id) });
+    assert.deepEqual(struck, [c.id]);
+    assert.equal(keepTable(world, b, 1 / 60, { strike: (loser) => struck.push(loser.id) }), false);
+    assert.equal(b.tableDuel, undefined);
+    assert.deepEqual(struck, [c.id]);
+  } finally {
+    TABLE_DUEL.meanSeconds = before;
+  }
+});
+
 test('with the table off, a battle has nobody at it; on, far exchanges are decided there and men fall', () => {
   const before = TABLE_DUEL.enabled;
   try {
