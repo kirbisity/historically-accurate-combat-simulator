@@ -4420,7 +4420,7 @@ function stepWorld(world, dt) {
     updateTimers(world, fighter, dt);
     // A pose (a proxy) is worked out on its own beat, every WORLD.tiers.proxyEvery steps, for that long.
     if (fighter.detail === 'proxy' && !proxyBeat(world, fighter)) continue;
-    const span = fighter.detail === 'proxy' ? dt * WORLD.tiers.proxyEvery : dt;
+    const span = fighter.detail === 'proxy' ? dt * proxyEveryOf(fighter) : dt;
     updateIntent(world, fighter, span);
     updateFeet(world, fighter, span);
     // A jump under way holds the stance itself (crouch, flight, landing); otherwise, on terrain, the floor does.
@@ -4495,7 +4495,8 @@ function stepWorld(world, dt) {
       (fighter.proxyFrom ??= new Float32Array(fighter.x.length)).set(fighter.x);
       fighter.proxyDirs = [fighter.weapon?.dir?.slice() ?? null, fighter.offWeapon?.dir?.slice() ?? null];
       fighter.proxyAt = world.steps;
-      poseProxy(fighter, dt * WORLD.tiers.proxyEvery);
+      fighter.proxyEvery = proxyEveryOf(fighter);
+      poseProxy(fighter, dt * fighter.proxyEvery);
     }
   }
   for (const horse of world.horses) {
@@ -5299,7 +5300,12 @@ function carryProxyRider(world, fighter, dt) {
 
 /** Whether this step is a proxy's beat (each on his own, spread by his id). */
 function proxyBeat(world, fighter) {
-  return (world.steps + fighter.id) % WORLD.tiers.proxyEvery === 0;
+  return (world.steps + fighter.id) % proxyEveryOf(fighter) === 0;
+}
+
+/** How many steps apart a proxy is posed: WORLD.tiers.proxyEvery, a ghost on foot (tableduel.js) `ghostEvery`. */
+function proxyEveryOf(fighter) {
+  return fighter.ghost && !fighter.mount ? WORLD.tiers.ghostEvery : WORLD.tiers.proxyEvery;
 }
 
 /**

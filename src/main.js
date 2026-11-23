@@ -1316,17 +1316,19 @@ function showCameraBar(watching) {
 }
 
 /**
- * A proxy (physics.js poseProxy: a far man of a big battle, posed without dynamics every WORLD.tiers.proxyEvery steps) drawn
+ * A proxy (physics.js poseProxy: a far man of a big battle, posed without dynamics every WORLD.tiers.proxyEvery steps, a ghost `ghostEvery`) drawn
  * the share of the way from the pose he left to the one he was given that the clock has gone since (`since`: the share of a
  * step past the last), a beat behind: posed only every other step, drawn so he stood still on the steps between and moved
  * in jerks. Only the picture: the pose is put back after drawing. Its cost: a lerp of his points (~60 numbers) each frame.
  */
 function smoothProxies(world, since) {
-  const every = WORLD.tiers.proxyEvery;
-  if (!world || every <= 1) return () => {};
+  if (!world) return () => {};
   const kept = [];
   for (const fighter of world.fighters) {
     if (fighter.detail !== 'proxy' || fighter.dormant || fighter.mount || !fighter.proxyFrom) continue;
+    // (Each posed as often as his own beat: physics.js proxyEveryOf.)
+    const every = fighter.proxyEvery ?? WORLD.tiers.proxyEvery;
+    if (every <= 1) continue;
     const beats = world.steps - fighter.proxyAt;
     if (beats < 0 || beats >= every) continue;
     const share = Math.min(1, (beats + since) / every);

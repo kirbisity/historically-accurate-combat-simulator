@@ -1132,6 +1132,8 @@ export const WORLD = {
   // blade not striking is tested for contact every other substep. The
   // player's fighter (world.keepFull) is always in full.
   // `proxyEvery`: a proxy's pose is worked out every this many steps (spread over them), for that span.
+  // `ghostEvery`: the same for a ghost on foot (src/tableduel.js: far off, unperceived, fighting by the table), 10 Hz, as the KB
+  // spec's far tiers are; drawn eased from pose to pose as any proxy is (main.js smoothProxies).
   // A rider goes by the same rules (his horse carries him through them: seatRider), but a horse closes on a man some
   // five times as fast as a man on foot does, so the `engageRange` he is measured by is lengthened by `riderLead` s of his
   // horse's pace (a gallop's 10 m/s: 3 m more, the ground it covers while a blow is wound up), and he is in the physics
@@ -1143,7 +1145,7 @@ export const WORLD = {
   // 1.6), stable and smooth at the 120 Hz that leaves it. A horse near the enemy, charging, falling or in the air, or
   // under a rider in an exchange, is stepped every substep.
   tiers: {
-    full: 6, grid: 16, coarse: 32, engageRange: 3, hitMemory: 0.6, stride: { 3: 2, 4: 4 }, proxyFollow: 12, proxyEvery: 2,
+    full: 6, grid: 16, coarse: 32, engageRange: 3, hitMemory: 0.6, stride: { 3: 2, 4: 4 }, proxyFollow: 12, proxyEvery: 2, ghostEvery: 6,
     riderLead: 0.3,
     // range: a lance's length past a horse's (~6 m from its centre to a foe's) and room to turn; lead: a second at its pace.
     horse: { range: 8, lead: 1 },
