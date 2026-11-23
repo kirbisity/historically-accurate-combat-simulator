@@ -25,10 +25,11 @@ import { crowdNear } from './crowdgrid.js';
  * a man in full last think counts as this much nearer, so men at the edge of the count do not come and go.
  * `near` m: an enemy within this who cannot be a ghost keeps a man out of the ghosts (ghostNow).
  * `sharpness`: the odds' power, s^k / (s^k + r^k): a battle's exchange (the man beside, behind, the line holding) tells for the better man
- * more than a bout alone; fitted as `meanSeconds` is.
+ * more than a bout alone; fitted as `meanSeconds` is (Sarhu at 600 men, two seeds, 30 s: men down (red, blue) at 30 s 105/18.5 at 4,
+ * 96/23.5 at 2.5, against 103/13.5 in the physics alone).
  * `strength`: for a man the ratings do not hold, nor any of his kit or style (Maximus is 100).
  */
-export const TABLE_DUEL = { enabled: false, far: 12, reach: 2.6, meanSeconds: 16, collapse: 2.5, recheck: 0.5, strength: 100, ghostEvery: 0.5, inFull: 60, keep: 0.8, near: 4, sharpness: 1 };
+export const TABLE_DUEL = { enabled: false, far: 12, reach: 2.6, meanSeconds: 16, collapse: 2.5, recheck: 0.5, strength: 100, ghostEvery: 0.5, inFull: 60, keep: 0.8, near: 4, sharpness: 4 };
 
 // Strengths by `style|kind` (a rated character's own), and the mean by kit and by style, for men of the armies not on the roster.
 let strengths = null;
@@ -94,7 +95,8 @@ export function ghostNow(world, fighter) {
   const z = fighter.x[P.pelvis * 3 + 2];
   const around = crowdNear(world, [[x, z, TABLE_DUEL.near]]) ?? world.fighters;
   for (const other of around) {
-    if (other === fighter || other.corner === fighter.corner || other.corner === 'grey' || other.state !== 'up') continue;
+    // (Nor one crawling, nor one at a man on the floor (finisher.js): neither is in an exchange with a man standing.)
+    if (other === fighter || other.corner === fighter.corner || other.corner === 'grey' || other.state !== 'up' || other.crawling || other.finisher) continue;
     if (Math.hypot(other.x[P.pelvis * 3] - x, other.x[P.pelvis * 3 + 2] - z) < TABLE_DUEL.near && !ghostable(world, other)) return false;
   }
   return true;
