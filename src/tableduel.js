@@ -25,12 +25,13 @@ import { crowdNear } from './crowdgrid.js';
  * `ghostEvery` s: how often a ghost (a man with no missile, eligible, not yet at grips: ai.js) thinks; a rider every step.
  * `inFull`: how many of the men he perceives are kept in full at most (the rest, past `far`, are poses fighting by the table). `keep`:
  * a man in full last think counts as this much nearer, so men at the edge of the count do not come and go.
+ * `ghostCheck` steps: how often whether a man may be a ghost is looked at afresh (ghostStill); 0.1 s, a running man's half metre.
  * `near` m: an enemy within this who cannot be a ghost keeps a man out of the ghosts (ghostNow).
  * `sharpness`: the odds' power, s^k / (s^k + r^k): a battle's exchange (the man beside, behind, the line holding) tells for the better man
  * more than a bout alone; fitted as `meanSeconds` is (Sarhu at 600 men, two seeds, 30 s, before a man going down was kept from being put down again: men down (red, blue) at 30 s 105/18.5 at 4,
  * 96/23.5 at 2.5, against 103/13.5 in the physics alone).
  */
-export const TABLE_DUEL = { enabled: false, far: 12, reach: 2.6, meanSeconds: 18, collapse: 2.5, recheck: 0.5, ghostEvery: 0.5, shooterEvery: 0, inFull: 60, keep: 0.8, near: 4, sharpness: 4 };
+export const TABLE_DUEL = { enabled: false, far: 12, reach: 2.6, meanSeconds: 18, collapse: 2.5, recheck: 0.5, ghostEvery: 0.5, ghostCheck: 6, shooterEvery: 0, inFull: 60, keep: 0.8, near: 4, sharpness: 4 };
 
 // Strengths by `style|kind` (a rated character's own), and for a pairing not rated (men of the armies not on the roster, a man
 // disarmed or fighting with what he picked up) a fitted guess: log strength as a style's part plus a kit's part, least squares over
@@ -117,6 +118,15 @@ export function ghostNow(world, fighter) {
     if (Math.hypot(other.x[P.pelvis * 3] - x, other.x[P.pelvis * 3 + 2] - z) < TABLE_DUEL.near && !ghostable(world, other)) return false;
   }
   return true;
+}
+
+/**
+ * Whether he is (still) a ghost, each step: ghostNow looked at on his own beat, every TABLE_DUEL `ghostCheck` steps (spread by his
+ * id); between, a ghost stays one while he is standing and unperceived, and a man who is not waits for his beat.
+ */
+export function ghostStill(world, fighter) {
+  if (((world.steps ?? 0) + fighter.id) % TABLE_DUEL.ghostCheck === 0) return ghostNow(world, fighter);
+  return Boolean(fighter.ghost) && fighter.state === 'up' && fighter.unperceived;
 }
 
 /** Let a man go from the table: he thinks and fights in the physics again from where he stands. */

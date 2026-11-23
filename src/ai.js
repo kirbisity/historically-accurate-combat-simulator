@@ -4,7 +4,7 @@
 
 import { finishTarget, startFinisher, updateFinisher } from './finisher.js';
 import { CROWD_GRID, crowdAnyAlong, crowdFirst, crowdNear, withCrowdGrid } from './crowdgrid.js';
-import { ghostNow, joinTable, keepTable, keptInFull, TABLE_DUEL, tableEligible } from './tableduel.js';
+import { ghostStill, joinTable, keepTable, keptInFull, TABLE_DUEL, tableEligible } from './tableduel.js';
 import { aheadOfSlot, DRILL, fallIn, fromSlot, moveFormations, moveWings, volleyDue, walkToSlot, WINGS } from './formation.js';
 import { keepOrders, obeyOrder, orderedFocus, orderKeepsPlace } from './command.js';
 import { P } from './body.js';
@@ -816,7 +816,7 @@ function thinkEachMan(world, dt, playerIds) {
     // (An exchange the player does not perceive, 'unseen' in the physics, is an exchange all the same: physics.js chooseDetail.)
     // A ghost (tableduel.js): a man on foot with no missile, unperceived and far off, is a pose (physics.js chooseDetail), thinks
     // on a slow beat, and fights by the table once at grips.
-    fighter.ghost = (TABLE_DUEL.enabled && staggered && ghostNow(world, fighter)) || undefined;
+    fighter.ghost = (TABLE_DUEL.enabled && staggered && ghostStill(world, fighter)) || undefined;
     const exchanging = !fighter.ghost && (fighter.detail === 'full' || fighter.detail === 'unseen' || fighter.detail === undefined);
     const shooter = TABLE_DUEL.enabled && TABLE_DUEL.shooterEvery > 0 && staggered && !exchanging && !fighter.mount && STYLES[fighter.style]?.ranged && tableEligible(world, fighter);
     const every = fighter.ghost && !fighter.mount ? TABLE_DUEL.ghostEvery : shooter ? TABLE_DUEL.shooterEvery : !staggered || fighter.mount || exchanging ? 0 : seen ? AI.idleThinkEvery : AI.perceive.idleEvery;
