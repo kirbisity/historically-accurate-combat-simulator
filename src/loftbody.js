@@ -12,7 +12,7 @@ import { relax, skinWeights, skinWeightsSteps } from './bodymesh.js';
 import { vec } from './pose.js';
 import { BONE, bindPoints, boneFrames } from './rig.js';
 import { factionOf, glovedFists, outfitOf, RAGS, ragHemTorn, ragSleeveTorn, ragTear, ragTorn } from './outfits.js';
-import { ARMOUR_EDGES, ARMOUR_TILES, armourTileOf, clothMaterialOf, clothUvAt, DETAIL_ARMOUR, DETAIL_MAPS, detailKindOf, isLacedTile, mailUv, measureRings, pieceMaterial, plateUvAt, stripUv, tileSize, tileUv } from './detailmaps.js';
+import { ARMOUR_EDGES, ARMOUR_TILES, armourTileOf, clothMaterialOf, clothUvAt, DETAIL_ARMOUR, DETAIL_MAPS, detailKindOf, isLacedTile, mailUv, measureRings, pieceMaterial, plateUvAt, stripUv, tileSize, tileUv, wholeUv } from './detailmaps.js';
 import { detailUv, FLAT_UV } from './skindetail.js';
 import { SCULPT, SCULPT_TRUNK, limbShapes, sculptProfile, neckShape, sculptCoverShare, sculptTraits, trunkProfiles, trunkShapes } from './sculpt.js';
 import { SLOSH_BONES, sloshFigures, sloshWeights } from './fatslosh.js';
@@ -39,12 +39,28 @@ export const TOPS = {
   waistcoat: { hem: -0.02, neck: 0.93, loose: 1.08, sleeve: 0, inner: 'longsleeve' },
   aloha: { hem: -0.06, neck: 0.98, loose: 1.11, sleeve: 0.55, sleeveLoose: 1.3 },
   haramaki: { hem: -0.02, neck: 0.45, loose: 1.05, sleeve: 0 },
-  // A ball gown's bodice, off the shoulder, with short puffed sleeves.
-  bodice: { hem: 0, neck: 0.86, loose: 1.04, sleeve: 0.32, sleeveLoose: 1.55 },
-  // A kosode worn for the road: wide sleeves to below the elbow, wrapped across, its skirt tucked into the hakama.
+  // A ball gown's bodice, off the shoulder, with short puffed sleeves (`puff`: the sleeve gathered into a balloon, `out` times
+  // the arm at `at` along the upper arm, drawn in again by `to`, in `gathers` folds) and a bertha of lace round the neckline
+  // (`bertha`: from, to up the trunk). Worn over the corset, which is drawn over its foot: it ends under the corset's top.
+  bodice: { hem: 0.42, neck: 0.86, loose: 1.04, sleeve: 0.34, sleeveLoose: 1.2, puff: { out: 1.7, at: 0.1, to: 0.36, gathers: 8 }, bertha: [0.74, 0.87] },
+  // A day bodice of the 1880s (a basque): closed to the throat, a standing collar up the neck (`collar`: how far up it, of
+  // the neck's length), close sleeves to the wrist.
+  basque: { hem: 0.42, neck: 0.99, loose: 1.04, sleeve: 1.93, sleeveLoose: 1.1, standCollar: 0.4 },
+  // The bodice of the 1890s: leg-of-mutton (gigot) sleeves, a great puff at the shoulder gathered in above the elbow and tight
+  // down the forearm; a high collar of lace and a lace jabot falling from it down the chest (`jabot`: its tiers of frills).
+  gigot: { hem: 0.42, neck: 0.99, loose: 1.04, sleeve: 1.93, sleeveLoose: 1.08, standCollar: 0.55, puff: { out: 1.85, at: 0.06, to: 0.7, gathers: 9 }, jabot: 6 },
+  // A kosode: cut close to the body with a hand's ease, wrapped left over right, its skirt tucked into the hakama; the sleeves
+  // square and flat, to the middle of the forearm. (Its cut from the surviving Momoyama and early Edo kosode: a body of two
+  // loom widths, sleeves narrower and shallower than a modern kimono's; Gluckman and Takeda, When Art Became Fashion: Kosode
+  // in Edo-Period Japan, 1992.)
   // `sleeveFlare`: a sleeve cut straight and wide (flaredSleeve): close at the shoulder, this many times the elbow's breadth at its mouth.
-  // `sleeveHang`: the sleeve close round the arm instead, its bag hanging this far (m) below it, sewn shut at the end.
-  kosode: { hem: -0.1, neck: 0.97, loose: 1.12, sleeve: 1.6, sleeveLoose: 1.3, sleeveFlare: 1.15, sleeveHang: 0.2 },
+  // `sleeveHang`: the sleeve close round the arm instead, its bag hanging this far (m) below it, sewn shut at the end; the bag
+  // begins `sleeveHangFrom[0]` of the way down the upper arm and is at its full depth by `sleeveHangFrom[1]` (the sleeve is
+  // sewn to the body down the armhole, so its lower edge runs level from near the armpit to the cuff).
+  // `collar`: the wrapped front's bands (wrappedCollarOn): each `wide` (m), from `side` (neck radii) off the middle at the
+  // neck to the middle `cross` up the trunk and on to the waist at `foot`; the under-robe's collar showing `under` (m)
+  // inside it.
+  kosode: { hem: -0.1, neck: 0.97, loose: 1.07, sleeve: 1.62, sleeveLoose: 1.16, sleeveFlare: 1.15, sleeveHang: 0.24, sleeveHangFrom: [0.02, 0.42], collar: { wide: 0.05, side: 1.45, cross: 0.7, foot: 0.16, under: 0.016 } },
   // A medieval tunic: to the waist as a shirt, then a skirt to mid-thigh (`skirt`, thigh shares), belted.
   tunic: { hem: -0.1, neck: 0.97, loose: 1.12, sleeve: 1.7, sleeveLoose: 1.26, skirt: 0.5 },
   // A shirt worn to rags (outfits.js RAGS: where it is torn away, each man's own): a piece of cloth wrapped round the trunk, lofted
@@ -61,14 +77,42 @@ export const LOFT = {
   // A corset: the waist drawn in by `cinch` of its width and depth, most at
   // `at` up the trunk (pelvis 0, neck 1), fading over `span` either way.
   corset: { cinch: 0.26, at: 0.32, span: 0.13 },
+  // A boned piece (a corset) drawn with its tile: this many times the usual sides round and rings up it, so its waist is a
+  // curve and not a kink.
+  // (`holds`: a ring of other cloth within this far (m) of the piece's own axis, along its span, is on the part it is laced
+  // round and is held by it: buildLoftBodySteps.)
+  boned: { sides: 2, rings: 2, holds: 0.05 },
+  // A fine gown's skirt at its band, over the hips, and by how far down its fall it hangs at its full standing off (shares
+  // of that standing off).
+  gownSnug: [0.875, 0.93, 0.15],
+  // A busk's clasps: over this span of the piece's height, each a loop plate (m: long, tall) and a stud and a rivet (their
+  // radii, m), standing `lift` m off the satin (the busks of the 1860s-90s: loops 12-14 mm long, studs 5 mm).
+  // A jabot's frills: from `span[0]` down to `span[1]` up the trunk, their half breadth (rad round the trunk) from the top
+  // frill's to the last's, standing `out` (m) at their gathered top and at their foot, each flute `flute` m deeper, each frill
+  // `lap` of the step to the next long (lapping it), `flutes` to a frill; `tall`: the trunk's length the lace is measured by (m).
+  jabot: { span: [0.985, 0.6], half: [0.3, 0.16], out: [0.006, 0.02], flute: 0.012, lap: 1.5, flutes: 6, tall: 0.5 },
+  busk: { span: [0.13, 0.87], loop: [0.016, 0.012], stud: 0.003, rivet: 0.0016, lift: 0.0018 },
   // Gown skirts: the hem (thigh lengths below the waist), the bell's flare
   // out to the sides (`flare`) and front to back (`depthFlare`), and a bustle
   // standing out behind (a share of the waist's depth) a third of the way down;
   // a narrow skirt is let out over the hips (`hips`) so a stride stays inside it.
+  // `bell`: the power the flare grows by down the skirt (a half: a dome over a crinoline; above one: a trumpet, close over
+  // the hips and flaring to the hem; 0.5 where none is given). `flutes`: the folds the cloth falls in, [how many round, how
+  // deep at the hem as a share of the skirt's radius], shallow at the waist and deepening down. `rings`, `sides`: how finely it
+  // is drawn (not in a crowd). `hemBand`: the hem's own band (thigh lengths deep), in the trim: a braid, or with `flounce`
+  // ([pleats, depth]) a pleated or gathered flounce standing a little off the skirt. `over`: an overskirt draped over it
+  // (gownOver): to `hem`, `fuller` than the skirt under it, hung aslant (`tilt`: [front, side], how much lower the hem lies in
+  // front and on her left than behind and on her right, thigh lengths), its folds swept round as it is drawn up (`sweep`,
+  // rad), edged with lace `lace` deep.
   gowns: {
     crinoline: { hem: 1.35, flare: 1.4, depthFlare: 0.98 },
-    ball: { hem: 1.45, flare: 2.3, depthFlare: 4 },
-    bustle: { hem: 1.45, flare: 0.6, depthFlare: 0.8, bustle: 2.2, hips: 0.3 },
+    // The 1860s: a dome over a cage crinoline, wider behind than before, two lace-edged flounces.
+    ball: { hem: 1.88, flare: 2.5, depthFlare: 4.2, flutes: [18, 0.035], rings: 16, sides: 72, hemBand: 0.16, flounce: [36, 0.03], over: { hem: 1.05, fuller: 1.03, tilt: [0, 0], sweep: 0, lace: 0.13, flutes: [18, 0.04] } },
+    // The 1880s: narrow in front, the bustle a shelf behind, an apron overskirt drawn up to it at the sides, a pleated flounce at the hem.
+    bustle: { hem: 1.88, flare: 0.8, depthFlare: 0.9, bustle: 2.1, hips: 0.3, bell: 0.8, flutes: [10, 0.03], rings: 16, sides: 72, hemBand: 0.22, flounce: [44, 0.035], over: { hem: 0.9, fuller: 1.06, tilt: [0.4, 0], sweep: 0, lace: 0.08, flutes: [8, 0.04] } },
+    // The 1890s walking skirt: gored, smooth over the hips and flaring like a bell to the instep, its fullness behind; an
+    // overskirt draped across it and caught up on one hip, edged with lace.
+    walking: { hem: 1.9, flare: 1.15, depthFlare: 1.9, bustle: 0.9, hips: 0.3, bell: 1.25, flutes: [9, 0.11], rings: 16, sides: 72, hemBand: 0.05, over: { hem: 0.78, fuller: 1.09, tilt: [0.12, 0.34], sweep: 0.9, lace: 0.1, flutes: [6, 0.09] } },
     // A gothic bubble skirt: short, puffed out round the hips (`balloon`: the
     // flare swells and is gathered back in at the hem) over bloomers.
     bubble: { hem: 0.5, flare: 0.75, depthFlare: 1.3, balloon: true, hips: 0.25 },
@@ -76,7 +120,7 @@ export const LOFT = {
     // under the one above (a lolita's petticoated skirt).
     tiered: { hem: 0.62, flare: 0.75, depthFlare: 0.9, tiers: 3, hips: 0.2 },
     // A mini draped skirt, falling straight from the hips (a train behind it makes a high-low hem).
-    drape: { hem: 0.26, flare: 0.5, depthFlare: 0.55, hips: 0.2 },
+    drape: { hem: 0.3, flare: 0.5, depthFlare: 0.55, hips: 0.2, flutes: [11, 0.1], rings: 8, sides: 66, hemBand: 0.035 },
   },
   // Belly: fat layer thickness (m) past which the abdomen bulges and hangs;
   // how far forward it bulges, and how far below the waistband it hangs,
@@ -253,7 +297,13 @@ export const LOFT = {
   // of its thickness a cuirass keeps at its side, where it is cut to the rib cage. `farthest`: how far past its point (m) a piece
   // goes on looking for skin while skin goes on along its line, set against the family's BMI 100 woman, whose hips and belly
   // stand up to 26 cm past the loft's rings of her shorts (measured by a ray cast through the modelled skin).)
-  fit: { kinds: { plate: { squeeze: 0.8, waist: 0.25 }, rows: { squeeze: 0.6, waist: 0.5 }, coat: { squeeze: 0.4, waist: 0.75 }, panel: { squeeze: 0.4, waist: 0.75 }, hung: { squeeze: 0.4, waist: 0.75 }, soft: { squeeze: 0, waist: 1 } },
+  // (`boned`: a corset is laced, and squeezes where it is laced tightest: at the waist (LOFT.corset.at) it encloses none of
+  // `squeeze` of the flesh standing past its ring, less either way along the trunk (over `reach` of its length), so the hips
+  // and the bust keep their fullness under it and the waist is the corset's own; whatever else is worn on the trunk there,
+  // under it or over it, is drawn in the same. `reach`: [below the waist, above it]: further below, where the busk's steels
+  // lie flat down the belly, than above, where the corset is cut full for the ribs and the bust.)
+  fit: { kinds: { plate: { squeeze: 0.8, waist: 0.25 }, rows: { squeeze: 0.6, waist: 0.5 }, boned: { squeeze: 0, waist: 0.5 }, coat: { squeeze: 0.4, waist: 0.75 }, panel: { squeeze: 0.4, waist: 0.75 }, hung: { squeeze: 0.4, waist: 0.75 }, soft: { squeeze: 0, waist: 1 } },
+    boned: { squeeze: 0.92, reach: [0.45, 0.24] },
     ribs: 0.6, waistIn: [0.1, 0.6], alongPasses: 2, tightest: 0.7, alongBand: 0.015, hardSpan: 0.8, overhang: 0.005, across: 0.03, sampling: 0.5, tuck: 0.03, deeper: 0.07, farthest: 0.3, parallel: 0.999, onLine: 0.03, clear: 1.02, capRamp: 0.12, ownBlend: 0.2, armReach: 1.6, armFrom: -0.25, herReach: 0.6, leanRing: 0.13 },
   // Trunk lean radius (m) below which the body looks wasted, and over what
   // span it reaches the BMI floor's look (~0.107 m for a 180 cm man).
@@ -283,8 +333,10 @@ export const LOFT = {
   harnessEdge: { depth: 0.025, most: 0.3, lift: 0.012, copLames: 2 },
   // A collar worn under a coat to the neck starts this far up the neck (shares of it; 0 its foot): see underCoat.
   collarUnder: 0.02,
-  // A hung sleeve's bag (FLARED): the lobe below the arm falls off round the ring as the cosine to this power (higher, narrower).
-  sleeveBag: 4,
+  // A hung sleeve's bag (FLARED): the lobe below the arm falls off round the ring as the cosine to this power (higher, narrower:
+  // at 4 it was a barrel three arms thick; a sleeve is two layers of cloth lying flat together below the arm). (The same in
+  // clothsway.js CLOTH_SWAY.fall.narrow, which draws the lobe again wherever the arm's low side is.)
+  sleeveBag: 22,
   // A worn loft's closed end on a base body (capsFollow): its middle this share of the ring's radius out past the ring.
   capDome: 0.3,
   // A brigandine's rivet heads: three rows to a ring, each `size` of its column
@@ -322,10 +374,36 @@ export const LOFT = {
   // Fitted to the body it is built on, it is laid `over` (m) off whatever is under it, giving by up to `give` (m out a m down) along its length (clearBoards).
   // A coat's flap (studded cloth) is bound `bound` (m) deep round its edges. `hem`: the share of its length its sides fall
   // short of its middle, the hem cut round between them as the fourth power of the way across, so the corners are rounded and the middle stays level (0: a straight hem, square corners).
-  // Hakama worn long: how many times the leg's breadth above the knee it is at the knee, and (of that) at its hem.
-  // Its pleats: `pleats` folds across the front of each leg, each standing `fold` of the leg's breadth out at its edge, the
-  // first `shade` of each lying dark in the fold.
-  hakama: { knee: 1.6, hem: 1.35, pleats: 3, fold: 0.24, shade: 0.34 },
+  // Hakama worn long (the divided umanori-bakama, tied at the waist and falling to the ankle): each leg a straight cut from
+  // `hip` to `knee` to `hem` (times the thigh's own radius; flared whatever the leg inside does), `flat` as deep front to back as
+  // it is wide (two flat panels, not a tube). Its pleats: `pleats` knife pleats across the front of each leg ([the right
+  // leg's, the left's]: five in all, three and two), each standing `fold` of the leg's breadth out at its edge, the first
+  // `shade` of each lying dark in the fold. Over the hips it is one piece (`yoke`, standing `out` over the tucked kosode), all
+  // five pleats across its front (`fold` of the legs' fold: pressed flat at the waist), open down each side to `vent` of
+  // its depth, `ventWide` (the sine of the angle round) across, where the kosode shows. Its cords
+  // (himo) round the waist from `cords[0]` to `cords[1]` up the trunk, standing `cordOut`, knotted in front (`knot`:
+  // [across, tall] m of its bow, then of the end drawn up over it); the stiff board at the small of the back
+  // (koshi-ita) from the cords up to `board.top`, `board.foot` and `board.head` (m) half across, `board.lift` (m) off the robe.
+  // (The cut, the five front pleats, the cords and the koshi-ita: Dalby, Kimono: Fashioning Culture, 1993; Minnich,
+  // Japanese Costume and the Makers of Its Elegant Tradition, 1963.)
+  hakama: {
+    hip: 1.55, knee: 1.95, hem: 2.3, flat: 0.8, pleats: [3, 2], fold: 0.2, shade: 0.34,
+    yoke: { out: 1.13, fold: 0.4, vent: 0.7, ventWide: 0.95 },
+    cords: [0.125, 0.215], cordOut: 1.17, knot: [[0.085, 0.03], [0.03, 0.075]],
+    board: { top: 0.34, foot: 0.11, head: 0.075, lift: 0.008 },
+  },
+  // A kataginu (kataginuOn): each wing `wing` (m) out past the arm, its line `clear` (m) over the robe at the neck's side and
+  // the sleeve's head, `drop` (m) lower at its tip, its middle a fold `peak` (m) high; `deep` (m) either side of the
+  // shoulders' line at the neck, over the shoulder and at its tip. Its panels: before, each from `waist` (m off the middle,
+  // its inner and outer edge) at the cords, behind, one `back` (m) either side of the middle there; `pleats` pressed into
+  // each front panel, every other line `fold` (m) proud; standing `lift` (m) off the robe, `nape` (m) below the robe's own
+  // collar behind; laid on the robe to `taut` of its height (cloth on the breast and the back, moving as the robe under it
+  // does) and drawn straight from there to the wing (stiffened, with the wing: a panel stiff to the waist stood still while
+  // the back under it bent, and the robe came through it); its outer edges keeping to the trunk and spreading to the tips
+  // as the height to the power `flare`. (The cut, the pleats pressed from the waist
+  // to the shoulder's edge and the stiffening: Dalby, Kimono: Fashioning Culture, 1993; the Kyoto Costume Museum's
+  // reconstruction, https://www.iz2.or.jp/english/fukusyoku/busou/23.htm.)
+  kataginu: { wing: 0.1, clear: 0.014, drop: 0.012, peak: 0.008, deep: [0.035, 0.075, 0.04], waist: [0.03, 0.105], back: 0.13, pleats: 3, fold: 0.005, lift: 0.011, nape: 0.035, taut: 0.75, flare: 2.2 },
   board: { wide: 0.26, bow: 0.022, tilt: 0.012, row: 0.05, columns: 8, over: 0.012, give: 0.45, bound: 0.014, hem: 0 },
   // A plate breastplate (`plate`, or a kit's `rigidBreastplate`: [waist, top]
   // up the trunk) is one rigid shell on the chest bone from its lower edge at
@@ -451,6 +529,10 @@ export function stiffnessOf(paint) {
   const material = pieceMaterial(paint);
   if (material === 'studded') return 'coat';
   if (material === 'lamellae' || material === 'scales' || material === 'kozane') return 'rows';
+  // Cloth over bones (a corset, 'boned'): the bones and the lacing hold every girth of it as a hoop, as rows are held, and it
+  // gives only along its length, as the trunk bends. Stiff, so none of it hangs loose: it does not sway or flap as cloth
+  // does (looseness), and it draws in the body it is laced round (LOFT.fit.boned).
+  if (material === 'boned') return 'boned';
   if (paint.lames || paint.rows?.some((role) => PLATE_PAINTS.has(role))) return 'rows';
   return material === 'steel' || material === 'armor' ? 'plate' : null;
 }
@@ -490,6 +572,32 @@ function bodyAt(mesh, ring, angle) {
   if (!Array.isArray(ring.body)) return ring.body ?? 0;
   const turn = angle / (Math.PI * 2);
   return ring.body[Math.floor((turn - Math.floor(turn)) * ring.body.length) % ring.body.length];
+}
+
+/**
+ * What a hung bag's points carry so that it can fall to the low side of its limb, whatever the limb does (clothsway.js: a
+ * kosode's sleeve hangs below a raised forearm, not behind it as it was cut at rest): per point, `off` [the way to its
+ * ring's middle (3, m), how far it stands in the bag past the cloth round the limb (m)] and `way` [the limb's line there
+ * (3, its length the bag's depth on that ring, m), the angle round from the bag's middle (rad) plus seven times (the count
+ * of points round its ring, under 64, plus 64 times its limb's bone: `ring.fall`): one number, the angle within pi of
+ * nought]. Null where no piece hangs so.
+ */
+function fallOf(mesh, positions) {
+  if (!mesh.falls?.size) return null;
+  const count = positions.length / 3;
+  const [off, way] = [new Float32Array(count * 4), new Float32Array(count * 4)];
+  for (const [vertex, { ring, angle, points }] of mesh.falls) {
+    if (!(ring.hang > 0)) continue;
+    const axis = vec.normalize(vec.cross(ring.depthAxis, ring.widthAxis));
+    const at = [positions[vertex * 3], positions[vertex * 3 + 1], positions[vertex * 3 + 2]];
+    const toMiddle = vec.sub(ring.center, at);
+    const out = vec.add(vec.scale(toMiddle, -1), vec.scale(axis, vec.dot(toMiddle, axis)));
+    if (vec.length(out) < 1e-5) continue;
+    const back = vec.scale(ring.depthAxis, -1);
+    off.set([...toMiddle, ring.hang * Math.max(0, -Math.cos(angle)) ** LOFT.sleeveBag], vertex * 4);
+    way.set([...vec.scale(axis, ring.hang), Math.atan2(vec.dot(vec.cross(back, out), axis), vec.dot(back, out)) + 7 * (points + 64 * ring.fall)], vertex * 4);
+  }
+  return { off, way };
 }
 
 /**
@@ -670,6 +778,8 @@ function loft(mesh, rings, sides, { capStart = true, capEnd = true, color = 'ski
       // (By the point's own index: patches and grids, which have no ring place, push points without one.)
       mesh.ringT[mesh.positions.length / 3 - 1] = ring.t;
       mesh.ringA[mesh.positions.length / 3 - 1] = angle;
+      // (A hung bag's points, which fall to the low side of the limb as it moves: fallOf.)
+      if (ring.fall !== undefined && mesh.stiffens) (mesh.falls ??= new Map()).set(mesh.positions.length / 3 - 1, { ring, angle, points: sides });
       // (The ring each point was lofted on, where clothes are fitted to a base mesh afterwards: fitClothToBase.)
       if (mesh.ringOf) {
         mesh.ringOf.set(mesh.positions.length / 3 - 1, ring);
@@ -754,15 +864,24 @@ function bagged(rings, from, to) {
   return rings;
 }
 /** Rings whose cloth is pleated across the front: `pleats` knife pleats, each `fold` (of the flare) out at its edge. */
-function pleated(rings, pleats, fold) {
-  for (const ring of rings) Object.assign(ring, { pleats, fold });
+function pleated(rings, pleats, fold, turn = 1) {
+  for (const ring of rings) Object.assign(ring, { pleats, fold, pleatTurn: turn });
   return rings;
 }
-/** How far across its pleat (0 in the fold, 1 at the edge standing out) a pleated ring is at `angle`; null where it is plain. */
+/** Rings whose cloth hangs flat and clear of the limb (`free`: fitClothToBase): `flat` times as deep front to back as it is wide (read by FLARED). */
+function flattened(rings, flat) {
+  for (const ring of rings) Object.assign(ring, { flat, free: true });
+  return rings;
+}
+/**
+ * How far across its pleat (0 in the fold, 1 at the edge standing out) a pleated ring is at `angle`; null where it is plain.
+ * (`pleatTurn` -1: the pleats lie the other way, each fold opening towards the other side.)
+ */
 function pleatAt(ring, angle) {
   if (!ring.fold || Math.cos(angle) <= 0) return null;
   const across = (Math.atan2(Math.sin(angle), Math.cos(angle)) / Math.PI + 0.5) * ring.pleats;
-  return across - Math.floor(across);
+  const share = across - Math.floor(across);
+  return ring.pleatTurn === -1 ? 1 - share : share;
 }
 const FLARED = {
   shape: (ring, angle) => {
@@ -771,6 +890,8 @@ const FLARED = {
     if (pleat !== null) out *= 1 + ring.fold * (pleat - 0.5);
     // (The bag: a narrow lobe at the back of the ring, as thick as the sleeve round the arm.)
     if (ring.hang) out += (ring.hang / ring.depth) * Math.max(0, -Math.cos(angle)) ** LOFT.sleeveBag;
+    // (Flat: an ellipse `flat` as deep as it is wide.)
+    if (ring.flat) out /= Math.hypot(Math.cos(angle) / ring.flat, Math.sin(angle));
     return out;
   },
   capStart: false,
@@ -1105,15 +1226,6 @@ export const ARMOR_KINDS = {
     rigidBreastplate: [0.32, 0.96],
     upperArm: [-0.3, 1.04, 1.14, MAIL], forearm: [-0.04, -0.04, 1.3, SPLINTED_SLEEVE], thigh: [0.25, 0.85, 1.3, LACED], shin: [0.04, 0.86, 1.3, SPLINTED_SHIN],
   },
-  // A rōnin on a private errand, his armour hidden under the kosode: only the manchira's mail showing at the collar, the
-  // kusari-kote's dark linen sleeves with an iron splint along each forearm, a sash of two colours, the kyahan's linen
-  // wraps over the shins (the tatami-dō is sewn inside the robe: not drawn).
-  roninDo: {
-    collar: 'mail',
-    belt: [0.02, 0.14, 1.3, { rows: ['cloth2', 'gold', 'cloth2'] }],
-    forearm: [[-0.06, -0.02, 1.2, 'cloth'], [0.15, 0.05, 1.26, 'steel']],
-    shin: [0.08, 0.88, 1.3, 'cloth'],
-  },
   // Ashigaru: a plain lacquered okegawa-do with the lord's mon, a short skirt,
   // cloth sleeves and simple shin guards.
   okegawa: {
@@ -1251,7 +1363,7 @@ export const ARMOR_KINDS = {
   // body under it is drawn in, `cinch`; see LOFT.corset).
   corset: {
     cinch: true,
-    trunk: [-0.02, 0.68, 1.1, { boning: true }],
+    trunk: [-0.02, 0.62, 1.1, { boning: true, busk: 5 }],
   },
   // An overbust corset, worn alone: from the hips to just over the bust
   // (below the shoulders' width, so arms at the sides hang clear of it), the
@@ -1259,12 +1371,12 @@ export const ARMOR_KINDS = {
   // laced up the back, a lace edge along the top.
   overbust: {
     cinch: true,
-    trunk: [[-0.04, 0.74, 1.13, { boning: true, busk: true, brocade: true }], [0.7, 0.75, 1.145, 'lace']],
+    trunk: [[-0.04, 0.86, 1.13, { boning: true, busk: 5, brocade: true }], [0.835, 0.875, 1.14, { base: 'lace', frill: true }]],
   },
   // The same with sheer lace sleeves, shoulder to wrist (a lolita's mourning dress).
   overbustSleeved: {
     cinch: true,
-    trunk: [[-0.04, 0.74, 1.13, { boning: true, busk: true, brocade: true }], [0.7, 0.75, 1.145, 'lace']],
+    trunk: [[-0.04, 0.86, 1.13, { boning: true, busk: 5, brocade: true }], [0.835, 0.875, 1.14, { base: 'lace', frill: true }]],
     upperArm: [-0.12, 1.02, 1.08, { lacework: true }], forearm: [-0.04, -0.02, 1.08, { lacework: true }],
   },
   // Escaupil and ichcahuipilli: quilted cotton, thick, stitched in rows.
@@ -1655,7 +1767,7 @@ function paintFor(paint, armor) {
     // in pairs, `busk`), a bone every few panels, brocade between them.
     if (paint.boning) {
       if (Math.cos(angle) < -0.93) return 'lace';
-      if (Math.cos(angle) > 0.97) return paint.busk && index % 3 === 1 ? 'gold' : 'cloth2';
+      if (Math.cos(angle) > 0.97) return paint.busk && index % 4 === 2 ? 'gold' : 'cloth';
       if (step % 3 === 0) return 'cloth2';
       if (paint.brocade && (index * 5 + step * 3) % 7 === 0) return 'cloth2';
       return 'cloth';
@@ -2360,6 +2472,64 @@ function studsOn(mesh, rings, inflate, paint, bones, { within = null } = {}) {
 }
 
 /**
+ * A jabot: `tiers` frills of lace down the middle of the chest from the collar, each gathered at its top and standing out at
+ * its foot in flutes, lapping the next; on the bodice's own rings (`inflate`: how far the bodice stands off them), riding it.
+ * `maps`: with the lace's tile (detailmaps.js).
+ */
+function jabotOn(mesh, rings, inflate, tiers, bones, maps) {
+  const spec = LOFT.jabot;
+  const last = rings.length - 1;
+  const [low, high] = [rings[0].t, rings[last].t];
+  const place = (t) => ((t - low) / (high - low)) * last;
+  const step = (spec.span[0] - spec.span[1]) / tiers;
+  const columns = spec.flutes * 2 + 1;
+  const [tile] = tileSize('lace');
+  for (let tier = tiers - 1; tier >= 0; tier -= 1) {
+    const top = spec.span[0] - tier * step;
+    const half = spec.half[0] + ((spec.half[1] - spec.half[0]) * tier) / Math.max(1, tiers - 1);
+    const ring = ringAt(rings, place(top));
+    const lift = (metres) => inflate + metres / ring.depth;
+    const start = mesh.positions.length / 3;
+    const rows = [[top, spec.out[0], 0], [top - step * 0.7, (spec.out[0] + spec.out[1]) / 2, 0.5], [top - step * spec.lap, spec.out[1], 1]];
+    addGrid(mesh, rings, rows.map(([t, out, fall]) => Array.from({ length: columns }, (_, column) => {
+      const across = (column / (columns - 1)) * 2 - 1;
+      // (Fluted: every other column stands out at the foot; the frill narrower at its gathered top.)
+      return [place(t), across * half * (0.75 + 0.25 * fall), lift(out + (column % 2 ? spec.flute * fall : 0) - 0.004 * across * across)];
+    })), 'trim', bones);
+    if (maps) rows.forEach(([t], row) => {
+      for (let column = 0; column < columns; column += 1) mesh.uvs.set(start + row * columns + column, [DETAIL_ARMOUR.lace.band + (column / (columns - 1)) * Math.max(1, Math.round((2 * half * ring.width * (1 + spec.flute * 8)) / tile)), ((top - t) * spec.tall) / tile]);
+    });
+  }
+}
+
+/**
+ * A corset's busk fastenings down the middle of its front (`paint.busk`: how many): to each a steel loop plate riveted on one
+ * steel and hooked over a stud on the other (the loop-and-stud busk of the 1850s on). On the piece's own rings, proud of it.
+ */
+function buskOn(mesh, rings, inflate, paint, bones) {
+  const spec = LOFT.busk;
+  const { along, length } = measureRings(rings, inflate);
+  const places = (metres) => {
+    const index = Math.max(1, along.findIndex((value) => value >= metres));
+    return index - 1 + (metres - along[index - 1]) / ((along[index] - along[index - 1]) || 1);
+  };
+  for (let clasp = 0; clasp < paint.busk; clasp += 1) {
+    const up = length * (spec.span[0] + ((spec.span[1] - spec.span[0]) * clasp) / Math.max(1, paint.busk - 1));
+    const centre = places(up);
+    const ring = ringAt(rings, centre);
+    const spacing = (along[Math.min(rings.length - 1, Math.floor(centre) + 1)] - along[Math.floor(centre)]) || 0.02;
+    // (A point `across` m round from the front's middle and `high` m up from the clasp's: its place and angle on the rings.)
+    const at = (across, high, lift) => [centre + high / spacing, across / (ring.width * inflate), inflate + lift / ring.depth];
+    const [long, tall] = spec.loop;
+    // The loop: a plate tapering from its riveted end to a rounded eye over the stud.
+    const outline = [[-long, -tall / 2], [-long * 0.25, -tall * 0.36], [0, -tall * 0.22], [long * 0.16, 0], [0, tall * 0.22], [-long * 0.25, tall * 0.36], [-long, tall / 2]];
+    addPatch(mesh, rings, outline.map(([across, high]) => at(across, high, spec.lift)), 'gold', bones);
+    addGrid(mesh, rings, domedDisc(rings, centre, (-long * 0.82) / (ring.width * inflate), spec.rivet, inflate + (spec.lift * 1.1) / ring.depth, spec.rivet * 0.5), 'gold', bones);
+    addGrid(mesh, rings, domedDisc(rings, centre, 0, spec.stud, inflate + (spec.lift * 1.2) / ring.depth, spec.stud * 0.9), 'gold', bones);
+  }
+}
+
+/**
  * A coat's apron panel hanging over its skirt (`paint.apron`: from, to along the piece, its half width round as the sine of the
  * angle): its binding (the coat's `edge`) laid round its four sides, each a strip of faces of its own over the cloth,
  * cut into short lengths so it follows the coat round.
@@ -2489,6 +2659,363 @@ function stripOn(mesh, rings, from, to, width, out, role, bones) {
     addPatch(mesh, rings, [[placeA, angleA - width / 2, out], [placeA, angleA + width / 2, out], [placeB, angleB + width / 2, out], [placeB, angleB - width / 2, out]], role, bones);
   }
 }
+
+/**
+ * A lofted piece noted for laying faces on afterwards (decalOn): its rings, the points and the corners its loft (`build`) adds,
+ * and its frame: `up` its rings' line, `left` and `ahead` their axes, a point's place in it [up, left, ahead] (m, from its first ring).
+ */
+function notedPiece(mesh, rings, build) {
+  const [from, corner] = [mesh.positions.length / 3, mesh.indices.length];
+  build(rings);
+  const up = vec.normalize(vec.sub(rings.at(-1).center, rings[0].center));
+  return { rings, from, to: mesh.positions.length / 3, corners: [corner, mesh.indices.length], origin: rings[0].center, up, left: rings[0].widthAxis, ahead: rings[0].depthAxis };
+}
+/** A point of the mesh's place in a noted piece's frame (inPiece), kept until the mesh is fitted (relayDecals): a decal asks for the same points many times over. */
+function placeInPiece(mesh, piece, vertex) {
+  const seen = (piece.seen ??= new Map());
+  (mesh.decalPieces ??= new Set()).add(piece);
+  if (!seen.has(vertex)) seen.set(vertex, inPiece(piece, mesh.positions.slice(vertex * 3, vertex * 3 + 3)));
+  return seen.get(vertex);
+}
+/** A point's place in a noted piece's frame: [up, left, ahead] (m). */
+function inPiece(piece, point) {
+  const off = vec.sub(point, piece.origin);
+  return [vec.dot(off, piece.up), vec.dot(off, piece.left), vec.dot(off, piece.ahead)];
+}
+
+/**
+ * Where a noted piece's cloth is, seen from the front (`facing` 1) or from behind (-1), at [up, left] in its frame: the
+ * outermost of its faces there, as they lie now (lofted, or fitted to a base body since): the point, the face's normal, and
+ * where on the rings it is (t, angle); null where the piece is not.
+ */
+function pieceFace(mesh, piece, [up, left], facing = 1) {
+  const at = (vertex) => placeInPiece(mesh, piece, vertex);
+  // (Each run of faces boxed once in the frame, till the mesh is fitted: most are nowhere near the point asked for.)
+  const boxed = (range) => {
+    const boxes = (piece.boxes ??= new Map());
+    if (!boxes.has(range)) {
+      const list = [];
+      for (let corner = range[0]; corner < range[1]; corner += 3) {
+        const [ia, ib, ic] = [mesh.indices[corner], mesh.indices[corner + 1], mesh.indices[corner + 2]];
+        const [a, b, c] = [at(ia), at(ib), at(ic)];
+        list.push({ ia, ib, ic, a, b, c, low: [Math.min(a[0], b[0], c[0]), Math.min(a[1], b[1], c[1])], high: [Math.max(a[0], b[0], c[0]), Math.max(a[1], b[1], c[1])] });
+      }
+      boxes.set(range, list);
+    }
+    return boxes.get(range);
+  };
+  const outermost = (range) => {
+    let best = null;
+    for (const { ia, ib, ic, a, b, c, low, high } of boxed(range)) {
+      if (up < low[0] - 1e-6 || up > high[0] + 1e-6 || left < low[1] - 1e-6 || left > high[1] + 1e-6) continue;
+      const det = (b[0] - a[0]) * (c[1] - a[1]) - (c[0] - a[0]) * (b[1] - a[1]);
+      if (Math.abs(det) < 1e-12) continue;
+      const u = ((up - a[0]) * (c[1] - a[1]) - (c[0] - a[0]) * (left - a[1])) / det;
+      const v = ((b[0] - a[0]) * (left - a[1]) - (up - a[0]) * (b[1] - a[1])) / det;
+      if (u < -1e-6 || v < -1e-6 || u + v > 1 + 1e-6) continue;
+      const ahead = a[2] + u * (b[2] - a[2]) + v * (c[2] - a[2]);
+      if (!best || ahead * facing > best.ahead * facing) best = { ahead, ia, ib, ic, u, v };
+    }
+    return best;
+  };
+  const own = outermost(piece.corners);
+  if (!own) return null;
+  // (And what is sewn to it since, `joined`: where a sleeve's head stands further out than the robe's own cloth, the face is
+  // the sleeve's there, at the robe's place on its rings.)
+  const best = (piece.joined ?? []).map(outermost).reduce((most, other) => (other && other.ahead * facing > most.ahead * facing ? other : most), own);
+  const shares = ({ ia, ib, ic, u, v }) => [[ia, 1 - u - v], [ib, u], [ic, v]];
+  const point = (vertex) => mesh.positions.slice(vertex * 3, vertex * 3 + 3);
+  const mix = (face, of) => shares(face).reduce((sum, [vertex, share]) => sum + of(vertex) * share, 0);
+  let normal = vec.normalize(vec.cross(vec.sub(point(best.ib), point(best.ia)), vec.sub(point(best.ic), point(best.ia))));
+  if (vec.dot(normal, piece.ahead) * facing < 0) normal = vec.scale(normal, -1);
+  return {
+    at: [0, 1, 2].map((axis) => mix(best, (vertex) => mesh.positions[vertex * 3 + axis])), normal,
+    t: mix(own, (vertex) => mesh.ringT[vertex]), angle: Math.atan2(mix(own, (vertex) => Math.sin(mesh.ringA[vertex])), mix(own, (vertex) => Math.cos(mesh.ringA[vertex]))),
+    // (The piece's own face there, its points and the shares of each: what is laid there is skinned as they are, decalsFollow;
+    // not as a sleeve's head standing over it, which goes with the arm.)
+    host: shares(own),
+  };
+}
+
+/**
+ * Where each point of one row of a decal goes (decalOn: its targets, `lift`, `facing`, `taut`): { at, t, angle, host }, or null
+ * (off the piece, with nothing of its row on it to stand by).
+ */
+function decalRow(mesh, piece, row, lift, facing, taut) {
+  // (A point given whole, { at, t, angle }, is its own.)
+  const faces = row.map((target) => (Array.isArray(target) ? pieceFace(mesh, piece, target, facing) : target.anchor ? pieceFace(mesh, piece, target.anchor, target.facing ?? facing) : target));
+  const ahead = (face) => vec.dot(vec.sub(face.at, piece.origin), piece.ahead) * facing;
+  const foremost = taut ? faces.reduce((best, face, column) => (face && Array.isArray(row[column]) && (best < 0 || ahead(face) > ahead(faces[best])) ? column : best), -1) : -1;
+  // (A point off the piece stands by the nearest one of its row that is on it.)
+  const beside = (column) => {
+    for (let off = 1; off < row.length; off += 1) for (const other of [column - off, column + off]) if (faces[other]) return faces[other];
+    return null;
+  };
+  return row.map((target, column) => {
+    const face = faces[column] ?? beside(column);
+    if (!face) return null;
+    if (!Array.isArray(target)) return { at: target.at, t: face.t, angle: face.angle, host: face.host };
+    const proud = lift + (target[2] ?? 0);
+    // (Flat on from the foremost point of the row, or from the last one found where the piece has run out.)
+    const from = foremost >= 0 && Math.abs(target[1]) > Math.abs(row[foremost][1]) ? faces[foremost] : faces[column] ? null : face;
+    if (!from) return { at: vec.add(face.at, vec.scale(face.normal, proud)), t: face.t, angle: face.angle, host: face.host };
+    const [up, left] = inPiece(piece, from.at);
+    const flat = vec.add(from.at, vec.add(vec.scale(piece.up, target[0] - up), vec.scale(piece.left, target[1] - left)));
+    // (Skinned as the cloth straight under it, where there is any: held off a twisting flank by the spine's own turn, the flank came through it.)
+    return { at: vec.add(flat, vec.scale(piece.ahead, facing * proud)), t: face.t, angle: face.angle, host: face.host };
+  });
+}
+
+/**
+ * Faces laid on a lofted piece of cloth as its own (sharp-edged: a wrapped robe's collar band, the under-robe in its
+ * opening, a vest worn over it), from the front or from behind: `layout()` gives the grid's points, each [up, left] in the
+ * piece's frame (or [up, left, lift]: m proud of the cloth, over `lift`), put on the cloth's outermost face there; or
+ * { at, anchor }: a point in space of its own (a shoulder's wing standing past the arm), weighted as the cloth at `anchor`
+ * ([up, left]), or { at, t, angle }: weighted as the cloth there on the rings. Laid as the piece is lofted, and laid again once it is fitted to a base body (relayDecals), which carries a
+ * robe's cloth out over the flesh and its neck up the trapezius: a band defined on the lean rings and moved with them was
+ * stretched to twice its width there. `taut`: the sheet is drawn tight, not laid into every hollow: out from where each row
+ * of it stands foremost it goes on flat, past the body's edge too (a stiff vest over the breast and on before the shoulder).
+ * `stiffFrom`: only its rows from this one on are of the stiff body being built (`mesh.body`), the rows before it cloth: one
+ * sheet, so no gap opens where the stiff part and the cloth move apart.
+ */
+function decalOn(mesh, piece, layout, lift, role, bones, { facing = 1, taut = false, stiffFrom = Infinity } = {}) {
+  const start = mesh.positions.length / 3;
+  const placed = (row) => decalRow(mesh, piece, row, lift, facing, taut);
+  const lay = (fresh) => {
+    let vertex = start;
+    let last = null;
+    for (const [index, row] of layout().entries()) for (const point of placed(row)) {
+      // (A point with nothing to stand by takes the last one's place: its face closes to nothing.)
+      const { at, t, angle, host } = point ?? last ?? {};
+      if (!at) throw new Error('decalOn: the first point is off the piece');
+      last = { at, t, angle, host };
+      if (host) (mesh.decalHosts ??= new Map()).set(vertex, host);
+      const ring = ringAt(piece.rings, placeAt(piece.rings, t));
+      const weighed = onRing(ring, angle, 1);
+      if (fresh) {
+        mesh.positions.push(...at);
+        mesh.weightPositions.push(...weighed);
+        mesh.colors.push(role);
+        mesh.bones.push(bones(piece.rings[Math.round(Math.max(0, Math.min(piece.rings.length - 1, placeAt(piece.rings, t))))], Math.cos(angle)));
+        mesh.stiff.push(index >= stiffFrom || stiffFrom === Infinity ? bodyAt(mesh, ring, angle) : 0);
+        (mesh.gridRing ??= new Map()).set(vertex, piece.rings[0]);
+      } else for (let axis = 0; axis < 3; axis += 1) {
+        mesh.positions[vertex * 3 + axis] = at[axis];
+        mesh.weightPositions[vertex * 3 + axis] = weighed[axis];
+      }
+      vertex += 1;
+    }
+  };
+  const grid = layout();
+  lay(true);
+  const columns = grid[0].length;
+  const at = (row, column) => start + row * columns + column;
+  // (Wound to face the way they are seen from; `facing` 0: by the piece's line, its upper side.)
+  const toward = facing ? vec.scale(piece.ahead, facing) : piece.up;
+  const point = (index) => mesh.positions.slice(index * 3, index * 3 + 3);
+  for (let row = 0; row < grid.length - 1; row += 1) for (let column = 0; column < columns - 1; column += 1) {
+    const [a, b, c, d] = [at(row, column), at(row, column + 1), at(row + 1, column + 1), at(row + 1, column)];
+    const normal = vec.cross(vec.sub(point(b), point(a)), vec.sub(point(d), point(a)));
+    if (vec.dot(normal, toward) < 0) mesh.indices.push(a, c, b, a, d, c);
+    else mesh.indices.push(a, b, c, a, c, d);
+  }
+  (mesh.decals ??= []).push(() => lay(false));
+}
+
+/**
+ * What is laid on cloth (decalOn) is skinned as the cloth under it: each point takes the weights of its face's three points
+ * by their shares (the four heaviest bones of the blend), and hangs as loose as they do (`sway`; not a stiff body's point). Weighted on its own, by
+ * where it lies over the body, a band or a vest's back turned a little otherwise than the robe when the trunk bent or the
+ * arms went forward, and the robe came through it.
+ */
+function decalsFollow(mesh, weights, sway, stiff) {
+  for (const [vertex, host] of mesh.decalHosts ?? []) {
+    const blend = new Map();
+    for (const [other, share] of host) for (let slot = 0; slot < 4; slot += 1) {
+      const weight = weights.skinWeight[other * 4 + slot] * share;
+      if (weight > 0) blend.set(weights.skinIndex[other * 4 + slot], (blend.get(weights.skinIndex[other * 4 + slot]) ?? 0) + weight);
+    }
+    const top = [...blend].sort((a, b) => b[1] - a[1]).slice(0, 4);
+    const total = top.reduce((sum, [, weight]) => sum + weight, 0);
+    if (!(total > 0)) continue;
+    for (let slot = 0; slot < 4; slot += 1) {
+      weights.skinIndex[vertex * 4 + slot] = top[slot]?.[0] ?? 0;
+      weights.skinWeight[vertex * 4 + slot] = top[slot] ? top[slot][1] / total : 0;
+    }
+    if (sway && !stiff[vertex]) sway[vertex] = host.reduce((sum, [other, share]) => sum + Math.max(0, sway[other]) * share, 0);
+  }
+}
+
+/** The faces laid on cloth (decalOn) laid again on it as it lies now: once it is fitted to a base body. */
+function relayDecals(mesh) {
+  for (const piece of mesh.decalPieces ?? []) piece.seen = piece.boxes = null;
+  for (const lay of mesh.decals ?? []) lay();
+}
+
+/**
+ * A wrapped robe's front (a kosode's, `collar`: TOPS): the two collar bands from the neck's sides down across the breast,
+ * the wearer's left over the right (the left band runs on to the right of the waist, the right ends under it), and inside
+ * them the under-robe (`inner` its role): its own collar edges showing, and its cloth closing the opening to the neck.
+ * `piece` the robe's trunk (notedPiece), `neckR` the neck's radius. (Left over right: the living are dressed so, the dead
+ * right over left; so every period portrait and print, and Dalby, Kimono: Fashioning Culture, 1993.)
+ */
+function wrappedCollarOn(mesh, piece, { wide, side, cross, foot, under }, { neckR, role, inner }, bones) {
+  const { rings } = piece;
+  const height = (t) => inPiece(piece, ringAt(rings, placeAt(rings, t)).center)[0];
+  // The robe's top edge in front as it lies now: its height at `left`, between the points of its last ring.
+  const topT = rings.at(-1).t;
+  const edge = () => {
+    const points = [];
+    for (let vertex = piece.from; vertex < piece.to; vertex += 1) {
+      if (mesh.ringT[vertex] === topT && Math.cos(mesh.ringA[vertex]) > 0.1) points.push(placeInPiece(mesh, piece, vertex));
+    }
+    points.sort((a, b) => a[1] - b[1]);
+    return (left) => {
+      const next = Math.max(1, points.findIndex((point) => point[1] >= left));
+      const [a, b] = [points[next - 1], points.at(next)];
+      return a[0] + (b[0] - a[0]) * Math.max(0, Math.min(1, (left - a[1]) / (b[1] - a[1] || 1)));
+    };
+  };
+  const reach = side * neckR;
+  const [crossAt, footAt] = [height(cross), height(foot)];
+  // A band's line: from the neck's side at the top edge straight through the middle at `cross` and on (`hand`: 1 the wearer's
+  // left band, -1 his right), `shift` m in towards the opening; its points across it, level (so it keeps its width as seen).
+  const steps = 26;
+  const band = (hand, to, shift, columns = 4) => () => {
+    const top = edge()(hand * reach) - 0.004;
+    const slope = reach / (top - crossAt);
+    const level = wide / Math.cos(Math.atan(slope));
+    return Array.from({ length: steps + 1 }, (_, step) => {
+      const up = top + ((to(slope) - top) * step) / steps;
+      return Array.from({ length: columns + 1 }, (_, column) => [up, hand * (slope * (up - crossAt) - shift) + (column / columns - 0.5) * level]);
+    });
+  };
+  // The under-robe closing the opening: from below where the bands cross up to the top edge.
+  const opening = () => {
+    const top = edge();
+    const slope = reach / (top(reach) - crossAt);
+    const rows = 10;
+    return Array.from({ length: rows + 1 }, (_, row) => [-1, -0.66, -0.33, 0, 0.33, 0.66, 1].map((share) => {
+      const low = crossAt;
+      const left = share * reach;
+      const high = top(left) - 0.001;
+      const up = low + ((high - low) * row) / rows;
+      return [up, share * Math.max(0.006, Math.min(reach, slope * (up - crossAt) + wide * 0.2))];
+    }));
+  };
+  decalOn(mesh, piece, opening, COLLAR_LIFT[0], inner, bones);
+  // (The under-robe's edges, then the robe's own: the right first, the left over it. Each band that passes under another ends
+  // where the upper one first covers its whole width: the under-robe's `under / 2` above the crossing by the slope, the robe's
+  // right band at the crossing.)
+  decalOn(mesh, piece, band(-1, (slope) => crossAt + under / (2 * slope) + 0.004, under), COLLAR_LIFT[0] + COLLAR_LIFT[1] * 1, inner, bones);
+  decalOn(mesh, piece, band(1, (slope) => crossAt + under / (2 * slope) + 0.004, under), COLLAR_LIFT[0] + COLLAR_LIFT[1] * 2, inner, bones);
+  decalOn(mesh, piece, band(-1, () => crossAt + 0.003, 0), COLLAR_LIFT[0] + COLLAR_LIFT[1] * 3, role, bones);
+  decalOn(mesh, piece, band(1, () => footAt, 0), COLLAR_LIFT[0] + COLLAR_LIFT[1] * 4, role, bones);
+}
+/**
+ * A kataginu over a robe's trunk (`piece`: notedPiece), LOFT.kataginu: the stiff sleeveless vest of the kamishimo. Each
+ * shoulder a flat pleated wing from the neck's side out past the arm, held level; from its front edge a panel narrowing to
+ * the waist beside the robe's collar, from its back edge one panel across the back narrowing to the waist; all tucked into
+ * the hakama. The wings and the panels' tops drawn up to them are one stiff body in starched cloth ('coat': it keeps its
+ * shape and gives a little with the shoulders), the panels below them cloth on the breast and the back. `shoulders` the two shoulder joints,
+ * `armR` the upper arm's radius, `neckLeft` (m) how far off the middle its inner edge lies at the neck, `waistT` where
+ * it goes under the cords.
+ */
+function kataginuOn(mesh, piece, spec, { shoulders, armR, neckLeft, waistT, role }, bones) {
+  const { rings } = piece;
+  const waistUp = inPiece(piece, ringAt(rings, placeAt(rings, waistT)).center)[0];
+  const middle = inPiece(piece, rings.at(-1).center)[2];
+  const [sUp, sLeft, sAhead] = (() => {
+    const [a, b] = shoulders.map((joint) => inPiece(piece, joint));
+    return [(a[0] + b[0]) / 2, (Math.abs(a[1]) + Math.abs(b[1])) / 2, (a[2] + b[2]) / 2];
+  })();
+  const tipLeft = sLeft + armR + spec.wing;
+  // The robe's own top at `left` off the middle, as it lies now (either side): the wing's line clears it.
+  const robeTop = (left) => {
+    let top = -Infinity;
+    for (let vertex = piece.from; vertex < piece.to; vertex += 1) {
+      const [up, across] = placeInPiece(mesh, piece, vertex);
+      if (Math.abs(Math.abs(across) - left) < 0.03) top = Math.max(top, up);
+    }
+    return top;
+  };
+  // The wing's line: level from over the neck's side, clear of the shoulder's cap and the sleeve's head, dropping `drop` to its tip.
+  const ridge = () => {
+    const high = Math.max(robeTop(neckLeft), sUp + armR * 1.5) + spec.clear;
+    return (share) => ({ up: high - spec.drop * share, left: neckLeft + (tipLeft - neckLeft) * share });
+  };
+  // Its edges before and behind at `share` of the way out: the wing `deep[0]` (m) either side of the shoulders' line at the
+  // neck, `deep[1]` over the shoulder, `deep[2]` at its tip.
+  const edge = (line, hand, share, way) => {
+    const { up, left } = line(share);
+    const over = Math.min(1, (left - neckLeft) / (sLeft - neckLeft));
+    const deep = left <= sLeft ? spec.deep[0] + (spec.deep[1] - spec.deep[0]) * over : spec.deep[1] + ((spec.deep[2] - spec.deep[1]) * (left - sLeft)) / (tipLeft - sLeft);
+    const ahead = middle + (sAhead - middle) * over + way * deep;
+    return {
+      at: vec.add(piece.origin, vec.add(vec.scale(piece.up, up + (way ? 0 : spec.peak)), vec.add(vec.scale(piece.left, hand * left), vec.scale(piece.ahead, ahead)))),
+      anchor: [sUp - armR, hand * Math.min(left, sLeft - armR)], facing: way || 1,
+    };
+  };
+  const across = spec.pleats * 2;
+  const shares = Array.from({ length: across + 1 }, (_, column) => column / across);
+  const stiffly = (build) => {
+    mesh.body = spec.body;
+    build();
+    mesh.body = 0;
+  };
+  spec.body = stiffBody(mesh, 'coat');
+  const rows = 12;
+  const split = Math.round(rows * spec.taut);
+  for (const hand of [1, -1]) {
+    // The wing: its back edge, its middle (a low peak: the fold), its front edge.
+    stiffly(() => decalOn(mesh, piece, () => shares.map((share) => [-1, 0, 1].map((way) => edge(ridge(), hand, share, way))), 0, role, bones, { facing: 0 }));
+    // The front panel: from between `waist[0]` and `waist[1]` off the middle at the waist up to the wing's front edge, its
+    // pleats every other line a hair proud; cloth where it lies on the robe, the rest of the stiff body.
+    const front = (from, to) => panel(from, to, 1, shares.map((share) => ({ share, hand, foot: spec.waist[0] + (spec.waist[1] - spec.waist[0]) * share, spread: share })), true);
+    stiffly(() => decalOn(mesh, piece, front(0, rows), spec.lift, role, bones, { taut: true, stiffFrom: split + 1 }));
+  }
+  // The back: one panel from both wings' back edges and the nape between them down to `back` (m) either side of the middle at the waist.
+  const lines = [...shares.map((share) => -(0.28 + share * 0.72)), -0.14, 0, 0.14, ...shares.map((share) => 0.28 + share * 0.72)].sort((a, b) => a - b).map((column) => ({
+    // (Out from the neck's side by the share of the way to the tip; between the neck's sides, under the robe's own collar.)
+    share: (Math.abs(column) - 0.28) / 0.72, hand: Math.sign(column) || 1, nape: Math.abs(column) < 0.28 ? Math.abs(column) / 0.28 : null, foot: spec.back * Math.abs(column), spread: Math.abs(column),
+  }));
+  const back = (from, to) => panel(from, to, -1, lines, false);
+  stiffly(() => decalOn(mesh, piece, back(0, rows), spec.lift, role, bones, { facing: -1, taut: true, stiffFrom: split + 1 }));
+  // A panel's grid, rows `from` to `to` of `rows` from the waist up, seen from `way` (1 the front, -1 behind): each line of it
+  // from `foot` off the middle at the waist to its place on the wing's edge (`share` of the way out, `hand` the side; or
+  // `nape`: between the neck's sides, that share of the way to one, under the robe's collar), spreading the faster the
+  // further out it is (`spread`: the outer edge keeps to the trunk and flares to the wing's tip only near the shoulder, clear
+  // of the arm's swing). Laid on the robe up to `taut` of its height, and from there drawn straight to the wing's edge.
+  function panel(from, to, way, across, pleated) {
+    return () => {
+      const line = ridge();
+      const tops = across.map(({ share, nape }) => (nape === null || nape === undefined ? line(share) : { up: robeTop(nape * neckLeft) - spec.nape, left: nape * neckLeft }));
+      const target = (column, up) => {
+        const { hand, foot, spread } = across[column];
+        const out = up ** (1 + (spec.flare - 1) * spread);
+        return [waistUp + (tops[column].up - waistUp) * up, hand * (foot + (tops[column].left - foot) * out), (pleated && column % 2 ? spec.fold : 0) * up - spec.lift * 0.6 * Math.max(0, 1 - up * 6)];
+      };
+      const held = decalRow(mesh, piece, across.map((_, column) => target(column, spec.taut)), spec.lift, way, true);
+      const outward = (point) => vec.dot(vec.sub(point, piece.origin), piece.ahead) * way;
+      return Array.from({ length: to - from + 1 }, (_, index) => {
+        const up = (from + index) / rows;
+        if (up <= spec.taut) return across.map((_, column) => target(column, up));
+        // (Drawn straight to the wing, but never under the robe: where the cloth of the shoulder stands further out, on it.)
+        const laid = decalRow(mesh, piece, across.map((_, column) => target(column, up)), spec.lift, way, true);
+        return across.map(({ share, hand, nape }, column) => {
+          if (!held[column] || (nape !== null && nape !== undefined)) return target(column, up);
+          const straight = vec.lerp(held[column].at, edge(line, hand, share, way).at, (up - spec.taut) / (1 - spec.taut));
+          const over = up < 1 && laid[column] && outward(laid[column].at) > outward(straight);
+          return { at: over ? laid[column].at : straight, t: held[column].t, angle: held[column].angle, host: held[column].host };
+        });
+      });
+    };
+  }
+}
+
+// How far (m) the lowest layer of a wrapped collar stands over the robe's cloth (clear of the cloth's own folds between its
+// points), and each layer over the one under it.
+const COLLAR_LIFT = [0.0045, 0.002];
 
 /** Where along the rings (a place, as ringAt takes) the piece reaches t. */
 function placeAt(rings, t) {
@@ -3364,13 +3891,22 @@ function fitClothToBase(mesh, parts, armoured) {
   if (armoured) {
     const tally = {};
     for (const [vertex, ring] of mesh.ringOf) {
-      if (vertex >= start || mesh.colors[vertex] === 'skin' || kindOf(vertex) === 'soft' || !partOf(ring)) continue;
+      // (Not a boned piece: a corset is not armour the rest is cut to; it draws the waist in, `laced` below.)
+      if (vertex >= start || mesh.colors[vertex] === 'skin' || kindOf(vertex) === 'soft' || kindOf(vertex) === 'boned' || !partOf(ring)) continue;
       const counts = tally[partOf(ring)] ??= {};
       counts[kindOf(vertex)] = (counts[kindOf(vertex)] ?? 0) + 1;
     }
     for (const [name, counts] of Object.entries(tally)) worn[name] = Object.entries(counts).sort((a, b) => b[1] - a[1])[0][0];
   }
-  const cutOf = (vertex, name) => spec.kinds[worn[name] ?? kindOf(vertex)] ?? spec.kinds.soft;
+  // The parts a boned piece is laced round, and how tightly at `t` along one (LOFT.fit.boned).
+  const lacedParts = new Set();
+  for (const ring of mesh.ringOf.values()) if (ring.kind === 'boned' && partOf(ring)) lacedParts.add(partOf(ring));
+  const laced = (name, t) => (lacedParts.has(name) ? spec.boned.squeeze * Math.exp(-(((t - LOFT.corset.at) / spec.boned.reach[t < LOFT.corset.at ? 0 : 1]) ** 2)) : 0);
+  const cutOf = (vertex, name) => {
+    const cut = spec.kinds[worn[name] ?? kindOf(vertex)] ?? spec.kinds.soft;
+    const tight = laced(name, mesh.ringOf.get(vertex)?.t ?? 0);
+    return tight > cut.squeeze ? { ...cut, squeeze: tight } : cut;
+  };
   // A cuirass is cut to the rib cage (`ribCut`: a trunk's piece of plate or of rows): no wider at any height than the trunk's
   // own flesh there, the arm's and the shoulder's cap left to the pieces worn on them, its armholes cut in round the arm's
   // root. `ribsAt` a ring: that flesh's reach to either side of the ring's middle (m; the skin within `alongBand` of it).
@@ -3418,6 +3954,10 @@ function fitClothToBase(mesh, parts, armoured) {
   for (const ring of mesh.ringOf.values()) pieceTop.set(ring.piece, Math.max(pieceTop.get(ring.piece) ?? -Infinity, ring.t));
   for (const [vertex, ring] of mesh.ringOf) {
     if (vertex >= start || mesh.colors[vertex] === 'skin') continue;
+    // (Cloth cut to hang clear of the limb whatever the limb is, `free` on its rings (a hakama's leg), is not fitted to the
+    // flesh: laid on the thigh where the thigh was found near and left wide where it was not, its straight fall from the
+    // hip stood in steps and its pleats in shards. Its rings are the body's own breadth, and it stands well off them.)
+    if (ring.free) continue;
     const name = partOf(ring);
     if (!name) continue;
     // (Only what is worn at the waist goes under the belly: a coat's skirt, lofted on the same unbulged rings, hangs over it.)
@@ -4532,6 +5072,8 @@ export function* buildLoftBodySteps(body, { faceted = false, lowDetail = false, 
   // Cloth drawn with the cloth atlas's maps (detailmaps.js clothMaterialOf: each role's material), not in a crowd or faceted.
   const clothContext = { faction: factionOf(body.inputs), outfit: outfitOf(body.inputs).kind };
   mesh.clothOf = DETAIL_MAPS.on && !lowDetail && !faceted ? (role) => clothMaterialOf(look, role, clothContext) : null;
+  // Lace with its tile (detailmaps.js `lace`: drawn in code), where the maps are drawn.
+  const laceUv = (rings, inflate) => (DETAIL_MAPS.on && !lowDetail ? { uv: tileUv(rings, inflate, 'lace') } : {});
   const plate = armor?.kind === 'plate';
   const lamellar = armor?.kind === 'lamellar';
   const hoplomachus = armor?.kind === 'hoplomachus';
@@ -4591,6 +5133,13 @@ export function* buildLoftBodySteps(body, { faceted = false, lowDetail = false, 
       if (paint.placket) placketOn(mesh, rings, inflate, paint, boned);
       return;
     }
+    // Cloth over bones with its tile (a corset's satin: the whole piece unrolled, detailmaps.js wholeUv): one colour, its
+    // seams, bones, binding and lacing in the picture; the busk's clasps their own steel.
+    if (material === 'boned' && tile) {
+      loft(mesh, rings, sides * LOFT.boned.sides, { color: 'cloth', inflate, capStart: false, capEnd: false, ...(bones ? { bones } : {}), ...(shape ? { shape } : {}), uv: wholeUv(rings, inflate, tile) });
+      if (paint.busk) buskOn(mesh, rings, inflate, paint, boned);
+      return;
+    }
     // A field tile of the kind's own (hoops, riveted lames, mail and plate, etching, a moulded shell): rows painted in a crowd
     // are in the picture, so one colour (a crest painted over it is kept).
     // (A spaulder or a shoulder plate from above the shoulder's joint is closed over the shoulder, a low dome on a fitted body
@@ -4604,6 +5153,11 @@ export function* buildLoftBodySteps(body, { faceted = false, lowDetail = false, 
       if (paint?.lames) lamesOn(mesh, rings, inflate, paint, boned);
       // A plate piece whose edges are turned and riveted (detailmaps.js ARMOUR_EDGES: the foot soldier's spaulders, vambraces, cops).
       if (material === 'steel' && ARMOUR_EDGES[armor?.kind]?.includes(slot)) harnessEdgesOn(mesh, rings, inflate, sides, boned);
+      return;
+    }
+    // A frill of lace (`frill`: a corset's top edge) with the lace's tile.
+    if (paint?.frill && laceUv(rings, inflate).uv) {
+      loft(mesh, rings, sides * 2, { color: 'lace', inflate, capStart: false, capEnd: false, ...(bones ? { bones } : {}), ...laceUv(rings, inflate) });
       return;
     }
     // Drawn as faces of their own, the rivets and the mirror are not painted as well.
@@ -4635,6 +5189,8 @@ export function* buildLoftBodySteps(body, { faceted = false, lowDetail = false, 
     const u = ring.t;
     const ahead = Math.cos(angle);
     const side = Math.abs(Math.sin(angle));
+    // (A wrapped robe's collar round the nape: its own top edge, behind the neck's sides where the bands down the front begin: wrappedCollarOn.)
+    if (topShape.collar && u > topShape.neck - 0.01 && ahead < 0.5) return 'trim';
     switch (top.kind) {
       case 'jacket': case 'hoodie':
         return top.zip && ahead > 0 && side < 0.06 ? 'trim' : 'top';
@@ -4739,6 +5295,36 @@ export function* buildLoftBodySteps(body, { faceted = false, lowDetail = false, 
     (u) => (u >= -0.12 ? unbulged(bodyLean, 0.8)(u) : unbulged(bodyLean, 0.8)(-0.12)));
   const skirted = Boolean(bottom?.skirt && female);
   if (skirted) loft(mesh, skirtRings(skirtTo(0.85), count(8), 0.5), sides, { color: 'kit', inflate: 1.16, capStart: false, capEnd: false, bones: () => hanging3 });
+  // Hakama worn long (LOFT.hakama): over the hips one piece from the waist to the crotch, pleated across the front, open
+  // at each side; its cords tied round the waist over it, knotted in front; the stiff board behind.
+  if (bottom?.kind === 'hakama' && bottom.long && !skirted) {
+    const { yoke, cords, cordOut, knot, pleats, fold, shade } = LOFT.hakama;
+    const foot = base ? LOFT.baseCrotch : -0.12;
+    const yokeRings = pleated(tiltWaist(shortsRings(foot, 0.2, count(6))), pleats[0] + pleats[1], fold * yoke.fold);
+    const yokePattern = (ring, angle) => {
+      // (The side openings: widest at the waist, closing down to `vent` of the way to the crotch.)
+      const down = (0.2 - ring.t) / (0.2 - foot);
+      if (!lowDetail && down < yoke.vent && Math.abs(Math.sin(angle)) > yoke.ventWide + (1 - yoke.ventWide) * (down / yoke.vent)) return 'top';
+      return (pleatAt(ring, angle) ?? 1) < shade ? 'trim2' : 'kit';
+    };
+    const yokeFrom = mesh.indices.length;
+    loft(mesh, yokeRings, lowDetail ? trunkSides : trunkSides * 2, { color: yokePattern, inflate: yoke.out, shape: (ring, angle) => 1 + ring.fold * ((pleatAt(ring, angle) ?? 0.5) - 0.5), capStart: false, capEnd: false, bones: abdomen, ...bendTrunk });
+    const cordRings = tiltWaist(shortsRings(cords[0], cords[1], 3));
+    // (Noted from the yoke on, for what is laid over the hakama's waist: its board behind.)
+    mesh.hakamaWaist = [yokeFrom, 0];
+    loft(mesh, cordRings, trunkSides, { color: (ring, angle, index) => (index === 1 || index === 2 ? 'kit' : 'trim2'), inflate: cordOut, capStart: false, capEnd: false, bones: abdomen });
+    mesh.hakamaWaist[1] = mesh.indices.length;
+    if (!lowDetail) {
+      // The knot: the bow lying across, and the end drawn up over it.
+      const middle = (cords[0] + cords[1]) / 2;
+      const span = vec.length(vec.sub(at('neck'), at('pelvis')));
+      const [ahead, aside] = [bodyDepth(middle) * cordOut, bodyWidth(middle) * cordOut];
+      knot.forEach(([across, tall], layer) => {
+        const [from, to] = [placeAt(cordRings, middle - tall / 2 / span), placeAt(cordRings, middle + tall / 2 / span)];
+        addGrid(mesh, cordRings, curvedPlate(from, to, 0, across / 2 / aside, 1 + (0.012 + 0.008 * layer) / ahead), layer ? 'kit' : 'trim2', abdomen);
+      });
+    }
+  }
   // Plate below the waist is a fauld, not a skirt: a short band of lames round the hips (the tassets hang from it over each thigh, with the legs).
   if (plate) {
     const fauld = stiffen(mesh, skirtRings(skirtTo(LOFT.fauld.reach), count(3), LOFT.fauld.flare), 'rows', LOFT.stiff.panels);
@@ -4755,28 +5341,84 @@ export function* buildLoftBodySteps(body, { faceted = false, lowDetail = false, 
   const gownShape = bottom?.kind === 'gown' ? bottom.shape ?? 'crinoline' : bottom?.gown ?? null;
   if (gownShape) {
     const gown = LOFT.gowns[gownShape];
-    const hemAt = skirtTo(gown.hem);
-    const linear = (u) => Math.max(0, (-0.12 - u) / (-0.12 - hemAt));
-    // The flare's growth down the skirt: a bell's (on to the hem), a bubble's
-    // (swelling, then gathered back in), or tiers (each ruffle stands out from under the last).
-    const down = (u) => {
-      const d = linear(u);
-      if (gown.balloon) return Math.sin(Math.min(1, d) * Math.PI * 0.82) * 0.9;
-      if (gown.tiers) return Math.sqrt(d) * 0.7 + 0.3 * ((d * gown.tiers) % 1);
-      return Math.sqrt(d);
-    };
     const waistDepth = bodyDepth(-0.12);
-    const bustle = (u) => (u >= -0.12 ? 0 : (gown.bustle ?? 0) * waistDepth * Math.exp(-(((down(u) ** 2 - 0.16) / 0.2) ** 2)));
-    const rings = along(at('pelvis'), at('neck'), forward, count(9), hemAt, 0.2,
-      (u) => (u >= -0.12 ? unbulged(bodyDepth, 1)(u) : waistDepth * (1 + gown.depthFlare * down(u))) + bustle(u),
-      (u) => (u >= -0.12 ? bodyWidth(u) : bodyWidth(-0.12) * (1 + (gown.hips ?? 0) * Math.min(1, 3 * down(u)) + gown.flare * down(u))),
-      (u) => unbulged(bodyLean, 0.8)(Math.max(u, -0.12)) - bustle(u));
+    // (Over a corset the skirt's band lies under the corset's foot, which is drawn over it: it starts lower.)
+    const gownTop = corseted ? 0.01 : 0.2;
+    // A skirt of this cut to `hem` (thigh lengths), `fuller` times as full: its rings, hem first.
+    const gownRings = (hem, fuller, rings) => {
+      const hemAt = skirtTo(hem);
+      const fullAt = skirtTo(gown.hem);
+      const linear = (u) => Math.max(0, (-0.12 - u) / (-0.12 - fullAt));
+      // The flare's growth down the skirt: a bell's (on to the hem), a bubble's
+      // (swelling, then gathered back in), or tiers (each ruffle stands out from under the last).
+      const down = (u) => {
+        const d = linear(u);
+        if (gown.balloon) return Math.sin(Math.min(1, d) * Math.PI * 0.82) * 0.9;
+        if (gown.tiers) return Math.sqrt(d) * 0.7 + 0.3 * ((d * gown.tiers) % 1);
+        return d ** (gown.bell ?? 0.5);
+      };
+      // (`fuller`: by the skirt's own hem, growing from none at the waist, where it is gathered into the same band.)
+      const fullness = (u) => 1 + (fuller - 1) * Math.min(1, Math.max(0, (-0.12 - u) / (-0.12 - hemAt)) * 2);
+      // (Rising from nothing at the waist over the first of the skirt, `fine`: begun at once it stood out in a roll round the hips.)
+      const bustle = (u) => (u >= -0.12 ? 0 : (gown.bustle ?? 0) * waistDepth * Math.exp(-(((down(u) ** 2 - 0.16) / 0.2) ** 2)) * (gown.sides ? Math.min(1, linear(u) * 6) : 1));
+      const made = along(at('pelvis'), at('neck'), forward, rings, hemAt, gownTop,
+        (u) => ((u >= -0.12 ? unbulged(bodyDepth, 1)(u) : waistDepth * (1 + gown.depthFlare * down(u))) + bustle(u)) * fullness(u),
+        (u) => (u >= -0.12 ? bodyWidth(u) : bodyWidth(-0.12) * (1 + (gown.hips ?? 0) * Math.min(1, 3 * down(u)) + gown.flare * down(u)) * fullness(u)),
+        (u) => unbulged(bodyLean, 0.8)(Math.max(u, -0.12)) - bustle(u));
+      // (How far down its own length each ring lies, 0 at the waist to 1 at its hem: what its folds deepen by.)
+      for (const ring of made) ring.fall = Math.max(0, (-0.12 - ring.t) / (-0.12 - hemAt));
+      return { made, linear };
+    };
+    // The folds a skirt falls in (`flutes`): none at the waist, deepening to the hem, uneven as cloth is (a second, slower
+    // fold over the first), swept round by `sweep` rad from waist to hem.
+    const fluted = ([folds, deep], sweep = 0) => (ring, angle) => {
+      const turn = angle + sweep * ring.fall;
+      // (Snug at its band and over the hips, LOFT.gownSnug, easing out to its full standing off as it falls free: at its full
+      // standing off all the way up, its top stood round the corset's foot as a rim.)
+      const [band, hips, by] = LOFT.gownSnug;
+      const snug = ring.t >= -0.12 ? hips + (band - hips) * Math.min(1, (ring.t + 0.12) / (gownTop + 0.12)) : hips + (1 - hips) * Math.min(1, ring.fall / by);
+      return snug * (1 + deep * ring.fall ** 1.3 * (Math.cos(turn * folds) + 0.45 * Math.cos(turn * (folds - 3) + 1.3)));
+    };
+    const fine = !lowDetail && Boolean(gown.sides);
+    const gownSides = fine ? gown.sides : sides;
+    // (Drawn fine, a ring at the head of the hem's band and one within it, so the band lies on the skirt's own rings.)
+    const [hemAt, bandAt] = [skirtTo(gown.hem), skirtTo(gown.hem - (gown.hemBand ?? 0))];
+    const stops = fine ? [...new Set([...Array.from({ length: gown.rings + 1 }, (_, index) => hemAt + ((gownTop - hemAt) * index) / gown.rings).filter((t) => !gown.hemBand || t > bandAt + 0.01 || t === hemAt), ...(gown.hemBand ? [(hemAt + bandAt) / 2, bandAt] : [])])].sort((a, b) => a - b) : count(9);
+    const { made: rings, linear } = gownRings(gown.hem, 1, stops);
     // Gathered cloth: darker folds every few steps; tiers, a darker hem to each ruffle.
     const gathered = (ring, angle, index, step) => {
       if (gown.tiers && (linear(ring.t) * gown.tiers) % 1 > 0.82) return 'trim2';
       return (gown.balloon || gown.tiers) && step % 3 === 0 ? 'trim2' : 'kit';
     };
-    loft(mesh, rings, sides, { color: gathered, inflate: 1.2, capStart: false, capEnd: false, bones: () => hanging3 });
+    loft(mesh, rings, gownSides, { color: gathered, inflate: 1.2, capStart: false, capEnd: false, bones: () => hanging3, ...(fine ? { shape: fluted(gown.flutes ?? [0, 0]) } : {}) });
+    // The hem's band: a braid sewn round it, or a flounce pleated on, standing a little off the skirt.
+    if (gown.hemBand && fine) {
+      const band = rings.filter((ring) => ring.t <= bandAt + 1e-9).map((ring) => ({ ...ring }));
+      const folds = fluted(gown.flutes ?? [0, 0]);
+      // (How far down the band a ring lies: a flounce is gathered flat at its head and stands in pleats at its foot.)
+      const into = (ring) => Math.max(0, 1 - (1 - ring.fall) / (gown.hemBand / gown.hem));
+      const pleats = gown.flounce ? (ring, angle) => folds(ring, angle) * (1 + gown.flounce[1] * into(ring) * Math.abs(Math.sin((angle * gown.flounce[0]) / 2))) : folds;
+      loft(mesh, band, gownSides * (gown.flounce ? 2 : 1), { color: 'trim2', inflate: 1.2 + (gown.flounce ? 0.03 : 0.012), capStart: false, capEnd: false, bones: () => hanging3, shape: pleats });
+    }
+    // An overskirt (`over`): draped over the skirt, hung aslant, its folds swept round, its hem edged with lace.
+    if (gown.over && fine) {
+      const over = gown.over;
+      const { made } = gownRings(over.hem, over.fuller, gown.rings);
+      const up = vec.normalize(vec.sub(at('neck'), at('pelvis')));
+      for (const ring of made) {
+        // (Aslant: each ring leant about its middle, the hem most, so the front and her left hang lower.)
+        const [front, side] = over.tilt.map((drop) => (drop * L.thigh * ring.fall ** 1.5));
+        ring.depthAxis = vec.normalize(vec.sub(vec.scale(ring.depthAxis, ring.depth), vec.scale(up, front)));
+        ring.widthAxis = vec.normalize(vec.sub(vec.scale(ring.widthAxis, ring.width), vec.scale(up, side)));
+      }
+      const drape = fluted(over.flutes, over.sweep);
+      loft(mesh, made.slice(1), gownSides, { color: 'kit', inflate: 1.22, capStart: false, capEnd: false, bones: () => hanging3, shape: drape });
+      // (The lace: from the cloth's edge down, its own edge scalloped.)
+      const edge = gownRings(over.hem + over.lace, over.fuller, [skirtTo(over.hem + over.lace), made[1].t]).made;
+      edge[0].fall = edge[1].fall = 1;
+      for (const [index, ring] of edge.entries()) Object.assign(ring, { depthAxis: made[1].depthAxis, widthAxis: made[1].widthAxis, ...(index === 0 ? { center: vec.add(made[1].center, vec.scale(up, -over.lace * L.thigh)), depth: made[1].depth * 1.03, width: made[1].width * 1.03 } : { center: made[1].center, depth: made[1].depth, width: made[1].width }) });
+      loft(mesh, edge, gownSides, { color: 'trim2', inflate: 1.225, capStart: false, capEnd: false, bones: () => hanging3, shape: (ring, angle) => drape(ring, angle) * (ring === edge[0] ? 1 + 0.012 * Math.cos(angle * 40) : 1), ...laceUv(edge, 1.2) });
+    }
   }
   if (bottom?.kind === 'loincloth') loft(mesh, skirtRings(skirtTo(0.22), count(2), 0.5), sides, { color: 'kit', inflate: 1.16, capStart: false, capEnd: false, bones: () => hanging3 });
   // The balteus: a gladiator's broad bronze belt.
@@ -4798,7 +5440,33 @@ export function* buildLoftBodySteps(body, { faceted = false, lowDetail = false, 
     // through the gambeson's in teeth. In front it goes on up, under the coat's opening and the gorget.)
     const coatTop = Math.max(-Infinity, ...armorPieces(kit, 'trunk', 'l').map(([, to]) => to));
     const behind = coatTop >= LOFT.closedJoint.top.trunk && coatTop < topShape.neck && !lowDetail ? { holes: (t, angle) => t > coatTop && Math.cos(angle) < 0 } : {};
-    loft(mesh, trunkRings(topShape.hem, topShape.neck, count(Math.max(4, Math.round(14 * (topShape.neck - topShape.hem))))), trunkSides, { color: topPattern, inflate: topShape.loose, capStart: false, capEnd: false, bones: abdomen, ...bendTrunk, ...behind });
+    const topRings = trunkRings(topShape.hem, topShape.neck, count(Math.max(4, Math.round(14 * (topShape.neck - topShape.hem)))));
+    const topPiece = notedPiece(mesh, topRings, (rings) => {
+      loft(mesh, rings, trunkSides, { color: topPattern, inflate: topShape.loose, capStart: false, capEnd: false, bones: abdomen, ...bendTrunk, ...behind });
+    });
+    mesh.topPiece = topPiece;
+    // A bertha: a deep band of lace round an off-the-shoulder neckline. A jabot: frills of lace down the chest (not in a crowd).
+    if (topShape.bertha) {
+      const bertha = trunkRings(topShape.bertha[0], topShape.bertha[1], count(3));
+      loft(mesh, bertha, trunkSides * (lowDetail ? 1 : 2), { color: 'trim', inflate: topShape.loose + 0.05, shape: (ring, angle) => 1 + 0.02 * (ring === bertha[0] ? 1 : 0) * Math.cos(angle * 24), capStart: false, capEnd: false, bones: abdomen, ...laceUv(bertha, topShape.loose + 0.05) });
+    }
+    if (topShape.jabot && !lowDetail) jabotOn(mesh, topRings, topShape.loose, topShape.jabot, abdomen, DETAIL_MAPS.on);
+    // A wrapped robe's collar bands and the under-robe in its opening (not in a crowd, nor under armour, where they are not seen).
+    if (topShape.collar && !lowDetail && !armoured) wrappedCollarOn(mesh, topPiece, topShape.collar, { neckR, role: 'trim', inner: 'shirt' }, abdomen);
+    // Over long hakama, their koshi-ita: a board in the cloth, one stiff body on the small of the back above the cords.
+    if (bottom?.kind === 'hakama' && bottom.long && !skirted && !lowDetail && !armoured) {
+      const { cords, board } = LOFT.hakama;
+      const height = (t) => inPiece(topPiece, ringAt(topPiece.rings, placeAt(topPiece.rings, t)).center)[0];
+      const [foot, head] = [height(cords[0] + 0.02), height(board.top)];
+      mesh.body = stiffBody(mesh, 'plate');
+      // (Over the cords and the hakama's own top behind, not the robe alone.)
+      decalOn(mesh, { ...topPiece, joined: [mesh.hakamaWaist] }, () => Array.from({ length: 4 }, (_, row) => Array.from({ length: 7 }, (_, column) => [foot + ((head - foot) * row) / 3, (column / 3 - 1) * (board.foot + ((board.head - board.foot) * row) / 3)])), board.lift, 'kit', abdomen, { facing: -1, taut: true });
+      mesh.body = 0;
+    }
+    // A kataginu over it (`top.kataginu`: the kamishimo, of the hakama's own cloth).
+    if (top.kataginu && topShape.collar && !lowDetail && !armoured) {
+      kataginuOn(mesh, topPiece, { ...LOFT.kataginu }, { shoulders: [at('lShoulder'), at('rShoulder')], armR: seg.lUpperArm.skinRadius, neckLeft: topShape.collar.side * neckR + topShape.collar.wide * 0.55, waistT: LOFT.hakama.cords[0] + 0.03, role: 'kit' }, abdomen);
+    }
     if (topShape.ribbed) loft(mesh, trunkRings(topShape.hem, topShape.hem + 0.06, 1), trunkSides, { color: 'trim', inflate: topShape.loose + 0.012, capStart: false, capEnd: false, bones: abdomen, ...bendTrunk });
   }
   if (armor) {
@@ -4831,7 +5499,8 @@ export function* buildLoftBodySteps(body, { faceted = false, lowDetail = false, 
   // A field per pale is drawn sharp down the middle (paleOn), except in a crowd; a device over it (chargeOn) likewise.
   const sharpPale = (paint) => paint?.heraldry && armor?.heraldry === 'pale' && !lowDetail;
   for (const [from, to, inflate, paint] of armorPieces(kit, 'trunk', 'l')) {
-    const rings = (kit.straight ? straightRings : trunkRings)(from, to, count(Math.max(4, Math.round(14 * (to - from)))));
+    // (A boned piece is cut close and curved all the way up: LOFT.boned.rings times the rings.)
+    const rings = (kit.straight ? straightRings : trunkRings)(from, to, count(Math.max(4, Math.round(14 * (paint?.boning && !lowDetail ? LOFT.boned.rings : 1) * (to - from)))));
     // A kit's steel breastplate (rigidBreastplate) is ridged, its borders roped.
     const ridgedPiece = kit?.rigidBreastplate && paint === 'steel';
     tablePiece(rings, inflate, ridgedPiece ? (ring, angle, index, step) => roped(ring, step) ?? 'steel' : sharpPale(paint) ? 'cloth' : paint, abdomen, ridgedPiece ? ridgedPlate : null, 'trunk', pieceMaterial(paint));
@@ -4923,7 +5592,7 @@ export function* buildLoftBodySteps(body, { faceted = false, lowDetail = false, 
   // A collar up the neck: plate's gorget, or heavy riot armour's padded collar.
   // The riot collar starts lower and flares out over the trapezius, so no skin shows between it and the vest.
   // Plate's gorget flares down over the tops of the breast and back plates, closing the gap between them and the helmet.
-  // (A collar worn under a coat to the neck, the rōnin's manchira under his kosode, `underCoat`, starts on the neck itself,
+  // (A collar worn under a coat to the neck, a mail bib under a robe, `underCoat`, starts on the neck itself,
   // LOFT.collarUnder: from below the neck's foot it was fitted as the trunk's outermost piece, over the trapezius and down the
   // back, and showed there through the coat as a tongue of mail between the coat's collar edges.)
   const underCoat = Boolean(kit?.collar) && !kit.trunk && !plate && !lamellar && Boolean(topShape) && !topShape.torn && topShape.neck >= LOFT.closedJoint.top.trunk;
@@ -4939,6 +5608,11 @@ export function* buildLoftBodySteps(body, { faceted = false, lowDetail = false, 
     if (kit?.collar) for (const ring of collarRings) ring.collar = true;
     loft(mesh, collarRings, sides, { color: kit?.collar ? paintFor(kit.collar, armor) : plate ? 'steel' : 'armor', capStart: false, capEnd: false, ...mailMaps });
     if (plate && brassStrips) gorgetBorder(mesh, collarRings);
+  }
+  // A bodice's standing collar (TOPS `collar`): a band of lace close up the neck, its top edge turned out a little.
+  if (topShape?.standCollar) {
+    const band = tagged('neck', along(at('neck'), at('head'), forward, count(3), -0.14, topShape.standCollar, (t) => neckR * neckGirth * (1.03 + 0.05 * Math.max(0, t / topShape.standCollar) ** 4), (t) => neckR * 1.05 * neckGirth * (1.03 + 0.05 * Math.max(0, t / topShape.standCollar) ** 4)));
+    loft(mesh, band, sides, { color: 'trim', capStart: false, capEnd: false, ...laceUv(band, 1) });
   }
   // (Stiff as its paint is: one plate, or rows where it is painted in rows of plates and lacing.)
   const armorPiece = (rings, inflate, role = plate ? 'steel' : 'armor') => loft(mesh, stiffen(mesh, rings, typeof role === 'function' ? 'rows' : stiffnessOf(role)), sides, { color: role, inflate, capStart: false, capEnd: false });
@@ -5016,8 +5690,34 @@ export function* buildLoftBodySteps(body, { faceted = false, lowDetail = false, 
         const mouth = hang ? shape.sleeveLoose : shape.sleeveLoose * shape.sleeveFlare;
         // (The bag drawn on twice the sides round, so its lobe below the arm is a rounded fold, not two flat faces and a corner.)
         const round = hang && !lowDetail ? sides * 2 : sides;
-        loft(mesh, bagged(widened(upper, 1.1, mid), 0, hang), round, { color: pattern, ...FLARED });
-        loft(mesh, bagged(widened(forearmRings(0.05, shape.sleeve - 1, count(4)), mid, mouth, hang ? 0 : elbow), hang, hang), round, { color: pattern, ...FLARED, capEnd: hang > 0 });
+        const bag = bagged(widened(upper, hang ? Math.min(1.1, mid) : 1.1, mid), 0, hang);
+        // (The bag at its full depth from near the armpit: `sleeveHangFrom`.)
+        if (hang && shape.sleeveHangFrom) for (const ring of bag) {
+          const share = Math.max(0, Math.min(1, (ring.t - shape.sleeveHangFrom[0]) / (shape.sleeveHangFrom[1] - shape.sleeveHangFrom[0])));
+          ring.hang = hang * share * share * (3 - 2 * share);
+        }
+        const fore = bagged(widened(forearmRings(0.05, shape.sleeve - 1, count(4)), mid, mouth, hang ? 0 : elbow), hang, hang);
+        // (The bag falls to the low side of the arm, each part by its own bone's turn: fallOf.)
+        if (hang) for (const [rings, bone] of [[bag, BONE[`${side}UpperArm`]], [fore, BONE[`${side}Forearm`]]]) for (const ring of rings) ring.fall = bone;
+        const corner = mesh.indices.length;
+        loft(mesh, bag, round, { color: pattern, ...FLARED });
+        // (What is laid on the robe's trunk lies over the sleeve's head too: pieceFace.)
+        if (role === 'top' && mesh.topPiece) (mesh.topPiece.joined ??= []).push([corner, mesh.indices.length]);
+        loft(mesh, fore, round, { color: pattern, ...FLARED, capEnd: hang > 0 });
+        return;
+      }
+      // A puffed sleeve (TOPS `puff`): gathered into the armhole, swelling to its fullest at `at` and gathered in again by `to`,
+      // the gathers folds round it, deepest where it is fullest; below that the sleeve is close (a gigot's forearm).
+      if (shape.puff) {
+        const { out, at: fullest, to, gathers } = shape.puff;
+        const ease = (x) => Math.max(0, Math.min(1, x)) ** 2 * (3 - 2 * Math.max(0, Math.min(1, x)));
+        const swell = (t) => (t <= fullest ? ease((t + 0.3) / (fullest + 0.3)) : 1 - ease((t - fullest) / (to - fullest)));
+        const upper = upperArmRings(-0.3, shape.sleeve > 1 ? 1.05 : shape.sleeve, count(shape.sleeve > 1 ? 12 : 6));
+        for (const ring of upper) Object.assign(ring, { flare: shape.sleeveLoose * (1 + (out - 1) * swell(ring.t)), swell: swell(ring.t) });
+        loft(mesh, upper, lowDetail ? sides : sides * 2, { color: pattern, ...FLARED, shape: (ring, angle) => ring.flare * (1 + 0.04 * ring.swell * Math.cos(angle * gathers)) });
+        if (shape.sleeve > 1) loft(mesh, forearmRings(-0.06, shape.sleeve - 1, count(5)), sides, { color: pattern, inflate: shape.sleeveLoose, capStart: false, capEnd: false });
+        // (A short puff's band: the sleeve gathered into a band of the trim round the arm.)
+        else loft(mesh, upperArmRings(shape.sleeve - 0.05, shape.sleeve + 0.02, 1), sides, { color: 'trim', inflate: shape.sleeveLoose + 0.03, capStart: false, capEnd: false });
         return;
       }
       // (Under a harness's pauldron the sleeve's head ends inside the cap, not above it.)
@@ -5102,8 +5802,14 @@ export function* buildLoftBodySteps(body, { faceted = false, lowDetail = false, 
     if (bottom?.under) loft(mesh, thighRings(-0.05, 0.4, count(3)), sides, { color: 'under', inflate: 1.05, capStart: false, capEnd: false, ...bendThigh });
     // (Rags: a plain coarse tube down the thigh, LOFT.rags.)
     const ragLeg = bottom?.kind === 'ragTrousers' ? LOFT.rags : null;
-    if (longHakama && !skirted) loft(mesh, pleated(widened(thighRings(-0.05, 1.04, count(9)), legLoose, LOFT.hakama.knee, thighR * 0.8), LOFT.hakama.pleats, LOFT.hakama.fold), sides, { color: legPattern, ...FLARED });
+    // (Long hakama: a straight cut from the hip to the knee, LOFT.hakama, on twice the sides for its pleats.)
+    const hakamaLeg = (rings, from, to) => flattened(pleated(widened(rings, from, to, thighR * 1.2), LOFT.hakama.pleats[side === 'r' ? 0 : 1], LOFT.hakama.fold, side === 'r' ? 1 : -1), LOFT.hakama.flat);
+    const hakamaSides = lowDetail ? sides : sides * 2;
+    if (longHakama && !skirted) loft(mesh, hakamaLeg(thighRings(-0.05, 1.04, count(9)), LOFT.hakama.hip / 1.2, LOFT.hakama.knee / 1.2), hakamaSides, { color: legPattern, ...FLARED });
     else if (legReach[0] > 0 && !skirted) loft(mesh, thighRings(-0.05, legReach[0], ragLeg ? ragLeg.thigh : count(Math.max(3, Math.round(9 * legReach[0])))), ragLeg ? ragLeg.sides : sides, { color: legPattern, inflate: legLoose, capStart: false, capEnd: false, ...bendThigh });
+    // Under a fine gown, drawers of the skirt's own colour over the top of the thigh: where the thigh's top stands out of a
+    // skirt snug over the hips, it is cloth that shows there and not skin.
+    if (bottom?.kind === 'gown' && LOFT.gowns[bottom.shape ?? 'crinoline'].sides && !lowDetail) loft(mesh, thighRings(-0.05, 0.3, count(3)), sides, { color: 'kit', inflate: 1.05, capStart: false, capEnd: false, ...bendThigh });
     // Hakama (the hitatare's trousers): full, bloused out at the knee where they are tied over the shin guards.
     if (bottom?.kind === 'hakama' && !skirted && !longHakama) loft(mesh, thighRings(0.72, 1.06, count(3)), sides, { color: 'kit', inflate: 1.48, capStart: false, capEnd: false });
     // Bloomers end in a lace frill round the thigh.
@@ -5143,9 +5849,9 @@ export function* buildLoftBodySteps(body, { faceted = false, lowDetail = false, 
       const ragged = ragLeg ? { holes: (t, angle) => ragHemTorn(ragTear(body.inputs.outfit), side, t, angle) } : {};
       // (On the base mesh tagged as the shin's, so the skin a closed trouser leg covers is left out, as under the shorts.)
       const straight = along(knee, foot, frames[BONE[`${side}Shin`]].x, ragLeg ? ragLeg.shin : count(8), longHakama ? -0.1 : -0.14, legReach[1], () => shankR * 1.12, () => shankR * 1.1);
-      // (Long hakama: from just inside the leg's own breadth at the knee, fuller to the hem.)
-      const trouserRings = longHakama ? pleated(widened(straight, 0.97, LOFT.hakama.hem, thighR * 0.8 * LOFT.hakama.knee), LOFT.hakama.pleats, LOFT.hakama.fold) : straight;
-      if (longHakama) loft(mesh, base ? tagged(`${side}Shin`, trouserRings) : trouserRings, sides, { color: legPattern, ...FLARED });
+      // (Long hakama: on from the knee's breadth, a hair inside it, to the hem.)
+      const trouserRings = longHakama ? hakamaLeg(straight, (LOFT.hakama.knee / 1.2) * 0.985, LOFT.hakama.hem / 1.2) : straight;
+      if (longHakama) loft(mesh, base ? tagged(`${side}Shin`, trouserRings) : trouserRings, hakamaSides, { color: legPattern, ...FLARED });
       else loft(mesh, base ? tagged(`${side}Shin`, trouserRings) : trouserRings, ragLeg ? ragLeg.sides : sides, { color: legPattern, inflate: bottom.kind === 'tights' ? 1.0 : gathered ? 1.12 : ragLeg ? ragLeg.shinLoose : bottom.kind === 'bunker' ? 1.32 : 1.22, capStart: false, capEnd: false, ...ragged });
       if (gathered) loft(mesh, shinRings(legReach[1] - 0.08, legReach[1], 1), sides, { color: 'trim2', inflate: 1.15, capStart: false, capEnd: false });
     }
@@ -5177,6 +5883,7 @@ export function* buildLoftBodySteps(body, { faceted = false, lowDetail = false, 
     addBaseSkin(mesh, baseRig, baseParts, baseTraits, textured, body.heightM, baseStarvation(body), baseJoints, lowDetail ? null : rulesTraits(body), baseWasting(body), lowDetail ? 0 : baseNeckGirth(body), lowDetail || !BASE_BODY.family.use ? null : baseFamilyWeights(body, baseRig.height), baseBreadth.across);
     fitClothToBase(mesh, baseParts, armoured);
     ridePieces(mesh);
+    relayDecals(mesh);
     capsFollow(mesh);
     clearBoards(mesh);
   }
@@ -5263,6 +5970,24 @@ export function* buildLoftBodySteps(body, { faceted = false, lowDetail = false, 
   }
   // How loose the cloth hangs, point by point (measured while the skin under it is still here); not on a crowd's body.
   let sway = lowDetail ? null : looseness(positionArray, colors, stiff, uvs);
+  // What a boned piece holds (a corset): the cloth worn on the same part within its span, under it or over it (a bodice's
+  // foot, a skirt's band), is laced down with it and hangs no looser than it does: not at all.
+  if (sway && mesh.ringOf && !faceted) {
+    const boned = [...new Set(mesh.ringOf.values())].filter((ring) => ring.kind === 'boned').sort((a, b) => a.t - b.t);
+    if (boned.length > 1) {
+      const foot = boned[0].center;
+      const span = vec.sub(boned.at(-1).center, foot);
+      const length = vec.length(span);
+      for (const [vertex, ring] of mesh.ringOf) {
+        if (ring.kind === 'boned' || !sway[vertex]) continue;
+        const rel = vec.sub(ring.center, foot);
+        const along = vec.dot(rel, span) / (length * length);
+        if (along >= 0 && along <= 1 && vec.length(vec.sub(rel, vec.scale(span, along))) < LOFT.boned.holds) sway[vertex] = 0;
+      }
+    }
+  }
+  // (And the hung bags' fall: not on a faceted body, whose points are its faces' own.)
+  let fall = lowDetail || faceted ? null : fallOf(mesh, positionArray);
   // Under armour (`hideCovered`): the skin the pieces cover is left out (every triangle of it), and the points no triangle uses.
   let hidden = 0;
   if (hideCovered && covered) {
@@ -5331,7 +6056,10 @@ export function* buildLoftBodySteps(body, { faceted = false, lowDetail = false, 
       bones = Array.from(order, (from) => bones[from]);
       stiff = Array.from(order, (from) => stiff[from]);
       if (sway) sway = pick(sway, 1);
+      if (fall) fall = { off: pick(fall.off, 4), way: pick(fall.way, 4) };
       if (heat) heat = Array.from(order, (from) => heat[from]);
+      // (And the points laid on cloth, with the points of the faces they lie on: decalsFollow.)
+      if (mesh.decalHosts) mesh.decalHosts = new Map([...mesh.decalHosts].map(([vertex, host]) => [used[vertex], host.map(([other, share]) => [used[other], share])]).filter(([vertex, host]) => vertex >= 0 && host.every(([other]) => other >= 0)));
       indexArray = Uint32Array.from(kept, (vertex) => used[vertex]);
     }
   }
@@ -5359,6 +6087,7 @@ export function* buildLoftBodySteps(body, { faceted = false, lowDetail = false, 
   // (Rows and a coat's rings take the cloth's weights first, as what is under them does, and are made hoops of afterwards.)
   if (heat) baseHeatWeights(weights, heat, weightPositions, frames, bones.map((list, vertex) => list === chestOnly || ['plate', 'hung'].includes(mesh.kinds.get(stiff[vertex]))));
   else if (baseRig) blendShoulders(weights, weightPositions, frames, baseParts);
+  if (!faceted) decalsFollow(mesh, weights, sway, stiff);
   stiffWeights(weights, stiff, mesh.kinds);
   // The base mesh's fat masses that follow the frame (fatslosh.js): an overweight trunk and up, not in a crowd; each point by the
   // share the trunk's bones carry of it (an arm or a thigh lying against the belly or a breast is not moved with it), not a rigid plate.
@@ -5373,6 +6102,7 @@ export function* buildLoftBodySteps(body, { faceted = false, lowDetail = false, 
     // (A base-mesh body, not a crowd's, is drawn skinned by dual quaternions: render.js SKIN_DQ, dqskin.js.)
     ...(baseRig && !lowDetail ? { dualQuaternion: true } : {}),
     ...(sway ? { sway } : {}),
+    ...(fall ? { fall } : {}),
   };
 }
 

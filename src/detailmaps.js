@@ -92,6 +92,11 @@ export const DETAIL_ARMOUR = {
   // fluted shaffron, https://www.metmuseum.org/art/collection/search/27175; the KHM Vienna's fluted bards). The fluted bard's
   // field (horsebard.js); the flutes run up the tile.
   fluted: { band: 1800, tile: 0.06 },
+  // Fabric drawn in code (drawntiles.js; `drawn`), not metal (`fabric`: render.js draws it as cloth, its fittings alone metal).
+  // A corset's satin over its bones: the whole piece unrolled in one picture (`whole`: once round, foot to top; wholeUv),
+  // its eyelets in the kit's gilt and its lace in the kit's lace (`masks`). Lace: a repeating tile.
+  corsetSatin: { band: 2000, tile: [0.74, 0.33], drawn: true, fabric: true, whole: true, masks: 'fittings' },
+  lace: { band: 2100, tile: 0.06, drawn: true, fabric: true },
 };
 const DETAIL_BANDS = Object.fromEntries(Object.entries(DETAIL_ARMOUR).map(([kind, spec]) => [spec.band, kind]));
 
@@ -114,7 +119,7 @@ export const isLacedTile = (kind) => Boolean(DETAIL_ARMOUR[kind]?.columns);
 // moulded shell in the kit's colour, `pad` a modern kit's hard pad, `scales` scales (or plates hung point down), `lamellae`
 // laced plates, `kozane` Japanese laced rows, `studded` cloth over riveted plates, `mail`. A key `slot.material`
 // (`trunk.steel`) is that piece only. Anything not listed: DEFAULT_TILES. Helmets and machines: HELMET_TILES, MACHINE_TILES.
-const DEFAULT_TILES = { steel: 'plate', mail: 'mail', lamellae: 'lamellae', kozane: 'kozane', scales: 'scale', studded: 'brigandine' };
+const DEFAULT_TILES = { steel: 'plate', mail: 'mail', lamellae: 'lamellae', kozane: 'kozane', scales: 'scale', studded: 'brigandine', boned: 'corsetSatin' };
 export const ARMOUR_TILES = {
   segmentata: { steel: 'segmentata' },
   // Han lamellar (the small laced plates of the Han tomb figures), painted as rows of scales: lamellae.
@@ -145,8 +150,6 @@ export const ARMOUR_TILES = {
   toseiDo: { 'trunk.steel': 'yokohagi', kozane: 'sugake' },
   // The nanban dō: the European breastplate plain hammered steel, its kusazuri and sleeves in sugake as the tōsei's.
   nanbanDo: { 'trunk.steel': 'munitionPlate', kozane: 'sugake' },
-  // The rōnin's kusari-kote: a splint of munition iron along each forearm.
-  roninDo: { 'forearm.steel': 'munitionPlate' },
   okegawa: { armor: 'yokohagi', kozane: 'sugake' },
   riot: { armor: 'polymer', pad: 'polymer' },
   heavyRiot: { armor: 'polymer', pad: 'polymer' },
@@ -169,7 +172,7 @@ export const ARMOUR_EDGES = {
 export const ARMOUR_COVERAGE = {
   heavyRiot: ['polymer'], riot: ['polymer'], patrolVest: null, plateCarrier: null,
   plate: ['plate', 'fluted', 'harnessEdge'], templar: ['mail', 'plate'], brigandine: ['euroBrigandine', 'munitionPlate', 'harnessEdge'], haubergeon: ['mail'], breastplate: ['munitionPlate', 'harnessEdge'],
-  lamellar: ['kozane', 'plate'], oyoroi: ['kozane', 'mail', 'plate'], toseiDo: ['yokohagi', 'sugake', 'plate'], nanbanDo: ['munitionPlate', 'sugake', 'mail', 'plate'], okegawa: ['yokohagi', 'sugake', 'plate'], roninDo: ['mail', 'munitionPlate'],
+  lamellar: ['kozane', 'plate'], oyoroi: ['kozane', 'mail', 'plate'], toseiDo: ['yokohagi', 'sugake', 'plate'], nanbanDo: ['munitionPlate', 'sugake', 'mail', 'plate'], okegawa: ['yokohagi', 'sugake', 'plate'],
   doMaru: ['kozane'], doMaruSode: ['kozane'],
   // The arena's: their greaves and manicae (their helmets are drawn their own way).
   hoplomachus: ['plate'], murmillo: ['plate'], secutor: ['plate'], retiarius: ['plate'], thraex: ['plate'], maximus: null, commodus: null, scissor: ['scale', 'plate'],
@@ -181,7 +184,7 @@ export const ARMOUR_COVERAGE = {
   mongolDeel: null, mongolLamellar: ['lamellae'], mongolIron: ['lamellae', 'plate'], kheshig: ['scale', 'plate'], girdle: null,
   cataphract: ['scale', 'plate'], deel: null, dolama: null, krug: ['krug', 'mail', 'plate'], krugDisc: ['mail', 'plate'], bekhter: ['mail', 'plate'], cumanMail: ['mail', 'plate'], mailMirror: ['mail', 'plate'], kazaghand: ['mail', 'plate'],
   conquistador: ['etched', 'mail', 'plate'], escaupil: null, ichcahuipilli: null, jaguarSuit: null, featherSuit: null,
-  uncu: null, uncuChecks: null, uncuTocapu: null, uncuRoyal: null, corset: null, overbust: null, overbustSleeved: null,
+  uncu: null, uncuChecks: null, uncuTocapu: null, uncuRoyal: null, corset: ['corsetSatin', 'plate', 'lace'], overbust: ['corsetSatin', 'plate', 'lace'], overbustSleeved: ['corsetSatin', 'plate', 'lace'],
   silverback: null, robot: ['panels'],
 };
 
@@ -196,6 +199,8 @@ export function pieceMaterial(paint) {
   if (paint.kozane) return 'kozane';
   if (paint.studded || (paint.rivets && paint.base === 'cloth')) return 'studded';
   if (paint.lames) return 'steel';
+  // Cloth over bones (a corset: whalebone or steel in stitched channels).
+  if (paint.boning) return 'boned';
   const roles = [...(paint.rows ?? []), ...(paint.base ? [paint.base] : []), ...(paint.mon ? [paint.mon[2]] : [])];
   if (!roles.length) return null;
   // (Plates set in mail, rows of each, are steel: the mail and plate tile has both.)
@@ -265,6 +270,17 @@ export function tileUv(rings, inflate, kind = 'mail') {
   const across = Math.max(1, Math.round(girth / round));
   const at = new Map(rings.map((ring, index) => [ring, along[index]]));
   return (ring, share) => [band + share * across, (rising ? at.get(ring) ?? 0 : length - (at.get(ring) ?? 0)) / up];
+}
+
+/**
+ * A whole-piece tile's coordinates over a run of rings (DETAIL_ARMOUR `whole`: the picture is the piece unrolled): once round
+ * from the front's middle, 0 at the run's foot to 1 at its top.
+ */
+export function wholeUv(rings, inflate, kind) {
+  const { band } = DETAIL_ARMOUR[kind];
+  const { along, length, rising } = measureRings(rings, inflate);
+  const at = new Map(rings.map((ring, index) => [ring, along[index]]));
+  return (ring, share) => [band + share, (rising ? at.get(ring) ?? 0 : length - (at.get(ring) ?? 0)) / (length || 1)];
 }
 
 /**
@@ -426,6 +442,8 @@ export const CLOTH_MATERIALS = {
   // Brushed fleece (a hoodie, joggers) and rib (cuffs, socks, a waistband).
   fleece: { family: 'knit', scale: 1.35 },
   rib: { family: 'knit', scale: 0.8 },
+  // Silk satin: no figure and no weave to see, drawn smooth as `none` is (a design's own `stuff` names it).
+  satin: null,
   // Smooth: polyester satin (boxing trunks, Muay Thai shorts), sheer lace, lacquer, plastic, skin, metal.
   none: null,
 };
@@ -439,7 +457,7 @@ export const CLOTH_MATERIALS = {
 export const CLOTH_GARMENTS = {
   top: {
     sportsBra: 'jersey', tank: 'jersey', tee: 'jersey', longsleeve: 'linen', compression: 'jersey', jacket: 'ripstop', hoodie: 'fleece',
-    puffer: 'ripstop', flannel: 'flannel', suit: 'worsted', waistcoat: 'worsted', aloha: 'cotton', haramaki: 'rib', bodice: 'silk',
+    puffer: 'ripstop', flannel: 'flannel', suit: 'worsted', waistcoat: 'worsted', aloha: 'cotton', haramaki: 'rib', bodice: 'silk', basque: 'silk', gigot: 'broadcloth',
     kosode: 'cotton', tunic: 'woolTabby', rags: 'hemp', turnout: 'aluminized',
   },
   bottom: {
@@ -456,7 +474,6 @@ export const CLOTH_GARMENTS = {
     // Japan: lacquered iron and kozane are metal (the armour tiles), laced in silk braid; the ō-yoroi's brocade sleeve.
     toseiDo: { '*': 'none', lace: 'silk' },
     nanbanDo: { '*': 'none', lace: 'silk' },
-    roninDo: { '*': 'none', lace: 'silk', cloth: 'cotton', cloth2: 'cotton' },
     okegawa: { '*': 'none', lace: 'silk' },
     doMaru: { '*': 'none', lace: 'silk' },
     doMaruSode: { '*': 'none', lace: 'silk' },
@@ -551,7 +568,7 @@ export const CLOTH_GARMENTS = {
     gorillaHead: 'fur', greatHelm: 'none', guanYuCap: 'cloudSilk', hachimaki: 'cotton', hanHelm: 'none', jaguarHelm: 'pelt', jingasa: 'none',
     kabuto: 'none', katozukin: 'cotton', kettleHat: 'none', lionHead: 'fur', llautu: 'camelid', loovuuz: 'fur', mingHat: 'none',
     mingHelm: 'none', qingHelm: 'none', montefortino: 'none', morion: 'none', opsHelmet: 'cordura', pagodaHelm: 'none', policeCap: 'worsted', potHelmet: 'none',
-    ridgeHelm: 'none', riotHelmet: 'none', robotHead: 'none', spangenhelm: 'none', stechhelm: 'none', steppeHelm: 'none', tiltHat: 'felt',
+    ridgeHelm: 'none', riotHelmet: 'none', robotHead: 'none', spangenhelm: 'none', stechhelm: 'none', steppeHelm: 'none', tiltHat: 'felt', plumeHat: 'felt',
     topHat: 'felt', turban: 'cotton', widowCap: 'cotton', proximityHood: 'aluminized',
     // The primates' heads are their coats.
     macaqueHead: 'fur', baboonHead: 'fur', chimpHead: 'fur',
@@ -634,6 +651,8 @@ export function clothMaterialOf(look, role, { faction = null, outfit = null } = 
   if (source in CLOTH_MATERIALS) return source;
   const kind = look?.[source]?.kind;
   if (!kind) return source === 'feet' ? 'leather' : 'cotton';
+  // (A design may name its garment's own stuff, `stuff`: one gown of satin where the kind's is figured silk.)
+  if (look[source].stuff) return look[source].stuff;
   const key = `${source}.${kind}`;
   return CLOTH_BY_OUTFIT[outfit]?.[key] ?? CLOTH_BY_FACTION[faction]?.[key] ?? CLOTH_GARMENTS[source][kind];
 }

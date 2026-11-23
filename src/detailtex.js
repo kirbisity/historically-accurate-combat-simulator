@@ -10,6 +10,7 @@
 import { DETAIL_MAP_DATA } from './detailmaps-data.js';
 import { CLOTH_BAND, DETAIL_ARMOUR, DETAIL_MAPS, clothFamilyOf, tileSize } from './detailmaps.js';
 import { CLOTH_MAP_DATA } from './clothmaps-data.js';
+import { DRAWN_TILES } from './drawntiles.js';
 
 const detailTextureCache = new Map();
 /** What the GPU holds of the tiles in use (bytes, RGBA8 with mipmaps), by tile. */
@@ -31,6 +32,7 @@ function standIn(rgba) {
  * maps are off or there is no such tile (or no browser: the tests).
  */
 export function bakedTileTextures(name) {
+  if (DETAIL_MAPS.on && !DETAIL_MAP_DATA[name] && DRAWN_TILES[name]) return drawnTileTextures(name);
   if (!DETAIL_MAPS.on || !DETAIL_MAP_DATA[name] || typeof THREE === 'undefined' || typeof Image === 'undefined' || typeof document === 'undefined') return null;
   let entry = detailTextureCache.get(name);
   if (entry) return entry;
@@ -56,6 +58,26 @@ export function bakedTileTextures(name) {
   entry.map = make('albedo', [...mean, ground ? 230 : 0]);
   entry.normalMap = make('normal', [128, 128, 255, ground ? 128 : 0]);
   if (data.orm) entry.ormMap = make('orm', [255, 120, 255, 255], 0.5);
+  detailTextureCache.set(name, entry);
+  return entry;
+}
+
+/**
+ * A tile drawn in code (drawntiles.js): its textures as a baked tile's ({ map, normalMap, ormMap, size }), drawn the first time
+ * something wears it and shared after; null with no browser (the tests).
+ */
+function drawnTileTextures(name) {
+  if (typeof THREE === 'undefined' || typeof document === 'undefined') return null;
+  let entry = detailTextureCache.get(name);
+  if (entry) return entry;
+  const drawn = DRAWN_TILES[name]();
+  const make = (bytes) => {
+    const texture = new THREE.DataTexture(new Uint8Array(bytes.buffer), drawn.width, drawn.height, THREE.RGBAFormat);
+    Object.assign(texture, { wrapS: THREE.RepeatWrapping, wrapT: THREE.RepeatWrapping, magFilter: THREE.LinearFilter, minFilter: THREE.LinearMipmapLinearFilter, generateMipmaps: true, anisotropy: 8, needsUpdate: true });
+    return texture;
+  };
+  entry = { kind: 'drawn', size: [drawn.width, drawn.height], metres: null, map: make(drawn.albedo), normalMap: make(drawn.normal), ormMap: make(drawn.orm) };
+  DETAIL_MAP_MEMORY[name] = Math.round(drawn.width * drawn.height * 4 * 3 * 4 / 3);
   detailTextureCache.set(name, entry);
   return entry;
 }

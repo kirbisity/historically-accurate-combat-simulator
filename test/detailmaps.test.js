@@ -185,7 +185,8 @@ test('every armour kind in the outfits says what hard surface it has: tiles that
   }
   for (const kind of kinds) {
     assert.ok(kind in ARMOUR_COVERAGE, `${kind} has no entry in ARMOUR_COVERAGE`);
-    for (const tile of ARMOUR_COVERAGE[kind] ?? []) assert.ok(DETAIL_ARMOUR[tile] && DETAIL_MAP_DATA[tile], `${kind}: ${tile}`);
+    // (A tile is baked, or drawn in code: drawntiles.js.)
+    for (const tile of ARMOUR_COVERAGE[kind] ?? []) assert.ok(DETAIL_ARMOUR[tile] && (DETAIL_MAP_DATA[tile] || DETAIL_ARMOUR[tile].drawn), `${kind}: ${tile}`);
   }
   for (const head of heads) if (HELMET_TILES[head]) assert.ok(DETAIL_MAP_DATA[HELMET_TILES[head]], head);
 });
@@ -226,4 +227,24 @@ test('the foot soldier\'s plate is munition plate with turned edges; the Ming co
   const { tile } = DETAIL_ARMOUR.munitionPlate;
   assert.ok(tile > 0.1 && tile < 0.25, 'a field a hand and a half across');
   assert.deepEqual(DETAIL_ARMOUR.bifu.tile, [0.08, 0.15], 'two rivets 40 mm apart round, four 37.5 mm lames up');
+});
+
+test('the tiles drawn in code: a corset\'s satin and lace, their maps whole and the corset\'s lacing and eyelets behind', async () => {
+  const { DRAWN_TILES, CORSET_SATIN, corsetSeams } = await import('../src/drawntiles.js');
+  for (const [name, spec] of Object.entries(DETAIL_ARMOUR)) assert.equal(Boolean(spec.drawn), name in DRAWN_TILES, `${name}: drawn in code or baked, not both`);
+  const satin = DRAWN_TILES.corsetSatin(512, 128);
+  for (const key of ['albedo', 'normal', 'orm']) assert.equal(satin[key].length, 512 * 128 * 4);
+  // The lace (the normal map's alpha) and the eyelets (the albedo's, and metal) lie behind, half way round, and nowhere in front.
+  const column = (bytes, x, channel) => Array.from({ length: 128 }, (_, y) => bytes[(y * 512 + x) * 4 + channel]).reduce((sum, value) => sum + value, 0);
+  assert.ok(column(satin.normal, 256, 3) > 0, 'the lace crosses the gap behind');
+  assert.equal(column(satin.normal, 10, 3), 0, 'no lace in front');
+  const eyelet = Math.round(((CORSET_SATIN.girth / 2 + CORSET_SATIN.eyeletAt) / CORSET_SATIN.girth) * 512);
+  assert.ok(column(satin.orm, eyelet, 2) > 0, 'metal eyelets beside the gap');
+  assert.equal(column(satin.orm, 100, 2), 0, 'the satin is not metal');
+  assert.equal(corsetSeams().length, CORSET_SATIN.panels - 1);
+  // A boned piece is cut as its own kind, stiff, and wears the satin.
+  const { stiffnessOf } = await import('../src/loftbody.js');
+  const { pieceMaterial, armourTileOf } = await import('../src/detailmaps.js');
+  assert.equal(stiffnessOf({ boning: true }), 'boned');
+  assert.equal(armourTileOf('corset', pieceMaterial({ boning: true }), 'trunk'), 'corsetSatin');
 });

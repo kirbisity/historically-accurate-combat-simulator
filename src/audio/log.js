@@ -66,7 +66,7 @@ const BARE_BELOW = 0.12;
  * manicae of lames) and quilted linen where they do not.
  */
 export const ARMOUR_COVERING = {
-  plate: 'plate', breastplate: 'plate', conquistador: 'plate', segmentata: 'plate', toseiDo: 'plate', okegawa: 'plate', roninDo: 'plate', robot: 'plate',
+  plate: 'plate', breastplate: 'plate', conquistador: 'plate', segmentata: 'plate', toseiDo: 'plate', okegawa: 'plate', robot: 'plate',
   templar: 'mail', haubergeon: 'mail', hauberk: 'mail', centurion: 'mail', krug: 'mail', krugDisc: 'mail', bekhter: 'mail', cumanMail: 'mail', mailMirror: 'mail',
   lamellar: 'lamellar', oyoroi: 'lamellar', doMaru: 'lamellar', doMaruSode: 'lamellar', hanLamellar: 'lamellar', mingLamellar: 'lamellar', mingEliteLamellar: 'lamellar',
   mongolLamellar: 'lamellar', mongolIron: 'lamellar', kheshig: 'lamellar', ironPagoda: 'lamellar',
