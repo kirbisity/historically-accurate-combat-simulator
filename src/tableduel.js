@@ -69,9 +69,14 @@ export function fightingStrength(fighter) {
 const hips = (fighter) => [fighter.x[P.pelvis * 3], fighter.x[P.pelvis * 3 + 2]];
 const apartFrom = (fighter, [x, z]) => Math.hypot(fighter.x[P.pelvis * 3] - x, fighter.x[P.pelvis * 3 + 2] - z);
 
-/** Whether a man may fight by the table now: on his feet, on foot, free, unperceived, and far from the man played and the camera. */
+/**
+ * Whether a man may fight by the table now: on his feet (a rider in a steady saddle), free, unperceived, and far from the man played
+ * and the camera. (A rider at the table or a ghost is a pose carried by his horse, physics.js carryProxyRider; the horse stays in the
+ * physics, its weight into the men it meets included: physics/mounted.js rideDown. He still thinks every step, steering it.)
+ */
 export function tableEligible(world, fighter) {
-  if (fighter.player || fighter.state !== 'up' || !fighter.unperceived || fighter.mount || fighter.climbing || fighter.caught || fighter.holding !== undefined) return false;
+  if (fighter.mount && (fighter.mount.state !== 'up' || fighter.mount.air)) return false;
+  if (fighter.player || fighter.state !== 'up' || !fighter.unperceived || fighter.climbing || fighter.caught || fighter.holding !== undefined) return false;
   if (fighter.clinch || fighter.pin || fighter.finisher || fighter.netted || fighter.crawling || fighter.fled || fighter.dormant || fighter.hidden || fighter.driven) return false;
   const man = world.perceiver === undefined || world.perceiver === null ? null : world.fighters[world.perceiver];
   if (!man) return false;
@@ -80,13 +85,13 @@ export function tableEligible(world, fighter) {
   return true;
 }
 
-/** Whether a man may be a ghost or fight by the table at all: eligible (tableEligible), on foot, without a missile weapon. */
+/** Whether a man may be a ghost or fight by the table at all: eligible (tableEligible), without a missile weapon. */
 export function ghostable(world, fighter) {
-  return !fighter.mount && !STYLES[fighter.style]?.ranged && tableEligible(world, fighter);
+  return !STYLES[fighter.style]?.ranged && tableEligible(world, fighter);
 }
 
 /**
- * Whether a ghostable man may be a ghost now: no enemy within `near` m of him who is not (a man in the physics, a rider, a
+ * Whether a ghostable man may be a ghost now: no enemy within `near` m of him who is not (a man in the physics, a
  * shooter: a pose could neither be struck by him nor strike him). Men at grips go to the table or stay in the physics together.
  */
 export function ghostNow(world, fighter) {

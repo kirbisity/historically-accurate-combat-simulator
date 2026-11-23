@@ -818,7 +818,7 @@ function thinkEachMan(world, dt, playerIds) {
     // on a slow beat, and fights by the table once at grips.
     fighter.ghost = (TABLE_DUEL.enabled && staggered && ghostNow(world, fighter)) || undefined;
     const exchanging = !fighter.ghost && (fighter.detail === 'full' || fighter.detail === 'unseen' || fighter.detail === undefined);
-    const every = fighter.ghost ? TABLE_DUEL.ghostEvery : !staggered || fighter.mount || exchanging ? 0 : seen ? AI.idleThinkEvery : AI.perceive.idleEvery;
+    const every = fighter.ghost && !fighter.mount ? TABLE_DUEL.ghostEvery : !staggered || fighter.mount || exchanging ? 0 : seen ? AI.idleThinkEvery : AI.perceive.idleEvery;
     if (every === 0) {
       // Cleared, so that once he is staggered he takes up his own beat.
       fighter.aiOwed = undefined;

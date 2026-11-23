@@ -2,7 +2,7 @@
 // scaled to N men, fought over seeds with the table off and on, red's last man played (the exchanges far from him go to the
 // table): each side's men down at intervals, who won, what a step cost, how many exchanges the table decided. The table is right
 // when the casualties come out as the physics' do; TABLE_DUEL.meanSeconds is the one number fitted to it. Not part of the game.
-// Usage: node tools/tableduel.js [battle=sarhu] [N=200] [seconds=60] [seeds=3] [meanSeconds] [modes=off,on] [sharpness]
+// Usage: node tools/tableduel.js [battle=sarhu] [N=200] [seconds=60] [seeds=3] [meanSeconds] [modes=off,on] [sharpness] [first seed=1]
 // (Time a step with one mode a run: the first run in a process pays for the code being compiled.)
 
 import { normaliseInputs } from '../src/body.js';
@@ -11,8 +11,8 @@ import { boutWinner, createWorld, seededRandom, step } from '../src/physics.js';
 import { battleOf } from '../src/scenarios.js';
 import { TABLE_DUEL } from '../src/tableduel.js';
 
-const [key = 'sarhu', nArg = '200', secArg = '60', seedArg = '3', meanArg, modeArg = 'off,on', sharpArg] = process.argv.slice(2);
-if (sharpArg) TABLE_DUEL.sharpness = Number(sharpArg);
+const [key = 'sarhu', nArg = '200', secArg = '60', seedArg = '3', meanArg, modeArg = 'off,on', sharpArg, firstArg = '1'] = process.argv.slice(2);
+if (sharpArg && sharpArg !== '-') TABLE_DUEL.sharpness = Number(sharpArg);
 const N = Number(nArg);
 if (meanArg && meanArg !== '-') TABLE_DUEL.meanSeconds = Number(meanArg);
 
@@ -56,7 +56,7 @@ if (process.argv[1]?.endsWith('tableduel.js')) {
   const seeds = Number(seedArg);
   for (const table of modeArg.split(',').map((mode) => mode === 'on')) {
     const runs = [];
-    for (let seed = 1; seed <= seeds; seed += 1) {
+    for (let seed = Number(firstArg); seed < Number(firstArg) + seeds; seed += 1) {
       const run = fight(seed, table);
       runs.push(run);
       console.log(JSON.stringify({ table, seed, ...run }));
