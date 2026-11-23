@@ -5,6 +5,7 @@
 import { finishTarget, startFinisher, updateFinisher } from './finisher.js';
 import { CROWD_GRID, crowdAnyAlong, crowdFirst, crowdNear, withCrowdGrid } from './crowdgrid.js';
 import { ghostStill, joinTable, keepTable, keptInFull, TABLE_DUEL, tableEligible } from './tableduel.js';
+import { keepFearMap, nearestOnMap, readMap } from './fearmap.js';
 import { aheadOfSlot, DRILL, fallIn, fromSlot, moveFormations, moveWings, volleyDue, walkToSlot, WINGS } from './formation.js';
 import { keepOrders, obeyOrder, orderedFocus, orderKeepsPlace } from './command.js';
 import { P } from './body.js';
@@ -769,10 +770,27 @@ function standingOf(world, corner) {
 
 function thinkEach(world, dt, playerIds) {
   try {
+    // With the table on, the sides' strength over the field (fearmap.js), for the men the player does not perceive.
+    fieldMap = TABLE_DUEL.enabled && TABLE_DUEL.fearMap ? keepFearMap(world, AI.standing, strengthNow, inFight) : null;
     return thinkEachMan(world, dt, playerIds);
   } finally {
     headcount = null;
+    fieldMap = null;
   }
+}
+
+// This think's map of the sides (fearmap.js), or null: the table off, works on the field, more than two sides.
+let fieldMap = null;
+
+/**
+ * Whether a man not perceived is far from the fighting, by the map: no enemy in the fight within TABLE_DUEL `foeFrom` m of him.
+ * False with no map, or for a man perceived (he is thought for in full).
+ */
+function farFromFoes(world, fighter) {
+  if (!fieldMap || !fighter.unperceived) return false;
+  const enemy = fieldMap.corners.find((corner) => corner !== fighter.corner);
+  const found = nearestOnMap(world, fieldMap, enemy, fighter.x[P.pelvis * 3], fighter.x[P.pelvis * 3 + 2], (other) => knotEnemy(other, fighter) && other.state === 'up');
+  return !found || found.apart > TABLE_DUEL.foeFrom;
 }
 
 function thinkEachMan(world, dt, playerIds) {
@@ -819,7 +837,9 @@ function thinkEachMan(world, dt, playerIds) {
     fighter.ghost = (TABLE_DUEL.enabled && staggered && ghostStill(world, fighter)) || undefined;
     const exchanging = !fighter.ghost && (fighter.detail === 'full' || fighter.detail === 'unseen' || fighter.detail === undefined);
     const shooter = TABLE_DUEL.enabled && TABLE_DUEL.shooterEvery > 0 && staggered && !exchanging && !fighter.mount && STYLES[fighter.style]?.ranged && tableEligible(world, fighter);
-    const every = fighter.ghost && !fighter.mount ? TABLE_DUEL.ghostEvery : shooter ? TABLE_DUEL.shooterEvery : !staggered || fighter.mount || exchanging ? 0 : seen ? AI.idleThinkEvery : AI.perceive.idleEvery;
+    // (And far from the fighting, on foot with no missile: on a slower beat still, TABLE_DUEL farEvery.)
+    const far = !fighter.ghost && !shooter && staggered && !exchanging && !seen && !fighter.mount && !STYLES[fighter.style]?.ranged && farFromFoes(world, fighter);
+    const every = fighter.ghost && !fighter.mount ? TABLE_DUEL.ghostEvery : shooter ? TABLE_DUEL.shooterEvery : !staggered || fighter.mount || exchanging ? 0 : seen ? AI.idleThinkEvery : far ? TABLE_DUEL.farEvery : AI.perceive.idleEvery;
     if (every === 0) {
       // Cleared, so that once he is staggered he takes up his own beat.
       fighter.aiOwed = undefined;
@@ -1498,6 +1518,12 @@ function chooseFocus(world, fighter) {
     if (threat.id !== fighter.focus) world.events.push({ time: world.time, kind: 'focus', fighter: fighter.id, target: threat.id, effects: [] });
     fighter.focus = threat.id;
     return threat;
+  }
+  // Far from the fighting and not perceived (table on): the man he is going for kept, looked at again only every TABLE_DUEL
+  // `focusEvery` s (a blow on him, a brush, his general beset are still answered at once, above).
+  if (farFromFoes(world, fighter)) {
+    if (current && current.state === 'up' && !crawlingAway(current) && world.time < (fighter.focusKeptUntil ?? -Infinity)) return current;
+    fighter.focusKeptUntil = world.time + TABLE_DUEL.focusEvery;
   }
   // How many of his side already go for each man: counted once, not per comparison.
   const crowds = new Map();
@@ -2709,7 +2735,7 @@ export function standingFear(world, fighter) {
   const spec = AI.standing;
   // Within a think: the same weighing, among the men the grids hold near him, the nearest enemy over the works read off
   // their side's walk field (standingFearNear).
-  if (fieldSeen === world) return standingFearNear(world, fighter);
+  if (fieldSeen === world) return fieldMap && fighter.unperceived && fieldMap.sides[fighter.corner] ? standingFearMapped(world, fighter, fieldMap) : standingFearNear(world, fighter);
   const where = (other) => [other.x[P.pelvis * 3], other.x[P.pelvis * 3 + 2]];
   const at = where(fighter);
   const enemies = world.fighters.filter((other) => hostile(other, fighter) && !other.dormant && !other.hidden && inFight(other));
@@ -2805,6 +2831,27 @@ function standingFearNear(world, fighter) {
   const gap = Math.log(theirs / ours);
   const past = (value) => Math.max(0, Math.min(1, (value - spec.parity) / spec.span));
   const coming = Math.min(1, 1 - (nearestApart - spec.near) / (spec.sight - spec.near));
+  return coming * (spec.fear * past(gap) - spec.steady * past(-gap));
+}
+
+/**
+ * standingFear for a man the player does not perceive, with the table on: the nearest enemy in the fight and the two knots' strengths
+ * read off the sides' map (fearmap.js) as it was made, at most FEAR_MAP `every` s ago; the same weighing.
+ */
+function standingFearMapped(world, fighter, map) {
+  const spec = AI.standing;
+  const x = fighter.x[P.pelvis * 3];
+  const z = fighter.x[P.pelvis * 3 + 2];
+  const enemy = map.corners.find((corner) => corner !== fighter.corner);
+  const found = nearestOnMap(world, map, enemy, x, z, (other) => knotEnemy(other, fighter));
+  if (!found || found.apart >= spec.sight) return 0;
+  const nearest = world.fighters[found.who];
+  const ours = readMap(map, map.sides[fighter.corner].own, x, z);
+  const theirs = readMap(map, map.sides[enemy].knot, nearest.x[P.pelvis * 3], nearest.x[P.pelvis * 3 + 2]);
+  if (!(theirs > 0) || !(ours > 0)) return 0;
+  const gap = Math.log(theirs / ours);
+  const past = (value) => Math.max(0, Math.min(1, (value - spec.parity) / spec.span));
+  const coming = Math.min(1, 1 - (found.apart - spec.near) / (spec.sight - spec.near));
   return coming * (spec.fear * past(gap) - spec.steady * past(-gap));
 }
 
@@ -3407,6 +3454,28 @@ function leanForLane(fighter, blocked, dt) {
  * shot once the lines had met. Null when there is none.
  */
 function clearMark(world, fighter, options) {
+  // Not perceived (table on): the clear mark he or a man of his company found last, while it is fresh and his own line to it
+  // is clear, before the lines to the rest are traced (TABLE_DUEL markFor). The volley goes where the company's eyes went.
+  if (!TABLE_DUEL.enabled || !fighter.unperceived || !(TABLE_DUEL.markFor > 0)) return findClearMark(world, fighter, options);
+  const marks = (world.companyMarks ??= new Map());
+  const company = `${fighter.corner}|${fighter.formation ?? ''}|${options?.overHeads ? 'over' : 'level'}`;
+  for (const kept of [fighter.clearMarkKept, marks.get(company)]) {
+    if (!kept || world.time - kept.at >= TABLE_DUEL.markFor) continue;
+    const other = world.fighters[kept.who];
+    if (!other || other === fighter || !foeOf(fighter, other) || other.state !== 'up' || other.fled || other.hidden) continue;
+    if (Math.hypot(other.x[P.pelvis * 3] - fighter.x[P.pelvis * 3], other.x[P.pelvis * 3 + 2] - fighter.x[P.pelvis * 3 + 2]) >= AI.markWithin) continue;
+    if (!shotFouled(world, fighter, other, options)) return other;
+  }
+  const found = findClearMark(world, fighter, options);
+  if (found) {
+    fighter.clearMarkKept = { who: found.id, at: world.time };
+    marks.set(company, fighter.clearMarkKept);
+  }
+  return found;
+}
+
+/** clearMark's look along the lines: the nearest enemy standing within AI.markWithin m with his line to him clear; or null. */
+function findClearMark(world, fighter, options) {
   const at = point(fighter.x, P.pelvis);
   let best = null;
   // (In a think, nearest first: the line of fire traced to the few nearest, not to every enemy in range.)

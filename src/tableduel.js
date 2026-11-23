@@ -15,6 +15,18 @@ import { STYLES } from './moves.js';
 import { crowdNear } from './crowdgrid.js';
 
 /**
+ * The far tiers' cheaper thinking and stepping, with the table (each its own switch, to weigh them apart):
+ * `fearMap`: a man not perceived weighs the strength before him against his own round him off the sides' map (fearmap.js; ai.js
+ * standingFear). `foeFrom` m: a man not perceived with no enemy in the fight nearer than this (by the map) is far from the fighting:
+ * he keeps the man he is going for, looking again only every `focusEvery` s (ai.js chooseFocus), and, on foot with no missile,
+ * thinks every `farEvery` s. `markFor` s: a shooter not perceived whose man is fouled shoots on at the clear mark he or his company
+ * found last (within that long, the line to it still clear for him), before looking along the lines for another (ai.js clearMark).
+ * `poseBeat`: a pose on foot has his timers (bleeding, breath, cooldowns) run on his own beat, for the time since (physics.js
+ * stepWorld), not every step.
+ */
+const LEAN = { fearMap: true, foeFrom: 10, focusEvery: 1, farEvery: 0.4, markFor: 0.5, poseBeat: true };
+
+/**
  * `far` m: how far from the man played and from the camera's eye an exchange must be, besides unperceived (out of the camera's
  * frame or past AI.perceive's `sharp`, 25 m, and not on him): past arm's length and a few strides, out of Hall's public distance. `reach` m: hips apart within which two men at each other are at grips. `meanSeconds`: how long
  * such an exchange lasts on average (fitted, tools/tableduel.js, four seeds, 30 s, men down (red, blue): Sarhu at 600 men 98/16.5 with
@@ -31,7 +43,7 @@ import { crowdNear } from './crowdgrid.js';
  * more than a bout alone; fitted as `meanSeconds` is (Sarhu at 600 men, two seeds, 30 s, before a man going down was kept from being put down again: men down (red, blue) at 30 s 105/18.5 at 4,
  * 96/23.5 at 2.5, against 103/13.5 in the physics alone).
  */
-export const TABLE_DUEL = { enabled: false, far: 12, reach: 2.6, meanSeconds: 18, collapse: 2.5, recheck: 0.5, ghostEvery: 0.5, ghostCheck: 6, shooterEvery: 0, inFull: 60, keep: 0.8, near: 4, sharpness: 4 };
+export const TABLE_DUEL = { enabled: false, far: 12, reach: 2.6, meanSeconds: 18, collapse: 2.5, recheck: 0.5, ghostEvery: 0.5, ghostCheck: 6, shooterEvery: 0, inFull: 60, keep: 0.8, near: 4, sharpness: 4, ...LEAN };
 
 // Strengths by `style|kind` (a rated character's own), and for a pairing not rated (men of the armies not on the roster, a man
 // disarmed or fighting with what he picked up) a fitted guess: log strength as a style's part plus a kit's part, least squares over

@@ -43,6 +43,7 @@ import { isMounted } from './horses.js';
 import { stepFlame } from './physics/flame.js';
 import { envLieOf } from './env/lie.js';
 import { crowdNearest, withCrowdGrid } from './crowdgrid.js';
+import { TABLE_DUEL } from './tableduel.js';
 import { collideWorks, faceBetween, faceOutside, FIELDWORKS, floorFor, footSink, keepRootOff, looseFloor, mireStep, reliefAt, slogCost, spentPace, stepOnWorks, worksOf } from './physics/fieldworks.js';
 import { chooseHorseDetail, collideHorses, createHorse, mountFootprint, goalFromFootwork, horseTimers, keepSeat, loseHorse, mountedBehind, riderFacing, ridingLean, saddleReach, mountJump, mountJumpBlocked, mountJumpOf, seatMass, seatRider, SEATED_PARTICLES, stepHorse, stepTurret, strikeHorses, turnCarried } from './physics/mounted.js';
 import { cutSeverity, limbStriker, particleAt, shieldCovering, soundDown, soundEvent, soundHit, soundStep, soundVoice, soundWound, trackPunchSwing, trackSwing, weaponPart, weaponStriker } from './audio/log.js';
@@ -4417,7 +4418,16 @@ function stepWorld(world, dt) {
     }
     if (fighter.mount) goalFromFootwork(world, fighter, dt);
     moveRoot(world, fighter, dt);
-    updateTimers(world, fighter, dt);
+    // With the table on, a pose on foot has his timers run on his own beat, for the time since (TABLE_DUEL poseBeat); a man come
+    // out of the poses has what is owed him run with his step. (Walked every step still: walked on the beat, Sarhu's poses came
+    // to grips the later, and fewer went down.)
+    const owed = (fighter.poseOwed ?? 0) + dt;
+    if (TABLE_DUEL.enabled && TABLE_DUEL.poseBeat && fighter.detail === 'proxy' && !fighter.mount) {
+      fighter.poseOwed = owed;
+      if (!proxyBeat(world, fighter)) continue;
+    }
+    fighter.poseOwed = 0;
+    updateTimers(world, fighter, owed);
     // A pose (a proxy) is worked out on its own beat, every WORLD.tiers.proxyEvery steps, for that long.
     if (fighter.detail === 'proxy' && !proxyBeat(world, fighter)) continue;
     const span = fighter.detail === 'proxy' ? dt * proxyEveryOf(fighter) : dt;
