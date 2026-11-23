@@ -52,6 +52,15 @@ export const TABLE_DUEL = { enabled: false, far: 12, reach: 2.6, meanSeconds: 18
  */
 export const tableOn = (world) => TABLE_DUEL.enabled || Boolean(world.largeBattle);
 
+/**
+ * `far` and `inFull` as the world has them now: shrunk by its `detailShare` (detailload.js: the step times; 1, or none set, as
+ * TABLE_DUEL has them): `far` by the share, `inFull` by its square (the men in a circle).
+ */
+export function fullCircle(world) {
+  const share = world.detailShare ?? 1;
+  return { far: TABLE_DUEL.far * share, inFull: Math.round(TABLE_DUEL.inFull * share * share) };
+}
+
 // Strengths by `style|kind` (a rated character's own), and for a pairing not rated (men of the armies not on the roster, a man
 // disarmed or fighting with what he picked up) a fitted guess: log strength as a style's part plus a kit's part, least squares over
 // the rated characters (a little drawn to nothing, so a style or kit seen once is not taken wholly at its one man's word).
@@ -112,8 +121,9 @@ export function tableEligible(world, fighter) {
   if (fighter.clinch || fighter.pin || fighter.finisher || fighter.netted || fighter.crawling || fighter.fled || fighter.dormant || fighter.hidden || fighter.driven) return false;
   const man = world.perceiver === undefined || world.perceiver === null ? null : world.fighters[world.perceiver];
   if (!man) return false;
-  if (apartFrom(fighter, hips(man)) < TABLE_DUEL.far) return false;
-  if (world.view?.eye && apartFrom(fighter, world.view.eye) < TABLE_DUEL.far) return false;
+  const { far } = fullCircle(world);
+  if (apartFrom(fighter, hips(man)) < far) return false;
+  if (world.view?.eye && apartFrom(fighter, world.view.eye) < far) return false;
   return true;
 }
 
@@ -205,9 +215,10 @@ export function joinTable(world, fighter) {
 /**
  * The men perceived (`perceived(man)`) who stay in full (a Set of ids): every one within `far` of the man played or the camera, and
  * of the rest the nearest to him (a man kept last think counted `keep` as far), up to TABLE_DUEL.inFull in all. The others perceived
- * are let go to the poses and the table: seen across the field, not the men he is among.
+ * are let go to the poses and the table: seen across the field, not the men he is among. (Both as fullCircle has them.)
  */
 export function keptInFull(world, view, perceived) {
+  const { far, inFull } = fullCircle(world);
   const before = world.inFull ?? new Set();
   const close = [];
   const rest = [];
@@ -217,13 +228,13 @@ export function keptInFull(world, view, perceived) {
     const fromMan = Math.hypot(fighter.x[P.pelvis * 3] - view.at[0], fighter.x[P.pelvis * 3 + 2] - view.at[1]);
     const fromEye = Math.hypot(fighter.x[P.pelvis * 3] - eye[0], fighter.x[P.pelvis * 3 + 2] - eye[1]);
     const apart = Math.min(fromMan, fromEye);
-    if (apart < TABLE_DUEL.far || fighter.mount || view.engaged?.has(fighter.id)) close.push(fighter.id);
+    if (apart < far || fighter.mount || view.engaged?.has(fighter.id)) close.push(fighter.id);
     else rest.push({ id: fighter.id, score: apart * (before.has(fighter.id) ? TABLE_DUEL.keep : 1) });
   }
   rest.sort((a, b) => a.score - b.score || a.id - b.id);
   const kept = new Set(close);
   for (const { id } of rest) {
-    if (kept.size >= TABLE_DUEL.inFull) break;
+    if (kept.size >= inFull) break;
     kept.add(id);
   }
   world.inFull = kept;

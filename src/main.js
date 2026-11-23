@@ -31,6 +31,7 @@ import { cameraRoom, createFollowCam } from './followcam.js';
 import { createCameraRig } from './camerarig.js';
 import { BONE } from './rig.js';
 import { adaptiveSize, createAdaptiveResolution } from './adaptres.js';
+import { keepDetailLoad, newDetailLoad } from './detailload.js';
 import { sceneryLodOn, sceneryLodStats, setSceneryLod } from './scenerylod.js';
 import { createTapper, createWatchCam, focusOn, frameAll, pickMan, stepAuto, stepFree, zoomBy, zoomLimits } from './watchcam.js';
 import { forgetTutorial, installTutorial, markTutorialDone, TUTORIAL, TUTORIAL_STEPS, tutorialDone, tutorialWanted } from './tutorial.js';
@@ -43,6 +44,7 @@ import { createPerilMarks } from './perilmark.js';
 import { createExecuteMarks } from './executemark.js';
 import { leadOf, musterLevel } from './muster.js';
 import { CUSTOM_BATTLE, customLevel } from './custombattle.js';
+import { tableOn } from './tableduel.js';
 import { CLOTH_COLORS, defaultHeadgear, FACTION_KEYS, factionOf, FACTIONS, finishOptions, firstDesignOf, HEADGEAR, headgearOptions, OUTFIT_KEYS, outfitOf, outfitSets, OUTFITS, helmChoices, helmSlotOf, pickableSets, PICKABLE_OUTFIT_KEYS, randomColors, setHelmSlot, withFinish, wornCard } from './outfits.js';
 import { setCardElement } from './setcard.js';
 import { withInfo } from './infopop.js';
@@ -489,6 +491,8 @@ function newBout() {
   state.world = createWorld([...sides[0], ...sides[1]], { seed: state.seed, arena, rules: scenario?.rules, formation: scenario?.formation, place, climate: scenario?.climate, general });
   // A custom battle of more than CUSTOM_BATTLE tableFrom men: fought as a large one (tableduel.js tableOn).
   state.world.largeBattle = Boolean(scenario?.custom) && state.world.fighters.length > CUSTOM_BATTLE.tableFrom;
+  // (Its circle of men in full starts whole, and shrinks if the steps cannot keep up: detailload.js, tick.)
+  detailLoad = newDetailLoad();
   presentWorld(place, arena, scenario);
   if (state.game === 'tutorial') placeYard();
 }
@@ -945,6 +949,11 @@ function audioScene() {
 // to catch up and stalling the page (each frame longer than the last).
 const SIM_BUDGET_MS = 20;
 
+// A large battle's circle of men in full (detailload.js): shrunk while its steps cost more than a frame can give them.
+let detailLoad = newDetailLoad();
+// A share held (boxer.detailLoad(share), for a review): null, the step times choose.
+let detailPinned = null;
+
 function tick(seconds, { budget = SIM_BUDGET_MS } = {}) {
   // The training yard begins again when a man in it is out (between frames: never while one is drawn).
   if (state.game === 'tutorial' && yard.restart) newBout();
@@ -955,16 +964,22 @@ function tick(seconds, { budget = SIM_BUDGET_MS } = {}) {
   }
   state.accumulator += seconds;
   const started = performance.now();
+  let steps = 0;
   while (state.accumulator >= STEP) {
     state.before = snapshot(state.world);
     advance(state.world, STEP, thinkForBout, STEP);
     state.accumulator -= STEP;
+    steps += 1;
     if (performance.now() - started > budget) {
       // Out of time: what is left is dropped, not owed to the next frame.
       state.accumulator = Math.min(state.accumulator, STEP * 0.999);
       break;
     }
   }
+  // (Over real time between frames, not the world's: a battle that cannot keep up runs slower than real time.)
+  const now = performance.now();
+  if (steps && tableOn(state.world)) state.world.detailShare = detailPinned ?? keepDetailLoad(detailLoad, (now - started) / steps, Math.min(0.25, (now - (detailLoad.at ?? now)) / 1000));
+  detailLoad.at = now;
   consumeEvents();
   if (state.world.stage?.level) drainLevel();
   // Last Stand Squad ends when the hero falls or the squad is down (lastgate.js), not as a battle does.
@@ -4300,6 +4315,12 @@ const boxer = window.boxer = {
   autopilot: (on) => {
     if (on !== undefined) state.autopilot = Boolean(on);
     return Boolean(state.autopilot);
+  },
+  // A large battle's circle of men in full (detailload.js): the share now and the smoothed ms a step. `detailLoad(share)` holds a
+  // share (1: never shrunk), null lets the step times choose again.
+  detailLoad: (share) => {
+    if (share !== undefined) detailPinned = share;
+    return { ...detailLoad, share: state.world.detailShare ?? 1, pinned: detailPinned, on: tableOn(state.world) };
   },
   // Adaptive resolution (adaptres.js): on or off (off: the full pixel ratio, kept), and what it is doing now; no argument: just that.
   adaptiveResolution: (on) => {
