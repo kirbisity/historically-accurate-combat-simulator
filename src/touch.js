@@ -16,7 +16,7 @@
 
 import { P } from './body.js';
 import { hurtShare, paintHealth } from './ai.js';
-import { ACTIONS, CONTROL, contextAction, crawlReady, horseAction, lockCandidate, moveName, toggleCrawl } from './control.js';
+import { ACTIONS, askExecution, CONTROL, contextAction, crawlReady, horseAction, lockCandidate, moveName, toggleCrawl } from './control.js';
 import { createRecognizer, stickZone } from './gesture.js';
 import { inFight, jumpNow, opponentFor, point, reachOf, sidearmSwapReady } from './physics.js';
 import { fightUiInstall } from './fightui/index.js';
@@ -236,8 +236,9 @@ export function installFightControls(root, hooks) {
         orders.stick = null;
         restStick();
       } else if (event.type === 'tap') {
-        // (With Body, a tap on his man strikes there.)
-        fightUi.tap(event);
+        // (With a man broken open before him by his big deflect, a tap anywhere is the execution, on the man or off him: the
+        // view closing in and shaking with the slow motion moves him under the finger. Else, with Body, a tap on his man strikes there.)
+        if (!(world && hooks.player() && askExecution(world, hooks.player(), orders))) fightUi.tap(event);
         const target = orders.lock ?? foeFor(world, hooks.player())?.id;
         if (target !== undefined && target !== null) awake.set(target, hooks.now());
       } else if (event.type === 'hold') {

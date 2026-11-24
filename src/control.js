@@ -17,7 +17,7 @@ import { rigidAt } from './physics/gaps.js';
 import { handling } from './handling.js';
 import { RUN_STEER, runSteer } from './runsteer.js';
 import { jogSpeed, preferredWalk, runSpeed } from './physics/gait.js';
-import { executable, FINISHER, finishTarget, startFinisher, updateFinisher } from './finisher.js';
+import { executable, executionOffered, FINISHER, finishTarget, startExecution, startFinisher, updateFinisher } from './finisher.js';
 import { lowTarget, startLowStrike, updateLowStrike } from './lowstrike.js';
 import { chargeAt, ringHeading } from './riding.js';
 import { ARTS, artBlocked, feelAdrenaline, startArt } from './weaponarts.js';
@@ -161,7 +161,7 @@ export const CONTROL = {
 
 /** A fresh set of orders: no one locked, nothing held, nothing asked. */
 export function newOrders() {
-  return { lock: null, stick: null, keyStick: null, guard: false, jump: false, requests: [], runBroken: false, winded: false, runSteer: { bend: 0 }, charge: null, charged: null, spacing: false, artAskedUntil: 0, circle: null };
+  return { lock: null, stick: null, keyStick: null, guard: false, jump: false, requests: [], runBroken: false, winded: false, runSteer: { bend: 0 }, charge: null, charged: null, spacing: false, artAskedUntil: 0, circle: null, execute: null };
 }
 
 /**
@@ -839,10 +839,42 @@ function reachBetween(fighter, other) {
  * (lowOnAttack). The special button still offers the finisher for him.
  */
 export function finishOnAttack(world, fighter, orders) {
+  // (A man broken open before him by his big deflect: the attack is the execution, whatever his hands are doing: askExecution.)
+  if (askExecution(world, fighter, orders)) return true;
   if (fighter.punch) return false;
   const prey = finishTarget(world, fighter, { locked: orders.lock, range: FINISHER.tapReach });
   // (Lying down, or standing broken open by his big deflect: executable.)
   return Boolean(prey) && (prey.state === 'down' || executable(world, prey)) && startFinisher(world, fighter, prey, { range: FINISHER.tapReach });
+}
+
+/**
+ * Any attack asked for (a tap anywhere on the fight, on him or not, a key, a press held) while a man stands broken open by his
+ * big deflect within reach (finisher.js executionOffered): the execution. Asked once, it is his order (`orders.execute`) until
+ * it is carried out (carryOutExecution): no second press. True if it was asked for.
+ */
+export function askExecution(world, fighter, orders) {
+  const man = executionOffered(world, fighter, { locked: orders.lock });
+  if (!man) return false;
+  orders.execute = { target: man.id, at: world.time };
+  orders.requests.length = 0;
+  return true;
+}
+
+/**
+ * The execution asked for, begun as soon as his body lets him (finisher.js startExecution: at once, unless he is reeling, dazed
+ * or in pain); given up only once the man is no longer open (FINISHER.execute `askedFor` after his window). True once begun.
+ */
+function carryOutExecution(world, fighter, orders) {
+  const order = orders.execute;
+  const man = order ? world.fighters[order.target] : null;
+  if (!man) return false;
+  if (startExecution(world, fighter, man, { asked: true })) {
+    orders.execute = null;
+    orders.requests.length = 0;
+    return true;
+  }
+  if (man.state !== 'up' || world.time > Math.max(order.at, man.executableUntil ?? -Infinity) + FINISHER.execute.askedFor) orders.execute = null;
+  return false;
 }
 
 /**
@@ -934,6 +966,8 @@ function attack(world, fighter, orders, opponent) {
   while (requests.length && world.time - requests[0].at > (requests[0].readied ? CONTROL.runStrike.waitSeconds : CONTROL.bufferSeconds)) requests.shift();
   const request = requests[0];
   if (!request) return;
+  // A man broken open before him by his big deflect: the attack is the execution, whatever he is doing (askExecution).
+  if (askExecution(world, fighter, orders)) return;
   // A second tap while the first is still going: the rest of a combination after it.
   if (request.strength === 'combo' && fighter.punch && world.time - (fighter.orderAt ?? -Infinity) < CONTROL.comboWithin) {
     const style = STYLES[fighter.style];
@@ -1076,7 +1110,9 @@ function continueCombo(world, fighter) {
 // ---- Push and hold down ------------------------------------------------------
 
 /** A press held: a man down near where it points is held down; otherwise a shove (a shield's bash, or both hands). */
-function pressHeld(world, fighter, at) {
+function pressHeld(world, fighter, at, orders) {
+  // (Held on the fight with a man broken open before him, the press is the execution, as a tap is: askExecution.)
+  if (orders && askExecution(world, fighter, orders)) return;
   const down = world.fighters.find((other) => other.corner !== fighter.corner && (other.state === 'down' || other.state === 'rising') && Math.hypot(other.x[P.pelvis * 3] - at[0], other.x[P.pelvis * 3 + 2] - at[2]) < CONTROL.pinFrom);
   if (down && !world.rules?.noPins) {
     fighter.orderPin = { target: down.id, until: world.time + CONTROL.pinSeconds };
@@ -1221,6 +1257,8 @@ export function contextAction(world, fighter) {
   if (!fighter || fighter.state !== 'up' || fighter.netted) return null;
   // On his knees: nothing here (the Crawl button, Stand while he crawls, is the one way down and up: playerCrawl).
   if (fighter.crawling) return null;
+  // A man broken open before him by his big deflect: his to execute, before anything else (finisher.js executionOffered).
+  if (executionOffered(world, fighter, { locked: fighter.focus })) return 'finish';
   const style = STYLES[fighter.style];
   if (fighter.clinch) return style?.throws || style?.clinchDrive ? 'throw' : 'disengage';
   if (holder(world, fighter)) return 'disengage';
@@ -1418,6 +1456,13 @@ export function directFighter(world, fighter, orders, dt) {
     orders.actions = [];
     return;
   }
+  // The execution asked for in a big deflect's window (any attack asked for: askExecution, here too for one asked while he could
+  // not yet act on it), begun the moment his body lets him (carryOutExecution), and run from here.
+  if (orders.requests.length && !orders.execute) askExecution(world, fighter, orders);
+  if (orders.execute && carryOutExecution(world, fighter, orders) && updateFinisher(world, fighter, dt)) {
+    orders.actions = [];
+    return;
+  }
   // Bent to a man low before him, the blow going down to him: that holds him until it is made (lowstrike.js).
   if (fighter.lowStrike && updateLowStrike(world, fighter, dt)) {
     orders.actions = [];
@@ -1462,11 +1507,12 @@ export function directFighter(world, fighter, orders, dt) {
   for (const action of orders.actions ?? []) {
     // The art asked for (its button, or P): kept asked a moment (ARTS.askedFor) and made as soon as he is free; winded, not.
     if (action === 'art') orders.artAskedUntil = artBlocked(fighter) === 'winded' ? 0 : world.time + ARTS.askedFor;
-    else doAction(world, fighter, action);
+    // (Finish him, with a man broken open before him: the execution, as an attack asked for is.)
+    else if (!(action === 'finish' && askExecution(world, fighter, orders))) doAction(world, fighter, action);
   }
   orders.actions = [];
   if (orders.artAskedUntil > world.time && startArt(world, fighter)) orders.artAskedUntil = 0;
-  for (const press of orders.holds ?? []) pressHeld(world, fighter, press);
+  for (const press of orders.holds ?? []) pressHeld(world, fighter, press, orders);
   orders.holds = [];
   if (goPin(world, fighter)) return;
   if (fighter.orderPickup !== undefined && fighter.orderPickup !== null && goPickUp(world, fighter)) return;
