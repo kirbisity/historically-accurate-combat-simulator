@@ -18,6 +18,7 @@ import { crowdBatch } from './crowdview.js';
 import { BLOOD_VIEW, bloodClear, bloodCreate, bloodDrop, bloodInfo, bloodSite, bloodSpray, bloodTier, bloodUpdate } from './bloodview.js';
 import { BATTLE_FX, BLACK_POWDER, battleFxAddGlint, battleFxArc, battleFxClear, battleFxElectricFlash, battleFxGlint, battleFxPrimary, battleFxShot, battleFxSpark, battleFxUpdate } from './battlefx.js';
 import { splitBody } from './woundview.js';
+import { gashHalf, MARK_KIND, markAdd } from './markview.js';
 import { machineFxBusy, machineFxClear, machineFxCreate, machineFxHear, machineFxStep } from './machinefx.js';
 import { flutterCloth } from './clothwind.js';
 
@@ -2329,6 +2330,9 @@ export function severView(view, fighterView, event, debris) {
   // From the stump as the vessel cut there gives it (maiming.js: in beats while the artery is open, bloodview.js), from the
   // piece's cut face for a moment, and what the cut itself threw.
   bloodSite(blood, fighterView.fighter.id, ends.base, ends.from);
+  // The stump's blood on what is left of the limb (markview.js): all round its end.
+  const stays = BONE[`${event.side}${STUMP_BONE[event.joint]}`] ?? (event.joint === 'hip' ? BONE.pelvis : BONE.chest);
+  if (fighterView.frames?.[stays]) markAdd(fighterView.fighter, stays, fighterView.frames[stays], event.point, null, null, { kind: MARK_KIND.wound, width: 0, reach: debris.radius * 1.5 + 0.03, strength: 0 }, event.time);
   blood.emitters.push({ kind: 'piece', debris, start: view.clock ?? 0, seconds: GORE.pieceSeconds });
   spawnBlood(view, event.point, [0, 1, 0], 40, 3.2);
 }
@@ -2347,6 +2351,10 @@ function severTrunkView(view, fighterView, event) {
   fighterView.shells = [];
   fighterView.slosh = null;
   if (fighter.body.gear.machine) return;
+  // Both parts' clothes and skin soak with it round the cut (markview.js): a mark all round each end.
+  for (const [bone, frames] of [[BONE.pelvis, split.lowerFrames ?? fighterView.frames], [BONE.chest, fighterView.frames]]) {
+    if (frames?.[bone]) markAdd(fighter, bone, frames[bone], event.point, null, null, { kind: MARK_KIND.wound, width: 0, reach: fighter.body.segments.trunk.skinRadius * 1.25, strength: 0 }, fighter.trunkCut.time);
+  }
   // What the blade threw as it went through: a sheet of drops along its way, from the width of the cut.
   const across = new THREE.Vector3(...event.normal).cross(new THREE.Vector3(...event.travel));
   if (across.lengthSq() < 1e-6) across.set(1, 0, 0);
@@ -2354,6 +2362,9 @@ function severTrunkView(view, fighterView, event) {
   const speed = BLOOD_VIEW.cutSpeed;
   bloodSpray(bloodOf(view), event.point, event.travel.map((value) => value * speed), [0, 0.4, 0], across.toArray(), fighter.body.segments.trunk.skinRadius, 170, 220);
 }
+
+// The bone a stump is the end of, by the joint the part came off at (the shoulder's and the hip's are the trunk's).
+const STUMP_BONE = { elbow: 'UpperArm', wrist: 'Forearm', knee: 'Thigh', ankle: 'Shin' };
 
 /** A severed part's stump (an event's `joint` and `side`): the particle it ends at (`base`), the one before (`from`), how far out along (`along`). */
 function stumpEnds(event) {
@@ -2886,10 +2897,6 @@ export function woundBlood(view, event) {
 // The far end of the part a wound is in: where its blood runs to and leaves him.
 const WOUND_SITE = { UpperArm: 'Elbow', Forearm: 'Hand', Thigh: 'Knee', Shank: 'Foot' };
 
-/** Half the length (m) of the wound an edge leaves with `joules` of cut: a nick is a few centimetres, a deep cut a hand's length or more. */
-export function gashHalf(joules) {
-  return Math.min(0.13, 0.015 + 0.0011 * joules);
-}
 
 const placer = new THREE.Object3D();
 
