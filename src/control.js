@@ -548,6 +548,7 @@ export const MOVE_NAMES = {
   wakiKesa: ['Kesagiri', 'wakizashi'], wakiTsuki: ['Tsuki', 'wakizashi'], wakiLow: ['Low cut', 'wakizashi'], wakiBeat: ['Uchi-otoshi', 'beat and thrust'],
   kesaTsuki: ['Kesa-tsuki', 'cut and thrust'], jodanGedan: ['Jōdan-gedan', 'high and low'],
   hammerOverhead: ['Hammer', 'overhead'], hammerSide: ['Hammer', 'side blow'], hammerThrust: ['Hammer', 'spike thrust'],
+  batOverhead: ['Bat', 'overhead'], batSide: ['Bat', 'side swing'],
   naginataSweep: ['Sweep', 'low cut'], naginataCut: ['Cut', 'overhead'], naginataRising: ['Rising cut'], naginataThrust: ['Thrust'],
   spearThrust: ['Spear thrust'], spearJab: ['Spear jab'], spearSweep: ['Spear sweep'], spearHigh: ['High thrust'], spearLow: ['Low thrust'], lanceThrust: ['Lance thrust'], lanceHigh: ['Lance at the face'], lanceJab: ['Lance jab'],
   stab: ['Stab'], upStab: ['Rising stab'], highStab: ['High stab'], execute: ['Finisher', 'dagger thrust'],

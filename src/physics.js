@@ -36,6 +36,7 @@ import { climateOf, freshHeat, heatMark, heatRecovery, heatStrength, stepHeat } 
 import { bowShotCost, strokeHeft, swingEffort } from './physics/effort.js';
 import { bigDeflect, breakOpen, deflecting, deflectsWith, deflectWindow, guardHold, noteGuard } from './physics/deflect.js';
 import { jumpBlocked, jumpLanding, jumpOf } from './physics/jump.js';
+import { bendShare, BLUNT, bluntPart, faceThrough, guardGives } from './physics/blunt.js';
 import { formUp, placeWings, WINGS } from './formation.js';
 import { handling } from './handling.js';
 import { ARM_CUTS, brokenLevel, feelShock, LEG_CUTS, MAIMING, openArtery, playerStun, shockOf, stepVessels } from './maiming.js';
@@ -6768,7 +6769,7 @@ function groundImpact(world, fighter, index, speed) {
   if (fighter.state === 'out' || speed <= spec.minSpeed) return;
   const name = PARTICLES[index];
   const gear = fighter.body.gear;
-  const bone = Math.max(0.4, fighter.body.boneDensity ?? 1);
+  const bone = Math.max(0.4, fighter.body.bone?.impact ?? fighter.body.boneDensity ?? 1);
   // On terrain, a man landing on his feet is hurt through his legs and spine (landOnFeet); anything
   // else hits as hard as it fell: the speed past `bodyFrom` (not the ordinary floor's), times `body`.
   const landing = world.arena.terrain ? WORLD.terrain.fall : null;
@@ -6816,7 +6817,7 @@ function landOnFeet(world, fighter, index, speed) {
   // it lands hard only after a spell in the air (the drop of `airMin` s of falling).
   if (airSpell(world, fighter) < spec.airMin) return;
   const side = PARTICLE_INFO[index].side;
-  const bone = Math.max(0.4, fighter.body.boneDensity ?? 1);
+  const bone = Math.max(0.4, fighter.body.bone?.impact ?? fighter.body.boneDensity ?? 1);
   const gear = fighter.body.gear;
   // The first foot down starts the landing; the second, a moment later, is the same fall.
   const first = world.time - (fighter.landedAt ?? -Infinity) > spec.together;
@@ -7907,8 +7908,8 @@ export function crashHarm(world, victim, key, { impulse: whole, mass, closing, e
   const impulse = whole * Math.sqrt(beyond) * (ready?.share ?? 1);
   const energy = all * beyond * (ready?.share ?? 1);
   const body = victim.body;
-  const firmness = body.segments[key].fleshFirmness;
-  const peakForce = ((Math.PI / 2) * impulse) / (WORLD.crash.contactSeconds * (1 + 0.6 * (1 - firmness)) * (ready?.stretch ?? 1));
+  // (Drawn out by the flesh over the part on this body: physics/blunt.js bluntPart.)
+  const peakForce = ((Math.PI / 2) * impulse) / (WORLD.crash.contactSeconds * bluntPart(body, key).stretch * (ready?.stretch ?? 1));
   const harm = (1 - (protectionAt(body.gear, key).blunt ?? 0)) * hard;
   const event = { time: world.time, kind: 'crash', attacker: source?.id, defender: victim.id, target: key, speed: closing, impulse, energy, force: peakForce, headDeltaV: 0, effects: [], point: at, normal, harm };
   if (source) victim.lastHitBy = source.id;
@@ -8100,13 +8101,34 @@ export function shieldParty(bearer) {
 export function shieldHarm(world, bearer, { crash, closing, at, normal, offCentre, source }) {
   const body = bearer.body;
   const shield = bearer.shield;
-  addDamage(bearer, 'lForearm', (crash.impulse / crash.massSecond) * shield.spec.armHarm, true);
+  shieldArmTakes(bearer, crash.impulse, crash.massSecond);
   const event = crashHarm(world, bearer, 'trunk', { impulse: crash.impulse, mass: crash.massSecond, closing, energy: crash.energy, point: at, normal, source, hard: WORLD.blockedDamageShare }) ?? { effects: [] };
   event.effects.push('taken on the shield');
   shieldArmGives(world, bearer, at, vec.scale(normal, -1), crash.impulse, event);
   const hold = WORLD.shield.wrench * (shield.spec.hold ?? 1) * (body.motorForce[P.lHand] / WORLD.recoil.reference);
   shield.strain = (shield.strain ?? 0) + (crash.impulse * (1 + offCentre)) / hold;
+  const armHarm = shield.spec.armHarm;
   if (shield.strain >= 1) dropShield(world, bearer, 'wrenched', vec.scale(normal, (-crash.impulse * 0.3) / shield.spec.mass));
+  shieldArmBreaks(world, bearer, crash.impulse, armHarm, WORLD.crash.contactSeconds, event);
+}
+
+/** The shield arm's bruise from a blow on the board (its `armHarm` share of the speed change, as a blow blocked), by the arm it is on this body (bluntPart). */
+function shieldArmTakes(bearer, impulse, braced) {
+  addDamage(bearer, 'lForearm', (impulse / braced) * bearer.shield.spec.armHarm * bluntPart(bearer.body, 'lForearm').toll, true);
+}
+
+/**
+ * The forearm behind a shield broken by a blow on the board: the board spreads the blow, and the arm bears `armHarm` (the
+ * shield's, SHIELDS) of its peak force (the impulse over `seconds` of contact, through the arm's own flesh and what it wears);
+ * past what this body's forearm bears (body.fracture), it breaks, as a forearm put up bare does, and the shield falls from it.
+ */
+function shieldArmBreaks(world, bearer, impulse, armHarm, seconds, event) {
+  const body = bearer.body;
+  if (bearer.broken.has('lElbow') || !body.fracture.Forearm) return;
+  const load = (((Math.PI / 2) * impulse) / (seconds * bluntPart(body, 'lForearm').stretch)) * armHarm * (1 - (protectionAt(body.gear, 'lForearm').blunt ?? 0));
+  if (load <= body.fracture.Forearm) return;
+  breakJoint(world, bearer, 'lElbow', 'lForearm');
+  event.effects.push('shield arm broken');
 }
 
 /**
@@ -8273,13 +8295,13 @@ function registerImpact(world, attacker, defender, striker, closest, capsule, no
   // inelastic, so the impulse is the reduced mass times the closing speed.
   const reducedMass = (strikeMass * struckMass) / (strikeMass + struckMass);
   const impulse = reducedMass * closing * glance.share * (1 + WORLD.restitution);
-  const firmness = body.segments[capsule.key === 'head' ? 'head' : capsule.key === 'trunk' ? 'trunk' : capsule.key].fleshFirmness;
   // Gloved strikes spread over the glove's contact time; kicks, knees and
   // elbows over the general one; bare fists over their own short one.
   const fists = fistsOf(attacker.body);
   const contactSeconds = spec.contactSeconds ?? (spec.limb.endsWith('Hand') ? fists.contactSeconds : WORLD.contactSeconds);
-  // (Drawn out by a helmet's padding or a rigid shell's, shellStretch.)
-  const peakForce = ((Math.PI / 2) * impulse) / (contactSeconds * (1 + 0.6 * (1 - firmness)) * shellStretch(body.gear, capsule.key, protectionAt(body.gear, capsule.key)));
+  // (Drawn out by the flesh over the part on this body, physics/blunt.js bluntPart, and by a helmet's padding or a rigid
+  // shell's, shellStretch.)
+  const peakForce = ((Math.PI / 2) * impulse) / (contactSeconds * bluntPart(body, capsule.key).stretch * shellStretch(body.gear, capsule.key, protectionAt(body.gear, capsule.key)));
   const contactPoint = vec.add(closest.onSecond, vec.scale(normal, capsule.radius));
   const event = {
     time: world.time, kind: blocked ? 'blocked' : 'landed', attacker: attacker.id, defender: defender.id,
@@ -8295,7 +8317,9 @@ function registerImpact(world, attacker, defender, striker, closest, capsule, no
   // (Pressed into the floor, the part takes the whole impulse: its own speed change is the blow's harm.)
   bluntConsequences(world, attacker, defender, capsule, event, { impulse, struckMass: partMass, peakForce, harm, blocked, checked, rotation: spec.rotation * glance.twist, cuts: spec.cuts, cutForce: spec.limb.endsWith('Hand') ? fists.cutForce : Infinity, side, push: spec.push, face: spec.limb.endsWith('Hand') && !striker.bash ? fists.radius : null });
   if (!striker.bash) strikerRecoil(attacker, defender, capsule, spec.limb, closing * glance.share, strikeMass, struckMass, event);
-  if (spec.limb.endsWith('Hand') && !striker.bash && peakForce > attacker.body.fracture.hand * fists.handFracture * (blocked ? 0.8 : 1) && !attacker.injuries.some((injury) => injury.kind === 'hand' && injury.side === side)) {
+  // (A fist breaks on what is hard: the peak force is already the higher on an elbow or a skull than in a belly, by the flesh
+  // over each (bluntPart). It was 0.8 of the hand's load on any blocked blow.)
+  if (spec.limb.endsWith('Hand') && !striker.bash && peakForce > attacker.body.fracture.hand * fists.handFracture && !attacker.injuries.some((injury) => injury.kind === 'hand' && injury.side === side)) {
     attacker.injuries.push({ kind: 'hand', side, time: world.time });
     event.effects.push(`${attacker.body.inputs.name}: broken hand`);
   }
@@ -8347,24 +8371,50 @@ function bluntConsequences(world, attacker, defender, capsule, event, { impulse,
   // The part's speed change (a guard's forearm takes a share of it), or what a weapon's hard head crushes under it
   // (`crushing`, BLADES.crushTrauma: a forearm put in the way of a hammer is no glove's guard), whichever is worse.
   const shaken = (impulse / struckMass) * harm;
+  // This body's part under the blow (physics/blunt.js bluntPart): the flesh over the bone there, and how much of a blow's
+  // harm the part takes on him (`toll`: his padding and his bone's toughness against the reference man's; a crushing head's
+  // energy besides through the part's own size).
+  const part = bluntPart(body, capsule.key);
   // The tissue's injury of it, by the stress of a striking face of radius `face` (m; WORLD.contactStress).
-  const stressed = shaken * contactStress(face);
-  if (crushing > stressed * (blocked ? WORLD.blockedDamageShare : 1)) addDamage(defender, capsule.key, crushing, false);
-  else addDamage(defender, capsule.key, stressed, blocked);
+  const stressed = shaken * contactStress(face) * part.toll;
+  const crushed = (crushing * part.toll) / part.size;
+  // The bone under it is loaded by the blow's peak force, pressed in as the striking face presses through the flesh over it
+  // (the flesh spreads a narrow face by its own depth, faceThrough: a mace's flange on a shin is a flange, in a fat belly a fist).
+  const boneLoad = peakForce * harm * contactStress(faceThrough(face, part.depth));
+  // An arm in the blow's way is a guard (BLOCKING): held there by its owner, it gives to what it cannot hold (armGuard), and
+  // of the blow's momentum `through` goes on, on his own arm, into what the arm covered.
+  const guarding = blocked && !checked && BLOCKING.has(capsule.key);
+  const guard = guarding ? armGuard(defender, capsule.key, impulse, event.point, attacker?.punch ? (attacker.punch.zone === 'head' ? 'head' : 'trunk') : null) : null;
+  let through = guard ? guard.through : blocked ? 0 : 1;
+  // A long bone broken by the blow's force where it lands (body.fracture by bone on this body: a hammer's or a mace's blow
+  // breaks it, a kick or a fist seldom), a guarding forearm's as any other (the parry fracture); the arm broken, the guard is
+  // gone with it, and what force the bone did not bear goes on.
+  const bone = capsule.key.replace(/^[lr](?=[A-Z])/, '');
+  const joint = BREAKS_AT[bone] && `${capsule.key[0]}${BREAKS_AT[bone]}`;
+  // (Across the bone it bends it, the less for a face broad against the bone's length: physics/blunt.js bendShare.)
+  const bending = joint ? boneLoad * bendShare(body, capsule.key, face, part.depth) : 0;
+  const breaks = !checked && joint && body.fracture[bone] && bending > body.fracture[bone] && !defender.broken.has(joint);
+  if (breaks && guard) through = Math.max(through, 1 - body.fracture[bone] / bending);
+  // The part's own hurt: a blow met on a guard that holds is taken on the muscle and rolled with (WORLD.blockedDamageShare of
+  // it), and in full as far as the guard is beaten in.
+  const met = !blocked ? 1 : WORLD.blockedDamageShare + (guard ? (1 - WORLD.blockedDamageShare) * through : 0);
+  addDamage(defender, capsule.key, Math.max(crushed, stressed * met), false);
+  if (breaks) {
+    breakJoint(world, defender, joint, capsule.key);
+    if (guard) event.effects.push('guarding arm broken');
+  }
   if (blocked) {
-    attacker.stats.blocked += 1;
-    event.headDeltaV = BLOCKING.has(capsule.key) ? (impulse * WORLD.head.blockedShare) / body.headEffectiveMass : 0;
+    if (attacker) attacker.stats.blocked += 1;
+    event.through = through;
+    // (What the guard covered on the blow's line: his head, his trunk, or nothing.)
+    if (guard) event.covered = guard.behind;
     // Kicking into a checked shin hurts the kicker's shin.
     if (checked) attacker.legDamage[side] += ((impulse * 0.5) / attacker.body.limbKg[`${side}Leg`]) * (1 - (protectionAt(attacker.body.gear, `${side}Shank`).blunt ?? 0));
+    if (guard?.behind && through > 0) guardBeaten(world, attacker, defender, event, guard, impulse * through, push, braced);
     return;
   }
   // (A crash has no attacker to credit when it is a horse with no rider.)
   if (attacker) attacker.stats.landed += 1;
-  // A long bone broken by the blow's force where it lands, pressed in as its striking face presses (body.fracture by bone,
-  // contactStress: a hammer's or a mace's blow breaks it, a kick or a fist does not).
-  const bone = capsule.key.replace(/^[lr](?=[A-Z])/, '');
-  const joint = BREAKS_AT[bone] && `${capsule.key[0]}${BREAKS_AT[bone]}`;
-  if (joint && body.fracture[bone] && peakForce * harm * contactStress(face) > body.fracture[bone] && !defender.broken.has(joint)) breakJoint(world, defender, joint, capsule.key);
   if (capsule.key === 'head') {
     // Rotational strikes turn the head as well as pushing it, and rotation
     // is what knocks people out (Ommaya; Viano 2005).
@@ -8398,15 +8448,21 @@ function bluntConsequences(world, attacker, defender, capsule, event, { impulse,
     }
   } else if (capsule.key === 'trunk') {
     // The wind is knocked out of a belly caught slack; a man who went into the crash ready met it on his shoulder, braced (crashBraced).
-    if (!braced) takeWind(defender, ((impulse / (body.massKg * 0.6)) / body.aerobic) * harm, push);
+    // (Through the belly's own fat and muscle, `pad`; unseen, the belly is slack: the blindside's share more, as the neck's.)
+    const slack = attacker && blindside(defender, attacker) ? WORLD.blindsideFactor : 1;
+    if (!braced) takeWind(defender, ((impulse / (body.massKg * 0.6)) / body.aerobic) * harm * part.pad * slack, push);
     event.effects.push(braced ? 'braced for it' : push ? 'pushed back' : 'body: wind taken');
-    // (Pressed in as its striking face presses, as a long bone is above: contactStress.)
-    const ribLoad = peakForce * harm * contactStress(face);
+    // (Pressed in as its striking face presses through the flesh, as a long bone is above.)
+    const ribLoad = boneLoad;
     if (ribLoad > body.fracture.rib) {
       // Ribs broken: an injury to the trunk, more by how far past what breaks them, and as deep as the blow that reached the
       // chest drove it in (`joules` past the armour, against WORLD.injury.chestJoules; a crash's, its force alone).
-      const driven = Math.min(1, joules / (WORLD.injury.chestJoules * BODY.toughness));
-      injure(defender, 'trunk', WORLD.injury.fractured * (1 + Math.log(ribLoad / body.fracture.rib)) * driven);
+      // (On this body: the flesh over the ribs takes up its share first, the energy reaching them as the square of the force
+      // it lets through, `pad`; and a bigger chest is driven in less far by the same energy, `size`.)
+      const driven = Math.min(1, (joules * part.pad * part.pad) / part.size / (WORLD.injury.chestJoules * BODY.toughness));
+      // (And as this body's trunk takes any blow's harm, `toll`: what the broken ribs are driven into is as padded and as
+      // brittle as the rest of him.)
+      injure(defender, 'trunk', WORLD.injury.fractured * (1 + Math.log(ribLoad / body.fracture.rib)) * driven * part.toll);
     }
     if (ribLoad > body.fracture.rib && !defender.injuries.some((injury) => injury.kind === 'rib')) {
       defender.injuries.push({ kind: 'rib', time: world.time });
@@ -8417,13 +8473,91 @@ function bluntConsequences(world, attacker, defender, capsule, event, { impulse,
     const legSide = capsule.key[0];
     // The defender's own leg takes the blow: its speed change is the damage (or what a weapon's head crushes, above).
     const before = defender.legDamage[legSide];
-    defender.legDamage[legSide] += Math.max(shaken, crushing);
+    // (The muscle's bruise, by the flesh on it: `pad`, and a crushing head's through the leg's size.)
+    defender.legDamage[legSide] += Math.max(shaken * part.pad, (crushing * part.pad) / part.size);
     event.effects.push('leg struck');
     const buckles = (damage) => (damage < legCapacity() ? 0 : 1 + Math.floor((damage / legCapacity() - 1) / WORLD.legGivesAgainEvery));
     if (buckles(defender.legDamage[legSide]) > buckles(before) && defender.state === 'up') {
       knockDown(world, defender, event, 'knockdown (leg gave way)');
     }
   }
+}
+
+/**
+ * An arm in a blow's way as a guard (physics/blunt.js BLUNT.guard, guardGives): the forearm, its glove and a share of the
+ * upper arm are set moving by the blow's `impulse` (N·s) and stopped by the arm's muscles over the gap from where the blow
+ * met it (`at`) to what it covers: what the blow was `aimed` at, his head or his trunk (guardCovers). The arm resists with a multiple of its
+ * striking force: all of it when the guard was put up (a block of his), less for an arm that only happened to be there; less
+ * as he is stunned or reeling (motorScale), out of breath (fatigueScale) and as the arm itself is hurt (partHealth: broken,
+ * nothing). Returns the share of the blow's momentum that comes through (`through`), what is `behind`, and the arm's `mass`.
+ */
+export function armGuard(defender, key, impulse, at = null, aimed = null) {
+  const body = defender.body;
+  const side = key[0];
+  const spec = BLUNT.guard;
+  const mass = body.segments[`${side}Forearm`].mass + BODY.gloveKg + spec.upperArm * body.segments[`${side}UpperArm`].mass;
+  const covered = guardCovers(defender, at ?? point(defender.x, P[`${side}Hand`]), aimed);
+  const force = spec.hold * body.strikeForce[P[`${side}Hand`]] * guardSet(defender) * partHealth(defender, key);
+  return { ...guardGives(impulse, mass, force, covered.gap), behind: covered.behind, mass };
+}
+
+/**
+ * What of him a guard met at `where` covers, and the gap (m) from there to its surface: the part the blow was `aimed` at (his
+ * head, or his trunk), if the guard is within an arm's length of it (else nothing: `behind` null, a guard driven back there
+ * meets nothing of him); the nearer of the two when no aim is given.
+ */
+function guardCovers(defender, where, aimed = null) {
+  const toHead = vec.length(vec.sub(where, point(defender.x, P.head))) - defender.radius[P.head];
+  const toTrunk = vec.length(vec.sub(where, closestBetween(where, where, point(defender.x, P.pelvis), point(defender.x, P.neck)).onSecond)) - defender.body.segments.trunk.skinRadius;
+  const behind = aimed ?? (toHead < toTrunk ? 'head' : 'trunk');
+  const gap = behind === 'head' ? toHead : toTrunk;
+  return gap > defender.body.reach ? { gap, behind: null } : { gap, behind };
+}
+
+/** How much of his strength is in his guard now: all of it in a block he put up, BLUNT.guard.unset otherwise; less stunned or reeling (motorScale) and out of breath (fatigueScale). */
+function guardSet(defender) {
+  const set = BLOCKS.has(defender.defence?.name) || defender.defence?.name === 'parry' ? 1 : BLUNT.guard.unset;
+  return set * Math.max(0.2, defender.motorScale ?? 1) * fatigueScale(defender.stamina);
+}
+
+/**
+ * A blade put in a blow's way as a guard (BLUNT.guard, guardGives): the blade where it was met (`bladeMass`, kg, effective
+ * there) and the arms behind it are set moving by the meeting's `impulse` and stopped by the arms (both, on a weapon held in
+ * two hands) over the gap from the meeting (`at`) to his head or his trunk. The share of the blow's momentum his arms could
+ * not stop (0: the parry held).
+ */
+export function parryGives(parrier, blade, impulse, at, bladeMass) {
+  const body = parrier.body;
+  const hands = [blade.main, ...(blade.twoHanded ? [blade.off] : [])];
+  const mass = bladeMass + 0.6 * hands.reduce((sum, hand) => sum + body.limbKg[`${hand}Arm`], 0);
+  const force = BLUNT.guard.hold * hands.reduce((sum, hand) => sum + body.strikeForce[P[`${hand}Hand`]] * partHealth(parrier, `${hand}Forearm`), 0) * guardSet(parrier);
+  return guardGives(impulse, mass, force, guardCovers(parrier, at).gap).through;
+}
+
+/**
+ * A guard beaten in: his own arm carries `momentum` (N·s) of the blow on into what it covered (guard.behind). His head is
+ * moved by it with the arm's mass added to its own, a broad soft blow that pushes more than it twists; his trunk takes it as
+ * a body blow through the arm (its wind, its bruise), spread too wide to break a rib.
+ */
+function guardBeaten(world, attacker, defender, event, guard, momentum, push, braced) {
+  const body = defender.body;
+  if (guard.behind === 'head') {
+    if (guard.through >= BLUNT.guard.shown) event.effects.push('guard beaten in');
+    const under = protectionAt(body.gear, 'head');
+    const deltaV = momentum / (body.headEffectiveMass + guard.mass);
+    event.headDeltaV = deltaV;
+    // (A helmet's padding draws it out, as any blow: bluntConsequences.)
+    event.harmDeltaV = deltaV / Math.sqrt(1 + WORLD.helmet.paddingStretch * (body.gear.helmet?.padding ?? 0));
+    addDamage(defender, 'head', deltaV * (1 - (under.blunt ?? 0)) * bluntPart(body, 'head').toll, false);
+    applyHeadDamage(world, defender, event);
+    return;
+  }
+  const trunk = bluntPart(body, 'trunk');
+  const harm = 1 - (protectionAt(body.gear, 'trunk').blunt ?? 0);
+  // (An arm lying on his ribs is no guard beaten: it is the body blow it would have been, through an arm.)
+  if (guard.through >= BLUNT.guard.shown) event.effects.push('driven through the arm');
+  addDamage(defender, 'trunk', (momentum / (body.massKg * 0.35 + guard.mass)) * harm * trunk.toll, false);
+  if (!braced) takeWind(defender, ((momentum / (body.massKg * 0.6)) / body.aerobic) * harm * trunk.pad, push);
 }
 
 /**
@@ -8544,7 +8678,9 @@ function pushBack(world, attacker, defender, capsule, closest, contactPoint, nor
   // tells a hammer from a glove (a cut's sharp force is no shove); his poise spreads it.
   if (event.force) stagger(world, defender, (event.force * Math.min(1, event.bluntMix ?? 1) * share) / WORLD.stagger.force / poise, event);
   const bodyDeltaV = transferred / body.massKg / poise;
-  if (defender.state === 'up' && bodyDeltaV * harm > WORLD.knockout.bodyDeltaV * BODY.toughness && !blocked) {
+  // (Through a guard, what of it the guard let through: bluntConsequences `through`; into a trunk as padded as his: bluntPart.)
+  const reaches = (blocked ? event.through ?? 0 : 1) * bluntPart(body, 'trunk').pad;
+  if (defender.state === 'up' && bodyDeltaV * harm * reaches > WORLD.knockout.bodyDeltaV * BODY.toughness) {
     knockOut(world, defender, event, `knocked out (the blow moved his whole body ${bodyDeltaV.toFixed(1)} m/s)`);
   }
   world.pendingImpulses.push({ fighter: defender, shares: struck, direction: vec.scale(normal, -1), impulse: transferred, massShare: WORLD.balance.strikeMassShare * poise });
@@ -9253,7 +9389,6 @@ function registerWeaponImpact(world, attacker, defender, striker, closest, capsu
   const protection = intoGap ? { ...gapUnder(body.gear, gapZone, covered), deflects: false } : covered;
   // (A shaft that shatters on armour it cannot go into, below.)
   const shattered = !haft && !intoGap && shattersOn(weapon, spec.mode, protection, energy);
-  const firmness = body.segments[capsule.key === 'head' ? 'head' : capsule.key === 'trunk' ? 'trunk' : capsule.key].fleshFirmness;
   const blocked = BLOCKING.has(capsule.key);
   // A brittle edge (obsidian) cuts only as well as it is still sharp.
   const sharp = weapon.edge ?? 1;
@@ -9307,7 +9442,8 @@ function registerWeaponImpact(world, attacker, defender, striker, closest, capsu
   // (Drawn out by a helmet's padding or a rigid shell's, shellStretch.)
   // (The weapon's knock and the push of what is behind it through the joints, blowPeak; drawn out by a helmet's padding
   // or a rigid shell's, shellStretch.)
-  const knockSeconds = contactSeconds * (1 + 0.6 * (1 - firmness)) * shellStretch(body.gear, capsule.key, protection);
+  // (And by the flesh over the part on this body: physics/blunt.js bluntPart.)
+  const knockSeconds = contactSeconds * bluntPart(body, capsule.key).stretch * shellStretch(body.gear, capsule.key, protection);
   const peakForce = blowPeak(blowImpulse, goingIn * Math.sqrt(borne), knockSeconds, rigidMass, strikeMass, struckMass);
   const pierce = (goes * mix.pierce * pointGoes + press * pressGoes) * sharp;
   // A heavy hard head drives part of its blow through armour (`crush`).
@@ -9575,7 +9711,7 @@ function registerShieldImpact(world, attacker, defender, striker, disc, hit, awa
   const impulse = reduced * closing * (1 + WORLD.restitution);
   // (What the meeting takes up, J: what the board and the arm behind it soak.)
   const energy = 0.5 * reduced * closing * closing;
-  addDamage(defender, 'lForearm', (impulse / braced) * defender.shield.spec.armHarm, true);
+  shieldArmTakes(defender, impulse, braced);
   attacker.stats.blocked += 1;
   const event = {
     time: world.time, kind: 'blocked', attacker: attacker.id, defender: defender.id, punch: punch.type, target: 'shield', speed: closing, impulse, force: 0, headDeltaV: 0,
@@ -9632,7 +9768,10 @@ function registerShieldImpact(world, attacker, defender, striker, disc, hit, awa
   const offCentre = vec.length(vec.sub(hit.point, disc.centre)) / disc.radius;
   const hold = WORLD.shield.wrench * (shield.spec.hold ?? 1) * (body.motorForce[P.lHand] / WORLD.recoil.reference);
   shield.strain = (shield.strain ?? 0) + (impulse * (1 + offCentre)) / hold;
+  const armHarm = shield.spec.armHarm;
   if (shield.strain >= 1) dropShield(world, defender, 'wrenched', vec.scale(away, (-impulse * 0.3) / shield.spec.mass));
+  // (The arm behind the board, by the bone rule of any forearm: shieldArmBreaks.)
+  shieldArmBreaks(world, defender, impulse, armHarm, striker.weapon ? striker.weapon.spec.contactSeconds ?? WORLD.contactSeconds : WORLD.contactSeconds, event);
 }
 
 /** The speed of a striking limb or blade at a point along it (`along`, 0-1 of its striking length). */
@@ -9836,7 +9975,17 @@ function clashWeapons(world, first, second, a = first.weapon, b = second.weapon)
   const parried = cutting(strokeA) && !strokeB ? [second, b, first, strokeA] : cutting(strokeB) && !strokeA ? [first, a, second, strokeB] : null;
   // A blow met by a much lighter blade is not stopped by it: what speed the meeting leaves it (its effective mass against the
   // blade's, braced: BLADES.beatThrough) it goes on with, the parrying blade driven back before it and his block broken.
-  const beaten = parried && beatenThrough(parried[2] === first ? massA : massB, parried[2] === first ? massB : massA);
+  let beaten = parried && beatenThrough(parried[2] === first ? massA : massB, parried[2] === first ? massB : massA);
+  // Or met by a blade heavy enough whose owner's arms cannot hold it there (parryGives): the blade is driven back on him and
+  // the blow goes on with what speed the blade and his arms, carried along, leave it (BLUNT.guard.beaten or more of it). Not a
+  // deflect: met on time the blow is turned, not stopped (WORLD.deflect), whoever is the stronger.
+  if (parried && !beaten && !deflecting(parried[0], world.time)) {
+    const [parrier, blade, striker] = parried;
+    const theirs = striker === first ? massA : massB;
+    const mine = striker === first ? massB : massA;
+    const kept = (parryGives(parrier, blade, impulse, vec.lerp(closest.onFirst, closest.onSecond, 0.5), mine) * theirs) / (theirs + mine);
+    if (kept >= BLUNT.guard.beaten) beaten = kept;
+  }
   for (const stroke of [strokeA, strokeB]) {
     if (!stroke) continue;
     if (beaten && stroke === parried[3]) {
@@ -10128,6 +10277,67 @@ function reel(world, fighter, energy, event) {
 function staggerInstead(world, fighter, severity, event) {
   if (!armoured(fighter) || fighter.stagger > 0 || severity >= WORLD.stagger.overwhelm) return false;
   return stagger(world, fighter, severity, event);
+}
+
+/**
+ * How much of the blow `attacker` is throwing at `defender` would come through the defender's block (0: his guard holds it;
+ * towards 1: it comes through as if nothing were there), as a fighter weighing it up would judge it: the blow's momentum
+ * from the striker's own mass and speed (a clean one: WORLD.threatSpeedShare of the speed his limb's striking force gives its
+ * mass, and a weapon's with it, over his reach; a swung weapon's head faster by its lever), against what the defender's guard holds now by the same rules the blows use: his arms (armGuard), his blade
+ * (beatenThrough, parryGives), or his shield arm (shieldArmGives' moment).
+ */
+export function guardOverrun(attacker, defender) {
+  const punch = attacker.punch;
+  if (!punch) return 0;
+  const spec = punch.spec;
+  const body = attacker.body;
+  const mine = defender.body;
+  const side = spec.limb[0];
+  const blade = spec.path === 'blade' ? bladeFor(attacker, spec) : null;
+  const armLength = (fighter) => fighter.body.lengths.upperArm + fighter.body.lengths.forearmToFist;
+  const heavy = punch.heavy ? WORLD.heavy.massFactor : 1;
+  const leg = /Foot|Knee/.test(spec.limb);
+  const limbKg = body.limbKg[`${side}${leg ? 'Leg' : 'Arm'}`];
+  const driven = (carried) => WORLD.threatSpeedShare * Math.min(body.topSpeed[P[spec.limb]], Math.sqrt((2 * body.strikeForce[P[spec.limb]] * (leg ? body.lengths.thigh + body.lengths.shank : armLength(attacker))) / (limbKg + carried)));
+  let mass;
+  let speed;
+  const block = blockFor(defender);
+  if (blade?.held) {
+    if (spec.couched && attacker.mount) return 1;
+    const along = blade.spec.length * WORLD.deflect.strikeAt;
+    mass = effectiveMassAt(blade.spec, body.limbKg[`${blade.main}Arm`] * 0.6, along, armLength(attacker)) * heavy;
+    // (The head of a swung weapon goes faster than the hand by its lever; a thrust comes at the hand's speed.)
+    speed = driven(blade.spec.mass ?? 0) * (spec.mode === 'thrust' ? 1 : (armLength(attacker) + along) / armLength(attacker));
+  } else {
+    // (A fist or a foot on a blade held across is fended off by it, whoever throws it: registerBladeBlock.)
+    if (block === 'weaponBlock') return 0;
+    mass = ((spec.mass.arm ?? 0) * body.limbKg[`${side}Arm`] + (spec.mass.leg ?? 0) * body.limbKg[`${side}Leg`] + (spec.mass.body ?? 0) * body.massKg) * body.technique * heavy * (leg ? body.gear.kick : 1);
+    speed = driven(0);
+  }
+  if (block === 'shieldBlock') {
+    const braced = defender.shield.spec.mass + mine.segments.lForearm.mass + mine.segments.lUpperArm.mass + mine.massKg * 0.3;
+    const impulse = ((mass * braced) / (mass + braced)) * speed * (1 + WORLD.restitution);
+    // (Met at the board's middle, an arm's bend out from the shoulder: half the arm's length of lever.)
+    const moment = impulse * 0.5 * armLength(defender);
+    const held = mine.strikeForce[P.lHand] * armLength(defender) * WORLD.shield.holdSeconds * Math.max(0.2, defender.motorScale ?? 1);
+    return moment > held ? 1 - held / moment : 0;
+  }
+  if (block === 'weaponBlock') {
+    const weapon = defender.weapon;
+    const against = effectiveMassAt(weapon.spec, mine.limbKg[`${weapon.main}Arm`] * 0.6, weapon.spec.length * 0.5, armLength(defender));
+    if (beatenThrough(mass, against) > 0) return 1;
+    const impulse = ((mass * against) / (mass + against)) * speed * (1 + BLADES.clashRestitution);
+    return parryGives(defender, weapon, impulse, vec.add(point(defender.x, P.neck), vec.scale(yawRotate([1, 0, 0], defender.yaw), WORLD.guardCover.out * mine.heightM + mine.segments.trunk.skinRadius)), against);
+  }
+  // His arms: the sounder one, put up WORLD.guardCover.out of his height before what the blow is aimed at.
+  const key = partHealth(defender, 'lForearm') >= partHealth(defender, 'rForearm') ? 'lForearm' : 'rForearm';
+  const struck = mine.segments[key].mass + mine.segments.trunk.mass * 0.25;
+  const impulse = ((mass * struck) / (mass + struck)) * speed * (1 + WORLD.restitution);
+  const rule = BLUNT.guard;
+  const armMass = mine.segments[key].mass + BODY.gloveKg + rule.upperArm * mine.segments[`${key[0]}UpperArm`].mass;
+  // (As a block put up would hold it: he is judging whether to put one up.)
+  const force = rule.hold * mine.strikeForce[P[`${key[0]}Hand`]] * Math.max(0.2, defender.motorScale ?? 1) * fatigueScale(defender.stamina) * partHealth(defender, key);
+  return guardGives(impulse, armMass, force, WORLD.guardCover.out * mine.heightM).through;
 }
 
 /**

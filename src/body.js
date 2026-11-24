@@ -159,7 +159,51 @@ export const BODY = {
   // al. 2003). Set over a heavyweight's low kick into the thigh (~7 kN, at toughness): a kick or a sword's flat bruises,
   // a war hammer's or a mace's blow breaks the bone where it lands (the user's call, 2026-11-09).
   fractureN: { face: 5200, hand: 5600, rib: 4800, Forearm: 7000, UpperArm: 11000, Shank: 14000, Thigh: 18000 },
+  // A bone's strength on this body, over the reference bone's the figures above are for (a man of 1.75 m, medium frame,
+  // young, T-score 0): boneStrength. Its material by its mineral, its section by his frame, sex and height, and the years.
+  // - densityPower: bone's strength goes as the square of its density (Carter & Hayes 1977, J Bone Joint Surg 59-A: 954,
+  //   compressive strength of bone against apparent density, cortical to trabecular): a T-score of -2.5 (mineral 0.75 of
+  //   the young mean, at ~10% a standard deviation) leaves 0.56 of the strength, as whole femurs of the old and
+  //   osteoporotic break in a fall at about half the load of the young (Courtney et al. 1995, J Bone Joint Surg 77-A: 387:
+  //   3.4 against 7.2 kN). The starved lose mineral fastest (physiology.js boneTScore: anorexia's osteopenia, Grinspoon et
+  //   al. 2000, Ann Intern Med 133: 790), so a starving man's bones break at about half a fed man's force.
+  // - widthPower: a long bone broken across breaks in bending, by its section modulus over its length. The frame's bone
+  //   mass (FRAMES `bone`) is its section's area at a height, and the modulus goes as the area to the 3/2 (the same shape,
+  //   wider): a large frame's bones bear ~1.19, a small one's ~0.83. A woman's skeleton at a man's height is lighter
+  //   (referenceBoneKg) and its bones narrower: the area's ratio (0.78) is taken as it is, her bones' width at one height
+  //   being some 6-8% under his, not the 12% of the unadjusted figures. With height every width grows and the length too:
+  //   modulus over length goes as height squared (a man of 1.93 m: 1.22; a woman of 1.55 m: 0.78).
+  // - the years: cortical bone itself weakens from the mid-thirties, its strength by ~2-5% a decade and the energy it
+  //   takes to break by ~7-12% (Burstein, Reilly & Martens 1976, J Bone Joint Surg 58-A: 82; McCalden et al. 1993, J Bone
+  //   Joint Surg 75-A: 1193; Zioupos & Currey 1998, Bone 22: 57: its toughness falls faster than its strength), on top of
+  //   the mineral lost (aging.js AGEING.bone, in the T-score). `strengthPerDecade` and `toughnessPerDecade` from `ageFrom`,
+  //   to no less than `ageFloor` of a young bone's. A blow breaks a bone by its force against the strength and by the
+  //   energy the bone can take up before it goes: an old bone's breaking load under a blow is the mean of the two (the
+  //   root of their product), and what injury piles up in before it gives (its toughness) falls with the steeper.
+  bone: { densityPower: 2, widthPower: 1.5, ageFrom: 35, strengthPerDecade: 0.04, toughnessPerDecade: 0.09, ageFloor: 0.3 },
 };
+
+/**
+ * A body's bones against the reference bone's (BODY.bone): `mineral` (its density by the T-score), `section` (the frame,
+ * the sex and the height), `strength` (what a slow load breaks it at), `toughness` (the energy it takes up before it
+ * breaks) and `impact` (its breaking load under a blow), each 1 for the reference man. A fixed build (an animal, a
+ * machine) is its frame and its own `bones`, as it was given.
+ */
+export function boneStrength(inputs, tScore, frame, build = null) {
+  if (build) {
+    const given = frame.bone * (build.bones ?? 1);
+    return { mineral: 1, section: given, strength: given, toughness: given, impact: given };
+  }
+  const spec = BODY.bone;
+  const mineral = Math.max(0.35, 1 + 0.1 * tScore);
+  const sex = inputs.sex === 'female' ? BODY.referenceBoneKg.female / BODY.referenceBoneKg.male : 1;
+  const section = frame.bone ** spec.widthPower * sex * (inputs.heightCm / 100 / BODY.referenceHeightM) ** 2;
+  const decades = Math.max(0, (inputs.age ?? 27) - spec.ageFrom) / 10;
+  const strong = Math.max(spec.ageFloor, 1 - spec.strengthPerDecade * decades);
+  const tough = Math.max(spec.ageFloor, 1 - spec.toughnessPerDecade * decades);
+  const sound = mineral ** spec.densityPower * section;
+  return { mineral, section, strength: sound * strong, toughness: sound * tough, impact: sound * Math.sqrt(strong * tough) };
+}
 
 /** Default inputs, also the shape of a fighter file's `inputs`. */
 export const DEFAULT_INPUTS = {
@@ -1030,6 +1074,8 @@ export function buildBody(rawInputs) {
   // A T-score is in standard deviations of mineral density, about 10% each;
   // mineral is half the skeleton's mass, so its weight moves half as much.
   const boneDensity = Math.max(0.35, 1 + 0.1 * tScore) * frame.bone;
+  // What a blow breaks them at, over the reference bone's (BODY.bone).
+  const bone = boneStrength(inputs, tScore, frame, build);
   const boneKg = BODY.referenceBoneKg[inputs.sex] * (statureM / BODY.referenceHeightM) ** 3 * Math.max(0.6, 1 + 0.05 * tScore) * frame.bone;
   const otherKg = BODY.organShareOfLean * leanKg + BODY.organPerFatKg * fatKg;
   const muscleKg = Math.max(0.05 * leanKg, leanKg - boneKg - otherKg);
@@ -1171,7 +1217,7 @@ export function buildBody(rawInputs) {
   const aerobic = (build?.aerobic ?? inputs.aerobic ?? clamp((0.45 + 0.6 * inputs.training - 1.2 * Math.max(0, inputs.bodyFat - 0.15)) * aged.aerobic, 0.1, 1.1)) * packed;
 
   return {
-    inputs, heightM, statureM, massKg: massKg + gearKg, bodyMassKg: massKg, gearKg, gear, leanKg, muscleKg, boneKg, fatKg, ffmi, boneDensity, muscleQuality, neckIndex, composition, tScore,
+    inputs, heightM, statureM, massKg: massKg + gearKg, bodyMassKg: massKg, gearKg, gear, leanKg, muscleKg, boneKg, fatKg, ffmi, boneDensity, bone, muscleQuality, neckIndex, composition, tScore,
     // The years: shares of a young body's (aging.js); joints 1 young; stoop, the back's forward lean (rad).
     aged, joints: aged.joints, stoop: aged.stoop,
     lengths, segments, masses, motorForce, muscleForce, strikeForce, topSpeed, aerobic,
@@ -1208,12 +1254,15 @@ export function buildBody(rawInputs) {
     chin: 3.1 * (0.8 + 0.25 * neckIndex) * Math.max(0.6, 1 - 0.004 * yearsAging) * BODY.chinToughness * (build?.brain ?? 1),
     // A man's own hand breaking on a punch is the attacker's risk, not his health: it stays.
     // A build's `bones`: its bones' strength against a man's (thicker in section).
+    // Each bone's breaking load under a blow on this body (`bone.impact`, boneStrength: his mineral, frame, sex, height and
+    // years). (It was the T-score's mineral times the frame alone: 0.72 to 1.32 from the starved to the heaviest, where
+    // the bones differ three- and fourfold.)
     fracture: {
-      face: BODY.fractureN.face * boneDensity * BODY.toughness * (build?.bones ?? 1),
+      face: BODY.fractureN.face * bone.impact * BODY.toughness,
       // A powered frame's fist takes the blow into its own strut, not his hand inside it (a kit's `fistBones`).
-      hand: BODY.fractureN.hand * boneDensity * (build?.bones ?? 1) * (gear.fistBones ?? 1),
-      rib: BODY.fractureN.rib * boneDensity * BODY.toughness * (build?.bones ?? 1),
-      ...Object.fromEntries(['Forearm', 'UpperArm', 'Shank', 'Thigh'].map((bone) => [bone, BODY.fractureN[bone] * boneDensity * BODY.toughness * (build?.bones ?? 1)])),
+      hand: BODY.fractureN.hand * bone.impact * (gear.fistBones ?? 1),
+      rib: BODY.fractureN.rib * bone.impact * BODY.toughness,
+      ...Object.fromEntries(['Forearm', 'UpperArm', 'Shank', 'Thigh'].map((long) => [long, BODY.fractureN[long] * bone.impact * BODY.toughness])),
     },
   };
 }

@@ -109,6 +109,13 @@ export const MOVES = {
   // Polearms: the head swung or driven from well back; slow to wind, long in reach.
   hammerOverhead: { kind: 'strike', limb: 'rHand', path: 'blade', refWeapon: 'warhammer', mode: 'swing', grip: 'two', from: { hand: [0.0, 0.95, -0.1], dir: [-0.5, 0.85, -0.1] }, mid: [0.85, 0.5, 0], to: { hand: [0.3, 0.55, 0.05], dir: [0.6, -0.8, 0.05] }, windup: 0.26, extendUntil: 0.56, duration: 1.0, twist: -0.4, lean: 0.16, shift: 0.08, cost: 0.045, mass: { arm: 0.7, body: 0.06 }, rotation: 1.2, zones: ['head', 'body'], reach: 'weapon', contactAt: 0.88 },
   hammerSide: { kind: 'strike', limb: 'rHand', path: 'blade', refWeapon: 'warhammer', mode: 'swing', grip: 'two', from: { hand: [0.02, 0.7, -0.3], dir: [-0.3, 0.3, -0.9] }, mid: [1, 0.15, 0], to: { hand: [0.22, 0.66, 0.25], dir: [0.2, 0.05, 1] }, windup: 0.24, extendUntil: 0.54, duration: 0.95, twist: -0.9, lean: 0.08, shift: 0.06, cost: 0.045, mass: { arm: 0.7, body: 0.06 }, rotation: 1.4, zones: ['head', 'body'], reach: 'weapon', contactAt: 0.88 },
+  // A bat's swings: the hammer's two blows on the same paths, at the pace of a light club and not of a 3.4 kg hammer on a long
+  // shaft. A 0.9 kg bat taken through the hammer's wind-up and swing (0.3 s out) came in at ~9 m/s and ~45 J, a third of the
+  // 25-31 m/s skilled batters reach at the barrel (Welch et al. 1995, J Orthop Sports Phys Ther 22: 193; Escamilla et al. 2009,
+  // J Appl Biomech 25: 210) and under a low kick; at a two-handed cut's timing (the katana's, a blade a little heavier) it
+  // reaches 11-14 m/s and 75-115 J, still short of a batter's full swing (no stride, no full turn of the hips).
+  batOverhead: { kind: 'strike', limb: 'rHand', path: 'blade', refWeapon: 'bat', mode: 'swing', grip: 'two', from: { hand: [0.0, 0.95, -0.1], dir: [-0.5, 0.85, -0.1] }, mid: [0.85, 0.5, 0], to: { hand: [0.3, 0.55, 0.05], dir: [0.6, -0.8, 0.05] }, windup: 0.15, extendUntil: 0.38, duration: 0.74, twist: -0.4, lean: 0.14, shift: 0.07, cost: 0.032, mass: { arm: 0.65, body: 0.045 }, rotation: 1.2, zones: ['head', 'body'], reach: 'weapon', contactAt: 0.86 },
+  batSide: { kind: 'strike', limb: 'rHand', path: 'blade', refWeapon: 'bat', mode: 'swing', grip: 'two', from: { hand: [0.02, 0.7, -0.3], dir: [-0.3, 0.3, -0.9] }, mid: [1, 0.15, 0], to: { hand: [0.22, 0.66, 0.25], dir: [0.2, 0.05, 1] }, windup: 0.14, extendUntil: 0.37, duration: 0.72, twist: -0.9, lean: 0.08, shift: 0.06, cost: 0.032, mass: { arm: 0.65, body: 0.045 }, rotation: 1.4, zones: ['head', 'body'], reach: 'weapon', contactAt: 0.86 },
   // A one-handed mace: the hammer's blows from one hand, shorter and quicker.
   maceOverhead: { kind: 'strike', limb: 'rHand', path: 'blade', mode: 'swing', grip: 'one', from: { hand: [0.0, 0.92, -0.14], dir: [-0.5, 0.85, -0.1] }, mid: [0.85, 0.45, 0], to: { hand: [0.3, 0.55, 0.05], dir: [0.6, -0.8, 0.05] }, windup: 0.16, extendUntil: 0.42, duration: 0.78, twist: -0.45, lean: 0.14, shift: 0.07, cost: 0.032, mass: { arm: 0.65, body: 0.05 }, rotation: 1.0, zones: ['head', 'body'], reach: 'weapon', contactAt: 0.86 },
   maceSide: { kind: 'strike', limb: 'rHand', path: 'blade', mode: 'swing', grip: 'one', from: { hand: [0.02, 0.72, -0.32], dir: [-0.3, 0.3, -0.9] }, mid: [1, 0.15, 0], to: { hand: [0.24, 0.66, 0.25], dir: [0.2, 0.05, 1] }, windup: 0.15, extendUntil: 0.4, duration: 0.74, twist: -0.85, lean: 0.07, shift: 0.05, cost: 0.032, mass: { arm: 0.65, body: 0.05 }, rotation: 1.15, zones: ['head', 'body'], reach: 'weapon', contactAt: 0.86 },
@@ -1657,8 +1664,8 @@ export const STYLES = {
     stance: { blade: 0.5, crouch: 0.05, width: 1.15, lean: 0.1, guardHeight: 0 },
     weaponGuard: { hand: [0.06, 0.74, -0.16], dir: [0.2, 0.95, -0.2] },
     idle: { bounce: 0.3, sway: 0.6, rock: 0.4 },
-    attacks: { hammerSide: 0.6, hammerOverhead: 0.4 },
-    combos: { 'hammerSide hammerOverhead': 0.5, 'hammerSide hammerSide': 0.5 },
+    attacks: { batSide: 0.6, batOverhead: 0.4 },
+    combos: { 'batSide batOverhead': 0.5, 'batSide batSide': 0.5 },
     comboChance: 0.35,
     tempo: 1.2,
     defences: { stepBack: 0.6, guard: 0.4 },

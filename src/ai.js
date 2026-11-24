@@ -11,7 +11,7 @@ import { keepOrders, obeyOrder, orderedFocus, orderKeepsPlace } from './command.
 import { P } from './body.js';
 import { MOVES, pointRoomOf, STRATEGIES, STYLES, moveRange } from './moves.js';
 import { MAIMING, maimFear } from './maiming.js';
-import { aimPoint, armGone, openVessel, inRiderArc, bladeFor, blockFor, bodyHarm, chinNow, couchedGap, crawlingAway, dazedShare, dropShield, dropWeapon, fightTier, guardReading, holdGuard, hostile, fillGrid, floorGrid, gridAround, inFight, legGone, legShare, limbGone, longPoint, nearestOpponent, perform, point, protectionAt, reachOf, goToGrips, shedStandard, sightAngle, staggerShare, startCrawl, startPickup, strikeThreat, throwPunch, toLocal, useMounted, WORLD, undeflectable } from './physics.js';
+import { aimPoint, armGone, openVessel, inRiderArc, bladeFor, blockFor, bodyHarm, chinNow, couchedGap, crawlingAway, dazedShare, dropShield, dropWeapon, fightTier, guardReading, holdGuard, hostile, fillGrid, floorGrid, gridAround, inFight, legGone, legShare, limbGone, longPoint, nearestOpponent, perform, point, protectionAt, reachOf, goToGrips, shedStandard, sightAngle, staggerShare, startCrawl, startPickup, strikeThreat, throwPunch, toLocal, useMounted, WORLD, undeflectable, guardOverrun } from './physics.js';
 import { vec, yawRotate } from './pose.js';
 import { BLADES, GUN, WEAPONS } from './weapons.js';
 import { FACTIONS, factionOf } from './outfits.js';
@@ -176,6 +176,9 @@ export const AI = {
   // lean back, step back; weighted up to `move` times, and open to anyone)
   // rather than by blocking (weighted down to `block` of itself).
   evadeHeavy: { heavyMass: 4, loaded: 0.6, defend: 0.6, move: 3, block: 0.4 },
+  // A guard held up is let go for a blow that would come through it by this share or more (physics.js guardOverrun: the blow's
+  // momentum against what his arms, his blade or his shield arm hold): he gets out of its way instead, as from any heavy blow.
+  guardFails: 0.5,
   // Driving himself on past his breath (decide: physics/overdraft.js `overdraw`): while his side has been shot into within
   // `underFire` s and his man is more than `short` m beyond both their reaches.
   overdraw: { underFire: 5, short: 1 },
@@ -1418,7 +1421,10 @@ function heaviness(striker, incoming, defender = null) {
   if (defender && undeflectable(striker, defender)) return 1;
   const blade = incoming.spec.path === 'blade' ? bladeFor(striker, incoming.spec) : null;
   const weapon = blade?.held ? blade.spec.mass / spec.heavyMass : 0;
-  return Math.min(1, Math.max(weapon, incoming.heavy ? spec.loaded : 0));
+  // (And as heavy as it is for him: the share of it his own block would let through, by his strength against the blow's
+  // momentum, physics.js guardOverrun: a big man's right hand is a heavy blow to a small man and a light one to his equal.)
+  const overrun = defender ? guardOverrun(striker, defender) : 0;
+  return Math.min(1, Math.max(weapon, incoming.heavy ? spec.loaded : 0, overrun));
 }
 
 function pickDefence(style, incoming, random, heavy = 0, long = false, beats = false) {
@@ -4152,7 +4158,8 @@ function decide(world, fighter, dt) {
   }
   // His guard held up (keepGuard) is his answer: it goes to meet the blow as well as he reads it.
   // (Not against a blow that would beat through it: he lets it go and steps out of the way, below.)
-  if (incoming && fighter.guardHeld && !undeflectable(striker, fighter)) fighter.reacted = true;
+  // (Nor against one his guard would mostly let through, physics.js guardOverrun: AI.guardFails.)
+  if (incoming && fighter.guardHeld && !undeflectable(striker, fighter) && guardOverrun(striker, fighter) < AI.guardFails) fighter.reacted = true;
   if (incoming && !fighter.reacted && !fighter.punch && !(fighter.committed > 0) && seenFor >= fighter.reactAt) {
     fighter.reacted = true;
     // Reeling from a blow, he is slow to cover up.
@@ -4169,7 +4176,8 @@ function decide(world, fighter, dt) {
       // (WORLD.guardRead, keepGuard); a long point he still gets off the line of (AI.offLine).
       // (Short of wind he does not put it up: WORLD.guardHeld willFrom; a thrust is the harder to meet: WORLD.guardRead.thrust.)
       const will = Math.max(0, Math.min(1, (fighter.stamina - WORLD.guardHeld.willFrom) / (WORLD.guardHeld.willFull - WORLD.guardHeld.willFrom)));
-      const guards = !longPoint(striker, incoming) && random() < WORLD.guardRead.chance.most * (guardReading(fighter) ?? 0) ** WORLD.guardRead.chance.power * (incoming.spec.art ? AI.art.guardRead : 1) * will * (incoming.spec.mode === 'thrust' ? WORLD.guardRead.thrust.chance : 1);
+      // (And the less the more of the blow his block would let through: a guard that will fail is not what he answers with.)
+      const guards = !longPoint(striker, incoming) && random() < WORLD.guardRead.chance.most * (guardReading(fighter) ?? 0) ** WORLD.guardRead.chance.power * (incoming.spec.art ? AI.art.guardRead : 1) * will * (incoming.spec.mode === 'thrust' ? WORLD.guardRead.thrust.chance : 1) * (1 - guardOverrun(striker, fighter));
       if (guards) name = blockFor(fighter);
       // A blade coming is got away from, not blocked with an arm.
       else if (incoming.spec.path === 'blade' && wary && name !== 'sidestep' && !longPoint(striker, incoming) && random() < AI.blade.stepBackChance) name = 'stepBack';
