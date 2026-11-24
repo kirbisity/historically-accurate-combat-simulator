@@ -342,9 +342,10 @@ export function envInstallShadow() {
   const at = 'vec2 texelSize = vec2( 1.0 ) / shadowMapSize;';
   const search = `${at}
     float envSure = - 1.0;
+    float envTurn = 0.0;
     if ( shadowRadius < 0.0 ) {
       vec2 envMet = vec2( 0.0 );
-      float envTurn = 6.2832 * fract( sin( dot( gl_FragCoord.xy, vec2( 12.9898, 78.233 ) ) ) * 43758.5453 );
+      envTurn = 6.2832 * fract( sin( dot( gl_FragCoord.xy, vec2( 12.9898, 78.233 ) ) ) * 43758.5453 );
       for ( int i = 0; i < 8; i ++ ) {
         float envAt = envTurn + float( i ) * 2.4;
         float envDepth = unpackRGBAToDepth( texture2D( shadowMap, shadowCoord.xy + vec2( cos( envAt ), sin( envAt ) ) * texelSize * ${tune.search.toFixed(1)} * sqrt( ( float( i ) + 0.5 ) / 8.0 ) ) );
@@ -365,8 +366,79 @@ export function envInstallShadow() {
   const from = widened.indexOf('shadow = (', widened.indexOf(search));
   const close = ') * ( 1.0 / 17.0 );';
   const to = widened.indexOf(close, from);
-  if (chunk.includes(at) && from > 0 && to > 0) widened = `${widened.slice(0, from)}if ( envSure >= 0.0 ) shadow = envSure; else { ${widened.slice(from, to + close.length)} }${widened.slice(to + close.length)}`;
+  // (A finer map, envInstallFinerShadow, handed over with its size negative: its edge is seen from close, where the
+  // filter's seventeen looks on a square showed as five terraces a texel deep, each with the map's own steps. Its
+  // looks are laid on a spiral instead and the spiral turned from one point of the picture to the next, so the
+  // terraces become a grain a pixel fine, which the eye and the frame's smoothed edges read as a soft edge.)
+  const spiral = `if ( envFine ) {
+        shadow = 0.0;
+        for ( int i = 0; i < ${tune.finerLooks}; i ++ ) {
+          float envAt = envTurn + float( i ) * 2.4;
+          shadow += texture2DCompare( shadowMap, shadowCoord.xy + vec2( cos( envAt ), sin( envAt ) ) * texelSize * shadowRadius * sqrt( ( float( i ) + 0.5 ) / ${tune.finerLooks.toFixed(1)} ), shadowCoord.z );
+        }
+        shadow /= ${tune.finerLooks.toFixed(1)};
+      } else`;
+  if (chunk.includes(at) && from > 0 && to > 0) widened = `${widened.slice(0, from)}if ( envSure >= 0.0 ) shadow = envSure; else ${spiral} { ${widened.slice(from, to + close.length)} }${widened.slice(to + close.length)}`;
+  const head = 'float getShadow( sampler2D shadowMap, vec2 shadowMapSize, float shadowBias, float shadowRadius, vec4 shadowCoord ) {';
+  if (!widened.includes(head)) console.warn('env: the renderer has no getShadow as known; a finer shadow map would not be read');
+  widened = widened.replace(head, `${head}\n\t\tbool envFine = shadowMapSize.x < 0.0;\n\t\tshadowMapSize = abs( shadowMapSize );`);
   THREE.ShaderChunk.shadowmap_pars_fragment = widened;
+  envInstallFinerShadow();
+}
+
+/**
+ * A finer map of the sun's shadow round the fight (config.js `shadowBox.near`; index.js envCarryFiner). The wide map
+ * holds a whole place, 3 cm a texel over an arena and its stands, and a man's shadow drawn from it came out in steps;
+ * a second map a few metres across holds the fighters' own at under a centimetre. It is drawn by a second light
+ * that stands where the sun does and sheds none: to every material (the renderer's chunks), a directional light
+ * of no colour that casts a shadow is the finer map of the light before it. A point inside that map takes the
+ * shadow from it, a point outside from the wide one, the two mixed over the map's last tenth; the light of no
+ * colour itself is passed over, so a point is filtered once as before.
+ */
+function envInstallFinerShadow() {
+  const finer = (wide, into) => `float envLit = 1.0;
+      float envWide = 1.0;
+      #if ( UNROLLED_LOOP_INDEX + 1 < NUM_DIR_LIGHT_SHADOWS )
+      if ( directionalLights[ UNROLLED_LOOP_INDEX + 1 ].color == vec3( 0.0 ) ) {
+        vec4 envAt = vDirectionalShadowCoord[ UNROLLED_LOOP_INDEX + 1 ];
+        vec2 envOut = abs( envAt.xy / envAt.w - 0.5 ) * 2.0;
+        envWide = envAt.z > envAt.w ? 1.0 : smoothstep( 0.86, 0.98, max( envOut.x, envOut.y ) );
+        if ( envWide < 1.0 ) envLit = getShadow( directionalShadowMap[ UNROLLED_LOOP_INDEX + 1 ], - directionalLightShadows[ UNROLLED_LOOP_INDEX + 1 ].shadowMapSize, directionalLightShadows[ UNROLLED_LOOP_INDEX + 1 ].shadowBias, directionalLightShadows[ UNROLLED_LOOP_INDEX + 1 ].shadowRadius, envAt );
+      }
+      #endif
+      if ( envWide > 0.0 ) envLit = mix( envLit, ${wide}, envWide );
+      ${into} *= envLit;`;
+  const patch = (name, from, to) => {
+    const chunk = THREE.ShaderChunk[name];
+    if (!chunk.includes(from)) {
+      console.warn(`env: the renderer's ${name} is not the one known; the sun's shadow keeps one map`);
+      return false;
+    }
+    THREE.ShaderChunk[name] = chunk.replace(from, to);
+    return true;
+  };
+  // The lit materials: the sun's own turn takes the finer map where there is one; the light of no colour has no turn.
+  const litWide = 'getShadow( directionalShadowMap[ i ], directionalLightShadow.shadowMapSize, directionalLightShadow.shadowBias, directionalLightShadow.shadowRadius, vDirectionalShadowCoord[ i ] )';
+  const lit = patch('lights_fragment_begin', `directLight.color *= all( bvec2( directLight.visible, receiveShadow ) ) ? ${litWide} : 1.0;`, `if ( all( bvec2( directLight.visible, receiveShadow ) ) && directionalLight.color != vec3( 0.0 ) ) {
+      ${finer(litWide, 'directLight.color')}
+    }`);
+  // (And no light is worked out for it: its sum would be nothing.)
+  if (lit) patch('lights_fragment_begin', `#endif
+		RE_Direct( directLight, geometry, material, reflectedLight );
+	}
+	#pragma unroll_loop_end
+#endif
+#if ( NUM_RECT_AREA_LIGHTS`, `#endif
+		if ( directionalLight.color != vec3( 0.0 ) ) RE_Direct( directLight, geometry, material, reflectedLight );
+	}
+	#pragma unroll_loop_end
+#endif
+#if ( NUM_RECT_AREA_LIGHTS`);
+  // The materials that ask for the shadows' product (the land, the grass, a shadow catcher).
+  const maskWide = 'getShadow( directionalShadowMap[ i ], directionalLight.shadowMapSize, directionalLight.shadowBias, directionalLight.shadowRadius, vDirectionalShadowCoord[ i ] )';
+  patch('shadowmask_pars_fragment', `shadow *= receiveShadow ? ${maskWide} : 1.0;`, `if ( receiveShadow && directionalLights[ i ].color != vec3( 0.0 ) ) {
+      ${finer(maskWide, 'shadow')}
+    }`);
 }
 
 /** The uniforms a material needs for that (with `lights: true`), beside its own. */

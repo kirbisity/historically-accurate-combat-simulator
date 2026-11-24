@@ -288,6 +288,13 @@ export const ENV = {
     // (the map's texels) a point is moved off its surface before it is looked up, so a body does not shade itself
     // in stripes; `every`, frames between looks through the scene for bodies made since.
     figure: { mirror: 0.5, off: 1.5, every: 30 },
+    // The finer map round the fight (a place's `shadowNear`): how many of its texels of depth a point is taken
+    // toward the sun before it is looked up. By eye, the least that leaves no stripes on a cloak or a banner
+    // (the things drawn into a shadow map from both sides).
+    finerBias: 1.5,
+    // How many looks its filter takes at an edge (terrain.js): twelve on a turned spiral leave a grain finer than
+    // the sand's own; at eight the grain showed on a pale floor. By eye.
+    finerLooks: 12,
     // Tree shade: under a crown the near map's shade is broken into flecks of sun the size of the gaps between
     // leaves' masses (`dapple` m), moving as the crown sways (the gust where it stands, `dappleSway` m per m/s).
     // The flecks are sharp where the shade is thin and close up as it deepens. By eye.
@@ -902,6 +909,10 @@ export const ENV_WEATHER = {
 //     look's own box round the middle of the floor); `size`: the shadow map's side in texels at the top tier (left
 //     out: the look's own);
 //   far: m, the camera's far plane (left out: as the place's own lighting set it);
+//   (any place, not only one that draws itself) shadowNear: { half, size }: a second, finer map of the sun's
+//     shadow carried with the fight, `half` m each way and `size` texels a side at the top tier (half that below
+//     it), for the fighters' own shadows where the sun's one map is spread over a whole arena or a field
+//     (index.js envCarryFiner). Left out: the sun has its one map;
 //   wind: { toward: [x, z], speed m/s, gust 0..1 }, its own wind where wind.js PLACE_WIND has none for it;
 //   cover: what stands over the ground (roofs, a vault, a bridge), so nothing falls through it and blown snow
 //     starts from its top: { at: (x, z) => m, the top of the highest thing over the point, min: [x, z], size:
@@ -942,13 +953,15 @@ export const PLACE_ENV = {
     ...ENV_PLACE_PLAIN,
     own: true,
     weather: 'dust',
-    weatherHere: { visibility: 340, hazeHeight: 26, wind: 0.25, gust: 0.05, sun: 0.92, cover: 0.1, shafts: 1.6, fall: { kind: 'dust', share: 0.5 }, grade: { contrast: 1.62, white: 6, saturation: 1.0, warmth: 0.04, split: 0.18, ev: 0.75, bloom: 2.6, bloomFrom: 0.8 } },
+    weatherHere: { visibility: 1100, hazeHeight: 26, wind: 0.25, gust: 0.05, sun: 1, cover: 0, shafts: 1.6, tint: 0xcabfae, fall: { kind: 'dust', share: 0.35 }, grade: { contrast: 1.6, white: 6, saturation: 1.0, warmth: -0.01, split: 0.12, ev: -0.3, bloom: 1.2, bloomFrom: 1.0 } },
     sun: { azimuth: -2.6, elevation: 54 },
     air: { visibility: 20000, hazeHeight: 900 },
     clouds: { cover: 0.12 },
+    ground: { ...ENV_PLACE_PLAIN.ground, albedo: 0.4 },
     shadowBox: { half: 34, depth: 110, size: 2048 },
+    shadowNear: { half: 8, size: 2048 },
     far: 400,
-    meter: { sky: 0.6, frame: 0.1 },
+    meter: { sky: 0.6, frame: 0.1, albedo: 0.4 },
     litAt: [0, 45, 0],
     drift: [{ kind: 'motes', share: 1, colours: [0xf2dcae, 0xe6c890] }],
   },

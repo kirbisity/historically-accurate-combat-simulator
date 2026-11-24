@@ -549,11 +549,11 @@ const PAINTED_GROUND_LAYERS = {
 
   /** Arena sand raked in parallel furrows. */
   sandRaked(random) {
-    const s = paintedGroundSheet(random, '#b88f5c', 0.5);
+    const s = paintedGroundSheet(random, '#b9ab9c', 0.5);
     const { rr } = s;
     for (let index = 0; index < 14000; index += 1) {
       const kind = random();
-      const fill = kind < 0.4 ? paintedGroundHsl(36, 45, rr(70, 82), 0.6) : kind < 0.8 ? paintedGroundHsl(30, 30, rr(38, 50), 0.5) : paintedGroundHsl(12, 35, rr(40, 50), 0.6);
+      const fill = kind < 0.4 ? paintedGroundHsl(34, 16, rr(72, 84), 0.6) : kind < 0.8 ? paintedGroundHsl(30, 10, rr(42, 54), 0.5) : paintedGroundHsl(18, 14, rr(44, 54), 0.6);
       s.blob(rr(0, 512), rr(0, 512), rr(0.5, 1.2), rr(0.5, 1.2), 0, fill, null);
     }
     for (let index = 0; index < 90; index += 1) {
@@ -1025,7 +1025,7 @@ const PAINTED_GROUND_PLACES = {
   colosseum: {
     // (Raked all over before the bout: what treads it since is the fighters' own prints, `press` below. A trodden
     // middle laid by the layout met the raked sand in a smooth dark band where the two were mixed.)
-    a: 'sandRaked', b: 'sandRaked', tiles: [1.5, 1.7], bomb: [2, 1], macro: PAINTED_GROUND_SAND_MACRO, match: 0.3,
+    a: 'sandRaked', b: 'sandRaked', tiles: [1.5, 1.7], bomb: [2, 1], macro: PAINTED_GROUND_SAND_MACRO, match: 0,
     // The rake's furrows and the trodden hollows stand out under a high sun (`relief`: the layers' slopes, as many times
     // over), and the sand takes a print: loose to `press[0]` m (a foot sinks a few centimetres into raked dry sand, far
     // less than into new snow: by eye), its walls' slope drawn `press[1]` times over so so shallow a print still

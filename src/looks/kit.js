@@ -189,13 +189,16 @@ export function unlinearise(material) {
  *   x  1: such meshes take the shadow; 0: as they were (indoors, the other looks);
  *   y  what is left of a mirrored picture in full shade (0..1);
  *   z  m a point is moved off its surface, along the normal, before it is looked up in the shadow map: a body is
- *      finer than the map's texels, and without it a lit surface shades itself in stripes.
+ *      finer than the map's texels, and without it a lit surface shades itself in stripes;
+ *   w  the same for a directional light's map, in that map's own texels (0: z's metres): where the sun has a wide
+ *      map and a finer one (env/terrain.js envInstallFinerShadow) each is looked up its own texels off the surface,
+ *      so a body near the camera is not moved the wide map's five centimetres to be looked up in a map of one.
  */
 // (A plain array: this module is loaded where there is no renderer.)
-export const FIGURE_SHADE = { value: [0, 1, 0] };
+export const FIGURE_SHADE = { value: [0, 1, 0, 0] };
 
 const FIGURE_FRAGMENT_PARS = `#include <lights_pars_begin>
-uniform vec3 uFigureShade;
+uniform vec4 uFigureShade;
 float figureLit = 1.0;
 #define receiveShadow ( receiveShadow || uFigureShade.x > 0.5 )`;
 const FIGURE_FRAGMENT_SHADOW = `#include <shadowmap_pars_fragment>
@@ -211,14 +214,27 @@ const FIGURE_FRAGMENT_MIRROR = `#include <lights_fragment_maps>
 #if defined( RE_IndirectSpecular )
 radiance *= mix( uFigureShade.y, 1.0, figureLit );
 #endif`;
-const FIGURE_VERTEX_SHADOW = `#ifdef USE_SHADOWMAP
+// (The renderer's own chunk, its directional maps looked up `uFigureShade.w` of their own texels off the surface: a
+// map's texel in metres is one over its matrix's scale across times its size. Made at first use: THREE is not there
+// where this module is read without a renderer.)
+const FIGURE_DIRECTIONAL = 'shadowWorldPosition = worldPosition + vec4( shadowWorldNormal * directionalLightShadows[ i ].shadowNormalBias, 0 );';
+const FIGURE_DIRECTIONAL_OFF = `shadowWorldPosition = ( figureTexels > 0.0 ? figureAt : worldPosition ) + vec4( shadowWorldNormal * ( directionalLightShadows[ i ].shadowNormalBias + figureTexels / ( length( vec3( directionalShadowMatrix[ i ][ 0 ][ 0 ], directionalShadowMatrix[ i ][ 1 ][ 0 ], directionalShadowMatrix[ i ][ 2 ][ 0 ] ) ) * directionalLightShadows[ i ].shadowMapSize.x ) ), 0 );`;
+let figureVertexShadow = null;
+function figureVertexChunk() {
+  if (figureVertexShadow) return figureVertexShadow;
+  const chunk = THREE.ShaderChunk.shadowmap_vertex;
+  figureVertexShadow = `#ifdef USE_SHADOWMAP
+vec4 figureAt = worldPosition;
+float figureTexels = receiveShadow ? 0.0 : uFigureShade.w;
 vec3 figureOff = inverseTransformDirection( transformedNormal, viewMatrix ) * ( receiveShadow ? 0.0 : uFigureShade.z );
 #define worldPosition ( worldPosition + vec4( figureOff, 0.0 ) )
 #endif
-#include <shadowmap_vertex>
+${chunk.includes(FIGURE_DIRECTIONAL) ? chunk.replace(FIGURE_DIRECTIONAL, FIGURE_DIRECTIONAL_OFF) : '#include <shadowmap_vertex>'}
 #ifdef USE_SHADOWMAP
 #undef worldPosition
 #endif`;
+  return figureVertexShadow;
+}
 
 /** Make a lit material take the sun's shadow where FIGURE_SHADE says (once). */
 function shadeFigure(material) {
@@ -236,7 +252,7 @@ function shadeFigure(material) {
       .replace('#include <shadowmap_pars_fragment>', FIGURE_FRAGMENT_SHADOW)
       .replace('#include <lights_fragment_maps>', FIGURE_FRAGMENT_MIRROR);
     const declared = shader.vertexShader.includes('#include <lights_pars_begin>') ? '' : 'uniform bool receiveShadow;\n';
-    shader.vertexShader = `uniform vec3 uFigureShade;\n${declared}${shader.vertexShader}`.replace('#include <shadowmap_vertex>', FIGURE_VERTEX_SHADOW);
+    shader.vertexShader = `uniform vec4 uFigureShade;\n${declared}${shader.vertexShader}`.replace('#include <shadowmap_vertex>', figureVertexChunk());
   };
   patched.previous = previous;
   patched.shadesFigure = true;
