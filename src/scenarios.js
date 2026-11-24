@@ -191,7 +191,7 @@ function sarhuSides(random) {
 // was ruinous).
 const NANJING = {
   koxinga: {
-    ironMan: { zhanmadao: 5, rattanShield: 3 },
+    ironMan: { zhanmadao: 5, swordShield: 3 },
     brigandine: { swordShield: 4, spear: 4 },
     garrison: { spear: 8, matchlock: 6, dao: 4 },
   },
@@ -303,7 +303,7 @@ const ZEELANDIA = {
   // garrison men, 30 in all: the user's call, 2026-11-19.)
   // (Fewer of his men against the Dutch, a few iron men and the rest garrison troops: the fight was too one-sided; was 34
   // with brigandine and lamellar regulars: the user's call, 2026-11-19.)
-  koxinga: { ironMan: { zhanmadao: 2, rattanShield: 1 }, brigandine: {}, lamellar: {}, garrison: { spear: 10, dao: 4, matchlock: 3 }, ronin: { ronin: 2 } },
+  koxinga: { ironMan: { zhanmadao: 2, swordShield: 1 }, brigandine: {}, lamellar: {}, garrison: { spear: 10, dao: 4, matchlock: 3 }, ronin: { ronin: 2 } },
 };
 
 // A wokou raid on the Zhejiang coast, 1550s: rōnin and Chinese sea raiders
@@ -786,7 +786,7 @@ export const ARMIES = {
     label: "Koxinga's army",
     ranks: {
       // His iron men (OUTFITS ironMan: their own scale, Japanese limb pieces and iron faces).
-      ironMan: { label: 'Iron man', kinds: ['ironMan'], styles: ['zhanmadao', 'rattanShield'], make: mingRank('ironMan', MING_PEOPLE.koxinga) },
+      ironMan: { label: 'Iron man', kinds: ['ironMan'], styles: ['zhanmadao', 'swordShield'], make: mingRank('ironMan', MING_PEOPLE.koxinga) },
       brigandine: { label: 'Brigandine', kinds: ['mingBrigandine'], designs: [0, 1, 2], styles: ['swordShield', 'spear', 'matchlock'], make: mingRank('brigandine', MING_PEOPLE.koxinga) },
       lamellar: { label: 'Iron lamellar', kinds: ['mingBrigandine'], designs: [3, 4], styles: ['spear', 'swordShield'], make: mingRank('brigandine', MING_PEOPLE.koxinga, 3) },
       garrison: { label: 'Garrison', kinds: ['mingGarrison'], styles: ['spear', 'dao', 'matchlock'], make: mingRank('garrison', MING_PEOPLE.koxinga) },

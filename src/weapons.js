@@ -1374,10 +1374,6 @@ export const SHIELDS = {
   // A Ming soldier's small round shield. Drawn as the rattan shield (tengpai, the user's call, 2026-11-15: the surviving ones in
   // the photographs); met as it was, a board (material, size and mass unchanged: a look only).
   roundShield: { label: 'Round shield', radius: 0.3, mass: 2.2, offset: 0.07, armHarm: 0.15, hold: 1.1, look: 'tengpai', material: 'planks' },
-  // The great rattan shield of Koxinga's iron men (藤牌, ~0.9 m across: the Ming tengpai at its largest, two and a half to
-  // three chi): rattan coiled tight, light for its size, and a broad wall against arrows and the edge (the Dutch at
-  // Zeelandia saw his men come on behind them through the volleys).
-  rattanShield: { label: 'Rattan shield', radius: 0.45, mass: 3.0, offset: 0.08, armHarm: 0.18, hold: 1.2, look: 'tengpai', material: 'wicker' },
   // The Spanish rodela: a round steel shield, heavy and proof against cuts and thrusts.
   rodela: { label: 'Rodela', radius: 0.29, mass: 3.5, offset: 0.07, armHarm: 0.12, hold: 1.4, look: 'steel', material: 'steelPlate' },
   // The Mexica chimalli: a round shield of wicker or wood faced with feathers and hide.

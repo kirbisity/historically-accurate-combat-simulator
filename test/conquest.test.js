@@ -29,7 +29,7 @@ test('Fort Zeelandia: the iron men in their own scale and iron faces, with the z
     const design = OUTFITS.ironMan.designs[man.outfit.design];
     assert.equal(design.armor.kind, 'ironManScale');
     assert.equal(design.head.maskDesign, 'somen');
-    assert.ok(['zhanmadao', 'rattanShield'].includes(man.style), man.style);
+    assert.ok(['zhanmadao', 'swordShield'].includes(man.style), man.style);
   }
   assert.ok(!cast.blue.some((fighter) => fighter.outfit.kind === 'mingElite'), 'no Ming elite among them');
   // A few iron men, the rest garrison troops (no brigandine regulars since 2026-11-19).

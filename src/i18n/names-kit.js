@@ -539,8 +539,6 @@ export const NAMES_KIT = {
   'Dao': '腰刀',
   'Guandao': '关刀',
   'Zhanmadao': '斩马刀',
-  'Dao and rattan shield': '腰刀藤牌',
-  'Rattan shield': '藤牌',
   'Jian': '剑',
   'Ōdachi': '野太刀',
   'Baseball bat': '棒球棍',

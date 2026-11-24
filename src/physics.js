@@ -7042,9 +7042,10 @@ function collideFighters(world, h, time, substep = 0) {
     const limbs = strikers(attacker);
     fighters.forEach((defender, d) => {
       if (attacker === defender || !near(a, d)) return;
-      // Team-mates are checked only while a blow is in the air (it can
-      // still go astray); idle hands among friends touch nothing that matters.
-      if (attacker.corner === defender.corner && !attacker.punch) return;
+      // A man's blows meet his own side's men only when aimed at one (the player may strike anyone: control.js attackMark):
+      // drilled men in a line cut past each other (a stroke going astray into the man beside him wounded more of a close
+      // line than of the enemy: the user's call, 2026-11-23). Bodies still push.
+      if (attacker.corner === defender.corner && attacker.punch?.target !== defender.id) return;
       for (const striker of limbs) collideStriker(world, attacker, defender, striker, time);
     });
   });
@@ -7139,7 +7140,8 @@ function collideCrowd(world, time, substep) {
     const idleTested = attacker.detail === 'unseen' ? steppingNow(attacker, substep, stride) : substep % idleEvery === 0;
     for (let k = 0; k < list.length; k += 1) {
       const defender = fighters[list[k]];
-      if (attacker.corner === defender.corner && !attacker.punch) continue;
+      // (His own side's men only when aimed at: as above.)
+      if (attacker.corner === defender.corner && attacker.punch?.target !== defender.id) continue;
       // With no strike in flight nothing of his is striking: on a substep the idle ones are not tested, none is.
       if (!idleTested && !attacker.punch) continue;
       for (let index = 0; index < limbs.length; index += 1) {

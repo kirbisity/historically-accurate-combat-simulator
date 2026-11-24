@@ -1662,7 +1662,9 @@ export const OUTFITS = {
     // The coat proof against a ball as the Ming elite's and better (thicker iron, two scales deep: `bulletRating` 1000, the
     // trunk's share 0.6); the face behind its iron (the head's figures: the sōmen as the steppe's iron faces); the arms in the
     // Ming elite's steel arm guards (MING_ARM_GUARD), the legs in the haidate's and suneate's plates, as the tōsei's (kote).
-    protection: { blunt: 0.72, cut: 0.96, pierce: 0.91, bullet: { head: 0.5, torso: 0.6, limb: 0.2 }, regions: { head: { blunt: 0.68, cut: 0.97, pierce: 0.82, deflects: true }, limb: kote({ blunt: 0.7, cut: 0.95, pierce: 0.9 }), UpperArm: MING_ARM_GUARD, Forearm: MING_ARM_GUARD } },
+    // The thighs as the coat (`Thigh`): the scale skirt is over them, plates under it, a Chinese harness, not the haidate's
+    // figures alone (the user's call, 2026-11-23: they were the kote's, pierce 0.54, under the banner man's cloth skirt).
+    protection: { blunt: 0.72, cut: 0.96, pierce: 0.91, bullet: { head: 0.5, torso: 0.6, limb: 0.2 }, regions: { head: { blunt: 0.68, cut: 0.97, pierce: 0.82, deflects: true }, limb: kote({ blunt: 0.7, cut: 0.95, pierce: 0.9 }), Thigh: { blunt: 0.72, cut: 0.96, pierce: 0.91, deflects: true }, UpperArm: MING_ARM_GUARD, Forearm: MING_ARM_GUARD } },
     // Its gaps as the tōsei's (the harness the limb pieces are), the scales' coat closed but at the armholes.
     gaps: { mail: ['elbow'], mailMake: 'butted', thrust: 0.5, lacing: 0.1 },
     courage: 0.7,
