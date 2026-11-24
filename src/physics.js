@@ -9305,7 +9305,7 @@ function registerWeaponImpact(world, attacker, defender, striker, closest, capsu
     time: world.time, kind: blocked ? 'blocked' : 'landed', attacker: attacker.id, defender: defender.id, weapon: weapon.kind, mode: spec.mode,
     off: weapon === attacker.offWeapon || undefined, riposte: attacker.punch?.riposte || undefined,
     punch: punch.type, target: capsule.key, speed: closing, impulse, force: peakForce, headDeltaV: 0, effects: [],
-    point: contactPoint, normal, harm: bluntShare, cut, pierce, pointJoules, pointGoes, energy, along, at: closest.s, strikeMass, bluntMix: mix.blunt, slice: slice === 1 ? undefined : slice,
+    point: contactPoint, normal, edge: [weapon.dir[0], weapon.dir[1], weapon.dir[2]], travel: relative, harm: bluntShare, cut, pierce, pointJoules, pointGoes, energy, along, at: closest.s, strikeMass, bluntMix: mix.blunt, slice: slice === 1 ? undefined : slice,
     edgeShare: (mix.cut + mix.pierce) / Math.max(1e-6, mix.blunt + mix.cut + mix.pierce), haft: haft || undefined,
     gapZone: gapZone ?? undefined,
   };

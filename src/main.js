@@ -100,7 +100,7 @@ import { hasOrigin, originOf, REGION_ORIGINS, regionName, regionTone, setShade, 
 import { shadeGradient, shadeTone, toneShade } from './skintones.js';
 import { deflectCue } from './deflectlook.js';
 import { deflectsWith } from './physics/deflect.js';
-import { clearGore, machineEvent, severView, spawnBlood, spawnShot, spawnSparks, updateArms, updateArrows, updateBlood, updateDebris, updateShots, updateStumps, updateWhips, woundBlood } from './weaponview.js';
+import { clearGore, goreInfo, goreTier, machineEvent, severView, spawnBlood, spawnShot, spawnSparks, updateArms, updateArrows, updateBlood, updateDebris, updateShots, updateStumps, updateWhips, woundBlood } from './weaponview.js';
 import { placeFlameTanks, updateFlames } from './flameview.js';
 import { updateClothWind } from './clothwind.js';
 import { wetHold, wetInfo, wetnessOf, wetTier, wetUpdate } from './wetview.js';
@@ -855,6 +855,8 @@ function frame(now) {
     setSkinQuality(state.views, state.world?.stage ? resolution.tier ?? 'high' : 'high');
     // The water on the fighters by the same tier (wetview.js): no beads on 'low', no runs on 'medium'.
     wetTier(state.world?.stage ? resolution.tier ?? 'high' : qualityMode === 'low' ? 'low' : 'high');
+    // The blood's budgets by the tier (bloodview.js): fewer drops, stains and pools on 'medium' and 'low'.
+    goreTier(scene, combatFxTier());
     // A big moment slows the simulation, not the drawing.
     buildQueuedViews();
     // While an army is still being drawn, the fight waits for it.
@@ -4623,6 +4625,8 @@ const boxer = window.boxer = {
   executeMarks: () => executeMarks.sprites.map((sprite) => ({ visible: sprite.visible, at: sprite.position.toArray(), opacity: sprite.material.opacity })),
   // A part cut off a man as a blade does it (physics.js cutOff), by the other of a duel: `where` { joint, side } for a limb or
   // the neck, { joint: 'waist' | 'chest', along, normal, travel } for the trunk (tests, shots of the cut and its blood).
+  // The blood on the ground and in the air, in numbers (bloodview.js bloodInfo).
+  gore: () => goreInfo(scene),
   cut: (id = 1, where = { joint: 'waist' }, joules = 0) => cutOff(state.world, state.world.fighters[id], where, state.world.fighters[id === 0 ? 1 : 0], joules)?.effects,
   // One against one, played (the man played red): `hero` and `foe` presets, at `place` (tests, shots: the deflect, its button and marks).
   duelDemo: (hero = 'samurai', foe = 'kanabo', place = 'meadow', seed = 1, distance = 2.4) => {

@@ -323,7 +323,11 @@ function woundSplitGeometry(geometry, plane, boneUpper) {
   return { lower: build(sides[0]), upper: build(sides[1]), rim };
 }
 
-/** The outline a rim leaves on the plane, spoke by spoke about its middle: the bare skin's where there is any, else the innermost thing worn. */
+/**
+ * The outline a rim leaves on the plane, spoke by spoke about its middle: the bare skin's (its outermost point on the
+ * spoke) where any crossed the plane there, else the innermost thing worn; a spoke nothing crossed takes its neighbours',
+ * and one that stands far in or out of both its neighbours (a stray fold of cloth) is brought to them.
+ */
 function woundRimOutline(rim, plane) {
   const spokes = WOUND_FACE.spokes;
   const n = new THREE.Vector3(...plane.normal).normalize();
@@ -331,31 +335,27 @@ function woundRimOutline(rim, plane) {
   const y = new THREE.Vector3().crossVectors(n, x);
   const bare = rim.filter((point) => point.bare);
   const used = bare.length >= 8 ? bare : rim;
-  const centre = [0, 0, 0];
-  for (const point of used) for (let axis = 0; axis < 3; axis += 1) centre[axis] += point.at[axis] / used.length;
+  // (The middle of what it spans, not of its points: a mesh is finer in places.)
+  const low = [Infinity, Infinity, Infinity];
+  const high = [-Infinity, -Infinity, -Infinity];
+  for (const point of used) for (let axis = 0; axis < 3; axis += 1) {
+    low[axis] = Math.min(low[axis], point.at[axis]);
+    high[axis] = Math.max(high[axis], point.at[axis]);
+  }
+  const centre = low.map((value, axis) => (value + high[axis]) / 2);
   const radii = new Array(spokes).fill(0);
   const skin = new Array(spokes).fill(null);
   const offset = new THREE.Vector3();
-  const fill = (points, innermost) => {
-    for (const point of points) {
-      offset.set(point.at[0] - centre[0], point.at[1] - centre[1], point.at[2] - centre[2]);
-      const reach = Math.hypot(offset.dot(x), offset.dot(y));
-      const spoke = ((Math.round((Math.atan2(offset.dot(y), offset.dot(x)) / (Math.PI * 2)) * spokes) % spokes) + spokes) % spokes;
-      if (skin[spoke] && skin[spoke].bare !== point.bare && !point.bare) continue;
-      if (!skin[spoke] || (innermost ? reach < radii[spoke] : reach > radii[spoke])) {
-        radii[spoke] = reach;
-        skin[spoke] = point;
-      }
-    }
-  };
-  fill(bare, false);
-  // (Where no bare skin crossed the plane: under what he wears.)
-  const covered = skin.map((found) => !found);
-  const worn = rim.filter((point) => !point.bare);
-  const before = radii.slice();
-  fill(worn.filter(() => true), true);
-  for (let spoke = 0; spoke < spokes; spoke += 1) if (!covered[spoke]) radii[spoke] = before[spoke];
-  // A spoke nothing crossed takes its neighbours'.
+  for (const point of rim) {
+    offset.set(point.at[0] - centre[0], point.at[1] - centre[1], point.at[2] - centre[2]);
+    const reach = Math.hypot(offset.dot(x), offset.dot(y));
+    const spoke = ((Math.round((Math.atan2(offset.dot(y), offset.dot(x)) / (Math.PI * 2)) * spokes) % spokes) + spokes) % spokes;
+    const held = skin[spoke];
+    const better = !held || (point.bare && !held.bare) || (point.bare === held.bare && (point.bare ? reach > radii[spoke] : reach < radii[spoke]));
+    if (!better) continue;
+    radii[spoke] = reach;
+    skin[spoke] = point;
+  }
   for (let spoke = 0; spoke < spokes; spoke += 1) {
     if (skin[spoke]) continue;
     for (let step = 1; step < spokes; step += 1) {
@@ -366,7 +366,11 @@ function woundRimOutline(rim, plane) {
       break;
     }
   }
-  return { centre, radii, skin };
+  const smoothed = radii.map((radius, spoke) => {
+    const [before, after] = [radii[(spoke - 1 + spokes) % spokes], radii[(spoke + 1) % spokes]];
+    return Math.min(Math.max(radius, Math.min(before, after) * 0.9), Math.max(before, after) * 1.1);
+  });
+  return { centre, radii: smoothed, skin };
 }
 
 /**
