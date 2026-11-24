@@ -1170,6 +1170,9 @@ function paintedGroundMeanOf(map) {
 /** Wetness from which a painted puddle is standing water (smoothstep edges). */
 const PAINTED_GROUND_POOL = [0.5, 0.75];
 
+// (PAINTED_PRESS_GLSL, PAINTED_BODIES_GLSL and, below, PAINTED_PRESS_SNOW: the open air's own GLSL and figures, put in where the material is made,
+// paintedGroundMaterial. The env modules are read after this file in the one-file build, where a name of theirs used
+// here as the file is read stopped the page: "cannot access before initialization".)
 const PAINTED_GROUND_FRAGMENT_HEAD = `
 uniform sampler2D uPgColA;
 uniform sampler2D uPgNrmA;
@@ -1193,13 +1196,13 @@ uniform vec2 uPgEnv;
 varying vec3 vPaintedWorld;
 #ifdef PAINTED_PRESS
 uniform vec3 uPgPress;
-${ENV_GLSL_PRESS}
+PAINTED_PRESS_GLSL
 #endif
 #ifdef PAINTED_POOLS
 ${BLOOD_DYE_GLSL}
 #endif
 #ifdef PAINTED_BODIES
-${ENV_GLSL_BODIES_SKY}
+PAINTED_BODIES_GLSL
 #endif
 vec2 pgRot(vec2 p) { return vec2(0.6 * p.x - 0.8 * p.y, 0.8 * p.x + 0.6 * p.y); }
 vec2 pgUnrot(vec2 p) { return vec2(0.6 * p.x + 0.8 * p.y, -0.8 * p.x + 0.6 * p.y); }
@@ -1274,8 +1277,8 @@ pgRough = mix(pgRough, uPgDecalRough, pgDec);
   // snow reads it but only uPgPress.x m deep): the print's walls lean the light, its bed is packed darker.
   // (The record keeps a body's underside, and a planted foot's is its ankle, some centimetres up: the print is read
   // at lying snow's depth, which that reaches, and drawn at the sand's.)
-  vec4 pgPrint = envSnowPrint(pgP, ${ENV_PRESS.snow.toFixed(3)});
-  pgSlope -= pgPrint.yz * uPgPress.x / ${ENV_PRESS.snow.toFixed(3)} * uPgPress.y;
+  vec4 pgPrint = envSnowPrint(pgP, PAINTED_PRESS_SNOW);
+  pgSlope -= pgPrint.yz * uPgPress.x / PAINTED_PRESS_SNOW * uPgPress.y;
   pgCol *= 1.0 - uPgPress.z * pgPrint.w;
 #endif
 diffuseColor.rgb *= pgCol;
@@ -1333,8 +1336,8 @@ function paintedGroundMaterial(view, spec, layers, layout, box, original) {
       .replace('#include <common>', '#include <common>\nvarying vec3 vPaintedWorld;')
       .replace('#include <begin_vertex>', '#include <begin_vertex>\nvPaintedWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;');
     shader.fragmentShader = shader.fragmentShader
-      .replace('#include <common>', `#include <common>\n${PAINTED_GROUND_FRAGMENT_HEAD}`)
-      .replace('#include <map_fragment>', PAINTED_GROUND_FRAGMENT_BODY)
+      .replace('#include <common>', `#include <common>\n${PAINTED_GROUND_FRAGMENT_HEAD.replace('PAINTED_PRESS_GLSL', ENV_GLSL_PRESS).replace('PAINTED_BODIES_GLSL', ENV_GLSL_BODIES_SKY)}`)
+      .replace('#include <map_fragment>', PAINTED_GROUND_FRAGMENT_BODY.split('PAINTED_PRESS_SNOW').join(ENV_PRESS.snow.toFixed(3)))
       .replace('#include <roughnessmap_fragment>', 'float roughnessFactor = pgRough;')
       .replace('#include <normal_fragment_maps>', 'normal = normalize((viewMatrix * vec4(pgNormalW, 0.0)).xyz);')
       .replace('#include <lights_fragment_maps>', '#include <lights_fragment_maps>\n#if defined( RE_IndirectSpecular )\nradiance *= mix(uPgEnv.x, uPgEnv.y, pgWet);\n#endif')
