@@ -33,6 +33,7 @@ import { SUBWAY_ARENA, subwayPuddleFilm, subwayStation } from './props/subway.js
 import { swayGrass } from './clothwind.js';
 import { coastFarPlaneGuard, coastFort, coastGabions, coastHouses, coastNetRacks, coastPalms, coastPier, coastSampans, coastShip, coastShipMaterials } from './props/coast.js';
 import { buildHarness, buildLionPelt, buildRomanKit, buildScaleShirt, netCord } from './arenaview.js';
+import { ankleFit, footFit } from './footwear.js';
 import { buildAirPack, buildBackBox, buildBackPrint, buildBanner, buildSigns, signsLocal, buildFootwear, buildHand, buildHeadgear, buildSwinging, dressFor, handKind, roleColors, steelEnvironment, steelMaterial, tattooColor, buildHeadProp } from './wardrobe.js';
 import { buildHead, hairCurtain, hairCurtainSoft } from './face.js';
 import { HELM_HEAD_BREADTH, HELM_SPAN } from './helmforms.js';
@@ -2505,7 +2506,10 @@ function detailedView(view, fighter, simple) {
     } else hand = buildHand(body, side, hands, skinColor, plainSteel, dress.look?.gloves ?? null);
     layers.skin.add(hand);
     attachments.push({ object: hand, bone: BONE[`${side}Forearm`], at: P[`${side}Hand`] });
-    const shoe = buildFootwear(body, dress.feet.kind, garmentColors, skinColor, plainSteel, dress.feet.heels ?? null, dress.feet);
+    // (The foot meets the shank's end as this body was built: footwear.js ankleFit.)
+    const footFrame = built.bindFrames?.[BONE[`${side}Foot`]];
+    const fit = footFrame && built.positions?.length ? footFit(dress.feet.kind, (which) => ankleFit(built.positions, built.regions, footFrame, side, which, body.heightM / 1.8)) : null;
+    const shoe = buildFootwear(body, dress.feet.kind, garmentColors, skinColor, plainSteel, dress.feet.heels ?? null, dress.feet, { side, fit, lowDetail: simple });
     layers.skin.add(shoe);
     attachments.push({ object: shoe, bone: BONE[`${side}Foot`], at: P[`${side}Foot`] });
   }

@@ -7,7 +7,7 @@ import { WEAPONS } from './weapons.js';
 import { clothWearOf, drapeWear } from './clothwear.js';
 import { Dangle } from './dangle.js';
 import { WORLD } from './physics/config.js';
-import { FACTIONS, factionOf, HEADGEAR, heelLift, OUTFITS, outfitOf, RAGS, ragStrips, ragTear, resolveColor } from './outfits.js';
+import { FACTIONS, factionOf, HEADGEAR, OUTFITS, outfitOf, RAGS, ragStrips, ragTear, resolveColor } from './outfits.js';
 import { doubleSided, outlineFor, surface } from './toon.js';
 import { activeLook } from './looks.js';
 import { outlineScale } from './looks/kit.js';
@@ -22,6 +22,7 @@ import { buildHanHood, buildMingDesignHelm, buildQingHood, buildTassel } from '.
 import { HONGYING_MOUNTS, MING_ELITE_HOOD, MING_OFFICER_HELMS, mingHoodGrid, SWING, swingStep, TASSELS } from './chinahelms.js';
 import { designFormOf, formGrid, formPoint, headRadiusAt, HELM_SPAN, KABUTO_FORM, maskOnFace, MASK_FITS } from './helmforms.js';
 import { knightFormOf, knightGrid } from './knighthelms.js';
+import { FOOT, footwearParts } from './footwear.js';
 
 export const WARDROBE = {
   // How far (m, for a 1.8 m man) a sabaton's point runs on past the foot.
@@ -310,193 +311,73 @@ export function buildHand(body, side, kind, skinColor, steel, glove = null) {
   return finish(hand);
 }
 
+// Feet of the same kind, design, side and fit share their geometry (footwear.js builds each once, for a man 1.8 m tall; the
+// wearer's own size is the group's scale).
+const FOOT_GEOMETRY = new Map();
+const FOOT_BUILT_FOR = 1.8;
+
 /**
- * Footwear in the foot's frame (y along the foot, toes forward): soles and
- * uppers by kind, a heel block under a woman's business boot, steel
- * sabatons, or a bare foot. `feet`: the design's own (a sabaton's `point`,
- * `lames` and `rivets`).
+ * Footwear in the foot's frame (x up from the sole, y along the foot, toes forward): the foot or the shoe of this kind
+ * (footwear.js: one last, a sole, and what is laid on them), dressed in the design's colours, its cloth's tile and the
+ * man's skin. `feet`: the design's own (a sabaton's `point`, `lames` and `rivets`; `laced`; `socks`); `heels`: its heels.
+ * `side`: 'l' or 'r' (a foot's inner and outer sides differ); `fit`: the shank's end it meets (footwear.js ankleFit);
+ * `lowDetail`: a crowd's, with fewer sections and no laces or studs.
  */
-export function buildFootwear(body, kind, colors, skinColor, steel, heels, feet = {}) {
-  const length = 0.25 * body.heightM / 1.8;
-  const shoe = new THREE.Group();
-  const upperColor = colors.boot.getHex();
-  const spec = {
-    boxingBoot: { width: 0.05, height: 0.045, sole: 0x17171c },
-    trainer: { width: 0.054, height: 0.05, sole: 0xf4f4f6 },
-    hikingBoot: { width: 0.06, height: 0.058, sole: 0x2a2420 },
-    tacticalBoot: { width: 0.06, height: 0.056, sole: 0x111111 },
-    // A proximity suit's boot: rubber, under an aluminized cover (`foil`).
-    proximityBoot: { width: 0.064, height: 0.06, sole: 0x111111, foil: true },
-    compactBoot: { width: 0.054, height: 0.05, sole: 0x111111 },
-    heelAnkleBoot: { width: 0.05, height: 0.042, sole: 0x0b0b0d },
-    // A patent platform shoe: a round toe, straps over the instep and ankle.
-    platformShoe: { width: 0.05, height: 0.046, sole: 0x0b0b0d, patent: true },
-    dressShoe: { width: 0.045, height: 0.038, sole: 0x2a1d14 },
-    // A Song and Jin rider's leather boot: soft, its toe turned up.
-    jinBoot: { width: 0.056, height: 0.05, sole: 0x2a1d14 },
-    // A rider's soft leather boot (khuff) to the knee, its toe a little pointed.
-    ridingBoot: { width: 0.054, height: 0.048, sole: 0x2a1d14 },
-    // Split-toed socks on straw sandals; a gladiator's leather sandal.
-    tabi: { width: 0.046, height: 0.045, sole: 0xc8b27a },
-    sandal: { width: 0.036, height: 0.044, sole: 0x5a3a22, skin: true },
-    // A bare foot bound in strips of rag (a starving rebel's).
-    footRags: { width: 0.043, height: 0.034, skin: true },
-    sabaton: { width: 0.058, height: 0.05 },
-    bare: { width: 0.042, height: 0.032 },
-  }[kind] ?? { width: 0.05, height: 0.045, sole: 0x17171c };
+export function buildFootwear(body, kind, colors, skinColor, steel, heels, feet = {}, { side = 'l', fit = null, lowDetail = false } = {}) {
+  const scale = body.heightM / FOOT_BUILT_FOR;
   // The cloth atlas's tile on the upper (detailtex.js clothPropMaterial: leather, a trainer's knit, a tabi's cotton).
   const stuff = wornMaterial(body, 'feet', kind);
-  const upperMaterial = kind === 'sabaton' ? steel : spec.foil ? foilMaterial(steel?.envMap ?? null, upperColor, stuff) : kind === 'bare' || spec.skin ? surface(skinColor) : surface(upperColor, { roughness: spec.patent ? 0.12 : 0.5 });
-  if (kind !== 'sabaton' && kind !== 'bare' && !spec.skin && !spec.foil) clothPropMaterial(upperMaterial, stuff);
-  if (kind === 'bare' || spec.skin) upperMaterial.userData.wetKind = 'skin';
-  const upper = new THREE.Mesh(new THREE.SphereGeometry(1, 18, 12), upperMaterial);
-  upper.scale.set(spec.width, length / 2, spec.height);
-  upper.position.set(-0.012, length * 0.28, 0);
-  shoe.add(upper);
-  if (spec.sole !== undefined) {
+  const hex = (value, fallback) => (value === undefined || value === null ? fallback : new THREE.Color(value).getHex());
+  const palette = { upper: colors.boot.getHex(), accent: hex(colors.accent, undefined), skin: hex(skinColor, 0xd9a07a), gold: hex(colors.gold, 0xd6a743), trim: hex(feet.trim, undefined) };
+  // (To the millimetre: a heeled foot's ground is not a fixed share of the height, see outfits.js heelLift.)
+  const ground = Math.round(((body.lengths?.ankle ?? FOOT.ankle * body.heightM) / scale) * 1000) / 1000;
+  const rounded = fit && Object.fromEntries(Object.entries(fit).map(([name, value]) => [name, Math.round(value * 500) / 500]));
+  const key = JSON.stringify([kind, feet.point, feet.lames, feet.rivets, feet.laced, feet.socks, heels, side, ground, rounded, lowDetail, palette, stuff]);
+  let made = FOOT_GEOMETRY.get(key);
+  if (!made) {
+    const { parts, spec } = footwearParts(kind, { feet, heels, side, ground, fit: rounded ?? undefined, detail: lowDetail ? 'low' : 'full', palette, stuff });
+    made = { spec, geometry: {} };
+    for (const [role, { positions, colors: tints, indices }] of Object.entries(parts)) {
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      geometry.setAttribute('color', new THREE.BufferAttribute(tints, 3));
+      geometry.setIndex(new THREE.BufferAttribute(indices, 1));
+      geometry.computeVertexNormals();
+      made.geometry[role] = geometry;
+    }
+    FOOT_GEOMETRY.set(key, made);
+  }
+  const { spec } = made;
+  const tinted = (roughness, tile) => clothPropMaterial(surface(0xffffff, { vertexColors: true, roughness }), tile);
+  const materials = {
+    // (A bare foot is skin, for the water on it: wetview.js.)
+    skin: () => {
+      const material = surface(skinColor);
+      material.userData.wetKind = 'skin';
+      return material;
+    },
+    upper: () => tinted(spec.gloss ?? 0.5, spec.stuff ?? stuff),
+    foil: () => foilMaterial(steel?.envMap ?? null, palette.upper, stuff),
     // A tabi's waraji and a sandal's sole are plaited straw or leather (the people's: a Mexica's of fibre).
-    const soleStuff = kind === 'tabi' ? 'straw' : kind === 'sandal' ? stuff : 'none';
-    const sole = new THREE.Mesh(new THREE.BoxGeometry(0.018, length * 0.95, spec.height * 1.9), clothPropMaterial(surface(spec.sole), soleStuff));
-    sole.position.set(-spec.width * 0.95, length * 0.28, 0);
-    shoe.add(sole);
+    sole: () => tinted(0.6, spec.sole?.stuff ?? 'none'),
+    straw: () => tinted(0.9, 'straw'),
+    trim: () => surface(0xffffff, { vertexColors: true, roughness: 0.6 }),
+    metal: () => steel,
+    brass: () => metal(steel, palette.gold),
+    // A kōgake's plates: iron under black lacquer.
+    lacquer: () => Object.assign(metal(steel, 0x17171a), { metalness: 0.45, roughness: 0.3 }),
+  };
+  const shoe = new THREE.Group();
+  const sized = new THREE.Group();
+  sized.scale.setScalar(scale);
+  shoe.add(sized);
+  for (const [role, geometry] of Object.entries(made.geometry)) {
+    const piece = new THREE.Mesh(geometry, materials[role]());
+    // (Laces, ropes and studs are too fine for an ink line of their own.)
+    if (role === 'trim' || role === 'brass') piece.userData.noOutline = true;
+    sized.add(piece);
   }
-  if (kind === 'sandal') {
-    // Straps across the bare foot.
-    for (const along of [0.15, 0.45, 0.72]) {
-      const strap = new THREE.Mesh(new THREE.TorusGeometry(spec.height * 1.02, 0.005, 5, 14, Math.PI), clothPropMaterial(surface(upperColor), stuff));
-      strap.rotation.y = Math.PI / 2;
-      strap.rotation.z = Math.PI / 2;
-      strap.position.set(-0.01, length * along, 0);
-      shoe.add(strap);
-    }
-  }
-  if (kind === 'footRags') {
-    // A strip of rag wound round the middle of the foot and one round the ankle: two open, eight-sided bands, the toes bare.
-    const rag = clothPropMaterial(surface(upperColor, { roughness: 0.95 }), stuff);
-    rag.side = THREE.DoubleSide;
-    for (const [along, wide] of [[0.3, 0.32], [-0.02, 0.18]]) {
-      const band = new THREE.Mesh(new THREE.CylinderGeometry(spec.height * 1.08, spec.height * 1.12, length * wide, 8, 1, true), rag);
-      band.scale.set(spec.width / spec.height, 1, 1);
-      band.position.set(-0.012, length * along, 0);
-      shoe.add(band);
-    }
-  }
-  if (kind === 'jinBoot' || kind === 'ridingBoot') {
-    // The toe drawn out and turned up (+x is up from the sole); the rider's boot's only a little.
-    const turned = kind === 'jinBoot';
-    const reach = turned ? 0.34 : 0.26;
-    const toe = new THREE.Mesh(new THREE.ConeGeometry(spec.height * 0.9, length * reach, 10), upperMaterial);
-    toe.geometry.translate(0, length * reach / 2, 0);
-    toe.scale.set(spec.width / spec.height, 1, 1);
-    toe.position.set(-0.012, length * 0.62, 0);
-    toe.rotation.z = turned ? -0.55 : -0.12;
-    shoe.add(toe);
-  }
-  if (kind === 'trainer' && colors.accent) {
-    const swoosh = new THREE.Mesh(new THREE.BoxGeometry(spec.width * 0.6, length * 0.5, spec.height * 2.02), surface(colors.accent));
-    swoosh.position.set(-0.006, length * 0.3, 0);
-    shoe.add(swoosh);
-  }
-  if (heels) {
-    // A long pointed toe; then the whole boot pitched down about the ankle
-    // (the body stands higher by the heel's lift), its toe on the floor and
-    // its heel on a slim stiletto.
-    if (heels.round) {
-      // A round toe, blunt and broad.
-      const toe = new THREE.Mesh(new THREE.SphereGeometry(1, 14, 10), upperMaterial);
-      toe.scale.set(spec.width * 0.95, length * heels.point * 0.9, spec.height * 1.05);
-      toe.position.set(-0.016, length * 0.66, 0);
-      shoe.add(toe);
-    } else {
-      const toe = new THREE.Mesh(new THREE.ConeGeometry(spec.height * 0.95, length * heels.point, 12), upperMaterial);
-      toe.scale.set(spec.width / spec.height * (0.7 - (heels.point - 0.42) * 0.6), 1, 1);
-      toe.position.set(-0.02, length * (0.65 + heels.point / 2), 0);
-      shoe.add(toe);
-    }
-    // Mary Jane straps over the instep and round the ankle, each with a buckle.
-    for (let strap = 0; strap < (heels.straps ?? 0); strap += 1) {
-      const along = 0.34 - strap * 0.17;
-      const band = new THREE.Mesh(new THREE.TorusGeometry(spec.height * (1.08 + strap * 0.06), 0.006, 5, 16, Math.PI), upperMaterial);
-      band.rotation.y = Math.PI / 2;
-      band.rotation.z = Math.PI / 2;
-      band.position.set(-0.008 + strap * 0.012, length * along, 0);
-      const buckle = new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.012, 0.004), steel);
-      buckle.position.set(-0.008 + strap * 0.012, length * along, spec.height * (1.08 + strap * 0.06));
-      shoe.add(band, buckle);
-    }
-    const pitch = -heels.pitch;
-    const floor = -(spec.width * 0.95 + 0.009);
-    const ground = floor - heelLift(heels, body.heightM);
-    for (const piece of [...shoe.children]) {
-      const { x, y } = piece.position;
-      piece.position.set(x * Math.cos(pitch) + y * Math.sin(pitch), -x * Math.sin(pitch) + y * Math.cos(pitch), piece.position.z);
-      piece.rotation.z -= pitch;
-    }
-    // The stiletto: from under the heel of the sole, lifted, down to the floor
-    // (its top sunk a little into the sole so the two read as one).
-    const heelAt = length * 0.02;
-    const heelTop = floor * Math.cos(pitch) + heelAt * Math.sin(pitch) + 0.012;
-    const heelLength = heelTop - ground;
-    // A stiletto, or a chunky block heel.
-    const heel = heels.block
-      ? new THREE.Mesh(new THREE.BoxGeometry(heelLength, 0.042, spec.height * 1.7), upperMaterial)
-      : new THREE.Mesh(new THREE.CylinderGeometry(0.01, 0.004, heelLength, 8), surface(0x0b0b0d));
-    if (!heels.block) heel.rotation.z = Math.PI / 2;
-    heel.position.set(ground + heelLength / 2, heelAt * Math.cos(pitch) - floor * Math.sin(pitch), 0);
-    shoe.add(heel);
-    if (heels.platform) {
-      // The platform: a thick sole under the forefoot, from the floor up to the pitched toe.
-      const platformAt = length * 0.62;
-      const toeFloor = floor * Math.cos(pitch) + platformAt * Math.sin(pitch);
-      const thickness = toeFloor - ground + 0.006;
-      const slab = new THREE.Mesh(new THREE.BoxGeometry(thickness, length * 0.62, spec.height * 2.05), upperMaterial);
-      slab.position.set(ground + thickness / 2, platformAt * Math.cos(pitch) - floor * Math.sin(pitch), 0);
-      shoe.add(slab);
-    }
-  }
-  if (kind === 'sabaton') {
-    // The pointed toe of a 15th-century sabaton: the steel drawn out past the foot to a point (`feet.point`, else
-    // WARDROBE.sabatonPoint: m beyond it, at this height), low over the ground.
-    const point = (feet.point ?? WARDROBE.sabatonPoint) * body.heightM / 1.8;
-    const cap = Math.min(point, WARDROBE.sabatonPoint * body.heightM / 1.8);
-    const toe = new THREE.Mesh(new THREE.ConeGeometry(1, 1, 12), steel);
-    toe.scale.set(spec.width * 0.62, cap + length * 0.16, spec.height * 0.72);
-    toe.position.set(-spec.width * 0.42, length * 0.78 + (cap - length * 0.16) / 2 + length * 0.16 * 0.5, 0);
-    shoe.add(toe);
-    // À la poulaine (the Gothic harness's, 1470s-80s: the Met's 29.150.9a,b; Wallace A 21): past the toe cap the point runs
-    // on as a thin spike, drawn down to near the ground.
-    if (point > cap) {
-      const spike = new THREE.Mesh(new THREE.ConeGeometry(1, 1, 8), steel);
-      // From inside the cap's tip (0.86 of the foot's length past the cap) out to the point, tipped down a little.
-      const run = point - cap + length * 0.06;
-      const droop = 0.06;
-      spike.scale.set(spec.width * 0.26, run, spec.height * 0.2);
-      spike.rotation.z = droop;
-      spike.position.set(-spec.width * 0.42 - Math.sin(droop) * run * 0.5, length * 0.8 + cap + run / 2, 0);
-      shoe.add(spike);
-    }
-    // Lames across the foot (`feet.lames`, else three): thin steel rings following its section, narrowing towards the toe,
-    // and their brass rivets each side where the design has them (`feet.rivets`).
-    const lames = feet.lames ?? 3;
-    const brass = feet.rivets ? metal(steel, colors.gold?.getHex?.() ?? 0xd6a743) : null;
-    for (let index = 0; index < lames; index += 1) {
-      const along = lames === 3 ? [0.36, 0.46, 0.56][index] : 0.32 + (0.36 * index) / (lames - 1);
-      const across = Math.sqrt(Math.max(0.05, 1 - ((along - 0.28) / 0.5) ** 2));
-      const band = new THREE.Mesh(new THREE.TorusGeometry(1, 0.08, 4, 18), steel);
-      band.rotation.x = Math.PI / 2;
-      band.scale.set(spec.width * across * 1.03, spec.height * across * 1.03, spec.width);
-      band.position.set(-0.012, length * along, 0);
-      band.userData.noOutline = true;
-      shoe.add(band);
-      if (!brass) continue;
-      for (const side of [1, -1]) {
-        const rivet = new THREE.Mesh(new THREE.SphereGeometry(0.0045, 6, 4), brass);
-        rivet.position.set(-0.012, length * along, side * spec.width * across * 1.06);
-        rivet.userData.noOutline = true;
-        shoe.add(rivet);
-      }
-    }
-  }
+  shoe.userData.footwear = kind;
   return finish(shoe);
 }
 
