@@ -5,13 +5,15 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { LOOP_FILES, SAMPLE_FILES, SAMPLE_SETS, createSampleBank, transientStart } from '../src/audio/samples.js';
-import { BLOW_TAIL, BOW_DRAW_PLAY, BREATH_TAKES, breathHeard, breathPlan, playPlan, playSample, playWithSamples, samplePlan, uiSamplePlan } from '../src/audio/sfx/sampled.js';
+import { BLOW_TAIL, BOW_DRAW_PLAY, BREATH_TAKES, breathHeard, breathPlan, playPlan, playSample, playWithSamples, samplePlan, SHOE_GROUND, SHOE_PLAY, SHOE_STEPS, shoeStep, uiSamplePlan } from '../src/audio/sfx/sampled.js';
 import { SOUND_FAMILIES } from '../src/audio/families.js';
 import { breathParams } from '../src/audio/sfx/voice.js';
 import { exertionOf } from '../src/audio/engine.js';
 import { normaliseInputs, PRESETS } from '../src/body.js';
 import { advance, createWorld, placeFighter, throwPunch } from '../src/physics.js';
 import { machineFxCreate, machineFxHear } from '../src/machinefx.js';
+import { OUTFITS } from '../src/outfits.js';
+import { EAR } from '../src/audio/ear.js';
 
 const DIR = 'src/audio/samples';
 // (A thunder's roar is the longest single take, 2.6 s; the army's charge loop, 6 s of a dull roar at 32 kb/s, is the largest one-shot file.)
@@ -530,4 +532,84 @@ test('the man played\'s deflect plays its own recording in place of the clash (t
   assert.ok(deflect({ energy: 250 }).trim > deflect({ energy: 10 }).trim, 'a harder meeting louder');
   assert.notEqual(samplePlan('clash', params, { deflect: true, mass: 1.2 }, half).set, 'deflect', 'the AI\'s deflect: the clash as before');
   assert.equal(samplePlan('mortal', SOUND_FAMILIES.mortal.params({}), {}, half).set, 'mortal');
+});
+
+test('what is on the foot shapes its step: a bare foot soft and dull, a hard heel a knock, plates a tick; all of it on stone, little on grass, next to none in water', () => {
+  const step = (shoe, surface = 'stone', more = {}) => plan({ type: 'step', speed: 1.4, mass: 80, surface, armour: 'none', shoe, ...more });
+  const plain = step(undefined);
+  // No shoe said, the plain boot and a kind no table names: the step as it was.
+  for (const shoe of ['compactBoot', 'clog']) {
+    assert.deepEqual(step(shoe), plain, shoe);
+    assert.deepEqual(step(shoe, 'grass'), step(undefined, 'grass'), shoe);
+  }
+  assert.equal(plain.lowpass, null);
+  assert.deepEqual(plain.extra, []);
+  // Every kind a design wears or will wear has its line (outfits.js `feet.kind`, and the seven to come).
+  const feet = new Set(Object.values(OUTFITS).flatMap((spec) => (spec.designs ?? []).flatMap((design) => [design.feet?.kind, design.femaleFeet?.kind])).filter(Boolean));
+  for (const kind of [...feet, 'turnshoe', 'clothBoot', 'lamellarBoot', 'kogake', 'feltBoot', 'ottomanBoot', 'lugBoot']) assert.ok(SHOE_STEPS[kind], `${kind} has no step`);
+  // Soft soles: quieter, lower, dulled, shorter; the softest the most.
+  for (const shoe of ['bare', 'footRags', 'tabi', 'clothBoot', 'trainer']) {
+    const soft = step(shoe);
+    assert.ok(soft.trim < plain.trim * 0.45 && soft.rate < plain.rate && soft.lowpass <= 1500 && soft.share < plain.share, shoe);
+  }
+  assert.ok(step('turnshoe').trim > step('bare').trim && step('turnshoe').trim < plain.trim && step('turnshoe').lowpass > step('clothBoot').lowpass, 'a thin leather sole: a pat, between the bare foot and a boot');
+  assert.ok(step('lugBoot').rate < step('trainer').rate && step('lugBoot').trim > step('trainer').trim * 1.5 && step('lugBoot').lowpass < 2000, 'a lug sole: a dull thud, lower and louder than a trainer');
+  // A bare sole slaps on stone, a hard heel knocks: a take over the step, on a hard floor only.
+  assert.deepEqual(step('bare').extra.map((layer) => layer.set), ['punch']);
+  assert.ok(step('bare').extra[0].trim < 0.12 && step('bare').extra[0].seconds <= 0.05, 'a little slap');
+  for (const shoe of ['ridingBoot', 'dressShoe']) {
+    assert.deepEqual(step(shoe).extra.map((layer) => layer.set), ['step-heel'], shoe);
+    assert.ok(step(shoe).trim > plain.trim, shoe);
+    assert.deepEqual(step(shoe, 'grass').extra, [], `${shoe}: no knock on grass`);
+  }
+  assert.ok(step('dressShoe').extra[0].rate > step('ridingBoot').extra[0].rate, 'a shoe\'s small heel higher than a boot\'s');
+  assert.deepEqual(step('bare', 'grass').extra, []);
+  // Heels: their own take on a hard floor (the kit's `heels`), a narrow heel higher than a platform's block.
+  const heels = (shoe) => step(shoe, 'stone', { heels: true });
+  assert.equal(heels('heelAnkleBoot').set, 'step-heel');
+  assert.ok(heels('heelAnkleBoot').rate > heels('platformShoe').rate * 1.2);
+  // Plates on the foot tick: a small steel click (not the harness's step take), quiet, after the heel, on any ground he stands on.
+  for (const shoe of ['sabaton', 'lamellarBoot', 'kogake']) {
+    for (const surface of ['stone', 'grass']) {
+      const tick = step(shoe, surface).extra.at(-1);
+      assert.ok(['crossbow-latch', 'mailstep'].includes(tick.set) && tick.trim <= 0.36 && tick.seconds < 0.1 && tick.delay > 0 && tick.rate >= 0.85, `${shoe} on ${surface}`);
+    }
+    assert.ok(step(shoe, 'water').extra.at(-1).trim < step(shoe).extra.at(-1).trim, `${shoe}: less of it under water`);
+  }
+  assert.deepEqual(step('kogake').extra.map((layer) => layer.set), ['step-grass-walk', 'mailstep'], 'straw under the plates: its rustle on stone');
+  // Under a harness: the clank as it was, the sabaton's tick after it, another take.
+  const knight = step('sabaton', 'stone', { armour: 'plate' });
+  assert.deepEqual(knight.extra.map((layer) => layer.set), ['armourstep', 'crossbow-latch']);
+  assert.deepEqual(knight.extra[0], step(undefined, 'stone', { armour: 'plate' }).extra[0], 'the harness\'s clank unchanged');
+  assert.ok(knight.extra[1].trim < knight.extra[0].trim / 3);
+  // The ground decides how much of the shoe is heard (SHOE_GROUND): the spread from the quietest to the loudest shoe.
+  const spread = (surface) => {
+    const trims = Object.keys(SHOE_STEPS).map((shoe) => step(shoe, surface).trim);
+    return 20 * Math.log10(Math.max(...trims) / Math.min(...trims));
+  };
+  assert.ok(spread('stone') > 10 && spread('grass') < 0.4 * spread('stone') && spread('mud') < 2 && spread('water') < 0.7, `${spread('stone')} ${spread('grass')} ${spread('mud')} ${spread('water')}`);
+  for (const surface of Object.keys(SHOE_GROUND)) assert.ok(shoeStep('bare', surface).length <= 1 && shoeStep('lugBoot', surface).length <= 1);
+  assert.equal(step('bare', 'water').lowpass, null, 'a filter left open is not made');
+});
+
+test('a shoe\'s layers are for the steps near the ear: past SHOE_PLAY.near a step is its ground take and the armour\'s, as before; a dulled take goes through one filter', () => {
+  const made = { sources: 0, filters: 0 };
+  const node = () => ({ gain: { setValueAtTime() {}, exponentialRampToValueAtTime() {} }, playbackRate: {}, frequency: {}, Q: {}, connect() {}, start() {}, stop() {} });
+  const ctx = { createGain: node, createBufferSource: () => { made.sources += 1; return node(); }, createBiquadFilter: () => { made.filters += 1; return node(); } };
+  const bank = { pick: () => ({ buffer: { duration: 0.3 }, offset: 0 }) };
+  const play = (shoe, distance, armour = 'none') => {
+    made.sources = 0;
+    made.filters = 0;
+    const event = { type: 'step', speed: 1.4, mass: 80, surface: 'stone', armour, shoe };
+    const voice = { ctx, nodes: [], live: 0, end: 0, out: {}, chain: distance === null ? undefined : { distance } };
+    playWithSamples(bank, voice, SOUND_FAMILIES.step, event, SOUND_FAMILIES.step.params(event), 1, 0.5);
+    return { ...made };
+  };
+  assert.deepEqual(play(undefined, 3), { sources: 1, filters: 0 }, 'as before');
+  assert.deepEqual(play('kogake', 3), { sources: 3, filters: 1 });
+  assert.deepEqual(play('kogake', SHOE_PLAY.near + 1), { sources: 1, filters: 1 }, 'far: the footfall alone');
+  assert.deepEqual(play('sabaton', SHOE_PLAY.near + 1, 'plate'), { sources: 2, filters: 1 }, 'far: the footfall and the harness, as before');
+  assert.deepEqual(play('sabaton', 2, 'plate'), { sources: 3, filters: 1 });
+  assert.deepEqual(play('ridingBoot', null), { sources: 2, filters: 0 }, 'no chain (the sound board): heard as near');
+  assert.ok(SHOE_PLAY.near <= EAR.full, 'inside the circle where every step is its own voice');
 });
