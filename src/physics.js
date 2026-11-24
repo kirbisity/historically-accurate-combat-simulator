@@ -7519,6 +7519,10 @@ function guardKey(key) {
 function collideStriker(world, attacker, defender, striker, time) {
   // A haft among his own side's men is carried past them (over a shoulder, between files): the ranks are not drawn man by man.
   if (striker.haft && attacker.corner === defender.corner) return;
+  // A blade held in a body is in it (physics/lodge.js): it is not pushed out of him. It was, by up to WORLD.contactStep a
+  // substep, and once the stroke was over (no `struck`) as a speed: the man it was in was flung at 10-15 m/s and thrown to
+  // the floor within a fifth of a second.
+  if (striker.weapon && attacker.lodged?.in === defender.id && striker.weapon === lodgedBlade(attacker)) return;
   const from = striker.pa;
   const to = striker.pb;
   // Out of reach of all of him, shield and blade too (most pairs in a

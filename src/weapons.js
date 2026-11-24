@@ -2419,9 +2419,23 @@ export function sliceGain(spec, relative, dir, distance, protection = {}) {
   const curve = spec.curve ?? 0;
   const rule = BLADES.slice;
   if (!curve || (protection.cut ?? 0) >= rule.hardFrom) return 1;
+  const { slide, press, chord, across } = edgeSlide(spec, relative, dir, distance);
+  if (across < 1e-6 || press <= 1e-6) return 1;
+  const ratio = Math.min(rule.most, slide / press);
+  const straight = Math.min(rule.most, Math.abs(chord) / across);
+  return Math.max(1, (1 + ratio * ratio) / (1 + straight * straight));
+}
+
+/**
+ * How an edge moves where it meets him (sliceGain's geometry): `slide` (m/s) along the edge there, `press` (m/s) into the
+ * cut, square to it, with the curve's lean at that point (`distance` m out from the hand), and the straight blade's
+ * `chord` (along its line) and `across`. Their ratio is the edge's slide: what draws a cut along itself (physics/lodge.js:
+ * an edge still sliding when it stops going in is not held).
+ */
+export function edgeSlide(spec, relative, dir, distance) {
+  const curve = spec.curve ?? 0;
   const chord = relative[0] * dir[0] + relative[1] * dir[1] + relative[2] * dir[2];
   const across = Math.hypot(relative[0] - chord * dir[0], relative[1] - chord * dir[1], relative[2] - chord * dir[2]);
-  if (across < 1e-6) return 1;
   const share = Math.max(0, Math.min(1, distance / spec.length));
   const lean = Math.atan((2 * Math.abs(curve) * share) / spec.length);
   // The edge leans away from the way it moves (a sabre's back bows away from its edge): it meets the motion's chord-wise
@@ -2429,10 +2443,7 @@ export function sliceGain(spec, relative, dir, distance, protection = {}) {
   const sign = Math.sign(curve);
   const slide = Math.abs(chord * Math.cos(lean) - sign * across * Math.sin(lean));
   const press = across * Math.cos(lean) + sign * chord * Math.sin(lean);
-  if (press <= 1e-6) return 1;
-  const ratio = Math.min(rule.most, slide / press);
-  const straight = Math.min(rule.most, Math.abs(chord) / across);
-  return Math.max(1, (1 + ratio * ratio) / (1 + straight * straight));
+  return { slide, press, chord, across };
 }
 
 const addVec = (a, b) => [a[0] + b[0], a[1] + b[1], a[2] + b[2]];
