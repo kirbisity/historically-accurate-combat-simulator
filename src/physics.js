@@ -23,7 +23,7 @@ import { carriedThrowable, flyThrown, stepThrow, throwPose } from './physics/thr
 import { createArtillery, stepArtillery } from './physics/artillery.js';
 import { climbLadder, createLadders, LADDERS, ladderPose, stepLadders } from './physics/ladders.js';
 import { brushKeepsOff, brushTouch, caughtBlade, holdBrushes, pinnedByBrush, tangled } from './physics/brush.js';
-import { holdLodged, lodgeBlade, lodgeDepth, lodgedBlade, lodgePose, skullLeft, stepLodged, stickLodged } from './physics/lodge.js';
+import { carryStuck, lodgeBlade, lodgeDepth, skullLeft } from './physics/lodge.js';
 import { artTurn, beakMix, coiledTwist, hiltCrush, hiltKnob, hiltMix, hookPull, rangeDrive, rangeOff, retreatDrive, strikeSpan, turningMass, turnsWithBlow } from './physics/arts.js';
 import { footingOn, lyingLow, partUnder, treadOn } from './physics/footing.js';
 import { clearHeight, clearStep, planCrossing, STEPOVER } from './physics/stepover.js';
@@ -182,7 +182,7 @@ export function createFighter(inputs, { id, corner, x, facing, random }) {
     sidearmDrawn: undefined, saddleDrawn: undefined, bladeMet: undefined, severed: undefined, severedCapsules: undefined, stumbleUntil: undefined, pendingArm: undefined,
     // A limb lost (maiming.js): the great vessels opened, the shock of it and when, the parts an edge has cut (a limb they
     // ruin bleeds as torn open), whether he fights on from the ground with a leg gone, and when he died of the blood lost.
-    vessels: undefined, maimShock: undefined, maimShockAt: undefined, maimFeltAt: undefined, cutParts: undefined, limbCuts: undefined, trunkCut: undefined, halves: undefined, lodged: undefined, fractured: undefined, groundFight: undefined, diedAt: undefined,
+    vessels: undefined, maimShock: undefined, maimShockAt: undefined, maimFeltAt: undefined, cutParts: undefined, limbCuts: undefined, trunkCut: undefined, halves: undefined, fractured: undefined, groundFight: undefined, diedAt: undefined,
     mixFor: undefined, slipSide: undefined, crawling: undefined, crawlPhase: undefined, crawlTurn: undefined, wornStandard: undefined,
     panicked: undefined, panics: undefined, goneAt: undefined, calmFor: undefined, shakyUntil: undefined, steadyUntil: undefined, paired: undefined, couched: undefined, net: undefined, netted: undefined, caught: undefined, holding: undefined, fellIn: undefined,
     aiOwed: undefined, aiEventCursor: undefined, aiPickupFor: undefined, aiConfidence: undefined, adrenaline: undefined, fear: undefined, artEventCursor: undefined,
@@ -580,8 +580,6 @@ function releaseWeapon(world, fighter, reason, push, weapon = fighter.weapon) {
     make: weapon.make ?? null, colour: weapon.colour, wear: weapon.wear, v: vec.add(vec.add(point(fighter.v, P[`${weapon.main}Hand`]), push), [0, 0.6, 0]), q: quatFromTo([0, 1, 0], weapon.dir),
     spin: [0, 1, 2].map(() => (random() < 0.5 ? -1 : 1) * (3 + random() * 6)), radius: spec.radius * 1.6, axis: [0, 1, 0], half: (spec.length + spec.handle) / 2, resting: false,
   });
-  // Let go of while it is held in a body (physics/lodge.js): it stays in the wound.
-  if (fighter.lodged && reason !== 'shattered' && reason !== 'broken') stickLodged(world, fighter, weapon, world.debris.at(-1));
   // The stroke it was making ends; with two blades, only its own.
   if (!second && (fighter.punch?.spec.path === 'blade' || fighter.punch?.spec.path === 'aim')) fighter.punch = null;
   else if (second && fighter.punch) {
@@ -750,7 +748,7 @@ export function sidearmKindOf(fighter) {
 
 /** Whether he can put his missile weapon by for his sidearm now, or take it up again (swapSidearm). */
 export function sidearmSwapReady(fighter) {
-  if (fighter.state !== 'up' || fighter.punch || fighter.pickup || fighter.crawling || fighter.clinch || fighter.reloading || fighter.lodged) return false;
+  if (fighter.state !== 'up' || fighter.punch || fighter.pickup || fighter.crawling || fighter.clinch || fighter.reloading) return false;
   if (fighter.stowed) return true;
   return Boolean(fighter.weapon?.held && fighter.weapon.spec.ranged && !fighter.weapon.spec.mounted && sidearmKindOf(fighter));
 }
@@ -1651,8 +1649,7 @@ function updateWeapon(fighter, h, weapon = fighter.weapon) {
     const gap = vec.length(vec.sub(point(fighter.x, main), point(fighter.x, off)));
     twoHands = gap < spec.spacing * 2.5;
   }
-  // (Held in a body, it keeps the line it went in on: physics/lodge.js.)
-  const want = fighter.lodged && weapon === lodgedBlade(fighter) ? fighter.lodged.world.dir : bladeDir && able ? yawRotate(bladeDir, fighter.yaw) : previous;
+  const want = bladeDir && able ? yawRotate(bladeDir, fighter.yaw) : previous;
   const axis = vec.cross(previous, want);
   const sin = vec.length(axis);
   const angle = Math.atan2(sin, vec.dot(previous, want));
@@ -2505,8 +2502,6 @@ export function throwPunch(world, fighter, type, zone = null, { heavy = false, a
   if (fighter.mount && !inRiderArc(fighter, at ?? point(target.x, P.pelvis))) return false;
   // A blade caught in a wolf-brush's branches strikes nothing until it is free (physics/brush.js).
   if (blade && fighter.caught && blade === caughtBlade(fighter)) return false;
-  // Nor one held in a body, until it is drawn (physics/lodge.js).
-  if (blade && fighter.lodged && blade === lodgedBlade(fighter)) return false;
   const aimZone = fromKnees ? 'legs' : spec.zones.includes(zone) ? zone : spec.zones[0];
   // A wild swinger's aim wanders off the mark.
   // A heavy weapon is hard to steer: past heavyFrom its blows wander (`heavyAimJitter` m per unit of mass over).
@@ -2775,7 +2770,7 @@ export function perform(world, fighter, name, { side = world.random() < 0.5 ? 1 
   // His shield knocked out of line: it cannot be brought to meet this one.
   if (name === 'shieldBlock' && fighter.shieldOpen > world.time) return false;
   // His blade caught in a wolf-brush (physics/brush.js): it cannot be brought across to meet a blow.
-  if ((name === 'weaponBlock' || name === 'parry') && (fighter.caught || fighter.lodged)) return false;
+  if ((name === 'weaponBlock' || name === 'parry') && fighter.caught) return false;
   if (DEFENCES[name]) {
     // The player's dodge or block takes breath (the plain guard held up does not); he may go into the overdraft for it.
     // (`held`: a block kept up as a held guard, paid for by the second instead: WORLD.guardHeld.)
@@ -3114,8 +3109,6 @@ function updateIntent(world, fighter, dt) {
   }
   // His blade caught in a wolf-brush: his weapon hand dragged to where it is held (physics/brush.js).
   if (fighter.caught) pinnedByBrush(world, fighter, intent);
-  // His blade held in a body: his hand stays on it, at the wound (physics/lodge.js).
-  if (fighter.lodged) lodgePose(world, fighter, intent);
   runCarry(world, fighter, intent, dt);
   // On a scaling ladder: square to it, leaned along it, his hands on its rungs (physics/ladders.js).
   if (fighter.climbing) ladderPose(world, fighter, intent);
@@ -4563,8 +4556,6 @@ function stepWorld(world, dt) {
     }
     for (const fighter of world.fighters) if (fighter.clinch) holdClinch(world, fighter);
     for (const fighter of world.fighters) if (fighter.pin) holdPin(world, fighter, h);
-    // Blades held in bodies join the two men (physics/lodge.js).
-    if (world.lodging) holdLodged(world, h);
     collideFighters(world, h, time, substep);
     if (world.horses.length) {
       strikeHorses(world, time);
@@ -4637,7 +4628,8 @@ function stepWorld(world, dt) {
   if (world.siegeLadders) stepLadders(world, dt);
   if (world.flame) stepFlame(world, dt);
   if (world.brushTouches) holdBrushes(world, dt);
-  if (world.lodging) stepLodged(world, dt);
+  // Weapons left in bodies ride the parts they are in (physics/lodge.js).
+  if (world.lodging && world.debris.length) carryStuck(world);
   payForBlocks(world);
   world.time += dt;
   world.lastDt = dt;
@@ -7519,10 +7511,6 @@ function guardKey(key) {
 function collideStriker(world, attacker, defender, striker, time) {
   // A haft among his own side's men is carried past them (over a shoulder, between files): the ranks are not drawn man by man.
   if (striker.haft && attacker.corner === defender.corner) return;
-  // A blade held in a body is in it (physics/lodge.js): it is not pushed out of him. It was, by up to WORLD.contactStep a
-  // substep, and once the stroke was over (no `struck`) as a speed: the man it was in was flung at 10-15 m/s and thrown to
-  // the floor within a fifth of a second.
-  if (striker.weapon && attacker.lodged?.in === defender.id && striker.weapon === lodgedBlade(attacker)) return;
   const from = striker.pa;
   const to = striker.pb;
   // Out of reach of all of him, shield and blade too (most pairs in a
@@ -9752,11 +9740,9 @@ function registerWeaponImpact(world, attacker, defender, striker, closest, capsu
   if (spec.hook && (!haft || spec.hook === 'reap') && /Thigh|Shank/.test(capsule.key)) hookLeg(world, attacker, defender, capsule.key[0], spec.hook === 'reap' ? relative : null, event);
   if (broke) event.effects.push(`the ${wspec.label.toLowerCase()}'s ${broke.part} ${broke.reason}`);
   world.events.push(event);
-  // An edge or a point that went in and stopped is held in the wound (physics/lodge.js): the stroke ends there.
-  if (sectionLeft && !shattered && !broke && lodgeBlade(world, attacker, defender, weapon, capsule, closest.t, contactPoint, { left: sectionLeft, cleaving, pierce, distance, travel: relative, bleed: bleeds >= 1 ? bleeds - 1 : bleeds, event })) {
-    punch.stopped = true;
-    world.lodging = true;
-  }
+  // An edge or a point that went in and stopped is held in the wound, and he loses it there (physics/lodge.js): the stroke
+  // ends with it.
+  if (sectionLeft && !shattered && !broke && lodgeBlade(world, attacker, defender, weapon, capsule, closest.t, contactPoint, { left: sectionLeft, cleaving, pierce, distance, travel: relative, event })) punch.stopped = true;
   if (shattered) dropWeapon(world, attacker, 'shattered');
   else if (broke) breakWeapon(world, attacker, weapon, broke.part, broke.reason, contactPoint);
   if (world.ear) {
@@ -9783,8 +9769,6 @@ const BLADE_MEETS = {
  * or foot driven onto it can come off. The blade's owner has fended it off.
  */
 function registerBladeBlock(world, attacker, defender, striker, closest, away, weapon = defender.weapon) {
-  // (A blade held in a body is no guard, and cuts nothing that comes against it: physics/lodge.js.)
-  if (defender.lodged && weapon === lodgedBlade(defender)) return false;
   const punch = attacker.punch;
   const striking = punch && punch.spec.path !== 'blade' && punch.spec.limb === striker.key && !punch.landed && punch.t <= punch.spec.extendUntil + 0.06;
   const along = weapon.spec.strikeFrom + closest.t * (weapon.spec.length - weapon.spec.strikeFrom);
@@ -10112,8 +10096,6 @@ function clashWeapons(world, first, second, a = first.weapon, b = second.weapon)
   if (brush) {
     brushTouch(world, first, second, a, b, one.along, two.along, true, one.velocity, two.velocity);
     if (tangled(first, second, a, b)) return;
-    // (Nor does a blade held in a body: physics/lodge.js.)
-    if ((first.lodged && a === lodgedBlade(first)) || (second.lodged && b === lodgedBlade(second))) return;
   }
   // Apart, shared by the hands' inverse masses.
   const mainA = P[`${a.main}Hand`];

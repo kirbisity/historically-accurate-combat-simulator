@@ -5,13 +5,12 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { P, PRESETS } from '../src/body.js';
 import { vec } from '../src/pose.js';
-import { advance, capsules, createWorld, perform, limbResistance, placeFighter, point, throwPunch, trunkResistance } from '../src/physics.js';
+import { advance, capsules, createWorld, limbResistance, placeFighter, point, trunkResistance } from '../src/physics.js';
 import { thinkAll } from '../src/ai.js';
-import { letGoLodged, LODGE, lodgeBlade, lodgeDepth, lodgedBlade, lodgeEta, lodgeHold, skullLeft } from '../src/physics/lodge.js';
+import { LODGE, lodgeBlade, lodgeDepth, lodgeHold, skullLeft } from '../src/physics/lodge.js';
 import { MARK_FLAG, MARK_KIND, MARKS, markDamage, markOfBlow, marksOf, marksPose, markTier, markUniforms } from '../src/markview.js';
 import { boneFrames } from '../src/rig.js';
 import { PARTICLES } from '../src/body.js';
-import { STYLES } from '../src/moves.js';
 
 const pair = (red = { ...PRESETS.samurai }, blue = { ...PRESETS.passive }, apart = 1.6) => {
   const world = createWorld([red, blue], { seed: 2 });
@@ -32,8 +31,7 @@ const lodge = (world, key, { t = 0.55, cleaving = 0, pierce = 0, left = { flesh:
   const contact = vec.sub(at, vec.scale(toward, capsule.radius));
   weapon.dir = toward;
   const event = { effects: [] };
-  const held = lodgeBlade(world, striker, victim, weapon, capsule, t, contact, { left, cleaving, pierce, distance: Math.min(vec.length(vec.sub(contact, hand)), weapon.spec.length * 0.8), travel: cleaving > pierce ? vec.normalize(vec.cross([0, 1, 0], toward)) : toward, bleed: 0.0005, event });
-  if (held) world.lodging = true;
+  const held = lodgeBlade(world, striker, victim, weapon, capsule, t, contact, { left, cleaving, pierce, distance: Math.min(vec.length(vec.sub(contact, hand)), weapon.spec.length * 0.8), travel: cleaving > pierce ? vec.normalize(vec.cross([0, 1, 0], toward)) : toward, event });
   return held ? event.lodged : null;
 };
 const level = (man, along) => ({ along, cos: 1, lo: along, hi: along });
@@ -81,54 +79,23 @@ test('a light slash is not held, nor a cut his stroke would have out again at on
   assert.ok(world.events.some((event) => event.kind === 'lodged' && event.fighter === 0 && event.defender === 1));
 });
 
-test('held, the two are joined: his blade strikes and guards nothing, he hauls it loose in time, and the wound opens again', () => {
+test('a held blade is lost at once: his hands come off it, it stays in the wound, and nothing joins the two men', () => {
+  // (The user's call, 2026-11-24: a stuck weapon is always lost by its wielder.)
   const world = pair();
   const [striker, victim] = world.fighters;
-  victim.stun = 30;
-  lodge(world, 'trunk', { cleaving: 100 });
-  assert.equal(lodgedBlade(striker), striker.weapon);
-  const move = Object.keys(STYLES[striker.style].attacks)[0];
-  assert.equal(throwPunch(world, striker, move, 'body'), false, 'no stroke with a held blade');
-  assert.equal(perform(world, striker, 'parry'), false, 'nor a parry');
-  const held0 = striker.lodged.hold;
-  const eta = lodgeEta(world, striker);
-  assert.ok(eta > 0.5 && eta < 8, `about ${eta.toFixed(1)} s to get it out`);
-  const bleed0 = victim.bleed ?? 0;
-  advance(world, 0.6);
-  assert.ok(striker.lodged && striker.lodged.hold < held0, 'worked at, it loosens');
-  // His hand stays at the wound, on the blade's line, as the two move.
-  assert.ok(striker.lodged.off < 0.12, `hand ${striker.lodged.off.toFixed(2)} m off the blade`);
-  let seconds = 0.6;
-  while (striker.lodged && seconds < 10) { advance(world, 0.1); seconds += 0.1; }
-  const freed = world.events.find((event) => event.kind === 'freed' && event.fighter === 0);
-  // (He may be dragged over with the man it is in and lose it: then it is left in him.)
-  if (freed) {
-    assert.ok(freed.seconds > 0.5, `out after ${freed.seconds.toFixed(1)} s`);
-    assert.ok((victim.bleed ?? 0) > bleed0, 'the wound bleeds again as it comes out');
-    assert.ok(striker.weapon.held);
-  } else assert.ok(world.debris.some((piece) => piece.stuck?.in === 1));
-});
-
-test('two hands haul it out sooner than one, a strong man sooner than a starved one', () => {
-  const eta = (red) => { const world = pair(red); lodge(world, 'trunk', { cleaving: 100 }); return lodgeEta(world, world.fighters[0]); };
-  const two = eta({ ...PRESETS.light, style: 'katana' });
-  const one = eta({ ...PRESETS.light, style: 'saber' });
-  const weak = eta({ ...PRESETS.starved, style: 'katana' });
-  assert.ok(two < one, `${two.toFixed(1)} s with two hands, ${one.toFixed(1)} s with one`);
-  assert.ok(two < weak, `${weak.toFixed(1)} s for a starved man`);
-});
-
-test('let go, or put down, the weapon stays in the body: he is disarmed and draws his sidearm, and it goes down with the man it is in', () => {
-  const world = pair();
-  const [striker, victim] = world.fighters;
-  lodge(world, 'lThigh', { t: 0.4, cleaving: 62, left: { flesh: 30, bone: 50 } });
-  assert.ok(striker.lodged);
   const kind = striker.weapon.kind;
-  letGoLodged(world, striker);
-  assert.equal(striker.lodged, null);
+  assert.ok(lodge(world, 'lThigh', { t: 0.4, cleaving: 62, left: { flesh: 30, bone: 50 } }));
+  assert.ok(!striker.weapon?.held || striker.weapon.kind !== kind, 'out of his hands');
+  assert.equal(striker.lodged, undefined, 'no hold kept on him');
   const left = world.debris.find((piece) => piece.stuck);
   assert.ok(left && left.weapon === kind && left.stuck.in === victim.id);
   assert.ok(world.events.some((event) => event.kind === 'disarmed' && /left in the wound/.test(event.effects[0])));
+  assert.ok(world.events.some((event) => event.kind === 'abandoned' && event.fighter === striker.id));
+  // Nothing moves the one with the other: he walks off, and the man it is in stays where he is.
+  const stand = point(victim.x, P.pelvis);
+  placeFighter(striker, -3, 0);
+  advance(world, 0.5);
+  assert.ok(Math.hypot(...point(victim.x, P.pelvis).map((value, axis) => value - stand[axis])) < 0.25, 'not dragged after him');
   advance(world, 1.5, (w, dt) => thinkAll(w, dt));
   assert.notEqual(striker.weapon?.kind, kind, 'his sidearm, or his hands');
   // It rides the thigh it is in, wherever he goes; no one takes it up while he stands.
@@ -139,13 +106,6 @@ test('let go, or put down, the weapon stays in the body: he is disarmed and draw
   advance(world, 2);
   assert.ok(left.x[1] < 0.9, 'down with him');
   assert.equal(left.resting, true, 'and may be taken up');
-  // Knocked out with his blade held: it stays where it is.
-  const other = pair();
-  lodge(other, 'trunk', { cleaving: 100 });
-  other.fighters[0].state = 'out';
-  advance(other, 0.2);
-  assert.equal(other.fighters[0].lodged, null);
-  assert.ok(other.debris.some((piece) => piece.stuck?.in === 1));
 });
 
 test('lodging is the exception in real duels, and never a light blow', () => {
