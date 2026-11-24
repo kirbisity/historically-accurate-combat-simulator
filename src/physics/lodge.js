@@ -158,10 +158,11 @@ export function lodgeDepth(left, radius, boneRadius, cleaving, pierce, reach = I
 /**
  * N to draw a blade out of what it is in: `depth` m in, `bone` m of that in bone, `engaged` m of edge in the wound (a
  * point: its width), `pinched` whether a point is between ribs or through the skull, `barbed` whether its head is; `wall`
- * (m) the most of the bone that grips it (the skull's vault: LODGE.skullWall; a solid bone all of it).
+ * (m) the most of the bone that grips it (the skull's vault: LODGE.skullWall; a solid bone all of it); `firm`, the bone's
+ * grip against a long bone's (the trunk's cancellous bones: BLADES.trunkCut cortical, as they part).
  */
-export function lodgeHold({ depth, bone }, engaged, pinched = false, barbed = false, wall = Infinity) {
-  const hold = LODGE.flesh * 2 * depth * engaged + Math.min(LODGE.boneMost, LODGE.boneGrip * Math.min(bone, LODGE.bevel) * Math.min(bone, wall)) + (pinched ? LODGE.pinch : 0);
+export function lodgeHold({ depth, bone }, engaged, pinched = false, barbed = false, wall = Infinity, firm = 1) {
+  const hold = LODGE.flesh * 2 * depth * engaged + Math.min(LODGE.boneMost, LODGE.boneGrip * firm * Math.min(bone, LODGE.bevel) * Math.min(bone, wall)) + (pinched ? LODGE.pinch : 0);
   return hold * (barbed ? LODGE.barbs : 1);
 }
 
@@ -194,7 +195,9 @@ export function lodgeBlade(world, attacker, defender, weapon, capsule, t, contac
   const pinched = went.thrust && (key === 'head' || chest);
   if (went.thrust ? went.depth < LODGE.least.thrust : went.bone <= 0 && went.depth < LODGE.least.cut) return false;
   const engaged = went.thrust ? weapon.spec.pointWidth ?? Math.max(0.025, weapon.spec.radius * 2) : Math.min(weapon.spec.length, 2 * Math.sqrt(Math.max(0, went.depth * (2 * radius - went.depth))));
-  const hold = lodgeHold(went, engaged, pinched, Boolean(weapon.spec.barbed), key === 'head' ? LODGE.skullWall : Infinity);
+  // (The trunk's bones grip as they part, cancellous cores in thin shells pressing back far less than a long bone's wall:
+  // BLADES.trunkCut cortical.)
+  const hold = lodgeHold(went, engaged, pinched, Boolean(weapon.spec.barbed), key === 'head' ? LODGE.skullWall : Infinity, key === 'trunk' ? BLADES.trunkCut.cortical : 1);
   const held = { a: capsule.a, b: capsule.b, t, ref: P[LODGE_REF[key]] };
   const frame = lodgeFrame(defender, held);
   const way = vec.length(hit.travel) > 1e-6 ? vec.normalize(hit.travel) : weapon.dir;

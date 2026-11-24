@@ -9662,10 +9662,21 @@ function registerWeaponImpact(world, attacker, defender, striker, closest, capsu
   const wasOut = defender.state === 'out';
   // (The trunk: the section the blade's sweep takes through it, trunkSection; a limb or the neck: the joint it is at.)
   const joint = !wasOut && cut > 0 ? (capsule.key === 'trunk' ? trunkSection(defender, contactPoint, weapon.dir, relative, wspec.length) : jointAt(defender, capsule, closest.t, contactPoint)) : null;
-  // (Through a limb's bone only as much of the edge's energy as came square across it: a glancing edge takes a chord of the
-  // section, the flesh and the side of the bone, and not the limb or the neck, BLADES.bone grazeShare; the trunk by its own
-  // section.)
-  const across = (limb || joint?.joint === 'neck') && joint ? BLADES.bone.grazeShare + (1 - BLADES.bone.grazeShare) * square : 1;
+  // (Through a limb's or the neck's bone only as much of the edge's energy as came square across it, BLADES.bone grazeShare
+  // for a graze: `squarely`, how straight into the part the edge was going (its motion against the surface's normal) and how
+  // straight across the part's length the plane it sweeps lies. A glancing edge takes a chord of the section, the flesh and
+  // the side of the bone; one drawn along the limb opens it lengthwise; neither takes it off. (`square` above is measured
+  // at the first touch, where the blade is at the surface, and is ~0 for nearly every blow: no measure of this.) The trunk
+  // by its own section.)
+  const [axisFrom, axisTo] = capsuleEnds(defender, capsule);
+  const axis = vec.length(vec.sub(axisTo, axisFrom)) > 1e-6 ? vec.normalize(vec.sub(axisTo, axisFrom)) : [0, 1, 0];
+  const speed = vec.length(relative);
+  const into = speed > 1e-6 ? Math.max(0, -vec.dot(relative, normal) / speed) : 0;
+  const sweep = vec.cross(weapon.dir, relative);
+  const crossing = vec.length(sweep) > 1e-9 ? Math.abs(vec.dot(vec.normalize(sweep), axis)) : 0;
+  const squarely = into * crossing;
+  const across = (limb || joint?.joint === 'neck') && joint ? BLADES.bone.grazeShare + (1 - BLADES.bone.grazeShare) * squarely : 1;
+  event.square = squarely;
   const needs = joint ? severThreshold(defender, joint, limb ? capsule.key : null, across) : Infinity;
   const severs = Boolean(joint && cleaving > needs && !defender.severed?.some((done) => done.side === joint.side && done.joint === joint.joint));
   // (What parting it there took, J, and the section it was: for the log and the tools.)
