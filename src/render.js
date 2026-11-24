@@ -37,7 +37,7 @@ import { buildAirPack, buildBackBox, buildBackPrint, buildBanner, buildSigns, si
 import { buildHead, hairCurtain, hairCurtainSoft } from './face.js';
 import { HELM_HEAD_BREADTH, HELM_SPAN } from './helmforms.js';
 import { photoFaceFor, skinScatter } from './photoface.js';
-import { capsules, capsuleEnds, JOINT_SEGMENTS, point, WORLD } from './physics.js';
+import { capsules, capsuleEnds, halfPoints, JOINT_SEGMENTS, point, WORLD } from './physics.js';
 import { BONE, BONES, bindPoints, boneFrames, coherentFrames, frameMatrix, fromFrame, toFrame } from './rig.js';
 import { bakePieces, CROWD_VIEW, crowdBatch, crowdKey, frameAt, HEAD_VARIANT, onlyVariant, simplifyTemplate, stretchedInverses, withoutVariant } from './crowdview.js';
 import { chooseDraw, crowdLod } from './crowdlod.js';
@@ -3031,7 +3031,7 @@ function skinWorkers() {
 function swapSkin(view, fighterView, style, made = null) {
   if (fighterView.skinPending !== style) return false;
   fighterView.skinPending = null;
-  if (fighterView.disposed || fighterView.severedBones?.size || fighterView.headDetached) return false;
+  if (fighterView.disposed || fighterView.severedBones?.size || fighterView.headDetached || fighterView.trunkSplit) return false;
   const built = readySkin(fighterView.fighter.body, style) ?? (made ? { ...made, positions: made.positions.slice() } : null);
   if (!built) return false;
   const old = [fighterView.skinMesh, fighterView.skinOutline, fighterView.steelMesh, fighterView.steelOutline, ...(fighterView.detailMeshes ?? []), ...(fighterView.detailOutlines ?? [])].filter(Boolean);
@@ -3641,8 +3641,10 @@ export function updateFighterView(fighterView, dt, time) {
     }
   }
   const points = PARTICLES.map((_, index) => point(fighter.x, index));
+  // (Cut through the trunk, woundview.js splitBody: his own bones are posed by the lower part, a second set by the upper.)
+  const split = fighter.halves ? fighterView.trunkSplit : null;
   // Left out of the picture for a while (culled): his last pose says nothing about this one, so no turn is held back.
-  const frames = coherentFrames(boneFrames(points, fighter.body), fighterView.stale ? null : fighterView.frames);
+  const frames = coherentFrames(boneFrames(split ? halfPoints(fighter.halves[0]) : points, fighter.body), fighterView.stale ? null : split ? split.lowerFrames : fighterView.frames);
   fighterView.frames = frames;
   fighterView.stale = false;
   frames.forEach((frame, index) => {
@@ -3653,15 +3655,23 @@ export function updateFighterView(fighterView, dt, time) {
     fighterView.skeleton[index].matrix.fromArray(matrix);
     fighterView.skeleton[index].matrixWorldNeedsUpdate = true;
   });
+  if (split) {
+    split.lowerFrames = frames;
+    split.upperFrames = coherentFrames(boneFrames(halfPoints(fighter.halves[1]), fighter.body), fighterView.stale ? null : split.upperFrames);
+    // What reads his bones after this (his head, what he carries, his stumps) reads each from the part it went with.
+    fighterView.frames = frames.map((frame, index) => (split.boneSide[index] ? split.upperFrames[index] : frame));
+    split.upperFrames.forEach((frame, index) => split.upperBones[index].matrixWorld.fromArray(frameMatrix(frame)));
+    for (const twin of split.twins) twin.castShadow = twin.parent.castShadow;
+  }
   // (The soft swing where the man has it: main.js softSwing, the man played and the two of a duel; clothsway.js `soft`.)
   if (fighterView.bones.swing) fighterView.bones.swing.softWanted = fighter.softSwing ? 1 : 0;
   fighterView.bones.swing?.update(frames, dt);
   // Bones whose part was cut off: what skin is left on them shrinks into the joint.
   for (const index of fighterView.severedBones ?? []) {
-    const at = frames[index].origin;
-    fighterView.bones[index].matrixWorld.makeScale(1e-4, 1e-4, 1e-4).setPosition(at[0], at[1], at[2]);
+    const at = fighterView.frames[index].origin;
+    (split?.boneSide[index] ? split.upperBones : fighterView.bones)[index].matrixWorld.makeScale(1e-4, 1e-4, 1e-4).setPosition(at[0], at[1], at[2]);
   }
-  const headFrame = frames[BONE.head];
+  const headFrame = fighterView.frames[BONE.head];
   // Seated a little down the neck, as drawn heads are. (A crowd man's head is baked: his group holds only what he can lose.)
   const seat = fighter.body.lengths.headRadius * HEAD_SEAT;
   if (!fighterView.headDetached && !(fighterView.baked && !fighterView.headProps.length)) {
@@ -3669,7 +3679,7 @@ export function updateFighterView(fighterView, dt, time) {
     fighterView.head.group.matrixWorldNeedsUpdate = true;
   }
   for (const { object, bone, at } of fighterView.attachments) {
-    object.matrix.fromArray(frameMatrix({ ...frames[bone], origin: points[at] }));
+    object.matrix.fromArray(frameMatrix({ ...fighterView.frames[bone], origin: points[at] }));
     object.matrixWorldNeedsUpdate = true;
   }
   if (fighter.damageVersion !== fighterView.damageVersion) paintDamage(fighterView);
@@ -3753,7 +3763,7 @@ export function selectCrowdDraw(view, fighterViews, safe, config = CROWD_VIEW) {
     const dz = pz - camera.position.z;
     const draw = (fighterView.draw ??= { culled: false, far: false, shadow: true });
     // Another layer (muscle, bone, physics) shows the full body, ghosted: the view is as built.
-    if (!crowdLod.enabled || fighterView.layer !== 'skin' || fighterView.severedBones?.size) {
+    if (!crowdLod.enabled || fighterView.layer !== 'skin' || fighterView.severedBones?.size || fighterView.trunkSplit) {
       Object.assign(draw, { culled: false, far: false, shadow: true });
     } else {
       drawSphere.center.set(px, py, pz);
@@ -3847,6 +3857,8 @@ const BROKEN = new THREE.Color(0xe01b1b);
 function paintDamage(fighterView) {
   const fighter = fighterView.fighter;
   fighterView.damageVersion = fighter.damageVersion;
+  // (Cut in two, woundview.js: his skin's points are no longer the ones these colours were counted by.)
+  if (fighterView.trunkSplit) return;
   const brokenSegments = new Set([...fighter.broken].flatMap((joint) => JOINT_SEGMENTS[joint]));
   const mixed = new THREE.Color();
   // A crowd man's far body is tinted too, from its own base colours.

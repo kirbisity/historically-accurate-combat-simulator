@@ -10,7 +10,7 @@ import { calorieRange, caloriesForWeight, deriveStats, exerciseHours } from './p
 import { paintHealth, thinkAll } from './ai.js';
 import { withTanks } from './physics/flame.js';
 import { CUSTOM_STYLE_KEYS, MOVES, STRATEGIES, STYLE_KEYS, STYLES } from './moves.js';
-import { advance, opponentFor, collapseAt, dropWeapon, concussionCapacity, createWorld, perform, placeFighter, placeOnFloor, point, reviveFighter, startCrawl, startJump, throwPunch, WORLD } from './physics.js';
+import { advance, opponentFor, collapseAt, cutOff, dropWeapon, concussionCapacity, createWorld, perform, placeFighter, placeOnFloor, point, reviveFighter, startCrawl, startJump, throwPunch, WORLD } from './physics.js';
 import { bleedingFast } from './maiming.js';
 import { DEFAULT_LOOK, LOOK_OPTIONS } from './face.js';
 import { activateLook, activateLookNow, activeLook, DEFAULT_LOOK_ID, OFFICIAL_LOOK_ID, flattenView, loadLook, lookById, lookIdFromSearch, lookList, LOOKS, rememberedLookId, rememberLook } from './looks.js';
@@ -4621,6 +4621,9 @@ const boxer = window.boxer = {
   perilMarks: () => perilMarks.sprites.map((sprite) => ({ visible: sprite.visible, at: sprite.position.toArray() })),
   // The red dots of executions to be had (executemark.js): each sprite's state, for tests and shots.
   executeMarks: () => executeMarks.sprites.map((sprite) => ({ visible: sprite.visible, at: sprite.position.toArray(), opacity: sprite.material.opacity })),
+  // A part cut off a man as a blade does it (physics.js cutOff), by the other of a duel: `where` { joint, side } for a limb or
+  // the neck, { joint: 'waist' | 'chest', along, normal, travel } for the trunk (tests, shots of the cut and its blood).
+  cut: (id = 1, where = { joint: 'waist' }, joules = 0) => cutOff(state.world, state.world.fighters[id], where, state.world.fighters[id === 0 ? 1 : 0], joules)?.effects,
   // One against one, played (the man played red): `hero` and `foe` presets, at `place` (tests, shots: the deflect, its button and marks).
   duelDemo: (hero = 'samurai', foe = 'kanabo', place = 'meadow', seed = 1, distance = 2.4) => {
     skipIntro();

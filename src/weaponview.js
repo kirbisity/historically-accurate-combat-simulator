@@ -17,6 +17,7 @@ import { buildArenaShield, buildArenaWeapon } from './arenaview.js';
 import { crowdBatch } from './crowdview.js';
 import { bloodDyeClear, bloodDyeCreate, bloodDyeLand, bloodDyeUpload } from './blooddye.js';
 import { BATTLE_FX, BLACK_POWDER, battleFxAddGlint, battleFxArc, battleFxClear, battleFxElectricFlash, battleFxGlint, battleFxPrimary, battleFxShot, battleFxSpark, battleFxUpdate } from './battlefx.js';
+import { splitBody } from './woundview.js';
 import { machineFxBusy, machineFxClear, machineFxCreate, machineFxHear, machineFxStep } from './machinefx.js';
 import { flutterCloth } from './clothwind.js';
 
@@ -2260,6 +2261,7 @@ function drawMounted(view, fighterView, arms, weapon, showing) {
  */
 export function severView(view, fighterView, event, debris) {
   const part = SEVER_PARTS[event.joint];
+  if (part.trunk) return severTrunkView(view, fighterView, event);
   const name = (piece) => (event.joint === 'neck' ? piece : `${event.side}${piece}`);
   const boneIndices = new Set(part.bones.map((bone) => BONE[name(bone)]));
   const origin = new THREE.Vector3(...debris.origin);
@@ -2327,6 +2329,21 @@ export function severView(view, fighterView, event, debris) {
   blood.emitters.push({ kind: 'stump', fighterView, ...ends, start: view.clock ?? 0, seconds: GORE.stumpSeconds });
   blood.emitters.push({ kind: 'piece', debris, start: view.clock ?? 0, seconds: GORE.pieceSeconds });
   spawnBlood(view, event.point, [0, 1, 0], 40, 3.2);
+}
+
+/**
+ * The trunk cut through (physics.js severTrunk): his skin and all he wears parted along the cut, each part on its own limp
+ * body from here on, the two faces closed with the trunk's section (woundview.js splitBody).
+ */
+function severTrunkView(view, fighterView, event) {
+  const fighter = fighterView.fighter;
+  if (!fighter.trunkCut || fighterView.trunkSplit || !fighterView.bones || !fighterView.built?.bindFrames) return;
+  const split = splitBody(fighterView.layers.skin, fighterView.bones, fighterView.built.bindFrames, fighter.trunkCut, { skinMesh: fighterView.skinMesh });
+  if (!split) return;
+  fighterView.trunkSplit = split;
+  // (The flesh's own give and sway were counted on the whole skin.)
+  fighterView.shells = [];
+  fighterView.slosh = null;
 }
 
 /** A severed part's stump (an event's `joint` and `side`): the particle it ends at (`base`), the one before (`from`), how far out along (`along`). */
