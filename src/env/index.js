@@ -672,11 +672,10 @@ function envCarryShadow(view, state, box) {
  * The finer map of the sun's shadow (a description's `shadowNear`: { half, size }; terrain.js envInstallFinerShadow):
  * a light of no colour standing where the sun stands, its box `half` m each way round what the camera looks at
  * (the fight; the ground ahead of the camera where it has no such point) and as deep as the sun's own, moved a whole
- * texel at a time. `size` texels a side at the top tier and half that below it: at 8 m and 2048 a texel is 8 mm,
- * and 16 mm on a phone, where the wide map's is 3 to 7 cm. Its edge is the sun's width in its own texels, and it
+ * texel at a time. `size` texels a side: at 8 m and 1024 a texel is 16 mm, where the wide map's is 3 to 7 cm. Its edge is the sun's width in its own texels, and it
  * needs next to no bias: the ground is not in a shadow map (only faces turned from the light are drawn into one),
  * so the wide map's 9 cm, which lifted every shadow off the foot that cast it, is here a texel and a half.
- * No `shadowNear`: the light is put out and the sun keeps its one map.
+ * `near` null: the light is put out and the sun keeps its one map.
  */
 function envCarryFiner(view, state, near) {
   let light = view.envSunFiner;
@@ -693,7 +692,7 @@ function envCarryFiner(view, state, near) {
     view.scene.add(light, light.target);
   }
   light.visible = true;
-  const size = envChosen.tier === 'high' ? near.size : near.size >> 1;
+  const size = near.size;
   if (light.shadow.mapSize.x !== size) setShadowMapSize(light, size);
   const camera = light.shadow.camera;
   const wide = sun.shadow.camera;
@@ -818,7 +817,8 @@ export function envUpdate(view, world, lead = null) {
   // The sun's shadow: its box carried where the place asks, and its width in the edge (terrain.js
   // envInstallShadow): texels of blur per unit of the map's depth, of the box as it is now.
   if (own.shadowBox) envCarryShadow(view, state, own.shadowBox);
-  envCarryFiner(view, state, own.shadowNear ?? null);
+  // (Every place's, ENV.shadow.near, unless it says otherwise; none under a weather that leaves no shadow to draw.)
+  envCarryFiner(view, state, state.weather.sun < ENV.shadow.nearSun ? null : own.shadowNear === undefined ? ENV.shadow.near : own.shadowNear);
   const shadow = view.lights.sun.shadow;
   shadow.radius = -((shadow.camera.far - shadow.camera.near) * ENV.shadow.sunWidth * ENV.shadow.soften) / ((shadow.camera.right - shadow.camera.left) / shadow.mapSize.x);
   // The figures take that shadow too (looks/kit.js FIGURE_SHADE), looked up a little off their surfaces.
