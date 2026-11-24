@@ -28,7 +28,7 @@ test('a limb is parted by its own flesh and bone: the wrist and forearm easiest,
   // A forearm needs a strong cut (an ordinary katana blow lands at ~65-75 J), a thigh more than all but the great blades bring.
   assert.ok(ordinary.wrist > 70 && ordinary.wrist < 150, `wrist ${ordinary.wrist.toFixed(0)} J`);
   assert.ok(ordinary.thigh > 180 && ordinary.thigh < 400, `thigh ${ordinary.thigh.toFixed(0)} J`);
-  assert.ok(ordinary.waist > 1.5 * ordinary.thigh, `waist ${ordinary.waist.toFixed(0)} J`);
+  assert.ok(ordinary.waist > 1.2 * ordinary.thigh, `waist ${ordinary.waist.toFixed(0)} J`);
 });
 
 test('a big man\'s limbs take more, an old or a starved man\'s bone less', () => {

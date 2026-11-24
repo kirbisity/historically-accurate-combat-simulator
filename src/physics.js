@@ -8830,17 +8830,16 @@ function jointAt(defender, capsule, t, contactPoint) {
  * `flesh` and `bone`, each its share of what goes through a whole limb of this thickness (more for a thicker limb), less
  * the flesh an earlier cut parted where this one cuts (`reopen` of fighter.limbCuts[key].flesh) and the bone it notched;
  * a broken bone (fighter.fractured) only `fractured` of its own. `key`: the segment struck (its wounds); `boneWhole`, the
- * bone's share whole. The neck (no segment) is all one.
+ * bone's share whole. The neck is its own section (neckSection).
  */
 export function limbResistance(defender, where, key = null) {
   // (The trunk: a section, not a joint. trunkResistance.)
   if (where.along !== undefined) return trunkResistance(defender, where);
   const { joint, side } = where;
-  if (!BLADES.limbs[joint]) return { flesh: BLADES.sever[joint][0] * BODY.toughness, bone: 0, boneWhole: 0, notched: 0 };
   const [segment, fleshThere, boneThere] = BLADES.limbs[joint];
   const spec = BLADES.limbCut;
-  const section = tissueSection(defender.body, `${side}${segment}`);
-  const done = defender.limbCuts?.[key ?? `${side}${segment}`];
+  const section = tissueSection(defender.body, segment === 'neck' ? 'neck' : `${side}${segment}`);
+  const done = defender.limbCuts?.[key ?? (segment === 'neck' ? 'neck' : `${side}${segment}`)];
   const fleshWhole = section.flesh * fleshThere;
   const boneWhole = section.bone * boneThere;
   const notched = spec.reopen * (done?.bone ?? 0);
@@ -8853,15 +8852,34 @@ export function limbResistance(defender, where, key = null) {
  * the rest (fat outside, organs and the like among the muscle), and `bone`, its bone's section at this body's material
  * (body.js boneStrength: toughness over section, mineral and years). The trunk's section is trunkResistance's, from this.
  */
-export function tissueSection(body, key) {
+export function tissueSection(body, key, muscleThere = 1) {
   const spec = BLADES.tissueCut;
+  if (key === 'neck') return neckSection(body);
   const segment = body.segments[key];
   const boneArea = Math.PI * segment.boneRadius ** 2;
   const lean = Math.PI * Math.max(0, segment.muscleRadius ** 2 - segment.boneRadius ** 2);
   const fat = Math.PI * Math.max(0, segment.skinRadius ** 2 - segment.muscleRadius ** 2);
   const muscle = segment.tissue.muscle / Math.max(1e-9, segment.tissue.muscle + segment.tissue.other);
   const material = body.bone ? Math.max(spec.materialFloor, body.bone.toughness / Math.max(1e-6, body.bone.section)) : 1;
-  return { flesh: spec.fleshJ * (lean * muscle + spec.soft * (lean * (1 - muscle) + fat)), bone: spec.boneJ * boneArea * material, boneArea, material };
+  return { flesh: spec.fleshJ * (lean * muscle * muscleThere + spec.soft * (lean * (1 - muscle) + fat)), bone: spec.boneJ * boneArea * material, boneArea, material };
+}
+
+/**
+ * The neck's section on this body (BLADES.neckCut): its muscle (the head segment's muscle is the neck's but for the face's),
+ * its fat, the airway, gullet and vessels, over the cervical spine's length, and a cervical vertebra's bone at this body's
+ * size and material (body.js boneStrength: its toughness, section and years in it), J as tissueSection's.
+ */
+function neckSection(body) {
+  const spec = BLADES.tissueCut;
+  const neck = BLADES.neckCut;
+  const head = body.segments.head;
+  const heightM = body.inputs.heightCm / 100;
+  const length = neck.length * heightM;
+  const scale = (heightM / 1.75) ** 2;
+  const muscle = (head.tissue.muscle * neck.muscle) / 1060 / length;
+  const fat = (head.tissue.fat * neck.fat) / 900 / length;
+  const material = body.bone ? Math.max(spec.materialFloor, body.bone.toughness) : 1;
+  return { flesh: spec.fleshJ * (muscle + spec.soft * (fat + neck.viscera * scale)), bone: spec.boneJ * neck.bone * material * (body.bone ? 1 : scale), boneArea: neck.bone, material };
 }
 
 /** Joules of cut it takes to go through this joint of this body now (limbResistance: the flesh and the bone left). */
@@ -8963,7 +8981,10 @@ const trunkCutKey = (section) => (section.along < BLADES.trunkCut.cage[0] ? 'tru
  */
 export function trunkResistance(defender, section) {
   const spec = BLADES.trunkCut;
-  const tissue = tissueSection(defender.body, 'trunk');
+  // (The muscle at that level: less at the waist, BLADES.trunkCut `waist`.)
+  const ramp = (from, to) => Math.min(1, Math.max(0, (section.along - from) / (to - from)));
+  const waisted = 1 - (1 - spec.waist) * Math.min(ramp(spec.waistFrom, spec.waistLow), 1 - ramp(spec.waistHigh, spec.waistTo));
+  const tissue = tissueSection(defender.body, 'trunk', waisted);
   const fleshWhole = tissue.flesh / section.cos;
   const [cageFrom, cageTo] = spec.cage;
   const crossed = Math.max(0, Math.min(section.hi, cageTo) - Math.max(section.lo, cageFrom));
@@ -8972,7 +8993,7 @@ export function trunkResistance(defender, section) {
     + (inCage || crossed > 0 ? spec.ribs * (inCage + crossed / spec.ribsPer) : 0)
     + spec.girdle * ((section.hi > spec.girdleFrom ? 1 : 0) + (section.lo > spec.girdleFrom ? 1 : 0))
     + spec.pelvis * ((section.lo < spec.pelvisTo ? 1 : 0) + (section.hi < spec.pelvisTo ? 1 : 0));
-  const boneWhole = tissue.bone * share;
+  const boneWhole = tissue.bone * share * spec.cortical;
   const done = defender.limbCuts?.[trunkCutKey(section)];
   const notched = Math.min(1, BLADES.limbCut.reopen * (done?.bone ?? 0));
   return { flesh: Math.max(0, fleshWhole - BLADES.limbCut.reopen * (done?.flesh ?? 0)), bone: boneWhole * (1 - notched), boneWhole, notched, broken: false };
@@ -9642,10 +9663,13 @@ function registerWeaponImpact(world, attacker, defender, striker, closest, capsu
   // (The trunk: the section the blade's sweep takes through it, trunkSection; a limb or the neck: the joint it is at.)
   const joint = !wasOut && cut > 0 ? (capsule.key === 'trunk' ? trunkSection(defender, contactPoint, weapon.dir, relative, wspec.length) : jointAt(defender, capsule, closest.t, contactPoint)) : null;
   // (Through a limb's bone only as much of the edge's energy as came square across it: a glancing edge takes a chord of the
-  // section, the flesh and the side of the bone, and not the limb, BLADES.bone grazeShare; the neck and the trunk by their
-  // own section.)
-  const across = limb && joint ? BLADES.bone.grazeShare + (1 - BLADES.bone.grazeShare) * square : 1;
-  const severs = Boolean(joint && cleaving > severThreshold(defender, joint, limb ? capsule.key : null, across) && !defender.severed?.some((done) => done.side === joint.side && done.joint === joint.joint));
+  // section, the flesh and the side of the bone, and not the limb or the neck, BLADES.bone grazeShare; the trunk by its own
+  // section.)
+  const across = (limb || joint?.joint === 'neck') && joint ? BLADES.bone.grazeShare + (1 - BLADES.bone.grazeShare) * square : 1;
+  const needs = joint ? severThreshold(defender, joint, limb ? capsule.key : null, across) : Infinity;
+  const severs = Boolean(joint && cleaving > needs && !defender.severed?.some((done) => done.side === joint.side && done.joint === joint.joint));
+  // (What parting it there took, J, and the section it was: for the log and the tools.)
+  if (joint) Object.assign(event, { sectionJ: needs, section: joint.along !== undefined ? `${joint.along.toFixed(2)}/${joint.cos.toFixed(2)}` : joint.joint });
   // (A limb cut off opens its vessel as the stump: sever, maiming.js.)
   const artery = BLADES.bleed.artery;
   if (!severs && ARTERY_SEGMENTS.has(capsule.key.slice(1)) && Math.max(boneShare(cleaving, square), boneShare(pierce, square)) >= artery.reach) {

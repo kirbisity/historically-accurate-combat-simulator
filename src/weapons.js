@@ -1827,12 +1827,24 @@ export const BLADES = {
   //   The forearm thins to tendon at the wrist (its girth there ~0.6 of the forearm's greatest, ANSUR's wrist and forearm
   //   circumferences: area ~0.4-0.6) while the radius widens to its distal end; the shank thins likewise to the ankle;
   //   near the elbow, the knee and the hip the bellies are thickest (estimates from the girths, unverified).
-  // - `neck`: J to take a head off, as it was (not a segment of its own here; × BODY.toughness).
+  // - The neck: its own section (`neckCut`), on the same figures.
   tissueCut: { fleshJ: 3430, soft: 0.6, boneJ: 150000, materialFloor: 0.3 },
   limbs: {
     wrist: ['Forearm', 0.6, 1], elbow: ['Forearm', 1.2, 1], shoulder: ['UpperArm', 1.1, 1],
-    ankle: ['Shank', 0.5, 1], knee: ['Shank', 1.2, 1], hip: ['Thigh', 1.1, 1],
+    ankle: ['Shank', 0.5, 1], knee: ['Shank', 1.2, 1], hip: ['Thigh', 1.1, 1], neck: ['neck', 1, 1],
   },
+  // The neck (physics.js neckSection), cut through: its muscle is the head segment's (body.js) but the face's (`muscle` of
+  // it), its fat `fat` of the head's, over the cervical spine's length (`length` of stature: C1-C7 ~12-13 cm on a man of
+  // 1.75 m); `viscera` m2 of airway, gullet, vessels and glands at 1.75 m (a neck of ~38 cm girth is ~115 cm2, of which
+  // ~60 muscle); `bone` m2: a cervical vertebra at C5, its body (~1.6 x 2.2 cm) and its pedicles, lateral masses, lamina and
+  // spine (~3-4 cm2 more), for the reference man's bone (anatomical tables of vertebral size, e.g. Panjabi et al. 1991,
+  // Spine 16: 861; from memory, unverified), scaled by this body's bone (boneStrength: section and material). The trunk's
+  // spine is counted the same way (its share of the trunk's bone, near a lumbar vertebra's own ~16 cm2). It was 120 J
+  // x BODY.toughness, 56 J: a head came off more easily than a wrist (the user's call, 2026-11-24: it parts harder than a
+  // forearm, well short of a waist, to a square heavy cut).
+  neckCut: { length: 0.07, muscle: 0.9, fat: 0.5, viscera: 0.0018, bone: 0.00065 },
+  // J to go through the whole skull (physics/lodge.js skullLeft, × LODGE.skull and BODY.toughness): the old neck figure,
+  // kept as the skull's measure.
   sever: { neck: [120, null, 0] },
   // What is left of a limb to cut through (physics.js limbResistance): the energy to go through it (`tissueCut`) is the
   // flesh's (skin, muscle, tendon) and the bone's (the bone takes most of the work, as a butcher's cleaver finds; the soft
@@ -1880,6 +1892,21 @@ export const BLADES = {
   //    is through (a knife does not cut a man in two).
   //  - What a cut short of it leaves is kept as a limb's is (limbCut `reopen`, the bone notched), by half of the trunk.
   trunkCut: {
+    // `waist`: the muscle at the waist against the trunk's mean section. The trunk's muscle (body.js) is spread evenly up
+    // its length, but most of it is the chest's and the shoulders' (the pectorals, the latissimi, the trapezius) and the
+    // hips'; at the third lumbar vertebra a man has ~170 cm2 of muscle and a woman ~115 (CT body-composition studies,
+    // Mourtzakis et al. 2008, Appl Physiol Nutr Metab 33: 997; from memory of the reference values, unverified), against
+    // ~270 and ~180 here as the mean: 0.63. Full at `waistFrom` and `waistTo` (the hips, the cage) and below and above,
+    // least between `waistLow` and `waistHigh`. It was the mean at every level: the waist took half again the flesh it has.
+    waist: 0.63, waistFrom: 0.15, waistLow: 0.25, waistHigh: 0.38, waistTo: 0.48,
+    // `cortical`: the trunk's bone against a limb's, area for area. `tissueCut.boneJ` is set on the limbs' sections as the
+    // segments have them, a femur's ~13.7 cm2 lumped (epiphyses, marrow) for a mid-shaft cortical ring of ~3.7 cm2 (3.7 to
+    // 1). The trunk's bones are cancellous cores in thin shells: a lumbar vertebra's ~19 cm2 here (its share of the trunk's
+    // bone) cuts as ~3.5 cm2 of cortical bone, its arch and pedicles ~2.5, the body's shell ~0.6 and its cancellous core
+    // next to nothing (strength as the square of density, Carter & Hayes 1977: 0.15 against 1.85 g/cm3), 5.5 to 1; the ribs
+    // and the iliac wings alike. So 3.7 / 5.5 of a limb's figure (the cortical areas from memory of anatomical CT figures,
+    // unverified). It was a limb's figure: a level waist was all but out of reach of any blow in the game.
+    cortical: 0.65,
     spine: 0.45, ribs: 0.35, ribsPer: 0.3, cage: [0.4, 0.95], girdle: 0.35, girdleFrom: 0.82, pelvis: 0.7, pelvisTo: 0.22,
     steepest: 0.45, from: 0.1, to: 0.92, edge: 1,
     // `carry`: the share of the blade's own momentum that goes on into the part it cut free. `bleedSeconds`: the aorta and

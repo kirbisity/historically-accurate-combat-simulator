@@ -45,8 +45,8 @@ test('the same cut goes through a slight body and stops in a broad one, deeper t
   const broad = man(PRESETS.sumo);
   const whole = (body) => { const left = trunkResistance(body, level(body, 0.3)); return left.flesh + left.bone; };
   assert.ok(whole(slight) < whole(middling) && whole(middling) < whole(broad));
-  // 400 J: through the slight one, not the others.
-  assert.ok(400 > whole(slight) && 400 < whole(middling) && 400 < whole(broad), `${whole(slight).toFixed(0)}, ${whole(middling).toFixed(0)}, ${whole(broad).toFixed(0)} J`);
+  // 300 J: through the slight one, not the others.
+  assert.ok(300 > whole(slight) && 300 < whole(middling) && 300 < whole(broad), `${whole(slight).toFixed(0)}, ${whole(middling).toFixed(0)}, ${whole(broad).toFixed(0)} J`);
   const depth = (body, joules) => lodgeDepth(trunkResistance(body, level(body, 0.3)), body.body.segments.trunk.skinRadius * 0.78, body.body.segments.trunk.boneRadius, joules, 0);
   // In the broad man it has more flesh to go through before the spine: 150 J is still in his muscle, and into the middling man's bone.
   assert.equal(depth(broad, 150).bone, 0);

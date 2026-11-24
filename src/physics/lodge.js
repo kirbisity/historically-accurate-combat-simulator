@@ -77,6 +77,10 @@ export const LODGE = {
   // The skull vault's thickness (m): 5-7 mm over most of it in adults, the two tables and the diploe between (Lynnerup
   // 2005, Forensic Sci Int 147: 1, CT of the vault, men ~6.5 mm; from memory of the abstract, unverified).
   skullWall: 0.0065,
+  // (Not counted: the vault meets a cut along its whole chord, 10-17 cm, against a solid bone's few centimetres across; but
+  // what presses on the blade there is a plate a few millimetres thick flexing aside, and cracking from the kerf as a cut
+  // skull does, not bone squeezed in bulk, so the longer face does not grip as a long bone's would. Counted along the
+  // chord, a sabre or a katana was held in most heads it cut into, in four bouts in ten.)
   // How far back from the edge a blade's bevel runs to its full thickness (m): a sword's ~2-3 cm (a katana's ha and
   // shinogi-ji together; a sabre's or a dao's edge bevel likewise; from the blades' sections, unverified).
   bevel: 0.025,
