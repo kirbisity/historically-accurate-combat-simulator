@@ -8960,7 +8960,9 @@ function sever(world, defender, where, event, bladeVelocity) {
   if (world.ear) soundWound(world, defender, 'cut', 1, base);
   if (where.joint === 'neck') {
     defender.diedAt ??= world.time;
-    openVessel(defender, BLADES.bleed.artery.seconds, attacker);
+    // (Both carotids and the jugulars cut across: he empties as fast as a trunk cut through does, BLADES.trunkCut.bleedSeconds.
+    // It was the limb artery's 90 s: a dead man's blood only, nothing in the fight reads it.)
+    openVessel(defender, BLADES.trunkCut.bleedSeconds, attacker);
     knockOut(world, defender, event, `${part.label}: cannot go on`, 'out');
     return;
   }

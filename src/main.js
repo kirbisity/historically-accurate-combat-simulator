@@ -4635,8 +4635,6 @@ const boxer = window.boxer = {
   perilMarks: () => perilMarks.sprites.map((sprite) => ({ visible: sprite.visible, at: sprite.position.toArray() })),
   // The red dots of executions to be had (executemark.js): each sprite's state, for tests and shots.
   executeMarks: () => executeMarks.sprites.map((sprite) => ({ visible: sprite.visible, at: sprite.position.toArray(), opacity: sprite.material.opacity })),
-  // A part cut off a man as a blade does it (physics.js cutOff), by the other of a duel: `where` { joint, side } for a limb or
-  // the neck, { joint: 'waist' | 'chest', along, normal, travel } for the trunk (tests, shots of the cut and its blood).
   // A blow's mark put on a man as a landed blow leaves it (markview.js markOfBlow), for shots: on the part `target`, `t` of the
   // way along it, on the side facing `toward` (a point; default the other man of a duel), the edge lying `turn` rad round from
   // across the part, made `age` s ago; `blow`: what the blow did ({ cut, pierce, energy, harm, edgeShare, weapon, bleeds }).
@@ -4657,6 +4655,8 @@ const boxer = window.boxer = {
   marks: (id = 1) => marksOf(state.world.fighters[id])?.count ?? 0,
   // The blood on the ground and in the air, in numbers (bloodview.js bloodInfo).
   gore: () => goreInfo(scene),
+  // A part cut off a man as a blade does it (physics.js cutOff), by the other of a duel: `where` { joint, side } for a limb or
+  // the neck, { joint: 'waist' | 'chest', along, normal, travel } for the trunk (tests, shots of the cut and its blood).
   cut: (id = 1, where = { joint: 'waist' }, joules = 0) => cutOff(state.world, state.world.fighters[id], where, state.world.fighters[id === 0 ? 1 : 0], joules)?.effects,
   // One against one, played (the man played red): `hero` and `foe` presets, at `place` (tests, shots: the deflect, its button and marks).
   duelDemo: (hero = 'samurai', foe = 'kanabo', place = 'meadow', seed = 1, distance = 2.4) => {

@@ -93,9 +93,9 @@ function bloodSplatAtlas(cells = 4, size = 64) {
 // (`wet`: 1 fresh or fed, 0 dried): the colour (linear) and the roughness. Shared by the stains and the pools.
 const BLOOD_GLSL = `
 vec3 bloodTone( float soak, float wet, float deep ) {
-	vec3 lying = mix( vec3( 0.07, 0.008, 0.008 ), vec3( 0.2, 0.006, 0.01 ), wet );
-	vec3 sunk = mix( vec3( 0.1, 0.017, 0.013 ), vec3( 0.17, 0.008, 0.012 ), wet );
-	return mix( lying, sunk, soak ) * mix( 1.0, 0.4, deep );
+	vec3 lying = mix( vec3( 0.16, 0.014, 0.014 ), vec3( 0.42, 0.01, 0.02 ), wet );
+	vec3 sunk = mix( vec3( 0.2, 0.024, 0.02 ), vec3( 0.34, 0.012, 0.02 ), wet );
+	return mix( lying, sunk, soak ) * mix( 1.0, 0.5, deep );
 }
 float bloodRough( float soak, float wet, float deep ) {
 	return mix( mix( 0.5, 0.1, wet ), mix( 1.0, mix( 0.9, 0.16, deep ), wet ), soak );
@@ -461,7 +461,8 @@ function bloodLand(blood, view, world, x, y, z, vx, vy, vz, ml) {
   const pools = blood.pools;
   for (let slot = 0; slot < blood.budget.pools; slot += 1) {
     const pool = pools[slot];
-    if (pool.active && Math.hypot(pool.x - x, pool.z - z) < pool.radius * 0.9 && Math.abs(pool.y - y) < 0.6) {
+    // (In it, or at its edge: it runs into it.)
+    if (pool.active && Math.hypot(pool.x - x, pool.z - z) < pool.radius + 0.06 && Math.abs(pool.y - y) < 0.6) {
       pool.ml += ml;
       pool.fedAt = blood.clock;
       pool.dirty = true;
@@ -578,7 +579,7 @@ export function bloodUpdate(blood, view, world, dt) {
     }
     // Drawn as a bead drawn out along its way.
     const speed = Math.hypot(drops[at + 3], drops[at + 4], drops[at + 5]) || 1;
-    const size = Math.min(0.02, 0.0065 * Math.cbrt(drops[at + 6]) + 0.003);
+    const size = Math.min(0.011, 0.0035 * Math.cbrt(drops[at + 6]) + 0.002);
     const long = size * (1 + Math.min(3.5, speed * 0.3));
     const [yx, yy, yz] = [drops[at + 3] / speed, drops[at + 4] / speed, drops[at + 5] / speed];
     // (Any two directions square to its way.)
