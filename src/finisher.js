@@ -12,7 +12,7 @@
 import { P } from './body.js';
 import { crowdNear } from './crowdgrid.js';
 import { vec, yawRotate } from './pose.js';
-import { MOVES, STYLES } from './moves.js';
+import { MOVES, moveRange, STYLES } from './moves.js';
 import { WEAPONS } from './weapons.js';
 import { gapsOf, gapUnder, gapZoneAt, rigidAt } from './physics/gaps.js';
 import { capsuleEnds, capsules, drawForFinisher, hostile, plantFeet, point, protectionAt, restoreAfterFinisher, shieldDisc, throwPunch, WORLD } from './physics.js';
@@ -83,6 +83,31 @@ export const FINISHER = {
   // An execution (a man broken open on his feet by the player's big deflect): he stands this far (m) from the man's hips, and his
   // blade's reach more, before he thrusts.
   standing: 0.45,
+  // The execution asked for in the big deflect's window (startExecution) is carried out: nothing about the man asking for it
+  // turns it down that his body can put aside (his own stroke, his guard, a hold he has, another man near, the distance: he
+  // drops the one and steps in over the other), and what it does is settled by the blow, as any blow's is. Only what holds
+  // his body (reeling, dazed, in pain, netted, down) makes it wait, and it waits for him while the man is still open.
+  // - reach: a man broken open this near (m, hips to hips) is his to execute (the attack tapped's reach, `tapReach`: he steps in);
+  // - lost: he gives up stepping in to a man further than this (m): further than he could have asked for it from;
+  // - clearMost: the blow waits for the line from his hand to the place to come clear of the man's arms as they fall (s at
+  //   most: the man broken open, his arms drop to his sides within a few tenths; met on the forearm, the point did nothing);
+  // - settleMost: and for him to square to it (s at most: standing, the place is not settling as a man's on the floor is);
+  // - tries: blows at most, while the man stays open: one met on his arm or turned is followed at once by the next, without
+  //   another press (a man who has his enemy helpless before him does not stop at one blow that missed);
+  // - askedFor: an execution asked for while his body cannot yet begin it is kept this long (s) past the man's window;
+  // - reachShare: he stands for the blow at this share of its reach (moves.js moveRange): the whole of it, as a blow made at its
+  //   mark in a fight. Nearer, a sword's or a spear's point went past the face and the blade met him along its length, an
+  //   edge (a katana's tsuki from 0.9 m: a cut on the arm); at its reach, the point (tsuki, lunge, spear, halberd, naginata:
+  //   6 of 6 bare men and 4 of 6 knights killed, measured), and a mace's level blow at the temple (6 of 6 bare men);
+  // - pointFrom: a weapon whose thrust's `pierce` is at least this has a point to execute with (executionBlow): a katana's
+  //   0.7, a guandao's 0.55, a war hammer's spike 0.8; a mace's and a club's none;
+  // - approachMost: the steps to that place take this long at most (s), then the blow goes from where he is, its own lunge
+  //   carrying him the rest (a polearm backing off from a man 1 m off took over a second at a walk, the moment gone; the
+  //   ground finisher's `approachMost` is for a man walking round one lying); measured, no fewer knights killed through the
+  //   sights at 0.4 s than with the whole walk (4 of 6, guandao, spear, halberd, longsword, dagger), fewer at 0.25;
+  // - backMost: backing off instead, a long weapon too near the man for its blow, this long at most (s): a man in armour with a
+  //   guandao 1.1 m from a knight got 1 point of 6 home in 0.4 s of steps back, 6 of 6 (4 killed) in 0.8, no more in 1.2.
+  execute: { reach: 3.2, lost: 4, clearMost: 0.2, settleMost: 0.15, tries: 3, askedFor: 0.3, reachShare: 1, pointFrom: 0.5, approachMost: 0.4, backMost: 0.8 },
 };
 
 // The places on a man that a point is put to, in order of preference when they are alike. `key` is the part of him struck first,
@@ -285,19 +310,6 @@ export function finisherBlade(fighter) {
   return FINISHER.belt;
 }
 
-/** His style's thrust (its attacks', a strike with the point: a katana's tsuki), or null for a style with none. */
-function execThrust(fighter) {
-  const attacks = Object.keys(STYLES[fighter.style]?.attacks ?? {});
-  return attacks.find((name) => MOVES[name]?.kind === 'strike' && MOVES[name]?.mode === 'thrust' && MOVES[name]?.path === 'blade') ?? null;
-}
-
-/** Whether his weapon in hand has a point to put through a helm's sights (a sword's, a spear's, a dagger's), not a ranged one. */
-function pointed(fighter) {
-  const held = fighter.weapon?.held ? fighter.weapon.spec : null;
-  // (A war hammer's beak or spike is no point for the sights: a weapon swung beak first goes to the finisher's dagger.)
-  return Boolean(held && !held.ranged && !held.beak && (held.harm?.thrust?.pierce ?? 0) >= 0.5);
-}
-
 /** Whether the fighter is in a state to kneel and strike: on his feet, steady, hands free. */
 export function canFinish(fighter) {
   // (A beast, an `unarmed` kit, has no knife to draw: it holds a man down and bites him instead, ai.js holdDown, grappling.js biteOf.)
@@ -319,6 +331,140 @@ export function helplessOnFloor(man) {
  */
 export function executable(world, man) {
   return man.state === 'up' && man.brokenOpen > 0 && (man.executableUntil ?? -Infinity) > world.time && !man.mount;
+}
+
+/**
+ * The man broken open by his big deflect that the man played may execute now, or null: on his feet in his window, an enemy (or
+ * the man he is locked on), within FINISHER.execute `reach`. Nothing of the man asking is weighed here (startExecution).
+ */
+export function executionOffered(world, fighter, { locked = null } = {}) {
+  if (!fighter?.player || fighter.state !== 'up') return null;
+  let best = null;
+  let bestApart = Infinity;
+  for (const man of crowdNear(world, [[fighter.x[P.pelvis * 3], fighter.x[P.pelvis * 3 + 2], FINISHER.execute.reach]]) ?? world.fighters) {
+    if (man === fighter || !executable(world, man) || !(hostile(man, fighter) || man.id === locked) || !within(fighter, man, FINISHER.execute.reach)) continue;
+    const apart = Math.hypot(man.x[P.pelvis * 3] - fighter.x[P.pelvis * 3], man.x[P.pelvis * 3 + 2] - fighter.x[P.pelvis * 3 + 2]) - (man.id === locked ? 0.5 : 0);
+    if (apart < bestApart) {
+      best = man;
+      bestApart = apart;
+    }
+  }
+  return best;
+}
+
+/** Whether his body lets him begin an execution now (FINISHER.execute): on his feet and his own; not reeling, dazed or in pain. */
+export function readyToExecute(fighter) {
+  return fighter.state === 'up' && !fighter.mount && !fighter.netted && !fighter.finisher && !fighter.pain && !(fighter.stagger > 0) && !(fighter.dazed > 0);
+}
+
+// The places an execution's blow is put to on a man standing before him (REGIONS' face and throat, each with the gap there):
+// a point's, the face (a helm's sights, the one way into any harness) before the throat; a swing's, the throat.
+const EXECUTION_POINTS = ['face', 'throat'].map((region) => REGIONS.find((entry) => entry.region === region));
+const EXECUTION_EDGES = REGIONS.filter((entry) => entry.region === 'throat');
+// Blows whose harm through differs by less than this share count as alike (executionBlow): the earlier is taken.
+const EXECUTION_ALIKE = 0.1;
+
+/** How much of a swing's stroke runs level (0..1): one less the share of the hand's way from its start to its end that is up or down. */
+function swingAcross(spec) {
+  if (!spec.from?.hand || !spec.to?.hand) return 1;
+  const way = vec.sub(spec.to.hand, spec.from.hand);
+  return 1 - Math.abs(way[1]) / (vec.length(way) || 1);
+}
+
+/** A blow's harm taken at `share` (a swing at the throat, by how level it runs: swingAcross). */
+function scaleHarm(harm, share) {
+  return harm ? Object.fromEntries(Object.entries(harm).map(([kind, value]) => [kind, value * share])) : harm;
+}
+
+/**
+ * Of what his kit stops at the place (`entry`), the share of a blow of `mode` ('thrust' or 'swing') with weapon harm `harm`
+ * ({ pierce, cut, blunt }) that comes through: each kind by what stops it, the gap there taken `FINISHER.profile.gap` of the
+ * time where it is one his blow can go into (a point any; an edge only one an edge goes into, physics/gaps.js `edge`); blunt
+ * harm goes through no gap, the armour spreads it as it spreads any blow.
+ */
+function executionThrough(gear, entry, mode, harm) {
+  const covered = protectionAt(gear, entry.key);
+  const gaps = gapsOf(gear);
+  const zone = entry.zone === 'sights' ? { closed: 'visor', open: 'face' }[gear.helmFace ?? 'open'] ?? null : entry.zone;
+  const into = rigidAt(covered, gear) && zone && !gaps.closed?.includes(zone) && (mode === 'thrust' || gaps.zones?.[zone]?.edge);
+  const under = into ? gapUnder(gear, zone, covered) : null;
+  const share = FINISHER.profile.gap;
+  let through = 0;
+  for (const kind of ['pierce', 'cut', 'blunt']) {
+    const stop = under && kind !== 'blunt' ? (covered[kind] ?? 0) * (1 - share) + (under[kind] ?? 0) * share : covered[kind] ?? 0;
+    through += (harm?.[kind] ?? 0) * (1 - stop);
+  }
+  return through;
+}
+
+/**
+ * The blow an execution is made with, from what he holds (no script per weapon). A weapon with a point worth the name (its
+ * thrust's `pierce` at least FINISHER.execute `pointFrom`: a dagger's, a sword's, a spear's, a halberd's or a war hammer's spike)
+ * puts it in, at the face (a helm's sights) or the throat, whichever his armour stops least there (executionThrough): a point in the
+ * face or the throat goes to the brain or the great vessels, where an edge laid on a head opens it, which bleeds but does not
+ * end him at once (physics.js: a deep cut). One with none (a mace, a club, a macuahuitl, the fists) is swung level at the
+ * throat and the side of the head: of its strokes, the one most across (swingAcross) with the most harm through; the helm
+ * takes a mace as it takes any blow. A short blade's own thrust is its thrust from the shoulder, `executeStanding`. With no
+ * blow to make (a bow in hand), his sidearm or a knife from his belt is drawn for it (finisherBlade). { move, entry, mode, draw }.
+ */
+export function executionBlow(fighter, target) {
+  const held = fighter.weapon?.held && !fighter.weapon.spec.ranged ? fighter.weapon.spec : null;
+  const gear = target.body.gear;
+  const names = Object.keys(STYLES[fighter.style]?.attacks ?? {});
+  const moves = (held && finisherBlade(fighter) === 'held' ? ['executeStanding', ...names] : names).filter((move) => {
+    const spec = MOVES[move];
+    return spec?.kind === 'strike' && spec.zones?.includes('head') && (held ? spec.path === 'blade' : spec.path !== 'blade' && spec.path !== 'aim');
+  });
+  const pointed = Boolean(held) && (held.harm?.thrust?.pierce ?? 0) >= FINISHER.execute.pointFrom && moves.some((move) => MOVES[move].mode === 'thrust');
+  let best = null;
+  for (const move of moves) {
+    const spec = MOVES[move];
+    const mode = spec.mode === 'thrust' ? 'thrust' : 'swing';
+    if (pointed !== (mode === 'thrust')) continue;
+    // (The fists: a blunt blow, the heavier the more of the body is behind it.)
+    const harm = held ? held.harm?.[mode] : { blunt: 1 + (spec.mass?.body ?? 0) * 10 };
+    // (A point: the face first, then the throat, alike within EXECUTION_ALIKE; a swing goes at the throat, by how level it runs.)
+    for (const entry of mode === 'thrust' ? EXECUTION_POINTS : EXECUTION_EDGES) {
+      const through = executionThrough(gear, entry, mode, mode === 'swing' ? scaleHarm(harm, swingAcross(spec)) : harm);
+      if (!best || through > best.through * (1 + EXECUTION_ALIKE)) best = { move, entry, mode, through, draw: null };
+    }
+  }
+  if (best) return best;
+  // (Nothing to strike with in his hands: the finisher's blade, his sidearm or the knife at his belt, its thrust from the shoulder.)
+  const draw = finisherBlade(fighter);
+  const harm = WEAPONS[draw === 'held' ? fighter.weapon.kind : draw]?.harm?.thrust;
+  const entry = EXECUTION_POINTS.reduce((most, place) => (executionThrough(gear, place, 'thrust', harm) > executionThrough(gear, most, 'thrust', harm) * (1 + EXECUTION_ALIKE) ? place : most));
+  return { move: 'executeStanding', entry, mode: 'thrust', through: executionThrough(gear, entry, 'thrust', harm), draw: draw === 'held' ? null : draw };
+}
+
+/**
+ * Begin an execution of a man broken open (executable): asked for in his window, it is carried out (FINISHER.execute). Whatever
+ * of his own he is doing that his body can let go (his stroke, his guard, a rush, a hold) he lets go; he steps in from where he
+ * is; the blow is his weapon's (executionBlow). False only while his body cannot begin it (readyToExecute), or the man is no
+ * longer open: then it waits (control.js keeps the order).
+ */
+export function startExecution(world, fighter, target, { asked = false } = {}) {
+  // (Asked for in his window and kept, `asked`: still his to begin a moment after it, FINISHER.execute `askedFor`.)
+  const open = target && (executable(world, target) || (asked && target.state === 'up' && !target.mount && world.time <= (target.executableUntil ?? -Infinity) + FINISHER.execute.askedFor));
+  if (!fighter?.player || !open || target === fighter || !readyToExecute(fighter)) return false;
+  const blow = executionBlow(fighter, target);
+  let keep = null;
+  if (blow.draw) {
+    keep = drawForFinisher(world, fighter, blow.draw);
+    if (!keep) return false;
+  }
+  fighter.punch = null;
+  fighter.rush = null;
+  fighter.defence = null;
+  fighter.clinch = null;
+  fighter.pickup = null;
+  fighter.lowStrike = null;
+  fighter.orderPickup = null;
+  fighter.guardHeld = false;
+  fighter.finisher = { asked: true, execution: true, standing: true, target: target.id, entry: { ...blow.entry, move: blow.move }, mode: blow.mode, keep, phase: 'approach', t: 0, started: world.time, kneeling: 0, thrustAt: null, tries: 0, shoulder: null, plan: null, place: {} };
+  logFinisher(world, fighter, 'finisher', target, [`goes in with the ${fighter.weapon?.spec.label.toLowerCase() ?? 'fists'} to finish him`]);
+  world.events.push({ time: world.time, kind: 'execution', fighter: target.id, attacker: fighter.id, mode: blow.mode, region: blow.entry.region, effects: ['to be executed'] });
+  return true;
 }
 
 /** Whether a man on the floor is within reach of this one: the hips apart on the floor, and on the same level. */
@@ -382,13 +528,30 @@ function kneelingPlace(fighter, target, aim, plan = {}) {
 }
 
 /** Where he stands to execute a man on his feet (an execution): before him, at his blade's thrusting reach, on the side he is on. */
-function standingPlace(fighter, target) {
+function standingPlace(fighter, target, move = null) {
   const hips = point(fighter.x, P.pelvis);
   const at = point(target.x, P.pelvis);
   const toward = [hips[0] - at[0], hips[2] - at[2]];
   const length = Math.hypot(toward[0], toward[1]) || 1;
-  const reach = FINISHER.standing + (fighter.weapon?.held ? fighter.weapon.spec.length * 0.55 : 0.3);
+  // (A stroke of his weapon's own: where it meets the man as it is made at its mark, its reach as the pad's and the AI's blows
+  // reckon it (moves.js moveRange, to the near side of his head), FINISHER.execute `reachShare`; the short blade's thrust from the
+  // shoulder, `executeStanding`, close in, as it was made for.)
+  const spec = MOVES[move];
+  const held = fighter.weapon?.held ? fighter.weapon.spec : null;
+  const reach = !spec || move === 'executeStanding' ? FINISHER.standing + (held ? held.length * 0.55 : 0.3)
+    : (moveRange(spec, fighter.body, held) + fighter.body.lengths.headRadius) * FINISHER.execute.reachShare;
   return [at[0] + (toward[0] / length) * reach, at[1], at[2] + (toward[1] / length) * reach];
+}
+
+/**
+ * How long (s) the steps to an execution's place may take (FINISHER.execute): `approachMost` stepping in; `backMost` backing
+ * off, a long weapon too close to the man for its blow (backing, a man steps, he does not run).
+ */
+function executeSteps(fighter, target, place) {
+  const at = point(target.x, P.pelvis);
+  const hips = point(fighter.x, P.pelvis);
+  const backing = Math.hypot(place[0] - at[0], place[2] - at[2]) > Math.hypot(hips[0] - at[0], hips[2] - at[2]);
+  return backing ? FINISHER.execute.backMost : FINISHER.execute.approachMost;
 }
 
 /** Say what happened to the finisher in the log: 'finisher' on starting, 'finisherAborted' on giving up. */
@@ -402,22 +565,13 @@ function logFinisher(world, fighter, kind, target, effects) {
  */
 export function startFinisher(world, fighter, target, { region = null, force = false, range = FINISHER.reach } = {}) {
   // A man broken open by the man played's big deflect (WORLD.deflect.big, physics.js throwDownOpen): his execution, standing before
-  // him, the point put through the sights of his helm (the face: the one way into any harness, a knight's as much as a bare-headed
-  // man's), with the player's own weapon if it has a point and the face is open (else the finisher's blade), the camera closing on it (drama.js
-  // DRAMA.execution).
-  const execution = Boolean(fighter.player) && Boolean(target) && executable(world, target);
-  if (world.armed === false || !canFinish(fighter) || !target || target === fighter || !(helplessOnFloor(target) || execution) || !within(fighter, target, range * (force ? 2 : 1))) return false;
-  if (execution) region = 'face';
+  // him, with his own weapon's blow (startExecution, executionBlow), the camera closing on it (drama.js DRAMA.execution).
+  if (fighter.player && target && executable(world, target)) return startExecution(world, fighter, target);
+  if (world.armed === false || !canFinish(fighter) || !target || target === fighter || !helplessOnFloor(target) || !within(fighter, target, range * (force ? 2 : 1))) return false;
   // The gap he looks for (planFinisher); a place asked for is put to as asked, from where he is; with every line blocked, the least protected place.
   const plan = region ? null : planFinisher(fighter, target);
   const entry = (region && REGIONS.find((item) => item.region === region)) || plan?.entry || leastProtected(target);
-  // (Through a closed helm's sights, the dagger's work, the rondel's as the masters taught it, his sidearm or a knife from his belt;
-  // a face open or bare, his own weapon's point if it has one.)
-  const closedHelm = ['closed', 'sealed'].includes(target.body.gear.helmet?.face);
-  const kind = execution && pointed(fighter) && !closedHelm ? 'held' : finisherBlade(fighter);
-  // (An execution with his own weapon: his style's own thrust, at the weapon's reach, in place of the dagger's stab down: execThrust.)
-  // (With the dagger, standing: the thrust from the shoulder at his face, `executeStanding`, not the stab down at a man on the floor.)
-  const own = execution ? (kind === 'held' && pointed(fighter) && !closedHelm ? execThrust(fighter) : null) ?? 'executeStanding' : null;
+  const kind = finisherBlade(fighter);
   let keep = null;
   if (kind !== 'held') {
     keep = drawForFinisher(world, fighter, kind);
@@ -426,9 +580,8 @@ export function startFinisher(world, fighter, target, { region = null, force = f
   fighter.punch = null;
   fighter.rush = null;
   fighter.defence = null;
-  fighter.finisher = { asked: Boolean(region), execution, standing: execution, target: target.id, entry: own ? { ...entry, move: own } : entry, keep, phase: 'approach', t: 0, started: world.time, kneeling: 0, thrustAt: null, shoulder: plan?.shoulder ?? null, plan, place: plan ? { along: plan.along } : {} };
+  fighter.finisher = { asked: Boolean(region), execution: false, standing: false, target: target.id, entry, keep, phase: 'approach', t: 0, started: world.time, kneeling: 0, thrustAt: null, shoulder: plan?.shoulder ?? null, plan, place: plan ? { along: plan.along } : {} };
   logFinisher(world, fighter, 'finisher', target, [`draws the ${fighter.weapon.spec.label.toLowerCase()} to finish him`]);
-  if (execution) world.events.push({ time: world.time, kind: 'execution', fighter: target.id, attacker: fighter.id, effects: ['to be executed'] });
   return true;
 }
 
@@ -448,6 +601,36 @@ function settleAim(fighter, target, state, shift = false) {
   state.entry = plan.entry;
   state.shoulder = plan.shoulder;
   state.plan = plan;
+  return false;
+}
+
+/**
+ * What an execution's blow carries (physics.js `punch.finisher`), by its kind: a point is put and leaned on as the finisher's
+ * (FINISHER.profile), into the gap at the place (`zone`: the sights, the throat); an edge is drawn across the place, into the gap
+ * there as well, with all its blunt (it is no dagger driven in) and nothing leaned on; a blow with neither, a mace's or a fist's,
+ * is a blow, and the helm takes it as it takes any (null).
+ */
+function executionProfile(fighter, state) {
+  const harm = fighter.weapon?.held ? fighter.weapon.spec.harm?.[state.mode] : null;
+  if (!harm || (harm.cut ?? 0) + (harm.pierce ?? 0) <= 0) return null;
+  if (state.mode === 'thrust') return { ...FINISHER.profile, zone: state.entry.zone };
+  return { gap: FINISHER.profile.gap, zone: state.entry.zone, blunt: 1, lean: 0, depth: 0 };
+}
+
+/** Whether the line from his weapon hand to `place` (a world point on the man) meets the man's head or body first, not his arm. */
+function lineClear(fighter, target, place) {
+  const hand = point(fighter.x, P[`${fighter.weapon?.main ?? 'r'}Hand`]);
+  const met = firstMet(target, hand, vec.add(place, vec.scale(vec.normalize(vec.sub(place, hand)), 0.1)));
+  return !met || met.key === 'head' || met.key === 'trunk';
+}
+
+/** Whether a blow of his has landed home on the man's head or body since `time` (not on an arm or a leg in the way). */
+function homeSince(world, fighter, target, time) {
+  for (let index = world.events.length - 1; index >= 0; index -= 1) {
+    const event = world.events[index];
+    if (event.time < time) break;
+    if (event.kind === 'landed' && event.attacker === fighter.id && event.defender === target.id && (event.target === 'head' || event.target === 'trunk')) return true;
+  }
   return false;
 }
 
@@ -478,9 +661,10 @@ function brokenOff(world, fighter, state, target) {
   if (fighter.state !== 'up' || fighter.netted || fighter.mount) return 'brought down';
   if (fighter.stagger > 0 || fighter.dazed > 0 || fighter.pain || struckSince(world, fighter, state.started)) return 'struck while he knelt';
   if (state.phase === 'approach' || state.phase === 'kneel' || (state.phase === 'thrust' && !state.thrustAt)) {
-    // (An execution: the man still standing broken open; recovered, he is a man to fight again.)
-    if (state.standing ? !(target.state === 'up' && target.brokenOpen > 0) : !helplessOnFloor(target)) return target.state === 'out' ? 'the man is dead' : state.standing ? 'he has recovered' : 'the man is up';
-    if (!within(fighter, target, FINISHER.lost)) return 'the man is gone';
+    // (An execution: its first blow goes, asked for in his window, whatever he does by the time it comes (FINISHER.execute); a
+    // blow after it only while he is still broken open: recovered, he is a man to fight again.)
+    if (state.standing ? target.state === 'out' || (state.tries > 0 && !(target.state === 'up' && target.brokenOpen > 0)) : !helplessOnFloor(target)) return target.state === 'out' ? 'the man is dead' : state.standing ? 'he has recovered' : 'the man is up';
+    if (!within(fighter, target, state.standing ? FINISHER.execute.lost : FINISHER.lost)) return 'the man is gone';
   }
   return null;
 }
@@ -506,9 +690,9 @@ export function updateFinisher(world, fighter, dt) {
   const drift = state.lastAim ? Math.hypot(aim[0] - state.lastAim[0], aim[1] - state.lastAim[1], aim[2] - state.lastAim[2]) / dt : 0;
   state.lastAim = aim;
   if (state.phase === 'approach') {
-    const place = state.standing ? standingPlace(fighter, target) : kneelingPlace(fighter, target, aim, state.place);
+    const place = state.standing ? standingPlace(fighter, target, state.entry.move) : kneelingPlace(fighter, target, aim, state.place);
     const apart = Math.hypot(place[0] - hips[0], place[2] - hips[2]);
-    if (apart <= FINISHER.arrived || state.t > FINISHER.approachMost) {
+    if (apart <= FINISHER.arrived || state.t > (state.standing ? executeSteps(fighter, target, place) : FINISHER.approachMost)) {
       // (Standing before him: no kneeling, the point straight in.)
       state.phase = state.standing ? 'thrust' : 'kneel';
       state.t = 0;
@@ -530,8 +714,11 @@ export function updateFinisher(world, fighter, dt) {
   fighter.move = 0;
   fighter.strafe = 0;
   fighter.faceAt = { at: aim, until: world.time + 0.25 };
-  fighter.rootVelocity[0] *= 0.5;
-  fighter.rootVelocity[1] *= 0.5;
+  // (Kneeling, his weight settles where he is; standing, the blow's own step carries him into it, a lunge's as in any fight.)
+  if (!state.standing) {
+    fighter.rootVelocity[0] *= 0.5;
+    fighter.rootVelocity[1] *= 0.5;
+  }
   if (state.phase === 'kneel') {
     state.kneeling = Math.min(1, state.kneeling + dt / FINISHER.kneelSeconds);
     pinWeightOn(target);
@@ -545,24 +732,34 @@ export function updateFinisher(world, fighter, dt) {
     if (!state.asked && (!state.thrustAt || (fighter.punch === state.punch && fighter.punch.t < fighter.punch.spec.windup))) settleAim(fighter, target, state);
     const place = regionPoint(target, state.entry.region, hips, state.shoulder);
     if (fighter.punch && fighter.punch === state.punch) fighter.punch.at = place;
-    if (!fighter.punch && !state.thrustAt && ((drift < FINISHER.settledBelow && turned(fighter, place) < FINISHER.squared) || state.t > FINISHER.settleMost)) {
+    // (Standing, the place moves as the man sways and is not waited for to settle: the blow follows it, `at`. It waits only for
+    // him to square to it and for the line to it to come clear of the man's falling arms, each a moment at most: FINISHER.execute.)
+    const ready = state.standing
+      ? (turned(fighter, place) < FINISHER.squared || state.t > FINISHER.execute.settleMost) && (lineClear(fighter, target, place) || state.t > FINISHER.execute.clearMost)
+      : (drift < FINISHER.settledBelow && turned(fighter, place) < FINISHER.squared) || state.t > FINISHER.settleMost;
+    if (!fighter.punch && !state.thrustAt && ready) {
       if (throwPunch(world, fighter, state.entry.move, state.entry.key === 'head' ? 'head' : 'body', { at: place })) {
-        // (An execution's point is put through the sights of his helm: `zone`, physics.js.)
-        fighter.punch.finisher = state.entry.gap === false ? { ...FINISHER.profile, gap: 0 } : state.execution ? { ...FINISHER.profile, zone: 'sights' } : FINISHER.profile;
+        fighter.punch.finisher = state.standing ? executionProfile(fighter, state) : state.entry.gap === false ? { ...FINISHER.profile, gap: 0 } : FINISHER.profile;
         state.thrustAt = world.time;
         state.punch = fighter.punch;
-      } else if (state.t > FINISHER.thrustWithin) {
+      } else if (state.t > FINISHER.thrustWithin && !(state.standing && target.brokenOpen > 0)) {
+        // (An execution's blow his body cannot make yet, a stroke carried on past its mark, waits while the man is open.)
         endFinisher(world, fighter, 'the blow would not go', target);
         return false;
       }
     } else if (state.thrustAt && fighter.punch !== state.punch) {
+      // An execution's blow met his arm, or was turned: the next at once, while he is still open (FINISHER.execute `tries`).
+      if (state.standing && !state.struck && state.tries + 1 < FINISHER.execute.tries && target.state === 'up' && target.brokenOpen > 0) {
+        Object.assign(state, { tries: state.tries + 1, thrustAt: null, punch: null, phase: 'approach', t: 0 });
+        return true;
+      }
       state.phase = 'withdraw';
       state.t = 0;
     }
-    // An execution's blow home: the camera's jolt (drama.js DRAMA.executionBlow).
-    if (state.execution && !state.struck && state.punch?.landed) {
+    // An execution's blow home in his head or body (not met on his arm): the camera's jolt (drama.js DRAMA.executionBlow).
+    if (state.execution && !state.struck && state.thrustAt && homeSince(world, fighter, target, state.thrustAt)) {
       state.struck = true;
-      world.events.push({ time: world.time, kind: 'executionBlow', fighter: target.id, attacker: fighter.id, effects: ['executed through the sights'] });
+      world.events.push({ time: world.time, kind: 'executionBlow', fighter: target.id, attacker: fighter.id, effects: [`executed at the ${state.entry.region}`] });
     }
     return true;
   }
