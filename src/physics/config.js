@@ -667,6 +667,15 @@ export const WORLD = {
   stagger: { armouredFrom: 0.5, startAt: 0.7, overwhelm: 1.6, minSeconds: 2, maxSeconds: 10, strength: 0.7, harm: 0.6, defend: 0.5, force: 5000, catchSeconds: 1, hitWithin: 0.5 },
   rotationalFactor: { jab: 0.85, cross: 1, hook: 1.35, uppercut: 1.25 },
   followThrough: 0.2, // m beyond the target the glove is aimed at
+  // A style's lunging stance (STYLES `stance.lunge`) is reached in full by a stroke that carries the body in this far (its move's
+  // `shift`, a share of height: the duellist's lunge, 0.22), and in proportion by less (a quick thrust's 0.06 a third of the way).
+  // `leanKept`: the share of the lunge's forward lean a man who cannot hold the deep stance gives up with it (he stays more
+  // upright, over the feet he can hold himself on).
+  lungeStance: { fullShift: 0.2, leanKept: 0.5 },
+  // A one-handed blade held out alone (physics.js heldOut): where a sword hand that cannot hold its guard comes back to, local in
+  // heights (low before the hip, the point dropped towards `restDir`), and where a free hand that cannot keep its style's
+  // guard up hangs (by the hip, a little forward).
+  heldOut: { rest: [0.12, 0.5, -0.1], restDir: [1, -0.35, 0], offRest: [0.04, 0.5, 0.14] },
   minImpactSpeed: 2.0,
   getUpSeconds: 1.6,
   // Getting up (physics/rising.js). He starts only once every part moves

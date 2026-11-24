@@ -10,6 +10,7 @@
 import { STYLES } from './moves.js';
 import { WORLD } from './physics/config.js';
 import { overdraftDepth } from './physics/overdraft.js';
+import { stanceAbility } from './stancefit.js';
 
 export const LIFE = {
   // Boxers bounce at about 1.5–2.2 Hz; untrained people barely bounce.
@@ -55,7 +56,11 @@ export function idleMotion(fighter, time) {
   const loose = fighter.stun > 0 ? LIFE.stunnedSway : 1;
   const sway = LIFE.sway * loose * style.sway;
   const busy = fighter.punch ? 0.3 : 1;
-  const bounce = LIFE.bounceDepth * style.bounce * (0.15 + 0.85 * training) * freshness * busy * (0.5 - 0.5 * Math.cos(time * Math.PI * 2 * life.bounceHz));
+  // (A bounce is the calves and thighs throwing his weight up, again and again: as much of it as his legs hold for his weight,
+  // stancefit.js. A style's `idle.hz` sets its own beat: taekwondo's step-in-place rhythm is quicker than a boxer's.)
+  const springy = stanceAbility(fighter.body).legs;
+  const hz = style.hz ? (style.hz * life.bounceHz) / (LIFE.bounceHz.min + LIFE.bounceHz.range / 2) : life.bounceHz;
+  const bounce = LIFE.bounceDepth * style.bounce * (0.15 + 0.85 * training) * springy * freshness * busy * (0.5 - 0.5 * Math.cos(time * Math.PI * 2 * hz));
   const rock = LIFE.rockDepth * style.rock * busy * Math.sin(time * Math.PI * 2 * LIFE.rockHz + life.phases[11]);
   // Breathing deepens and quickens as stamina runs down, and on in the player's overdraft (a gasp: WORLD.overdraft.breath).
   const debt = overdraftDepth(fighter.stamina);

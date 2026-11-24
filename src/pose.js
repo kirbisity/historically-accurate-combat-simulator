@@ -315,7 +315,11 @@ export function desiredPose(body, intent = {}) {
 
   // Weight shifts onto the front foot to extend a punch: everything above
   // the feet moves forward; the knees go half as far.
-  const shift = (intent.shift ?? 0) * H;
+  // (A stance's `weight`: the hips carried that share of the way from the middle towards the lead foot, positive (a bow
+  // stance, gong bu: the front knee bent over the toes, the rear leg straight), or the rear one, negative (a cat stance, xu bu:
+  // the body sat on the bent rear leg, the front foot resting light on its ball). The knees follow half as far, as with `shift`.)
+  const settle = (stance.weight ?? 0) * (stance.weight > 0 ? POSE.leadFoot[0] : -POSE.rearFoot[0]) * H * stance.width * stagger;
+  const shift = (intent.shift ?? 0) * H + settle;
   for (let index = 0; index < out.length; index += 1) {
     if (out[index] && index !== P.lFoot && index !== P.rFoot) out[index] = vec.add(out[index], [shift, -Math.abs(shift) * 0.3, 0]);
   }
@@ -338,7 +342,8 @@ export function desiredPose(body, intent = {}) {
     if (kneeOverride) out[P[`${side}Foot`]] = intent[`${side}Foot`] ?? vec.add(kneeOverride, [-0.2, -L.shank * 0.8, 0]);
 
     const shoulder = out[P[`${side}Shoulder`]];
-    const guard = side === 'l' ? POSE.leadGuard : POSE.rearGuard;
+    // (A style's own guard, `stance.guard` { lead, rear }, relative to the head in heights as POSE's: where its fists are held.)
+    const guard = (side === 'l' ? stance.guard?.lead : stance.guard?.rear) ?? (side === 'l' ? POSE.leadGuard : POSE.rearGuard);
     const tight = intent.guardTight ? 0.6 : 1;
     const drift = intent.guardOffset?.[side] ?? [0, 0, 0];
     const guardPoint = vec.add(out[P.head], [(guard[0] * tight + drift[0]) * H, (guard[1] + stance.guardHeight + drift[1]) * H, (guard[2] + drift[2]) * H]);
