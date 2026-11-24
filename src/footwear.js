@@ -38,6 +38,8 @@ const FOOT_HEEL_ROUND = 0.034;
 const ANKLE_FIT = { v: 0.012, front: 0.031, back: -0.041, inner: 0.03, outer: 0.03 };
 // How a foot's breadth follows its ankle's (the ankle's half breadth over that one's, to this power, within these bounds).
 const ANKLE_OVER = 0.0015;
+// How far the ankle runs up inside the shank past its end.
+const FOOT_STUB = 0.012;
 const FOOT_BREADTH = { power: 0.6, least: 0.92, most: 1.3 };
 
 const footClamp = (x) => Math.min(1, Math.max(0, x));
@@ -318,7 +320,7 @@ function footRgb(hex) {
  * 3 the top of what goes up inside the leg) and `at(s, a, lift)` the point on it at angle a round the section (degrees:
  * 0 the top, 90 the inner side, 180 the sole or the back), `lift` off the surface; both before the foot is placed (warp).
  */
-function footLast(spec, fit, thick, legTop) {
+function footLast(spec, fit, thick, legTop, closes = true) {
   const toe = TOE_SHAPES[spec.toes ? 'roots' : spec.toe?.shape ?? 'round'];
   const ext = spec.toes ? 0 : spec.toe?.ext ?? 0.008;
   const tipU = spec.toes ? FOOT_TOE_ROOT + 0.012 : FOOT_TOE_U - 0.006 + ext;
@@ -376,9 +378,12 @@ function footLast(spec, fit, thick, legTop) {
     }
     // Up inside the leg: level sections, drawn in a little as they go.
     const t = s - 2;
-    const tuck = 0.004 * footEase(0.3, 1, t);
+    // (Its end drawn in to a low dome within the shank, FOOT_STUB high: a shin leaning over the foot in a stride must not
+    // show the end of the ankle standing out of it. A collar of its own stays open.)
     const v = fit.v + t * legTop;
-    return { top: [fit.front + thick - tuck, v], bottom: [fit.back - thick + tuck, v], inn: fit.inner + thick - tuck, out: fit.outer + thick - tuck, mid: 0, ridge: 0, eTop: 0.95, eBottom: 0.9, eSide: 1, belly: 1, tail: 0.1, u: 0 };
+    const draw = closes ? 1 - 0.5 * footEase(legTop - FOOT_STUB, legTop, t * legTop) : 1;
+    const middle = (fit.front + fit.back) / 2;
+    return { top: [middle + (fit.front + thick - middle) * draw, v], bottom: [middle + (fit.back - thick - middle) * draw, v], inn: (fit.inner + thick) * draw, out: (fit.outer + thick) * draw, mid: 0, ridge: 0, eTop: 0.95, eBottom: 0.9, eSide: 1, belly: 1, tail: 0.1, u: 0 };
   };
   const bones = spec.bones ?? 0;
   const arch = spec.arch ?? 0;
@@ -484,8 +489,8 @@ export function footwearParts(kind, { feet = {}, heels = null, side = 'l', groun
     return [pv + FOOT_RISE + th - ground, pu + offset[0], (w * breadth + offset[1]) * mirror];
   };
 
-  const legTop = Math.max(0.03, 0.03 - rise);
-  const last = footLast(spec, fit, thick, legTop);
+  const legTop = Math.max(FOOT_STUB, FOOT_STUB - rise);
+  const last = footLast(spec, fit, thick, legTop, (spec.cut ?? 'shaft') !== 'ankle');
   tipU = last.tipU;
   const flip = mirror < 0;
   const push = (target, point, rgb) => {
@@ -565,12 +570,12 @@ export function footwearParts(kind, { feet = {}, heels = null, side = 'l', groun
   if (cut === 'low') {
     // The ankle showing in a low shoe's opening: skin, or a sock.
     const tint = spec.ankle === 'sock' || feet.socks ? named.sock : named.skin;
-    const inner = footLast({ ...spec, toes: null, bones: spec.ankle === 'sock' ? 0.5 : 1, arch: 0 }, fit, spec.ankle === 'sock' ? 0.0012 : 0, Math.max(0.03, 0.03 - rise));
+    const inner = footLast({ ...spec, toes: null, bones: spec.ankle === 'sock' ? 0.5 : 1, arch: 0 }, fit, spec.ankle === 'sock' ? 0.0012 : 0, legTop);
     const ankleRow = (s) => {
       const section = inner.ring(s);
       return Array.from({ length: around }, (_, j) => [...warp(inner.at(s, angleOf(j), 0, section)), tint]);
     };
-    const stub = [ankleRow(1.3), ankleRow(1.55), ankleRow(1.8), ankleRow(2), ...(rise < -0.004 ? [ankleRow(2 + (-rise) / Math.max(0.03, 0.03 - rise))] : []), ankleRow(3)];
+    const stub = [ankleRow(1.3), ankleRow(1.55), ankleRow(1.8), ankleRow(2), ...(rise < -0.004 ? [ankleRow(2 + (-rise) / legTop)] : []), ankleRow(3)];
     sheet(part(tint === named.skin ? 'skin' : 'upper'), stub, true);
   }
 
