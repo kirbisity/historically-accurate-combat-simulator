@@ -31,6 +31,7 @@ import { clearHeight, clearStep, planCrossing, STEPOVER } from './physics/stepov
 import { armourHardness, bluntEdge, driveShaft, dullEdge, hackShield, partHardness, shieldHardness, stopIn, strainBlade, strikeShaft } from './physics/wear.js';
 import { blockStep, carried, recordContact, setDrive, slopeFall, slopeHold, solvePress } from './physics/press.js';
 import { beginRise, restedToRise, riseMargins, riseTarget, standWobble, supportLimit, updateRise } from './physics/rising.js';
+import { diveRollTarget, startDiveRoll, updateDiveRoll, wantsDiveRoll } from './physics/diveroll.js';
 import { bankOf, cornerPace, cornerShare, cornering, footworkQuickness, limpOf, pushOff, runChange, runLean, runSpeed, strideOf, turnRateMost } from './physics/gait.js';
 import { awayFromEdges, ceilingAt, floorAt, pushOut, solidAt } from './physics/terrain.js';
 import { overdraftDepth, drawStamina, overdraws, takeWind, fatigueScale, recoveryShare } from './physics/overdraft.js';
@@ -4217,6 +4218,8 @@ export function startEvade(world, fighter) {
   if (fighter.state !== 'up' || fighter.netted || fighter.mount || fighter.jump || fighter.crawling || fighter.committed > 0) return false;
   const rule = WORLD.evade;
   const striker = world.fighters.find((other) => other.corner !== fighter.corner && other.punch?.target === fighter.id && !other.punch.landed) ?? null;
+  // Going forward faster than a step can catch, the step out is a dive into a forward roll (physics/diveroll.js).
+  if (wantsDiveRoll(world, fighter, striker)) return startDiveRoll(world, fighter, { reason: striker ? 'dives under the blow into a roll' : 'dives into a roll' });
   const kind = evadeKind(striker?.punch);
   const model = jumpOf(fighter, { legs: limbShares(fighter).leg, strength: fighter.motorScale ?? 1 });
   const cost = rule.costJumps * model.cost;
@@ -4501,7 +4504,9 @@ function landJump(world, fighter, speed, floor) {
   if (landing.fall) {
     endJump(fighter);
     fighter.knock = [0, 0, 0];
-    fall(world, fighter, 'lands hard');
+    // Coming down going forward faster than his feet can catch, and pressing on, he rolls it out instead (physics/diveroll.js).
+    if (wantsDiveRoll(world, fighter)) startDiveRoll(world, fighter, { gathered: true, reason: 'lands and rolls it out' });
+    else fall(world, fighter, 'lands hard');
     return;
   }
   if (landing.stumble) fighter.wobble = standWobble(fighter);
@@ -5748,6 +5753,8 @@ function updateTimers(world, fighter, dt) {
   fighter.hurt = Math.max(0, (fighter.hurt ?? 0) - dt);
   // When his guard went up, and whether fresh (the deflect's window: physics/deflect.js).
   noteGuard(world, fighter);
+  // Put down or out by anything while in a roll (a blow, a joint, a faint), the roll is over.
+  if (fighter.diveRoll && fighter.state !== 'rising') fighter.diveRoll = null;
   if (fighter.state === 'out') {
     fighter.motorScale = 0;
   } else if (fighter.state === 'down') {
@@ -5786,6 +5793,9 @@ function updateTimers(world, fighter, dt) {
         plantFeet(fighter);
       }
     }
+  } else if (fighter.state === 'rising' && fighter.diveRoll) {
+    // In a forward roll (physics/diveroll.js): it runs on until his feet are under him (then rising.js's stand) or it is lost (down).
+    updateDiveRoll(world, fighter, dt);
   } else if (fighter.state === 'rising') {
     const stage = fighter.rise?.stage;
     let result = fighter.rise ? updateRise(fighter, dt) : 'stood';
@@ -5894,6 +5904,13 @@ const motorVelocity = [0, 0, 0];
 
 /** Getting up, the parts go where its stage puts them (physics/rising.js); otherwise where he stands. Into motorAim and motorVelocity. */
 function motorTarget(fighter, index) {
+  // In a forward roll, the parts go where its model puts them (physics/diveroll.js).
+  if (fighter.state === 'rising' && fighter.diveRoll) {
+    const { target, velocity } = diveRollTarget(fighter, index);
+    copy3(motorAim, target);
+    copy3(motorVelocity, velocity);
+    return;
+  }
   if (fighter.state === 'rising' && fighter.rise) {
     const { target, velocity } = riseTarget(fighter, index);
     copy3(motorAim, target);
@@ -5992,7 +6009,9 @@ function integrate(fighter, h, time) {
   // (Past WORLD.heat.weakFrom the heat weakens him too: heatStrength.)
   const fatigue = fatigueScale(fighter.stamina) * heatStrength(fighter);
   const alive = fighter.state === 'up' || fighter.state === 'rising';
-  const rising = fighter.state === 'rising';
+  // (In a forward roll his muscles carry him as they do on his feet, against gravity through the model's own fall and flight:
+  // physics/diveroll.js. Getting up off the floor, only what touches it lifts him.)
+  const rising = fighter.state === 'rising' && !fighter.diveRoll;
   const damping = Math.exp(-h * (fighter.air ? WORLD.terrain.airDamping : alive ? WORLD.damping.up : WORLD.damping.down));
   // A hand's health is the same for both its particles: once per side.
   const leftHand = fatigue * handHealth(fighter, 'l');
@@ -10362,6 +10381,8 @@ export function hitParticle(world, fighter, index, direction, impulse) {
  */
 export function deliverImpulse({ fighter, shares, direction, impulse, braced = 0, massShare = WORLD.balance.massShare, holding = false }) {
   fighter.stillFor = 0;
+  // In a forward roll the whole of it is his roll's to answer (physics/diveroll.js): no feet to brace it with.
+  if (fighter.diveRoll) for (let axis = 0; axis < 3; axis += 1) fighter.diveRoll.impulse[axis] += direction[axis] * impulse;
   let weightedMass = 0;
   for (const [index, share] of shares) weightedMass += share * fighter.body.masses[index];
   if (weightedMass <= 0) return;

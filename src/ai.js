@@ -16,6 +16,7 @@ import { vec, yawRotate } from './pose.js';
 import { BLADES, GUN, WEAPONS } from './weapons.js';
 import { FACTIONS, factionOf } from './outfits.js';
 import { castNet } from './physics/net.js';
+import { diveRollOutlook, startDiveRoll, wantsDiveRoll } from './physics/diveroll.js';
 import { STEPOVER } from './physics/stepover.js';
 import { startThrow, throwChoice } from './physics/throwable.js';
 import { BRUSH, brushScreens, heldOffAt } from './physics/brush.js';
@@ -176,6 +177,11 @@ export const AI = {
   // lean back, step back; weighted up to `move` times, and open to anyone)
   // rather than by blocking (weighted down to `block` of itself).
   evadeHeavy: { heavyMass: 4, loaded: 0.6, defend: 0.6, move: 3, block: 0.4 },
+  // Going in on a man whose blow is heavy (heaviness `heavy` or more: a great weapon, a loaded stroke, one that would beat his
+  // guard), a fighter already coming forward too fast to stop may dive under it into a forward roll (physics/diveroll.js), now
+  // and then (`chance` of such answers, × his training), only if his own body would roll it cleanly (diveRollOutlook), and off
+  // the line by `aside` rad, away from the weapon, so as to come up past the man and not into him.
+  diveRoll: { heavy: 0.5, chance: 0.3, aside: 0.5 },
   // A guard held up is let go for a blow that would come through it by this share or more (physics.js guardOverrun: the blow's
   // momentum against what his arms, his blade or his shield arm hold): he gets out of its way instead, as from any heavy blow.
   guardFails: 0.5,
@@ -1407,6 +1413,19 @@ export function chooseDefence(fighter, attacker, style, incoming, random) {
   const name = pickDefence(style, incoming, random, heaviness(attacker, incoming, fighter), longPoint(attacker, incoming), beats);
   // A roll starts on the side the hook comes from and ducks across with it.
   return { name, side: name === 'roll' ? -away : away };
+}
+
+/**
+ * Dive under a heavy blow into a forward roll (AI.diveRoll): only coming forward faster than a step can catch him (the same
+ * physical case as the player's step out with the stick forward: diveroll.js wantsDiveRoll), only if his body would roll it
+ * cleanly, now and then; off the line away from the weapon (`side`, the defence's own away). True if he went.
+ */
+function diveUnder(world, fighter, striker, incoming, side, random) {
+  const spec = AI.diveRoll;
+  if (heaviness(striker, incoming, fighter) < spec.heavy || !wantsDiveRoll(world, fighter, striker)) return false;
+  if (random() >= spec.chance * (0.4 + 0.6 * (fighter.body.inputs.exercise ?? 0.5))) return false;
+  if (!diveRollOutlook(fighter, Math.hypot(fighter.rootVelocity[0], fighter.rootVelocity[1])).clean) return false;
+  return startDiveRoll(world, fighter, { aside: side * spec.aside, reason: 'dives under the blow into a roll' });
 }
 
 /** How heavy an incoming blow is, 0 (a jab) to 1 (a great club, or a strike loaded up; or one that beats through his blade). */
@@ -4156,6 +4175,8 @@ function decide(world, fighter, dt) {
     const screen = (world.brushBorne ??= world.fighters.some((man) => man.weapon?.spec.brush)) && brushScreens(world, fighter, striker) ? BRUSH.screen : 1;
     if (random() < Math.min(0.97, style.defendChance * plan.defend * (0.6 + 0.6 * fighter.body.inputs.exercise) * reeling * heavy * screen)) {
       let { name, side } = chooseDefence(fighter, striker, style, incoming, random);
+      // Closing on a heavy blow too fast to stop: under it, rolling (AI.diveRoll).
+      if (diveUnder(world, fighter, striker, incoming, side, random)) return;
       // Two blades: meet it with one and cut with the other.
       if (style.riposte && fighter.offWeapon?.held && riposte(world, fighter, striker, style, distance)) return;
       // A trained man answers with his guard, held up through the blows that follow, as often as he is trained to read them
