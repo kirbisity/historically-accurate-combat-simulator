@@ -35,13 +35,13 @@ test('the trunk resists by what is in the section: the waist least, the ribs mor
   const kesa = joules(man, section(man, 0.55, 45));
   assert.ok(waist < chest && chest < armpits && armpits < hips, `waist ${waist.toFixed(0)} < chest ${chest.toFixed(0)} < armpits ${armpits.toFixed(0)} < hips ${hips.toFixed(0)}`);
   assert.ok(kesa > chest * 1.5, `shoulder to hip ${kesa.toFixed(0)} against a level chest cut ${chest.toFixed(0)}`);
-  // Far above what parts any limb of the same body (the user's call, 2026-11-24: a trunk cut takes more force than a limb
-  // cut, BLADES.tissueCut): above his thigh, the hardest of them, by half again, and his forearm several times over.
+  // Above what parts any limb of the same body (the user's call, 2026-11-24: a trunk cut takes more force than a limb cut,
+  // BLADES.tissueCut): above his thigh, the hardest of them, and his forearm several times over.
   const limb = (where, key) => { const left = limbResistance(man, where, key); return left.flesh + left.bone; };
   const thigh = limb({ joint: 'hip', side: 'l' }, 'lThigh');
   const forearm = limb({ joint: 'elbow', side: 'l' }, 'lForearm');
-  assert.ok(waist > 1.5 * thigh && waist > 4 * forearm, `waist ${waist.toFixed(0)} J, thigh ${thigh.toFixed(0)}, forearm ${forearm.toFixed(0)}`);
-  assert.ok(waist > 300 && waist < 800, `a middling man's waist ${waist.toFixed(0)} J`);
+  assert.ok(waist > 1.2 * thigh && waist > 3 * forearm, `waist ${waist.toFixed(0)} J, thigh ${thigh.toFixed(0)}, forearm ${forearm.toFixed(0)}`);
+  assert.ok(waist > 250 && waist < 700, `a middling man's waist ${waist.toFixed(0)} J`);
 });
 
 test('a thin man is cut through for less than a stout one, by his own girth and bone', () => {

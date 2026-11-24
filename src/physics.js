@@ -23,7 +23,7 @@ import { carriedThrowable, flyThrown, stepThrow, throwPose } from './physics/thr
 import { createArtillery, stepArtillery } from './physics/artillery.js';
 import { climbLadder, createLadders, LADDERS, ladderPose, stepLadders } from './physics/ladders.js';
 import { brushKeepsOff, brushTouch, caughtBlade, holdBrushes, pinnedByBrush, tangled } from './physics/brush.js';
-import { holdLodged, lodgeBlade, lodgeDepth, lodgedBlade, lodgePose, skullLeft, stepLodged, stickLodged } from './physics/lodge.js';
+import { carryStuck, lodgeBlade, lodgeDepth, skullLeft } from './physics/lodge.js';
 import { artTurn, beakMix, coiledTwist, hiltCrush, hiltKnob, hiltMix, hookPull, rangeDrive, rangeOff, retreatDrive, strikeSpan, turningMass, turnsWithBlow } from './physics/arts.js';
 import { footingOn, lyingLow, partUnder, treadOn } from './physics/footing.js';
 import { clearHeight, clearStep, planCrossing, STEPOVER } from './physics/stepover.js';
@@ -182,7 +182,7 @@ export function createFighter(inputs, { id, corner, x, facing, random }) {
     sidearmDrawn: undefined, saddleDrawn: undefined, bladeMet: undefined, severed: undefined, severedCapsules: undefined, stumbleUntil: undefined, pendingArm: undefined,
     // A limb lost (maiming.js): the great vessels opened, the shock of it and when, the parts an edge has cut (a limb they
     // ruin bleeds as torn open), whether he fights on from the ground with a leg gone, and when he died of the blood lost.
-    vessels: undefined, maimShock: undefined, maimShockAt: undefined, maimFeltAt: undefined, cutParts: undefined, limbCuts: undefined, trunkCut: undefined, halves: undefined, lodged: undefined, fractured: undefined, groundFight: undefined, diedAt: undefined,
+    vessels: undefined, maimShock: undefined, maimShockAt: undefined, maimFeltAt: undefined, cutParts: undefined, limbCuts: undefined, trunkCut: undefined, halves: undefined, fractured: undefined, groundFight: undefined, diedAt: undefined,
     mixFor: undefined, slipSide: undefined, crawling: undefined, crawlPhase: undefined, crawlTurn: undefined, wornStandard: undefined,
     panicked: undefined, panics: undefined, goneAt: undefined, calmFor: undefined, shakyUntil: undefined, steadyUntil: undefined, paired: undefined, couched: undefined, net: undefined, netted: undefined, caught: undefined, holding: undefined, fellIn: undefined,
     aiOwed: undefined, aiEventCursor: undefined, aiPickupFor: undefined, aiConfidence: undefined, adrenaline: undefined, fear: undefined, artEventCursor: undefined,
@@ -580,8 +580,6 @@ function releaseWeapon(world, fighter, reason, push, weapon = fighter.weapon) {
     make: weapon.make ?? null, colour: weapon.colour, wear: weapon.wear, v: vec.add(vec.add(point(fighter.v, P[`${weapon.main}Hand`]), push), [0, 0.6, 0]), q: quatFromTo([0, 1, 0], weapon.dir),
     spin: [0, 1, 2].map(() => (random() < 0.5 ? -1 : 1) * (3 + random() * 6)), radius: spec.radius * 1.6, axis: [0, 1, 0], half: (spec.length + spec.handle) / 2, resting: false,
   });
-  // Let go of while it is held in a body (physics/lodge.js): it stays in the wound.
-  if (fighter.lodged && reason !== 'shattered' && reason !== 'broken') stickLodged(world, fighter, weapon, world.debris.at(-1));
   // The stroke it was making ends; with two blades, only its own.
   if (!second && (fighter.punch?.spec.path === 'blade' || fighter.punch?.spec.path === 'aim')) fighter.punch = null;
   else if (second && fighter.punch) {
@@ -750,7 +748,7 @@ export function sidearmKindOf(fighter) {
 
 /** Whether he can put his missile weapon by for his sidearm now, or take it up again (swapSidearm). */
 export function sidearmSwapReady(fighter) {
-  if (fighter.state !== 'up' || fighter.punch || fighter.pickup || fighter.crawling || fighter.clinch || fighter.reloading || fighter.lodged) return false;
+  if (fighter.state !== 'up' || fighter.punch || fighter.pickup || fighter.crawling || fighter.clinch || fighter.reloading) return false;
   if (fighter.stowed) return true;
   return Boolean(fighter.weapon?.held && fighter.weapon.spec.ranged && !fighter.weapon.spec.mounted && sidearmKindOf(fighter));
 }
@@ -1651,8 +1649,7 @@ function updateWeapon(fighter, h, weapon = fighter.weapon) {
     const gap = vec.length(vec.sub(point(fighter.x, main), point(fighter.x, off)));
     twoHands = gap < spec.spacing * 2.5;
   }
-  // (Held in a body, it keeps the line it went in on: physics/lodge.js.)
-  const want = fighter.lodged && weapon === lodgedBlade(fighter) ? fighter.lodged.world.dir : bladeDir && able ? yawRotate(bladeDir, fighter.yaw) : previous;
+  const want = bladeDir && able ? yawRotate(bladeDir, fighter.yaw) : previous;
   const axis = vec.cross(previous, want);
   const sin = vec.length(axis);
   const angle = Math.atan2(sin, vec.dot(previous, want));
@@ -2505,8 +2502,6 @@ export function throwPunch(world, fighter, type, zone = null, { heavy = false, a
   if (fighter.mount && !inRiderArc(fighter, at ?? point(target.x, P.pelvis))) return false;
   // A blade caught in a wolf-brush's branches strikes nothing until it is free (physics/brush.js).
   if (blade && fighter.caught && blade === caughtBlade(fighter)) return false;
-  // Nor one held in a body, until it is drawn (physics/lodge.js).
-  if (blade && fighter.lodged && blade === lodgedBlade(fighter)) return false;
   const aimZone = fromKnees ? 'legs' : spec.zones.includes(zone) ? zone : spec.zones[0];
   // A wild swinger's aim wanders off the mark.
   // A heavy weapon is hard to steer: past heavyFrom its blows wander (`heavyAimJitter` m per unit of mass over).
@@ -2775,7 +2770,7 @@ export function perform(world, fighter, name, { side = world.random() < 0.5 ? 1 
   // His shield knocked out of line: it cannot be brought to meet this one.
   if (name === 'shieldBlock' && fighter.shieldOpen > world.time) return false;
   // His blade caught in a wolf-brush (physics/brush.js): it cannot be brought across to meet a blow.
-  if ((name === 'weaponBlock' || name === 'parry') && (fighter.caught || fighter.lodged)) return false;
+  if ((name === 'weaponBlock' || name === 'parry') && fighter.caught) return false;
   if (DEFENCES[name]) {
     // The player's dodge or block takes breath (the plain guard held up does not); he may go into the overdraft for it.
     // (`held`: a block kept up as a held guard, paid for by the second instead: WORLD.guardHeld.)
@@ -3114,8 +3109,6 @@ function updateIntent(world, fighter, dt) {
   }
   // His blade caught in a wolf-brush: his weapon hand dragged to where it is held (physics/brush.js).
   if (fighter.caught) pinnedByBrush(world, fighter, intent);
-  // His blade held in a body: his hand stays on it, at the wound (physics/lodge.js).
-  if (fighter.lodged) lodgePose(world, fighter, intent);
   runCarry(world, fighter, intent, dt);
   // On a scaling ladder: square to it, leaned along it, his hands on its rungs (physics/ladders.js).
   if (fighter.climbing) ladderPose(world, fighter, intent);
@@ -4563,8 +4556,6 @@ function stepWorld(world, dt) {
     }
     for (const fighter of world.fighters) if (fighter.clinch) holdClinch(world, fighter);
     for (const fighter of world.fighters) if (fighter.pin) holdPin(world, fighter, h);
-    // Blades held in bodies join the two men (physics/lodge.js).
-    if (world.lodging) holdLodged(world, h);
     collideFighters(world, h, time, substep);
     if (world.horses.length) {
       strikeHorses(world, time);
@@ -4637,7 +4628,8 @@ function stepWorld(world, dt) {
   if (world.siegeLadders) stepLadders(world, dt);
   if (world.flame) stepFlame(world, dt);
   if (world.brushTouches) holdBrushes(world, dt);
-  if (world.lodging) stepLodged(world, dt);
+  // Weapons left in bodies ride the parts they are in (physics/lodge.js).
+  if (world.lodging && world.debris.length) carryStuck(world);
   payForBlocks(world);
   world.time += dt;
   world.lastDt = dt;
@@ -7519,10 +7511,6 @@ function guardKey(key) {
 function collideStriker(world, attacker, defender, striker, time) {
   // A haft among his own side's men is carried past them (over a shoulder, between files): the ranks are not drawn man by man.
   if (striker.haft && attacker.corner === defender.corner) return;
-  // A blade held in a body is in it (physics/lodge.js): it is not pushed out of him. It was, by up to WORLD.contactStep a
-  // substep, and once the stroke was over (no `struck`) as a speed: the man it was in was flung at 10-15 m/s and thrown to
-  // the floor within a fifth of a second.
-  if (striker.weapon && attacker.lodged?.in === defender.id && striker.weapon === lodgedBlade(attacker)) return;
   const from = striker.pa;
   const to = striker.pb;
   // Out of reach of all of him, shield and blade too (most pairs in a
@@ -8830,17 +8818,16 @@ function jointAt(defender, capsule, t, contactPoint) {
  * `flesh` and `bone`, each its share of what goes through a whole limb of this thickness (more for a thicker limb), less
  * the flesh an earlier cut parted where this one cuts (`reopen` of fighter.limbCuts[key].flesh) and the bone it notched;
  * a broken bone (fighter.fractured) only `fractured` of its own. `key`: the segment struck (its wounds); `boneWhole`, the
- * bone's share whole. The neck (no segment) is all one.
+ * bone's share whole. The neck is its own section (neckSection).
  */
 export function limbResistance(defender, where, key = null) {
   // (The trunk: a section, not a joint. trunkResistance.)
   if (where.along !== undefined) return trunkResistance(defender, where);
   const { joint, side } = where;
-  if (!BLADES.limbs[joint]) return { flesh: BLADES.sever[joint][0] * BODY.toughness, bone: 0, boneWhole: 0, notched: 0 };
   const [segment, fleshThere, boneThere] = BLADES.limbs[joint];
   const spec = BLADES.limbCut;
-  const section = tissueSection(defender.body, `${side}${segment}`);
-  const done = defender.limbCuts?.[key ?? `${side}${segment}`];
+  const section = tissueSection(defender.body, segment === 'neck' ? 'neck' : `${side}${segment}`);
+  const done = defender.limbCuts?.[key ?? (segment === 'neck' ? 'neck' : `${side}${segment}`)];
   const fleshWhole = section.flesh * fleshThere;
   const boneWhole = section.bone * boneThere;
   const notched = spec.reopen * (done?.bone ?? 0);
@@ -8853,15 +8840,34 @@ export function limbResistance(defender, where, key = null) {
  * the rest (fat outside, organs and the like among the muscle), and `bone`, its bone's section at this body's material
  * (body.js boneStrength: toughness over section, mineral and years). The trunk's section is trunkResistance's, from this.
  */
-export function tissueSection(body, key) {
+export function tissueSection(body, key, muscleThere = 1) {
   const spec = BLADES.tissueCut;
+  if (key === 'neck') return neckSection(body);
   const segment = body.segments[key];
   const boneArea = Math.PI * segment.boneRadius ** 2;
   const lean = Math.PI * Math.max(0, segment.muscleRadius ** 2 - segment.boneRadius ** 2);
   const fat = Math.PI * Math.max(0, segment.skinRadius ** 2 - segment.muscleRadius ** 2);
   const muscle = segment.tissue.muscle / Math.max(1e-9, segment.tissue.muscle + segment.tissue.other);
   const material = body.bone ? Math.max(spec.materialFloor, body.bone.toughness / Math.max(1e-6, body.bone.section)) : 1;
-  return { flesh: spec.fleshJ * (lean * muscle + spec.soft * (lean * (1 - muscle) + fat)), bone: spec.boneJ * boneArea * material, boneArea, material };
+  return { flesh: spec.fleshJ * (lean * muscle * muscleThere + spec.soft * (lean * (1 - muscle) + fat)), bone: spec.boneJ * boneArea * material, boneArea, material };
+}
+
+/**
+ * The neck's section on this body (BLADES.neckCut): its muscle (the head segment's muscle is the neck's but for the face's),
+ * its fat, the airway, gullet and vessels, over the cervical spine's length, and a cervical vertebra's bone at this body's
+ * size and material (body.js boneStrength: its toughness, section and years in it), J as tissueSection's.
+ */
+function neckSection(body) {
+  const spec = BLADES.tissueCut;
+  const neck = BLADES.neckCut;
+  const head = body.segments.head;
+  const heightM = body.inputs.heightCm / 100;
+  const length = neck.length * heightM;
+  const scale = (heightM / 1.75) ** 2;
+  const muscle = (head.tissue.muscle * neck.muscle) / 1060 / length;
+  const fat = (head.tissue.fat * neck.fat) / 900 / length;
+  const material = body.bone ? Math.max(spec.materialFloor, body.bone.toughness) : 1;
+  return { flesh: spec.fleshJ * (muscle + spec.soft * (fat + neck.viscera * scale)), bone: spec.boneJ * neck.bone * material * (body.bone ? 1 : scale), boneArea: neck.bone, material };
 }
 
 /** Joules of cut it takes to go through this joint of this body now (limbResistance: the flesh and the bone left). */
@@ -8963,7 +8969,10 @@ const trunkCutKey = (section) => (section.along < BLADES.trunkCut.cage[0] ? 'tru
  */
 export function trunkResistance(defender, section) {
   const spec = BLADES.trunkCut;
-  const tissue = tissueSection(defender.body, 'trunk');
+  // (The muscle at that level: less at the waist, BLADES.trunkCut `waist`.)
+  const ramp = (from, to) => Math.min(1, Math.max(0, (section.along - from) / (to - from)));
+  const waisted = 1 - (1 - spec.waist) * Math.min(ramp(spec.waistFrom, spec.waistLow), 1 - ramp(spec.waistHigh, spec.waistTo));
+  const tissue = tissueSection(defender.body, 'trunk', waisted);
   const fleshWhole = tissue.flesh / section.cos;
   const [cageFrom, cageTo] = spec.cage;
   const crossed = Math.max(0, Math.min(section.hi, cageTo) - Math.max(section.lo, cageFrom));
@@ -8972,7 +8981,7 @@ export function trunkResistance(defender, section) {
     + (inCage || crossed > 0 ? spec.ribs * (inCage + crossed / spec.ribsPer) : 0)
     + spec.girdle * ((section.hi > spec.girdleFrom ? 1 : 0) + (section.lo > spec.girdleFrom ? 1 : 0))
     + spec.pelvis * ((section.lo < spec.pelvisTo ? 1 : 0) + (section.hi < spec.pelvisTo ? 1 : 0));
-  const boneWhole = tissue.bone * share;
+  const boneWhole = tissue.bone * share * spec.cortical;
   const done = defender.limbCuts?.[trunkCutKey(section)];
   const notched = Math.min(1, BLADES.limbCut.reopen * (done?.bone ?? 0));
   return { flesh: Math.max(0, fleshWhole - BLADES.limbCut.reopen * (done?.flesh ?? 0)), bone: boneWhole * (1 - notched), boneWhole, notched, broken: false };
@@ -9641,11 +9650,25 @@ function registerWeaponImpact(world, attacker, defender, striker, closest, capsu
   const wasOut = defender.state === 'out';
   // (The trunk: the section the blade's sweep takes through it, trunkSection; a limb or the neck: the joint it is at.)
   const joint = !wasOut && cut > 0 ? (capsule.key === 'trunk' ? trunkSection(defender, contactPoint, weapon.dir, relative, wspec.length) : jointAt(defender, capsule, closest.t, contactPoint)) : null;
-  // (Through a limb's bone only as much of the edge's energy as came square across it: a glancing edge takes a chord of the
-  // section, the flesh and the side of the bone, and not the limb, BLADES.bone grazeShare; the neck and the trunk by their
-  // own section.)
-  const across = limb && joint ? BLADES.bone.grazeShare + (1 - BLADES.bone.grazeShare) * square : 1;
-  const severs = Boolean(joint && cleaving > severThreshold(defender, joint, limb ? capsule.key : null, across) && !defender.severed?.some((done) => done.side === joint.side && done.joint === joint.joint));
+  // (Through a limb's or the neck's bone only as much of the edge's energy as came square across it, BLADES.bone grazeShare
+  // for a graze: `squarely`, how straight into the part the edge was going (its motion against the surface's normal) and how
+  // straight across the part's length the plane it sweeps lies. A glancing edge takes a chord of the section, the flesh and
+  // the side of the bone; one drawn along the limb opens it lengthwise; neither takes it off. (`square` above is measured
+  // at the first touch, where the blade is at the surface, and is ~0 for nearly every blow: no measure of this.) The trunk
+  // by its own section.)
+  const [axisFrom, axisTo] = capsuleEnds(defender, capsule);
+  const axis = vec.length(vec.sub(axisTo, axisFrom)) > 1e-6 ? vec.normalize(vec.sub(axisTo, axisFrom)) : [0, 1, 0];
+  const speed = vec.length(relative);
+  const into = speed > 1e-6 ? Math.max(0, -vec.dot(relative, normal) / speed) : 0;
+  const sweep = vec.cross(weapon.dir, relative);
+  const crossing = vec.length(sweep) > 1e-9 ? Math.abs(vec.dot(vec.normalize(sweep), axis)) : 0;
+  const squarely = into * crossing;
+  const across = (limb || joint?.joint === 'neck') && joint ? BLADES.bone.grazeShare + (1 - BLADES.bone.grazeShare) * squarely : 1;
+  event.square = squarely;
+  const needs = joint ? severThreshold(defender, joint, limb ? capsule.key : null, across) : Infinity;
+  const severs = Boolean(joint && cleaving > needs && !defender.severed?.some((done) => done.side === joint.side && done.joint === joint.joint));
+  // (What parting it there took, J, and the section it was: for the log and the tools.)
+  if (joint) Object.assign(event, { sectionJ: needs, section: joint.along !== undefined ? `${joint.along.toFixed(2)}/${joint.cos.toFixed(2)}` : joint.joint });
   // (A limb cut off opens its vessel as the stump: sever, maiming.js.)
   const artery = BLADES.bleed.artery;
   if (!severs && ARTERY_SEGMENTS.has(capsule.key.slice(1)) && Math.max(boneShare(cleaving, square), boneShare(pierce, square)) >= artery.reach) {
@@ -9717,11 +9740,9 @@ function registerWeaponImpact(world, attacker, defender, striker, closest, capsu
   if (spec.hook && (!haft || spec.hook === 'reap') && /Thigh|Shank/.test(capsule.key)) hookLeg(world, attacker, defender, capsule.key[0], spec.hook === 'reap' ? relative : null, event);
   if (broke) event.effects.push(`the ${wspec.label.toLowerCase()}'s ${broke.part} ${broke.reason}`);
   world.events.push(event);
-  // An edge or a point that went in and stopped is held in the wound (physics/lodge.js): the stroke ends there.
-  if (sectionLeft && !shattered && !broke && lodgeBlade(world, attacker, defender, weapon, capsule, closest.t, contactPoint, { left: sectionLeft, cleaving, pierce, distance, travel: relative, bleed: bleeds >= 1 ? bleeds - 1 : bleeds, event })) {
-    punch.stopped = true;
-    world.lodging = true;
-  }
+  // An edge or a point that went in and stopped is held in the wound, and he loses it there (physics/lodge.js): the stroke
+  // ends with it.
+  if (sectionLeft && !shattered && !broke && lodgeBlade(world, attacker, defender, weapon, capsule, closest.t, contactPoint, { left: sectionLeft, cleaving, pierce, distance, travel: relative, event })) punch.stopped = true;
   if (shattered) dropWeapon(world, attacker, 'shattered');
   else if (broke) breakWeapon(world, attacker, weapon, broke.part, broke.reason, contactPoint);
   if (world.ear) {
@@ -9748,8 +9769,6 @@ const BLADE_MEETS = {
  * or foot driven onto it can come off. The blade's owner has fended it off.
  */
 function registerBladeBlock(world, attacker, defender, striker, closest, away, weapon = defender.weapon) {
-  // (A blade held in a body is no guard, and cuts nothing that comes against it: physics/lodge.js.)
-  if (defender.lodged && weapon === lodgedBlade(defender)) return false;
   const punch = attacker.punch;
   const striking = punch && punch.spec.path !== 'blade' && punch.spec.limb === striker.key && !punch.landed && punch.t <= punch.spec.extendUntil + 0.06;
   const along = weapon.spec.strikeFrom + closest.t * (weapon.spec.length - weapon.spec.strikeFrom);
@@ -10077,8 +10096,6 @@ function clashWeapons(world, first, second, a = first.weapon, b = second.weapon)
   if (brush) {
     brushTouch(world, first, second, a, b, one.along, two.along, true, one.velocity, two.velocity);
     if (tangled(first, second, a, b)) return;
-    // (Nor does a blade held in a body: physics/lodge.js.)
-    if ((first.lodged && a === lodgedBlade(first)) || (second.lodged && b === lodgedBlade(second))) return;
   }
   // Apart, shared by the hands' inverse masses.
   const mainA = P[`${a.main}Hand`];

@@ -30,8 +30,9 @@ test('a whole limb resists with its flesh and its bone; broken, it has little bu
   const broken = limbResistance(fighter, ELBOW, 'lForearm');
   assert.ok(Math.abs(broken.bone - whole.bone * BLADES.limbCut.fractured) < 1e-9);
   assert.ok(total(broken) < 0.6 * total(whole), `broken ${total(broken).toFixed(1)} J against whole ${total(whole).toFixed(1)} J`);
-  // The neck is not a limb: all one.
-  assert.equal(limbResistance(fighter, { joint: 'neck', side: '' }).bone, 0);
+  // The neck: its muscle and its spine, more than the forearm, less than a waist (neckSection).
+  const neck = limbResistance(fighter, { joint: 'neck', side: '' });
+  assert.ok(neck.bone > neck.flesh && total(neck) > total(whole), `neck ${total(neck).toFixed(0)} J against the forearm's ${total(whole).toFixed(0)}`);
 });
 
 test('a heavy cut short of taking the limb off goes into the bone and breaks it; a light one only cuts, and leaves less to cut', () => {

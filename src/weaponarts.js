@@ -236,7 +236,7 @@ export function artBlocked(fighter) {
   // (Locked with him, a thrower's art is his throw from the hold: not kept from him.)
   const throwing = fighter.clinch && (STYLES[fighter.style]?.throws || STYLES[fighter.style]?.shoulderThrow) && !fighter.clinch.art;
   // (His blade held in a body, physics/lodge.js: busy until it is out.)
-  if (fighter.state !== 'up' || fighter.punch || fighter.crawling || fighter.netted || fighter.pain || (fighter.clinch && !throwing) || fighter.rush || fighter.lodged) return 'busy';
+  if (fighter.state !== 'up' || fighter.punch || fighter.crawling || fighter.netted || fighter.pain || (fighter.clinch && !throwing) || fighter.rush) return 'busy';
   return null;
 }
 

@@ -300,8 +300,6 @@ function pointed(fighter) {
 
 /** Whether the fighter is in a state to kneel and strike: on his feet, steady, hands free. */
 export function canFinish(fighter) {
-  // (His blade held in a body, physics/lodge.js: he has that to see to first.)
-  if (fighter.lodged) return false;
   return fighter.state === 'up' && !fighter.crawling && !fighter.netted && !fighter.mount && !fighter.finisher && !fighter.clinch && !fighter.pin
     && !fighter.pickup && !fighter.pain && !fighter.reloading && !(fighter.stagger > 0) && !(fighter.dazed > 0) && !fighter.weapon?.spec.mounted;
 }
