@@ -6,7 +6,8 @@ import assert from 'node:assert/strict';
 import { FRAMES, P, PRESETS } from '../src/body.js';
 import { caloriesForWeight } from '../src/physiology.js';
 import { vec } from '../src/pose.js';
-import { advance, capsules, createWorld, limbResistance, placeFighter, point, trunkResistance } from '../src/physics.js';
+import { advance, boneShare, capsules, createWorld, cutIntoLimb, limbResistance, placeFighter, point, reachesArtery, trunkResistance } from '../src/physics.js';
+import { BLADES } from '../src/weapons.js';
 import { bluntPart, guardMeets } from '../src/physics/blunt.js';
 import { LODGE, lodgeBlade, lodgeHold } from '../src/physics/lodge.js';
 
@@ -114,4 +115,51 @@ test('a held blade leaves its wielder\'s hands at once: the man it is in is not 
   }
   assert.ok(fastest < 6, `the man it is in moved at up to ${fastest.toFixed(1)} m/s`);
   assert.ok(striker);
+});
+
+// ---- Squareness: one measure for the bone, the limb's weakening and the artery ----------------------------------
+
+const thighOf = (world) => {
+  const victim = world.fighters[1];
+  const capsule = capsules(victim).find((found) => found.key === 'lThigh');
+  const [a, b] = [point(victim.x, capsule.a), point(victim.x, capsule.b)];
+  const t = 0.5;
+  const centre = a.map((value, axis) => value + (b[axis] - value) * t);
+  const axis = vec.normalize(vec.sub(b, a));
+  // (The thigh's inner side: toward the other hip.)
+  const toward = vec.sub(point(victim.x, P.rHip), centre);
+  const inward = vec.normalize(vec.sub(toward, vec.scale(axis, vec.dot(toward, axis))));
+  const left = limbResistance(victim, { joint: 'hip', side: 'l' }, 'lThigh');
+  return { victim, capsule, closest: { t }, centre, inward, left };
+};
+
+test('a square cut reaches the bone and can break it; a graze with the same energy does not', () => {
+  const world = pair();
+  const { victim, left } = thighOf(world);
+  const near = left.flesh / 2;
+  // Square: all of it toward the bone; a graze: BLADES.bone grazeShare of it.
+  assert.equal(boneShare(near * 1.2, 1, near), 1);
+  assert.ok(boneShare(near * 1.2, 0, near) < 0.5);
+  const heavy = left.flesh / 2 + left.boneWhole * (BLADES.limbCut.splits + 0.1);
+  const graze = { effects: [] };
+  assert.equal(cutIntoLimb(world, victim, { key: 'lThigh' }, 0.5, heavy, 0, graze), false, 'a graze notches the side of the bone');
+  const other = pair();
+  const square = { effects: [] };
+  assert.equal(cutIntoLimb(other, other.fighters[1], { key: 'lThigh' }, 0.5, heavy, 1, square), true, 'square, it breaks');
+});
+
+test('a deep square cut into the inner thigh opens the femoral artery; from the outer side it stops in the bone first; a thrust straight in reaches it, one skidding along does not', () => {
+  const world = pair();
+  const { victim, capsule, closest, centre, inward, left } = thighOf(world);
+  const radius = capsule.radius;
+  const inner = vec.add(centre, vec.scale(inward, radius));
+  const outer = vec.sub(centre, vec.scale(inward, radius));
+  const deep = left.flesh * 0.6;
+  assert.ok(reachesArtery(victim, capsule, closest, inner, inward, vec.scale(inward, -1), left, deep, 0), 'inner side, deep');
+  assert.ok(!reachesArtery(victim, capsule, closest, inner, inward, vec.scale(inward, -1), left, left.flesh * 0.05, 0), 'a nick');
+  assert.ok(!reachesArtery(victim, capsule, closest, outer, vec.scale(inward, -1), inward, left, deep, 0), 'outer side: the bone is between');
+  // A thrust along its own line into the inner thigh, and one along the surface.
+  assert.ok(reachesArtery(victim, capsule, closest, inner, inward, vec.scale(inward, -1), left, 0, 80), 'thrust straight in');
+  const along = vec.normalize(vec.sub(point(victim.x, capsule.b), point(victim.x, capsule.a)));
+  assert.ok(!reachesArtery(victim, capsule, closest, inner, inward, along, left, 0, 80), 'a point skidding along the surface');
 });
