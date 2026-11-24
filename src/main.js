@@ -64,6 +64,7 @@ import { placeMounted } from './physics/mounted.js';
 import { boltedOn, breedOf, canRide, isMounted, mountAll, mountedTeams, mountOf } from './horses.js';
 import { awarenessReport, freePrisoner, gatherFollowers } from './levelmode/awareness.js';
 import { installFade, paintStamina } from './overdraftview.js';
+import { installAfflictions, paintAfflictions } from './afflictview.js';
 import { createAwarenessOverlay } from './levelmode/awarenessview.js';
 import { travelPlaces } from './levelmode/travel.js';
 import { floorAt } from './physics/terrain.js';
@@ -262,6 +263,8 @@ let fightMarksClock = 0;
 
 // The player's stamina overdraft fade over the picture (overdraftview.js).
 const fade = installFade($('#fade'));
+// The player's nausea and cold over the picture, and the picture swaying with them (afflictview.js).
+const afflictionView = installAfflictions($('#sick'), $('#frost'), $('#stage'));
 
 // The fight's controls (touch.js): drawn over the fight in play mode only.
 const fightControls = installFightControls($('#fight-ui'), {
@@ -1529,6 +1532,7 @@ function drawWorld(dt, drawIt = true) {
   fightControls.update();
   levelHud.update();
   fade.update(state.mode === 'play' && state.world ? player() : null, dt);
+  afflictionView.update(state.mode === 'play' && state.world ? player() : null, state.world?.time ?? 0);
   cutsceneDirector.frame(state.paused ? 0 : dt);
   twistDirector.frame(state.world);
   tutorial.update();
@@ -1633,6 +1637,7 @@ function renderHud() {
     const rating = state.game === 'sandbox' ? ratingOf(fighter.body.inputs) : null;
     card.querySelector('.name').textContent = rating ? `${tname(fighter.body.inputs.name)} · ${rating}` : tname(fighter.body.inputs.name);
     paintStamina(card.querySelector('.stamina'), fighter.stamina);
+    paintAfflictions(card, fighter);
     const capacity = concussionCapacity(fighter);
     card.querySelector('.brain i').style.width = `${Math.min(100, Math.round((fighter.concussion / capacity) * 100))}%`;
     // Blood lost, against what puts him down: shown once he is bleeding.

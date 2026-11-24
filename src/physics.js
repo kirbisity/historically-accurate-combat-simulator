@@ -38,6 +38,7 @@ import { displayPose, stepDisplay } from './physics/display.js';
 import { awayFromEdges, ceilingAt, floorAt, pushOut, solidAt } from './physics/terrain.js';
 import { overdraftDepth, drawStamina, overdraws, takeWind, fatigueScale, recoveryShare } from './physics/overdraft.js';
 import { climateOf, freshHeat, heatMark, heatRecovery, heatStrength, stepHeat } from './physics/heat.js';
+import { recoverUnder, stepNausea } from './physics/afflictions.js';
 import { bowShotCost, strokeHeft, swingEffort } from './physics/effort.js';
 import { bigDeflect, breakOpen, deflecting, deflectsWith, deflectWindow, guardHold, noteGuard } from './physics/deflect.js';
 import { jumpBlocked, jumpLanding, jumpOf } from './physics/jump.js';
@@ -5796,6 +5797,8 @@ function updateTimers(world, fighter, dt) {
   if (fighter.player || fighter.stamina < 0 || fighter.faintDue || fighter.fainted) overdraftStep(world, fighter, dt);
   // His heat: what he has drawn warms him, his armour costs breath to move in (physics/heat.js).
   stepHeat(world, fighter, dt);
+  // Filth smelt and stood in (physics/afflictions.js: its ceiling on his stamina, a heave now and then).
+  stepNausea(world, fighter, dt);
   // A machine (gear.machine: a robot) does not tire: what an attack or a run costs a man costs it nothing.
   if (fighter.body.gear.machine) fighter.stamina = 1;
   else {
@@ -5803,7 +5806,8 @@ function updateTimers(world, fighter, dt) {
     if (fighter.guardHeld) fighter.stamina = Math.max(Math.min(0, fighter.stamina), fighter.stamina - WORLD.guardHeld.staminaPerSecond * dt / fighter.body.aerobic);
     // He breathes through a blow of his own too, only less (WORLD.strikeRecovery).
     // Hot, or breathing behind a breastplate or a visor, he gets it back slower (WORLD.heat strainFrom, breath).
-    fighter.stamina = Math.min(1, fighter.stamina + WORLD.staminaRecovery * fighter.body.aerobic * winded * heatRecovery(fighter) * (fighter.punch ? WORLD.strikeRecovery : 1) * (fighter.runMode ? WORLD.runMode.recovery : 1) * (fighter.guardHeld ? WORLD.guardHeld.recovery : 1) * recoveryShare(fighter.stamina) * dt);
+    // (Sick, not past the ceiling his nausea puts on the bar: physics/afflictions.js.)
+    fighter.stamina = recoverUnder(fighter, WORLD.staminaRecovery * fighter.body.aerobic * winded * heatRecovery(fighter) * (fighter.punch ? WORLD.strikeRecovery : 1) * (fighter.runMode ? WORLD.runMode.recovery : 1) * (fighter.guardHeld ? WORLD.guardHeld.recovery : 1) * recoveryShare(fighter.stamina) * dt);
     // The wind a blow knocked out of him comes back on its own in a few seconds (WORLD.wind.returnSeconds).
     if (fighter.windDebt > 0) {
       const back = fighter.windDebt * (1 - Math.exp(-dt / WORLD.wind.returnSeconds));
@@ -10881,7 +10885,8 @@ export function bodyHarm(fighter, due = false) {
   // A limb hurt or broken weighs `limbWeight`; one cut off, by the share of him that went with it (WORLD.injury.severed).
   const limbs = LIMBS.reduce((sum, segments) => sum + limbLoss(fighter, segments), 0);
   const blood = Math.min(1, (fighter.bloodLost ?? 0) / collapseAt());
-  const injured = 1 - vital * (1 - Math.min(1, limbs)) * (1 - blood) * (1 - Math.min(1, fighter.gunshot ?? 0));
+  // (And frostbite, unannounced: physics/afflictions.js.)
+  const injured = 1 - vital * (1 - Math.min(1, limbs)) * (1 - blood) * (1 - Math.min(1, fighter.gunshot ?? 0)) * (1 - (fighter.coldHarm ?? 0));
   return Math.min(1, Math.max(fighter.concussion / concussionCapacity(fighter), injured));
 }
 

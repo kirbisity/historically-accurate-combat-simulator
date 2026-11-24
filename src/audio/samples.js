@@ -93,7 +93,8 @@ export const SAMPLE_SETS = {
   // (The seventh batch: a bow drawn, its wood and string bending: the whole creak, its first part and its tighter last part.)
   bowdraw: ['bowdraw-1', 'bowdraw-2', 'bowdraw-3'],
   // Cries (sfx/voice.js CRY_KINDS; chosen by audio/cries.js): a man's and a woman's, each a set per kind (a few composed of two pieces).
-  ...voiceSets({ male: { hurt: 11, scream: 6, moan: 5, fear: 5, dying: 4 }, female: { hurt: 8, scream: 6, moan: 6, fear: 4, dying: 3 } }),
+  // (A gag, cut from the user's recordings of 2026-11-24, a man's and a woman's, each with a lower take derived from it: the first sight and smell of filth, and a retch: physics/afflictions.js.)
+  ...voiceSets({ male: { hurt: 11, scream: 6, moan: 5, fear: 5, dying: 4, gag: 2 }, female: { hurt: 8, scream: 6, moan: 6, fear: 4, dying: 3, gag: 2 } }),
   // An army's charge roared: one loop (engine.js plays it under a large side running at the enemy: audio/charge.js).
   charge: ['charge-1'],
   // Explosions (cut from the user's grenade and big-explosion recordings of 10-31): a frag's blast (three), a flashbang's

@@ -85,6 +85,30 @@ body[data-place="dunnottar"] .arena::after { content: ""; position: absolute; in
 .fade::before { background: radial-gradient(ellipse 70% 70% at 50% 50%, rgba(var(--pit), 0) calc(60% - 56% * var(--od)), rgba(0, 0, 0, calc(0.55 + 0.45 * var(--od))) calc(100% - 28% * var(--od))), linear-gradient(rgba(0, 0, 0, calc(0.5 * var(--od))), rgba(0, 0, 0, calc(0.5 * var(--od)))); }
 .fade::after { background: #868073; mix-blend-mode: saturation; opacity: calc(0.9 * var(--od)); }
 .bar.brain i { background: linear-gradient(90deg, #ff9b3d, #ff3d5e); }
+/* The afflictions (physics/afflictions.js; afflictview.js drives --sick, --heave, --chill, --cap). Nausea's bar sour green; the ceiling it puts
+   on stamina hatched over the stamina bar's end; cold's bar ice blue. */
+.bar.nausea i { background: linear-gradient(90deg, #6f7d1c, #c2c24a); }
+.bar.chill i { background: linear-gradient(90deg, #7fb6e8, #e4f3ff); }
+.bar.stamina::after { content: ""; position: absolute; right: 0; top: 0; bottom: 0; width: var(--cap, 0%); background: repeating-linear-gradient(135deg, rgba(150, 165, 50, 0.9) 0 2px, rgba(45, 52, 12, 0.9) 2px 4px); }
+.card .bar.nausea, .card .bar.chill { height: 4px; }
+.player-status .bar.nausea, .player-status .bar.chill { height: 3px; }
+/* Sick: a sour yellow-green seeping in from the edges, the whole picture's hue going bilious; a heave darkens and closes it for a moment.
+   (Being tired is grey and dark, beating: .fade.) */
+.sick, .frost { position: absolute; inset: 0; z-index: 0; pointer-events: none; }
+.sick { --sick: 0; --heave: 0; }
+.sick::before, .sick::after, .frost::before, .frost::after { content: ""; position: absolute; inset: 0; pointer-events: none; }
+.sick::before { background: radial-gradient(ellipse 75% 70% at 50% 50%, rgba(120, 140, 30, 0) calc(55% - 30% * var(--sick) - 20% * var(--heave)), rgba(78, 92, 14, calc(0.35 + 0.3 * var(--sick) + 0.3 * var(--heave))) 100%); mix-blend-mode: multiply; opacity: calc(0.4 + 0.6 * var(--sick)); }
+.sick::after { background: #a8b23c; mix-blend-mode: color; opacity: calc(0.26 * var(--sick) + 0.15 * var(--heave)); }
+/* Cold: rime closing in from the edges (a frost texture masked to a ring), the picture going grey-blue. */
+.frost { --chill: 0; }
+.frost::before {
+  background-image: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='512'%20height='512'%3E%3Cfilter%20id='r'%20x='0'%20y='0'%20width='100%25'%20height='100%25'%3E%3CfeTurbulence%20type='fractalNoise'%20baseFrequency='0.045'%20numOctaves='5'%20seed='11'%20stitchTiles='stitch'/%3E%3CfeColorMatrix%20values='0%200%200%200%200.9%200%200%200%200%200.96%200%200%200%200%201%202.4%200%200%200%20-0.95'/%3E%3C/filter%3E%3Cfilter%20id='s'%20x='0'%20y='0'%20width='100%25'%20height='100%25'%3E%3CfeTurbulence%20type='fractalNoise'%20baseFrequency='0.6'%20numOctaves='2'%20seed='5'%20stitchTiles='stitch'/%3E%3CfeColorMatrix%20values='0%200%200%200%201%200%200%200%200%201%200%200%200%200%201%204%200%200%200%20-2.3'/%3E%3C/filter%3E%3Crect%20width='512'%20height='512'%20filter='url%28%23r%29'/%3E%3Crect%20width='512'%20height='512'%20filter='url%28%23s%29'/%3E%3C/svg%3E"), radial-gradient(ellipse 80% 75% at 50% 50%, rgba(235, 245, 255, 0) 55%, rgba(228, 242, 255, 0.7) 100%);
+  background-size: 512px 512px, 100% 100%;
+  -webkit-mask-image: radial-gradient(ellipse 72% 68% at 50% 50%, transparent calc(90% - 46% * var(--chill)), #000 calc(106% - 22% * var(--chill)));
+  mask-image: radial-gradient(ellipse 72% 68% at 50% 50%, transparent calc(90% - 46% * var(--chill)), #000 calc(106% - 22% * var(--chill)));
+  opacity: calc(0.35 + 0.65 * var(--chill));
+}
+.frost::after { background: #a9cdf0; mix-blend-mode: color; opacity: calc(0.26 * var(--chill)); }
 .bar.blood i { background: linear-gradient(90deg, #a5121b, #5e070c); }
 .meta { font: 11px var(--mono); color: var(--muted); }
 .clock { font: 700 26px var(--title); background: var(--panel); border: 1px solid var(--line); border-radius: var(--r-plate); padding: 4px 12px; font-variant-numeric: tabular-nums; }

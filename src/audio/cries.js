@@ -19,6 +19,7 @@
 //     gap between two such cries does (a flurry is a cry a lash, not ten at once).
 //   - Grief (`grief` voices: a prisoner weeping, levelmode/awareness.js `mourn`) is heard as a sob (a moan) or now and then a wail (fear), rationed
 //     as the moans are; a `roar` (a thing rising out of the filth to fight, the same file's `lurk`) is always heard, a groan or a roar pitched low.
+//   - A `gag` (physics/afflictions.js: filth first smelt, a retch) is always heard, as a gag.
 //
 // Pure (no context): `createCryDirector().tick(...)` takes the tick's logged events and the fighters and returns the events with the
 // voices replaced by the cries let through (each a voice event carrying its `cry`). Node tests run it on a battle.
@@ -40,7 +41,7 @@ export const CRIES = {
   // or run: the field's misery heard now and then, not as a chorus.
   ambientGap: { few: 2, battle: 5 },
   // After he cries, a man is silent this long (s) by what he cried (a death is never held back).
-  cooldown: { hurt: 2.5, scream: 4, moan: 5, fear: 3.5, dying: 0 },
+  cooldown: { hurt: 2.5, scream: 4, moan: 5, fear: 3.5, dying: 0, gag: 1.5 },
   // The cry comes a reaction's time after the blow (s, from..to): the blow's crack heard first, clear.
   delay: [0.07, 0.16],
   // A cry heard while a sound this much louder (dB at the ear) has just been heard is ducked by `duckDb` (engine.js): the fight first.
@@ -214,6 +215,9 @@ export function createCryDirector({ random = Math.random } = {}) {
         want(fighter, wail ? 'fear' : 'moan', event.strength ?? 0.5, at, { grief: true });
       } else if (event.kind === 'roar') {
         want(fighter, (event.strength ?? 1) >= CRY_VOICES.roar.roarFrom ? 'scream' : 'moan', event.strength ?? 1, at, { always: true, pitch: CRY_VOICES.roar.pitch });
+      } else if (event.kind === 'gag') {
+        // Filth first smelt, or a retch (physics/afflictions.js): his own, always heard; the afflictions space them themselves.
+        want(fighter, 'gag', event.strength ?? 0.5, at, { always: true });
       } else if (event.kind === 'struck') {
         // The pain of it to him (its energy and covering logged with it), or else the part's jolt.
         const pain = event.energy !== undefined ? cryPain(fighter, event.energy, event.covering) : event.strength ?? 0;

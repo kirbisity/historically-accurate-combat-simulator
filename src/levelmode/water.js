@@ -89,6 +89,41 @@ export function waterAt(waters, x, y, z, above = WATER.above) {
   return null;
 }
 
+/**
+ * How its sewage stinks (physics/afflictions.js: nausea): a body of water whose murk is sludge, by how thick it is (the cistern's sewage
+ * 0.7, the cesspool's sludge 1); none for clean water or a field's mud.
+ */
+export const STENCH = { near: 1.5, far: 9, above: 2.5, thin: 0.7, thick: 1, thickFrom: 1.6, thickAt: 2, waist: 0.5 };
+
+/** A body of water's stink, 0..1 (STENCH). */
+export function waterStench(water) {
+  if (water.murk !== 'sludge') return 0;
+  const v = water.viscosity ?? WATER.viscosity.sludge;
+  const share = Math.max(0, Math.min(1, (v - STENCH.thickFrom) / (STENCH.thickAt - STENCH.thickFrom)));
+  return STENCH.thin + (STENCH.thick - STENCH.thin) * share;
+}
+
+/** The smell at a man's head [x, y, z] from the waters (0..1): each stinking water's, full within `near` m of its edge, none past `far`, the strongest. */
+export function stenchAt(waters, x, y, z) {
+  let most = 0;
+  for (const water of waters) {
+    const reek = waterStench(water);
+    if (reek <= most) continue;
+    const hw = water.size[0] / 2;
+    const hd = water.size[1] / 2;
+    const dx = x - water.at[0];
+    const dz = z - water.at[2];
+    let out;
+    if (water.shape === 'ellipse') out = Math.max(0, Math.hypot(dx / hw, dz / hd) - 1) * Math.min(hw, hd);
+    else out = Math.hypot(Math.max(0, Math.abs(dx) - hw), Math.max(0, Math.abs(dz) - hd));
+    const up = Math.max(0, Math.abs(y - water.at[1]) - STENCH.above);
+    const apart = Math.hypot(out, up);
+    const share = Math.max(0, Math.min(1, 1 - (apart - STENCH.near) / (STENCH.far - STENCH.near)));
+    most = Math.max(most, reek * share);
+  }
+  return most;
+}
+
 /** How deep the water is over its bed (m). */
 export const waterDepth = (water) => water.at[1] - water.bed;
 

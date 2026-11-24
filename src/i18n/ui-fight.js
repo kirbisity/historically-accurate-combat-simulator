@@ -8,6 +8,8 @@ export const UI_FIGHT = {
   'page.stamina': { en: 'Stamina', zh: '体力' },
   'page.brain': { en: 'Brain strain: accumulated head impacts', zh: '脑震荡：头部挨打的累计' },
   'page.blood': { en: 'Blood lost: at the end of this bar he collapses', zh: '失血：这条走到头，人就倒了' },
+  'page.nausea': { en: 'Nausea: filth smelt and stood in. It caps his stamina; past halfway he retches', zh: '恶心：闻了、踩了污秽。体力上不去，过半就要干呕' },
+  'page.chill': { en: 'Cold: hands and feet going numb. Weaker and slower; numb long enough, frostbite. Moving warms him', zh: '寒冷：手脚冻得发麻。力气小、动作慢，冻久了会冻伤。动起来就暖和' },
   'page.hand': { en: 'hand', zh: '手速' },
   'page.cameraHelp': { en: 'Scroll or pinch to zoom in on a fighter, tap one to follow him, double-tap to frame everyone again', zh: '滚轮或双指缩放可拉近某个斗士，点一下跟随他，双击回到全景' },
   'page.frameAll': { en: 'Frame all', zh: '全景' },

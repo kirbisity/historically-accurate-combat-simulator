@@ -8,6 +8,7 @@
 // out of him, which is no work): every cost in the game, wherever it is taken, warms him without each one knowing of it.
 
 import { WORLD } from './config.js';
+import { coldStrength, nauseaRecovery, stepCold } from './afflictions.js';
 
 /** A fighter's heat state, fresh: at the resting core, nothing drawn yet. (Declared on every fighter: physics.js createFighter.) */
 export function freshHeat() {
@@ -130,6 +131,8 @@ export function stepHeat(world, fighter, dt) {
   const sweat = sweatWatts(heat.core);
   const evaporated = sweat * (1 - spec.evapBlocked * kit.cover) * evaporationShare(climate);
   heat.core = Math.max(spec.core, heat.core + ((made - dry - evaporated) * dt) / (spec.heatCapacity * bodyKg));
+  // His hands and feet in the cold (physics/afflictions.js): the blood his spare heat sends them, the air, his kit's cover.
+  stepCold(world, fighter, kit, made, dry, dt);
   // (Read after his recovery: physics.js marks the bar as it leaves the step, heatMark.)
 }
 
@@ -151,17 +154,18 @@ export function heatStrain(fighter) {
   return Math.max(0, Math.min(1, ((fighter.heat?.core ?? spec.core) - spec.strainFrom) / (spec.limit - spec.strainFrom)));
 }
 
-/** His recovery's share for his heat and his breathing in his kit. */
+/** His recovery's share for his heat and his breathing in his kit, and for his nausea (physics/afflictions.js: retching costs breath). */
 export function heatRecovery(fighter) {
   const spec = WORLD.heat;
   const breath = fighter.heat?.kit?.breath ?? 1;
-  return breath * (1 - (1 - spec.recoveryAtLimit) * heatStrain(fighter));
+  return breath * (1 - (1 - spec.recoveryAtLimit) * heatStrain(fighter)) * nauseaRecovery(fighter);
 }
 
-/** His muscles' drive for his heat: 1 to `weakFrom`, falling to `strengthAtLimit` at the limit. */
+/** His muscles' drive for his heat: 1 to `weakFrom`, falling to `strengthAtLimit` at the limit; and for the cold in his hands (physics/afflictions.js). */
 export function heatStrength(fighter) {
   const spec = WORLD.heat;
   const core = fighter.heat?.core ?? spec.core;
-  if (core <= spec.weakFrom) return 1;
-  return 1 - (1 - spec.strengthAtLimit) * Math.min(1, (core - spec.weakFrom) / (spec.limit - spec.weakFrom));
+  const cold = coldStrength(fighter);
+  if (core <= spec.weakFrom) return cold;
+  return cold * (1 - (1 - spec.strengthAtLimit) * Math.min(1, (core - spec.weakFrom) / (spec.limit - spec.weakFrom)));
 }

@@ -23,6 +23,7 @@ import { fightUiInstall } from './fightui/index.js';
 import { FIGHT_UI_CONTROL_ICONS } from './fightui/icons.js';
 import { fightUiCommandBar } from './fightui/command.js';
 import { paintStamina } from './overdraftview.js';
+import { paintAfflictions } from './afflictview.js';
 import { ARTS, artBlocked, artLabel, artPrimed } from './weaponarts.js';
 import { throwableOf } from './physics/throwable.js';
 import { deflectWindow, deflectsWith, guardHold } from './physics/deflect.js';
@@ -135,7 +136,7 @@ export function installFightControls(root, hooks) {
   crawl.setAttribute('aria-label', t('touch.crawl'));
   crawl.dataset.i18nAria = 'touch.crawl';
   const status = root.appendChild(uiElement('div', 'player-status'));
-  status.innerHTML = `<div class="top"><span class="name"></span><span class="tag"></span></div><div class="bar health"><i></i><b class="due" hidden></b></div><div class="bar stamina"><i></i></div><div class="bar adrenaline" data-i18n-title="touch.adrenaline" title="${t('touch.adrenaline')}"><i></i></div><div class="horse-row" hidden title="${t('touch.horse')}">${uiIconHtml('horse', 'glyph')}<div class="bar horse-bar"><i></i></div></div>`;
+  status.innerHTML = `<div class="top"><span class="name"></span><span class="tag"></span></div><div class="bar health"><i></i><b class="due" hidden></b></div><div class="bar stamina"><i></i></div><div class="bar nausea" hidden data-i18n-title="page.nausea" title="${t('page.nausea')}"><i></i></div><div class="bar chill" hidden data-i18n-title="page.chill" title="${t('page.chill')}"><i></i></div><div class="bar adrenaline" data-i18n-title="touch.adrenaline" title="${t('touch.adrenaline')}"><i></i></div><div class="horse-row" hidden title="${t('touch.horse')}">${uiIconHtml('horse', 'glyph')}<div class="bar horse-bar"><i></i></div></div>`;
   // Adrenaline: a hair-thin line under stamina, a tick where his weapon's art comes within reach (weaponarts.js ARTS.ready).
   status.querySelector('.adrenaline').style.setProperty('--ready', `${ARTS.ready * 100}%`);
   const marker = root.appendChild(uiElement('div', 'target-marker'));
@@ -597,6 +598,7 @@ export function installFightControls(root, hooks) {
     paintHealth(status.querySelector('.health'), me, true);
     status.querySelector('.health').classList.toggle('bleeding', bleeding);
     paintStamina(status.querySelector('.stamina'), me.stamina);
+    paintAfflictions(status, me);
     const adrenaline = status.querySelector('.adrenaline');
     adrenaline.querySelector('i').style.width = `${Math.round(Math.min(1, me.adrenaline ?? 0) * 100)}%`;
     // (Lit for the art's charge, not for a grenade, which asks none.)

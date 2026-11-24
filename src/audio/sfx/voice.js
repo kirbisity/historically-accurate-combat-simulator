@@ -155,6 +155,8 @@ export const CRY_KINDS = {
   moan: { level: 72, low: 4, seconds: 1.4, weight: 0.5 },
   fear: { level: 86, low: 6, seconds: 0.9, weight: 1 },
   dying: { level: 88, low: 4, seconds: 1.6, weight: 3 },
+  // A gag at filth (physics/afflictions.js): a throat's heave, not a shout.
+  gag: { level: 76, low: 6, seconds: 0.5, weight: 1.5 },
 };
 
 /**
@@ -218,7 +220,7 @@ export const cryLevel = (cry) => CRY_KINDS[cry.kind].level - CRY_KINDS[cry.kind]
  */
 export function cryOfEvent(event) {
   if (event.cry) return event.cry;
-  const kind = { struck: 'hurt', wound: 'scream', death: 'dying', moan: 'moan', fear: 'fear', hurt: 'hurt', scream: 'scream', dying: 'dying' }[event.kind];
+  const kind = { struck: 'hurt', wound: 'scream', death: 'dying', moan: 'moan', fear: 'fear', hurt: 'hurt', scream: 'scream', dying: 'dying', gag: 'gag' }[event.kind];
   if (!kind) return null;
   const voice = { sex: event.sex, height: event.size, mass: event.mass, age: event.age, id: event.who, strength: event.fitness };
   return { kind, sex: crySex(event.sex), intensity: sfxClamp(event.strength ?? 0.6, 0, 1), rate: cryRate(voice), ...cryBody(voice) };

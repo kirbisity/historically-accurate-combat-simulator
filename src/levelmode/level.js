@@ -47,7 +47,7 @@ import { watchTeam } from './team.js';
 import { beginAttempt } from './attempts.js';
 import { outfitOf } from '../outfits.js';
 import { floorAt } from '../physics/terrain.js';
-import { stageWaters, wadeDrag, waterAt, waterViscosity } from './water.js';
+import { STENCH, stageWaters, stenchAt, wadeDrag, waterAt, waterStench, waterViscosity } from './water.js';
 import { slogCost } from '../physics/fieldworks.js';
 import { drawStamina } from '../physics/overdraft.js';
 
@@ -164,6 +164,9 @@ export function wadeGear(world, dt = 0) {
     const depth = water ? water.at[1] - feet + LEVEL_CONFIG.wade.sole * fighter.body.heightM : 0;
     const drag = depth > 0 ? wadeDrag(water, depth, fighter.body.heightM) : null;
     const held = drag && drag.foot < 1 ? drag : null;
+    // Sewage smelt and stood in (physics/afflictions.js: nausea): the smell at his head, and how deep in it he is (to his waist, all of it).
+    fighter.stench = fighter.dormant ? 0 : stenchAt(level.waters, x[P.head * 3], x[P.head * 3 + 1], x[P.head * 3 + 2]);
+    fighter.steeped = water && depth > 0 ? waterStench(water) * Math.min(1, depth / (STENCH.waist * fighter.body.heightM)) : 0;
     let wading = fighter.wading;
     if (held) {
       if (!wading) wading = fighter.wading = { gear, base: { foot: gear.foot, accel: gear.accel }, set: null, drag: held, act: 1 };

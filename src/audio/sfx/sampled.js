@@ -599,7 +599,7 @@ export function uiSamplePlan(kind, random = Math.random) {
 export const BOW_DRAW_PLAY = { trim: 0.9, jitter: 0.04, stretch: [0.85, 1.3], fadeIn: 0.06, fade: 0.04 };
 
 /** A cry's take: its trim from none to full intensity (the takes are cut to one peak), the least share of a hurt cry played, each kind's fade (s). */
-export const CRY_PLAY = { trim: [0.55, 1], hurtShare: 0.6, fade: { hurt: 0.06, scream: 0.12, moan: 0.25, fear: 0.1, dying: 0.35 } };
+export const CRY_PLAY = { trim: [0.55, 1], hurtShare: 0.6, fade: { hurt: 0.06, scream: 0.12, moan: 0.25, fear: 0.1, dying: 0.35, gag: 0.08 } };
 
 /** Thunder's crack (thunderParams `crack`, 1 at the bolt, 0 from 1.2 km) past which a near take plays, its crack in it: ~800 m. */
 export const THUNDER_NEAR = 0.33;
