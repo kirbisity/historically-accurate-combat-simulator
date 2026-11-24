@@ -303,7 +303,9 @@ const ZEELANDIA = {
   // garrison men, 30 in all: the user's call, 2026-11-19.)
   // (Fewer of his men against the Dutch, a few iron men and the rest garrison troops: the fight was too one-sided; was 34
   // with brigandine and lamellar regulars: the user's call, 2026-11-19.)
-  koxinga: { ironMan: { zhanmadao: 2, swordShield: 1 }, brigandine: {}, lamellar: {}, garrison: { spear: 10, dao: 4, matchlock: 3 }, ronin: { ronin: 2 } },
+  // (More men, and twice the iron men: the Dutch won every battle after their kit was redrawn; 26 with 6 iron men won 8 of 10
+  // over 10 seeds, the dead 114 Dutch to 134 of his: the user's call, 2026-11-23.)
+  koxinga: { ironMan: { zhanmadao: 4, swordShield: 2 }, brigandine: {}, lamellar: {}, garrison: { spear: 10, dao: 4, matchlock: 4 }, ronin: { ronin: 2 } },
 };
 
 // A wokou raid on the Zhejiang coast, 1550s: rōnin and Chinese sea raiders
@@ -1459,7 +1461,7 @@ export const SCENARIOS = {
     scene: 'coastFort',
     arena: { halfX: 15, halfZ: 10 },
     camera: { yaw: -0.5, pitch: 0.42, distance: 16, maxDistance: 20 },
-    roster: { en: 'Eighteen Dutch · twenty-two of Koxinga\'s army', zh: '荷兰人十八名 · 郑成功部二十二人' },
+    roster: { en: 'Eighteen Dutch · twenty-six of Koxinga\'s army', zh: '荷兰人十八名 · 郑成功部二十六人' },
     formation: { red: { front: 5, spacing: 1.2, rowSpacing: 1.5, shootersFront: SHOOTERS_FRONT_GAP, perRow: 9, loose: 0.15 }, blue: { front: 5, spacing: 1.2, rowSpacing: 1.6, shootersFront: SHOOTERS_FRONT_GAP, perRow: 10, loose: 0.35 } },
     cast: (random) => {
       const army = ZEELANDIA.koxinga;
