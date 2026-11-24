@@ -24,7 +24,9 @@
 //    kilonewton to rock out, which is the order used; unverified). It was linear in the depth (25 kN/m): every cut that
 //    reached a bone at all was held by it, and half the long-sword duels had a blade stuck in a man. The skull is a
 //    shell, not a solid bone: past its vault (`skullWall`) the edge is in the brain, and only the vault's own thickness
-//    grips its faces, however far in it went (the face as deep as the wall, the opening as deep as the edge);
+//    grips its faces, however far in it went (the face as deep as the wall, the opening as deep as the edge). And the
+//    opening grows only as far as the blade's bevel runs (`bevel`): past it the faces are all but parallel, and a blade
+//    sunk deeper is no more forced apart;
 //  - a point between the ribs or through the skull is pinched by them: `pinch` N.
 //  No weapon here is barbed (weapons.js has no such head): a spec's `barbed` would multiply the hold by `barbs`.
 //
@@ -75,6 +77,9 @@ export const LODGE = {
   // The skull vault's thickness (m): 5-7 mm over most of it in adults, the two tables and the diploe between (Lynnerup
   // 2005, Forensic Sci Int 147: 1, CT of the vault, men ~6.5 mm; from memory of the abstract, unverified).
   skullWall: 0.0065,
+  // How far back from the edge a blade's bevel runs to its full thickness (m): a sword's ~2-3 cm (a katana's ha and
+  // shinogi-ji together; a sabre's or a dao's edge bevel likewise; from the blades' sections, unverified).
+  bevel: 0.025,
   // Coulomb friction of steel on wet flesh and bone: steel on skin and tissue runs about 0.2-0.5 wet (Derler & Gerhardt
   // 2012, Tribology Letters 45: 1, a review of skin friction), cortical bone on steel about 0.3-0.4 (orthopaedic fixation
   // tests; both from memory of the reviews, unverified): an edge sliding faster than this share of its speed into the
@@ -152,7 +157,7 @@ export function lodgeDepth(left, radius, boneRadius, cleaving, pierce, reach = I
  * (m) the most of the bone that grips it (the skull's vault: LODGE.skullWall; a solid bone all of it).
  */
 export function lodgeHold({ depth, bone }, engaged, pinched = false, barbed = false, wall = Infinity) {
-  const hold = LODGE.flesh * 2 * depth * engaged + Math.min(LODGE.boneMost, LODGE.boneGrip * bone * Math.min(bone, wall)) + (pinched ? LODGE.pinch : 0);
+  const hold = LODGE.flesh * 2 * depth * engaged + Math.min(LODGE.boneMost, LODGE.boneGrip * Math.min(bone, LODGE.bevel) * Math.min(bone, wall)) + (pinched ? LODGE.pinch : 0);
   return hold * (barbed ? LODGE.barbs : 1);
 }
 

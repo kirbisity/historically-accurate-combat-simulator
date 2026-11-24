@@ -61,12 +61,12 @@ test('a blow on a forearm meets what is there: the glove at its end, the ulna\'s
   assert.equal(guardMeets(body, 'lThigh', [0, 0.6, 0], [1, 0, 0], arm).stretch, bluntPart(body, 'lThigh').stretch);
 });
 
-test('bone grips a blade by the square of its depth in it, the skull only by its vault', () => {
-  const shallow = lodgeHold({ depth: 0.04, bone: 0.01 }, 0.1) - lodgeHold({ depth: 0.04, bone: 0 }, 0.1);
-  const deep = lodgeHold({ depth: 0.06, bone: 0.03 }, 0.1) - lodgeHold({ depth: 0.06, bone: 0 }, 0.1);
-  assert.ok(deep > 8 * shallow, `${shallow.toFixed(0)} N at 1 cm, ${deep.toFixed(0)} N at 3 cm`);
-  const skull = lodgeHold({ depth: 0.06, bone: 0.03 }, 0.1, false, false, LODGE.skullWall) - lodgeHold({ depth: 0.06, bone: 0 }, 0.1);
-  assert.ok(skull < deep / 3, `skull ${skull.toFixed(0)} N against a spine's ${deep.toFixed(0)}`);
+test('bone grips a blade by the square of its depth in it, to the bevel; the skull only by its vault', () => {
+  const inBone = (bone, wall = Infinity) => lodgeHold({ depth: 0.06, bone }, 0.1, false, false, wall) - lodgeHold({ depth: 0.06, bone: 0 }, 0.1);
+  assert.ok(inBone(LODGE.bevel) > 6 * inBone(0.01), `${inBone(0.01).toFixed(0)} N at 1 cm, ${inBone(LODGE.bevel).toFixed(0)} N at the bevel`);
+  // Past the bevel the faces are all but parallel: deeper, it grips by the face alone.
+  assert.ok(inBone(2 * LODGE.bevel) < 2.1 * inBone(LODGE.bevel));
+  assert.ok(inBone(0.05, LODGE.skullWall) < inBone(0.05) / 3, `skull ${inBone(0.05, LODGE.skullWall).toFixed(0)} N against a spine's ${inBone(0.05).toFixed(0)}`);
 });
 
 const pair = () => {
