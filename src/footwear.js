@@ -37,6 +37,7 @@ const FOOT_HEEL_ROUND = 0.034;
 // The shank's end where no body was measured (ankleFit): the rim's height over the joint, its front and back, its half breadths.
 const ANKLE_FIT = { v: 0.012, front: 0.031, back: -0.041, inner: 0.03, outer: 0.03 };
 // How a foot's breadth follows its ankle's (the ankle's half breadth over that one's, to this power, within these bounds).
+const ANKLE_OVER = 0.0015;
 const FOOT_BREADTH = { power: 0.6, least: 0.92, most: 1.3 };
 
 const footClamp = (x) => Math.min(1, Math.max(0, x));
@@ -160,7 +161,7 @@ export const FOOTWEAR = {
   },
   // The medieval turnshoe: an ankle shoe sewn inside out and turned, a single thin sole, no heel, the toe a little pointed, closed by a thong through the side (the London finds: Grew & de Neergaard, Shoes and Pattens, 1988).
   turnshoe: {
-    role: 'upper', thick: 0.003, toe: { shape: 'almond', ext: 0.014, box: 0.03, tip: 0.012 }, arch: 0.004, bones: 0.25, cut: 'ankle', collar: 0.042, flare: 0.006, finish: { upper: 0.3 },
+    role: 'upper', thick: 0.003, toe: { shape: 'almond', ext: 0.014, box: 0.03, tip: 0.012 }, arch: 0.004, bones: 0.25, cut: 'shaft', finish: { upper: 0.3 },
     sole: { th: 0.004, margin: 0.0015, wall: SOLE_LEATHER, under: SOLE_LEATHER, stuff: 'leather' },
     pieces: [footLaces(0.6, 1.0, 4, 'upperLight', { wide: 30, bar: true, bow: true }), { kind: 'rope', colour: 'upperDark', r: 0.0012, role: 'trim', paths: [[[0.56, 0, 0.0005], [0.8, 0, 0.0005], [1.0, 0, 0.0005]]] }],
   },
@@ -181,7 +182,7 @@ export const FOOTWEAR = {
   },
   // The Mongol felt boot (гутал's forebear): a thick felt leg and foot, the toe turned up, a leather sole wrapping up round the foot, leather trim (the Yuan finds from Inner Mongolia; Rubruck's felt boots and overshoes, 1253-55).
   feltBoot: {
-    role: 'upper', thick: 0.007, toe: { shape: 'almond', ext: 0.016, up: 0.03, box: 0.04, tip: 0.02 }, bones: 0, cut: 'shaft', finish: { upper: 0, trim: 0.3 },
+    role: 'upper', thick: 0.007, toe: { shape: 'almond', ext: 0.022, up: 0.042, box: 0.04, tip: 0.018 }, bones: 0, cut: 'shaft', finish: { upper: 0, trim: 0.3 },
     sole: { th: 0.006, margin: 0.001, wall: 'trimLeather', under: 'trimLeather', stuff: 'leather' },
     paint: (s, a, down) => (down > 0.78 && s < 1.9 ? 'trimLeather' : 'upper'),
     pieces: [{ kind: 'rope', colour: 'trimLeather', r: 0.003, role: 'trim', paths: [[[0.14, 0, 0.001], [0.3, 0, 0.001], [0.5, 0, 0.001], [0.75, 0, 0.001], [1.0, 0, 0.001]]] }],
@@ -352,7 +353,7 @@ function footLast(spec, fit, thick, legTop) {
     return tipH + (high - tipH) * taper(x, toe.dome) + thick;
   };
   // The heel's outline from the side, from under the instep back along the sole, round the heel and up the tendon to the shank's end.
-  const heelLine = [[creaseU, -FOOT_RISE], [FOOT_HEEL_U + 0.05, -FOOT_RISE], ...(thick ? [[FOOT_HEEL_U + 0.01, -FOOT_RISE + 0.0005], [FOOT_HEEL_U + 0.001, -FOOT_RISE + 0.008]] : [[FOOT_HEEL_U + 0.02, -FOOT_RISE + 0.0005], [FOOT_HEEL_U + 0.003, -FOOT_RISE + 0.01]]), [FOOT_HEEL_U, -FOOT_RISE + 0.024], [FOOT_HEEL_U + 0.012, -FOOT_RISE + 0.048], [Math.max(fit.back, FOOT_HEEL_U + 0.02), fit.v]];
+  const heelLine = [[creaseU, -FOOT_RISE], [FOOT_HEEL_U + 0.05, -FOOT_RISE], ...(thick ? [[FOOT_HEEL_U + 0.01, -FOOT_RISE + 0.0005], [FOOT_HEEL_U + 0.001, -FOOT_RISE + 0.008]] : [[FOOT_HEEL_U + 0.02, -FOOT_RISE + 0.0005], [FOOT_HEEL_U + 0.003, -FOOT_RISE + 0.01]]), [FOOT_HEEL_U, -FOOT_RISE + 0.024], [FOOT_HEEL_U + 0.012, -FOOT_RISE + 0.048], [fit.back, fit.v]];
   const ring = (s) => {
     if (s <= 1) {
       const u = footLerp(tipU, creaseU, s);
@@ -371,13 +372,13 @@ function footLast(spec, fit, thick, legTop) {
       const mid = footLerp(top[0], bottom[0], 0.6);
       const heelIn = footKeyed([[0, plan(creaseU)[0] - thick], [0.35, 0.0335], [0.7, 0.0295], [1, fit.inner]], t) + thick;
       const heelOut = footKeyed([[0, plan(creaseU)[1] - thick], [0.35, 0.0345], [0.7, 0.0295], [1, fit.outer]], t) + thick;
-      return { top, bottom, inn: heelIn, out: heelOut, mid: 0, ridge: 0.011 * (1 - footEase(0, 0.5, t)) * footEase(FOOT_BALL_U + 0.03, 0.06, creaseU), eTop: 0.95, eBottom: footLerp(0.5, 0.9, footEase(0.2, 0.8, t)), eSide: footLerp(0.8, 1, t), belly: footLerp(0.62, 1, footEase(0.2, 1, t)), tail: 0.5 * footEase(0.4, 1, t), u: mid };
+      return { top, bottom, inn: heelIn, out: heelOut, mid: 0, ridge: 0.011 * (1 - footEase(0, 0.5, t)) * footEase(FOOT_BALL_U + 0.03, 0.06, creaseU), eTop: 0.95, eBottom: footLerp(0.5, 0.9, footEase(0.2, 0.8, t)), eSide: footLerp(0.8, 1, t), belly: footLerp(0.62, 1, footEase(0.2, 1, t)), tail: 0.5 * footEase(0.35, 0.75, t) * (1 - 0.8 * footEase(0.8, 1, t)), u: mid };
     }
     // Up inside the leg: level sections, drawn in a little as they go.
     const t = s - 2;
     const tuck = 0.004 * footEase(0.3, 1, t);
     const v = fit.v + t * legTop;
-    return { top: [fit.front + thick - tuck, v], bottom: [fit.back - thick + tuck, v], inn: fit.inner + thick - tuck, out: fit.outer + thick - tuck, mid: 0, ridge: 0, eTop: 0.95, eBottom: 0.9, eSide: 1, belly: 1, tail: 0.5, u: 0 };
+    return { top: [fit.front + thick - tuck, v], bottom: [fit.back - thick + tuck, v], inn: fit.inner + thick - tuck, out: fit.outer + thick - tuck, mid: 0, ridge: 0, eTop: 0.95, eBottom: 0.9, eSide: 1, belly: 1, tail: 0.1, u: 0 };
   };
   const bones = spec.bones ?? 0;
   const arch = spec.arch ?? 0;
@@ -432,7 +433,8 @@ export function footwearParts(kind, { feet = {}, heels = null, side = 'l', groun
   const half = (shank.inner + shank.outer) / 2;
   const breadth = Math.min(FOOT_BREADTH.most, Math.max(FOOT_BREADTH.least, (half / ANKLE_FIT.inner) ** FOOT_BREADTH.power));
   const offset = [Math.max(-0.03, Math.min(0.03, (shank.front + shank.back) / 2 - (ANKLE_FIT.front + ANKLE_FIT.back) / 2)), Math.max(-0.03, Math.min(0.03, (shank.inner - shank.outer) / 2))];
-  const fit = { v: shank.v, front: shank.front - offset[0], back: shank.back - offset[0], inner: half / breadth, outer: half / breadth };
+  // (A hair outside the shank's end all round, so its rim lies buried in the ankle and not over it.)
+  const fit = { v: shank.v, front: shank.front - offset[0] + ANKLE_OVER, back: shank.back - offset[0] - ANKLE_OVER, inner: (half + ANKLE_OVER) / breadth, outer: (half + ANKLE_OVER) / breadth };
   const spec = footwearSpec(kind, feet, heels, stuff);
   const low = detail === 'low';
   const around = low ? 8 : 14;
@@ -787,12 +789,14 @@ export function footwearParts(kind, { feet = {}, heels = null, side = 'l', groun
       const tint = colour(piece.colour);
       const [from, to] = piece.arc;
       const whole = to - from >= 360;
-      const steps = Math.max(2, Math.round(((to - from) / 360) * around * (low ? 0.75 : 1)));
+      const steps = Math.max(2, Math.round(((to - from) / 360) * around));
+      // (A crowd's coarser last stands a little off its true surface: what lies on it is lifted clear.)
+      const clear = low ? 0.004 : 0;
       // (`sweep`: the strap leaning back towards the ankle as it runs down to the sole.)
       const bandRow = (s, lift) => Array.from({ length: whole ? steps : steps + 1 }, (_, j) => [...surface(s + (piece.sweep ?? 0) * (j / steps) * (from < 0 ? -1 : 1) + (from < 0 ? piece.sweep ?? 0 : 0), from + ((to - from) * j) / steps, lift), tint]);
       const [s0, s1] = piece.at;
       const wide = s1 - s0 > 0.3 && !low;
-      sheet(target, [bandRow(s0, 0), bandRow(s0, piece.lift), ...(wide ? [bandRow((s0 + s1) / 2, piece.lift)] : []), bandRow(s1, piece.lift), bandRow(s1, 0)], whole);
+      sheet(target, [bandRow(s0, 0), bandRow(s0, piece.lift + clear), ...(wide ? [bandRow((s0 + s1) / 2, piece.lift + clear)] : []), bandRow(s1, piece.lift + clear), bandRow(s1, 0)], whole);
       if (piece.buckle && !low) stud(part('metal'), (s0 + s1) / 2, s0 > 1.9 ? -90 : -70, 0.007, named.white, piece.lift);
     } else if (piece.kind === 'laces' && !low) {
       // Lacing up the front: crossed over, or straight bars, between two rows of eyelets `wide` degrees apart.
@@ -834,8 +838,8 @@ export function footwearParts(kind, { feet = {}, heels = null, side = 'l', groun
       // standing off the surface over the next one's, which lies under it; riveted near each end.
       const target = part(piece.role ?? 'metal');
       const arc = Array.isArray(piece.arc) ? piece.arc : [-piece.arc, piece.arc];
-      const steps = Math.max(3, Math.round(((arc[1] - arc[0]) / 360) * around * (low ? 0.8 : 1.15)));
-      const [lowLift, highLift] = piece.lift;
+      const steps = Math.max(3, Math.round(((arc[1] - arc[0]) / 360) * around * 1.15));
+      const [lowLift, highLift] = piece.lift.map((lift) => lift + (low ? 0.004 : 0));
       const gap = piece.gap ?? 0;
       const span = (piece.to - piece.from) / piece.count;
       for (let k = 0; k < piece.count; k += 1) {
