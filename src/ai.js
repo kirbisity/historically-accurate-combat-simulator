@@ -1931,7 +1931,8 @@ export function confidence(fighter, opponent, world = null) {
  */
 export function outreached(fighter, opponent) {
   // His blade caught in a wolf-brush (physics/brush.js) reaches no one: he is gone in on, not held off.
-  if (opponent.caught) return false;
+  // Nor does one held in a body (physics/lodge.js): a man hauling at his blade is open, and is gone in on.
+  if (opponent.caught || opponent.lodged) return false;
   const theirs = opponent.weapon?.held ? opponent.weapon.spec : null;
   const mine = fighter.weapon?.held ? fighter.weapon.spec : null;
   if (reachOf(opponent) - reachOf(fighter) > AI.blade.outreachedBy) return true;
