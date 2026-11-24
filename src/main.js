@@ -10,7 +10,7 @@ import { calorieRange, caloriesForWeight, deriveStats, exerciseHours } from './p
 import { paintHealth, thinkAll } from './ai.js';
 import { withTanks } from './physics/flame.js';
 import { CUSTOM_STYLE_KEYS, MOVES, STRATEGIES, STYLE_KEYS, STYLES } from './moves.js';
-import { advance, opponentFor, collapseAt, cutOff, dropWeapon, concussionCapacity, createWorld, perform, placeFighter, placeOnFloor, point, reviveFighter, startCrawl, startJump, throwPunch, WORLD } from './physics.js';
+import { advance, capsules, opponentFor, collapseAt, cutOff, dropWeapon, concussionCapacity, createWorld, perform, placeFighter, placeOnFloor, point, reviveFighter, startCrawl, startJump, throwPunch, WORLD } from './physics.js';
 import { bleedingFast } from './maiming.js';
 import { DEFAULT_LOOK, LOOK_OPTIONS } from './face.js';
 import { activateLook, activateLookNow, activeLook, DEFAULT_LOOK_ID, OFFICIAL_LOOK_ID, flattenView, loadLook, lookById, lookIdFromSearch, lookList, LOOKS, rememberedLookId, rememberLook } from './looks.js';
@@ -104,7 +104,8 @@ import { bloodyBlade, clearGore, goreInfo, goreTier, machineEvent, severView, sp
 import { placeFlameTanks, updateFlames } from './flameview.js';
 import { updateClothWind } from './clothwind.js';
 import { wetHold, wetInfo, wetnessOf, wetTier, wetUpdate } from './wetview.js';
-import { markOfBlow, marksOf, markTier } from './markview.js';
+import { markOfBlow, marksOf, markSpatter, markTier } from './markview.js';
+import { letGoLodged, lodgeBlade } from './physics/lodge.js';
 import { envAdapt, envInfo, envSetEnabled, envSetWeather, envUpdate } from './env/index.js';
 import { envDress } from './env/air.js';
 import { updateGroundDust } from './grounddust.js';
@@ -1552,11 +1553,23 @@ function consumeEvents() {
     if (event.kind === 'landed' && !machine && event.point && event.target) {
       const struck = state.views.find((entry) => entry.fighter.id === event.defender);
       if (struck?.frames) markOfBlow(struck.fighter, struck.frames, event, state.world.time);
-      // And the blood on the blade that drew it (weaponview.js).
+      // And the blood on the blade that drew it (weaponview.js), and thrown on the man who made the cut if it bled.
       if (event.weapon && (event.cut ?? 0) + (event.pierce ?? 0) > 4) {
         const striker = state.views.find((entry) => entry.fighter.id === event.attacker);
         if (striker) bloodyBlade(striker, event);
+        if (striker?.frames && event.bleeds && (event.cut ?? 0) > 20) markSpatter(striker.fighter, striker.frames, event, state.world.time);
       }
+    }
+    // A missile's mark (an arrow that stuck, a ball, a fragment): a hole where it went in.
+    if ((event.kind === 'arrow' || event.kind === 'shot' || event.kind === 'fragment') && !machine && !event.bounced && event.defender !== undefined && event.point && event.target) {
+      const struck = state.views.find((entry) => entry.fighter.id === event.defender);
+      if (struck?.frames && (event.kind === 'arrow' || (event.harm ?? 1) > 0 || (event.pierce ?? 0) > 0)) markOfBlow(struck.fighter, struck.frames, { ...event, cut: 0, pierce: Math.max(event.pierce ?? 0, event.kind === 'arrow' ? 25 : 50), bleeds: true }, state.world.time);
+    }
+    // A blade drawn out of the body it was held in (physics/lodge.js): blood on it as deep as it was, and out of the wound after it.
+    if (event.kind === 'freed' && event.depth !== undefined) {
+      const striker = state.views.find((entry) => entry.fighter.id === event.fighter);
+      if (striker) bloodyBlade(striker, { point: event.point, cut: 60 + event.depth * 500 });
+      if (!machine) spawnBlood(scene, event.point, [0, 0.4, 0], Math.round(8 + event.depth * 120), 1.6, 1.5);
     }
     // A man in a powered frame (gear.assist) bleeds, and a weapon's blow on him strikes the frame's steel too: a few sparks.
     if (event.weapon && event.kind === 'landed' && state.world.fighters[event.defender]?.body.gear.assist) spawnSparks(scene, event.point, 6);
@@ -4651,6 +4664,29 @@ const boxer = window.boxer = {
     const event = { kind: 'landed', defender: id, target, point: [at[0] + out.x * radius, at[1] + out.y * radius, at[2] + out.z * radius], normal: out.toArray(), edge: edge.toArray(), ...blow };
     return markOfBlow(fighter, view.frames, event, state.world.time - age);
   },
+  // A man's blade put into the other of a duel and held there (physics/lodge.js lodgeBlade), for shots and tests of the
+  // pull: into the part `key` at `t` along it, a thrust of `pierce` J or a cut of `cleaving` J against a section with
+  // `left` to give. Returns what holds it ({ depth, hold }) or null if it would not be held. `letGo`: he leaves it there.
+  lodge: (id = 0, key = 'trunk', { t = 0.6, pierce = 0, cleaving = 0, left = { flesh: 80, bone: 70 } } = {}) => {
+    const world = state.world;
+    const [striker, victim] = [world.fighters[id], world.fighters[id === 0 ? 1 : 0]];
+    const capsule = capsules(victim).find((found) => found.key === key);
+    const weapon = striker.weapon;
+    if (!capsule || !weapon?.held) return null;
+    const [a, b] = [point(victim.x, capsule.a), point(victim.x, capsule.b)];
+    const at = a.map((value, axis) => value + (b[axis] - value) * t);
+    const hand = new THREE.Vector3(...point(striker.x, P[`${weapon.main}Hand`]));
+    const toward = new THREE.Vector3(...at).sub(hand).normalize();
+    const contact = new THREE.Vector3(...at).addScaledVector(toward, -capsule.radius);
+    // (The blade lies from his hand to where it met him; a thrust came in along it, a cut across it.)
+    weapon.dir = toward.toArray();
+    const travel = cleaving > pierce ? new THREE.Vector3(0, 1, 0).cross(toward).normalize().toArray() : weapon.dir;
+    const event = { effects: [] };
+    const held = lodgeBlade(world, striker, victim, weapon, capsule, t, contact.toArray(), { left, cleaving, pierce, distance: Math.min(contact.distanceTo(hand), weapon.spec.length * 0.8), travel, bleed: 0.0005, event });
+    if (held) world.lodging = true;
+    return held ? event.lodged : null;
+  },
+  letGo: (id = 0) => letGoLodged(state.world, state.world.fighters[id]),
   // The marks blows have left on a man (markview.js): how many.
   marks: (id = 1) => marksOf(state.world.fighters[id])?.count ?? 0,
   // The blood on the ground and in the air, in numbers (bloodview.js bloodInfo).

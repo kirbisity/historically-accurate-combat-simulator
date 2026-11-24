@@ -40,7 +40,7 @@ import { buildAirPack, buildBackBox, buildBackPrint, buildBanner, buildSigns, si
 import { buildHead, hairCurtain, hairCurtainSoft } from './face.js';
 import { HELM_HEAD_BREADTH, HELM_SPAN } from './helmforms.js';
 import { photoFaceFor, skinScatter } from './photoface.js';
-import { capsules, capsuleEnds, halfPoints, JOINT_SEGMENTS, point, WORLD } from './physics.js';
+import { capsules, capsuleEnds, halfPoints, point, WORLD } from './physics.js';
 import { BONE, BONES, bindPoints, boneFrames, coherentFrames, frameMatrix, fromFrame, toFrame } from './rig.js';
 import { bakePieces, CROWD_VIEW, crowdBatch, crowdKey, frameAt, HEAD_VARIANT, onlyVariant, simplifyTemplate, stretchedInverses, withoutVariant } from './crowdview.js';
 import { chooseDraw, crowdLod } from './crowdlod.js';
@@ -65,6 +65,7 @@ import { PLACE_ENV } from './env/config.js';
 import { envDress } from './env/air.js';
 import { envFbm, envValueNoise } from './env/noise.js';
 import { wetDress, wetWarm } from './wetview.js';
+import { markDamage } from './markview.js';
 import { COLOSSEUM } from './props/arenasize.js';
 import { buildPyongyang, buildPyongyangTown, PYONGYANG_LIGHT } from './places/pyongyang.js';
 // (The kit's door to the open air: townkit/air.js puts env/'s registration where the kit's places find it.)
@@ -3850,34 +3851,16 @@ const JOINT_BONES = {
   lElbow: ['lUpperArm', 'lForearm'], rElbow: ['rUpperArm', 'rForearm'], lKnee: ['lThigh', 'lShin'], rKnee: ['rThigh', 'rShin'],
   lHip: ['lThigh'], rHip: ['rThigh'], neck: ['neck', 'head'],
 };
-const BRUISE = new THREE.Color(0xa3121c);
-const BROKEN = new THREE.Color(0xe01b1b);
-
 /**
- * Skin reddens with each segment's damage; a broken joint turns its limb
- * fully red, on the skin and in the skeleton.
+ * His hurt, shown on him: until 2026-11-24 each part's skin was tinted red by its damage and a broken limb fully red
+ * (the user's call: real wounds say it now, no colour laid over the part). The marks of the blows themselves are put on
+ * as they land (markview.js markOfBlow); here, when his damage changes, whatever of it no mark has answered for (a fall,
+ * a crush, fire, a joint broken) leaves its own (markDamage). The skeleton view still shows a broken joint's bones red.
  */
 function paintDamage(fighterView) {
   const fighter = fighterView.fighter;
   fighterView.damageVersion = fighter.damageVersion;
-  // (Cut in two, woundview.js: his skin's points are no longer the ones these colours were counted by.)
-  if (fighterView.trunkSplit) return;
-  const brokenSegments = new Set([...fighter.broken].flatMap((joint) => JOINT_SEGMENTS[joint]));
-  const mixed = new THREE.Color();
-  // A crowd man's far body is tinted too, from its own base colours.
-  const bodies = [{ mesh: fighterView.skinMesh, base: fighterView.baseColors, segments: fighterView.vertexSegment }];
-  if (fighterView.far) bodies.push({ mesh: fighterView.far.mesh, base: fighterView.far.baseColors, segments: fighterView.far.vertexSegment });
-  for (const { mesh, base, segments } of bodies) {
-    const colors = mesh.geometry.attributes.color;
-    segments.forEach((segment, vertex) => {
-      if (!segment) return;
-      mixed.setRGB(base[vertex * 3], base[vertex * 3 + 1], base[vertex * 3 + 2]);
-      if (brokenSegments.has(segment)) mixed.copy(BROKEN);
-      else mixed.lerp(BRUISE, Math.min(1, fighter.damage[segment] ?? 0) * 0.85);
-      colors.setXYZ(vertex, mixed.r, mixed.g, mixed.b);
-    });
-    colors.needsUpdate = true;
-  }
+  markDamage(fighter, fighterView.frames);
   if (fighterView.skeletonBuilt) reddenBrokenBones(fighterView);
 }
 

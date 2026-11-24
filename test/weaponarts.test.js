@@ -91,7 +91,8 @@ test('weapon arts: winded, it is made all the same; pressed while busy, it is ma
   assert.equal(near.me.punch?.type, 'artWheel');
 
   // A plain cut in flight near its end, then the art pressed: kept asked a moment (ARTS.askedFor) and made once he is free.
-  const busy = bout('katana', 1.5);
+  // (Out of reach: a cut that lands may stop in him and hold the blade, physics/lodge.js, and then he is busy with that.)
+  const busy = bout('katana', 3);
   busy.me.adrenaline = 0.9;
   busy.step(1 / 60);
   const plain = Object.keys(STYLES.katana.attacks).find((name) => MOVES[name].path === 'blade' && MOVES[name].mode === 'swing');

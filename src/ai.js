@@ -18,6 +18,7 @@ import { FACTIONS, factionOf } from './outfits.js';
 import { castNet } from './physics/net.js';
 import { startThrow, throwChoice } from './physics/throwable.js';
 import { BRUSH, brushScreens, heldOffAt } from './physics/brush.js';
+import { letGoLodged, lodgeEta } from './physics/lodge.js';
 import { expectedGap, gapsOf, rigidAt } from './physics/gaps.js';
 import { handling } from './handling.js';
 import { holdWing, reinFrom, ride, standToRider } from './riding.js';
@@ -658,6 +659,12 @@ export const AI = {
   // order, the langxian holds and the spears kill), he follows up with the steel head at the face (`thrust`, the style's
   // long thrust): the brush comes off him with it (physics/brush.js holdBrushes frees him), so once a hold.
   brush: { band: 0.25, give: 0.5, thrustAfter: 1.5, thrust: 'spearThrust' },
+  // His blade held in a body (physics/lodge.js). He works at it, giving ground a little (`back`: his weight goes into the
+  // pull), unless a blow can reach him before it is out: the man it is in, as soon as he has his wits (`victim` s after
+  // any stun or stagger, longer the worse he is hurt, bodyHarm, and by `hampered` s with a blade in his bone and a man hauling on it, less than half that with one in his flesh; a man down or out none), or another enemy within his reach (`near` s, `striking` s if his stroke
+  // is already on its way). Then he leaves it (letGoLodged: his sidearm next, or his hands) when getting it out would take
+  // more than `nerve` times that (a man does not give up his sword for a moment's danger).
+  lodge: { back: 0.35, victim: 0.45, hampered: 0.8, near: 0.6, striking: 0.2, reach: 0.4, nerve: 2 },
   waitingDistance: 0.5,
   // How often (per second) a waiting fighter looks for a less crowded man.
   refocusRate: 0.6,
@@ -1631,6 +1638,36 @@ function leavesHeld(world, fighter, other) {
 }
 
 /**
+ * His blade held in a body (physics/lodge.js): he works at it, or leaves it when a blow would reach him first (AI.lodge:
+ * how soon the man it is in or another enemy within reach can strike, against how long getting it out will take as he
+ * is now, lodgeEta). Returns whether that is what he does this think.
+ */
+function workHeldBlade(world, fighter) {
+  const held = fighter.lodged;
+  if (!held) return false;
+  const spec = AI.lodge;
+  const victim = world.fighters[held.in];
+  let soonest = Infinity;
+  for (const other of world.fighters) {
+    if (other.corner === fighter.corner || other.state !== 'up' || !inFight(other)) continue;
+    if (other === victim) soonest = Math.min(soonest, Math.max(other.stun ?? 0, other.stagger ?? 0) + spec.victim / Math.max(0.2, 1 - bodyHarm(other)) + spec.hampered * (held.bone > 0 ? 1 : 0.4));
+    else {
+      const apart = Math.hypot(other.x[P.pelvis * 3] - fighter.x[P.pelvis * 3], other.x[P.pelvis * 3 + 2] - fighter.x[P.pelvis * 3 + 2]);
+      if (apart < reachOf(other) + spec.reach) soonest = Math.min(soonest, other.punch?.target === fighter.id ? spec.striking : spec.near);
+    }
+  }
+  if (lodgeEta(world, fighter) > soonest * spec.nerve) {
+    letGoLodged(world, fighter);
+    return false;
+  }
+  fighter.move = -spec.back;
+  fighter.strafe = 0;
+  fighter.running = false;
+  fighter.aiCombo = null;
+  return true;
+}
+
+/**
  * A wolf-brush holding a man (physics/brush.js): its bearer does not strike (a thrust would take the brush off him)
  * but keeps it steady in his face, standing off at the distance it holds him at (brush.js heldOffAt) while his squad's
  * spears go for him. Returns whether that is what he does.
@@ -1894,7 +1931,8 @@ export function confidence(fighter, opponent, world = null) {
  */
 export function outreached(fighter, opponent) {
   // His blade caught in a wolf-brush (physics/brush.js) reaches no one: he is gone in on, not held off.
-  if (opponent.caught) return false;
+  // Nor does one held in a body (physics/lodge.js): a man hauling at his blade is open, and is gone in on.
+  if (opponent.caught || opponent.lodged) return false;
   const theirs = opponent.weapon?.held ? opponent.weapon.spec : null;
   const mine = fighter.weapon?.held ? fighter.weapon.spec : null;
   if (reachOf(opponent) - reachOf(fighter) > AI.blade.outreachedBy) return true;
@@ -3905,6 +3943,8 @@ function decide(world, fighter, dt) {
     keepAway(world, fighter, opponent, dt);
     return;
   }
+  // His own blade held in a body: he works it out, or leaves it (workHeldBlade).
+  if (workHeldBlade(world, fighter)) return;
   // A man held in his wolf-brush: kept there, not struck at (holdWithBrush).
   if (holdWithBrush(world, fighter, opponent)) return;
   // The player's order (command.js): to him, a charge, a hold; over his place in the ranks.
