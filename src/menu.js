@@ -577,12 +577,15 @@ export function installMenus(game) {
       return button;
     }));
     // (`track`: a CSS background for the slider's track, the Skin's shades.)
-    const slider = ({ label, min, max, step, get, set, show: shown, track = null }) => {
+    // (`scale`: a slider whose travel is not its value's, { positions, toValue, toPosition }: the Eating slider's.)
+    const slider = ({ label, min, max, step, get, set, show: shown, track = null, scale = null }) => {
       const value = el('output', { textContent: shown(get()) });
-      const input = el('input', { type: 'range', min, max, step, value: get(), ariaLabel: label });
+      const input = scale
+        ? el('input', { type: 'range', min: 0, max: scale.positions, step: 1, value: scale.toPosition(get()), ariaLabel: label })
+        : el('input', { type: 'range', min, max, step, value: get(), ariaLabel: label });
       if (track) input.style.setProperty('--tone-track', track);
       input.oninput = () => {
-        set(Number(input.value));
+        set(scale ? scale.toValue(Number(input.value)) : Number(input.value));
         value.textContent = shown(get());
         refreshStats();
         preview();
@@ -597,8 +600,85 @@ export function installMenus(game) {
         [t('wizard.weight'), `${stats.weight.toFixed(0)} kg`], [t('wizard.bodyFat'), `${Math.round(stats.bodyFat * 100)}%`],
         [t('wizard.bench'), `${Math.round(stats.bench)} kg`], [t('wizard.sprint'), `${stats.sprint.toFixed(2)} s`],
       ].map(([name, text]) => el('div', { className: 'stat' }, el('span', { textContent: name }), el('b', { textContent: text }))));
+      drawTrainingCurve();
+    };
+    // Strength against training at this diet (game.trainingCurve): training builds muscle until it burns more than is
+    // eaten; then the fat goes, and past the fat a fed body keeps the muscle goes too. The part past the peak is shaded.
+    let curveBox = null;
+    let curveKey = '';
+    let curvePoints = [];
+    let curveTimer = 0;
+    const drawTrainingCurve = () => {
+      if (!curveBox || !game.trainingCurve) return;
+      const { exercise, ...rest } = inputs;
+      const key = JSON.stringify([rest.sex, rest.heightCm, rest.frame, rest.age, rest.calories]);
+      if (key !== curveKey) {
+        // Twenty-one bodies a curve: once the slider rests, not on every step of a drag.
+        clearTimeout(curveTimer);
+        curveTimer = setTimeout(() => { curveKey = key; curvePoints = game.trainingCurve(inputs); paintTrainingCurve(); }, curvePoints.length ? 90 : 0);
+      }
+      paintTrainingCurve();
+    };
+    const paintTrainingCurve = () => {
+      if (!curveBox || !curvePoints.length) return;
+      const svgNs = 'http://www.w3.org/2000/svg';
+      const node = (tag, attributes = {}, text = '') => {
+        const made = document.createElementNS(svgNs, tag);
+        for (const [name, value] of Object.entries(attributes)) made.setAttribute(name, value);
+        if (text) made.textContent = text;
+        return made;
+      };
+      const width = 320; const height = 150; const left = 34; const right = 34; const top = 14; const bottom = 26;
+      const plotW = width - left - right; const plotH = height - top - bottom;
+      const topBench = Math.max(20, ...curvePoints.map((point) => point.bench)) * 1.1;
+      const topFat = Math.max(0.1, ...curvePoints.map((point) => point.bodyFat)) * 1.1;
+      const x = (exercise) => left + exercise * plotW;
+      const yBench = (bench) => top + plotH * (1 - Math.max(0, bench) / topBench);
+      const yFat = (fat) => top + plotH * (1 - fat / topFat);
+      const path = (pick, y) => curvePoints.map((point, at) => `${at ? 'L' : 'M'}${x(point.exercise).toFixed(1)},${y(pick(point)).toFixed(1)}`).join('');
+      const peak = curvePoints.reduce((best, point) => (point.bench > best.bench ? point : best), curvePoints[0]);
+      const svg = node('svg', { viewBox: `0 0 ${width} ${height}`, class: 'curve-svg', role: 'img', 'aria-label': t('wizard.curve.aria', { hours: Math.round(game.hours(peak.exercise)) }) });
+      // Past the peak: more training, less strength.
+      if (peak.exercise < 0.999) {
+        svg.append(node('rect', { x: x(peak.exercise), y: top, width: x(1) - x(peak.exercise), height: plotH, class: 'curve-past' }));
+      }
+      svg.append(node('line', { x1: left, y1: top + plotH, x2: x(1), y2: top + plotH, class: 'curve-axis' }));
+      for (const hours of [0, 5, 10, 15, 20, 25]) {
+        const level = (hours / 25) ** (1 / 1.3);
+        svg.append(node('text', { x: x(level), y: height - 10, 'text-anchor': 'middle', class: 'curve-tick' }, String(hours)));
+      }
+      svg.append(node('text', { x: x(1), y: height - 1, 'text-anchor': 'end', class: 'curve-tick' }, t('wizard.curve.hours')));
+      svg.append(node('path', { d: path((point) => point.bodyFat, yFat), class: 'curve-fat' }));
+      svg.append(node('path', { d: path((point) => point.bench, yBench), class: 'curve-bench' }));
+      svg.append(node('text', { x: 4, y: yBench(curvePoints[0].bench) + 4, class: 'curve-label bench' }, `${Math.round(curvePoints[0].bench)}`));
+      svg.append(node('text', { x: width - 4, y: yFat(curvePoints[curvePoints.length - 1].bodyFat) + 4, 'text-anchor': 'end', class: 'curve-label fat' }, `${Math.round(curvePoints[curvePoints.length - 1].bodyFat * 100)}%`));
+      svg.append(node('circle', { cx: x(peak.exercise), cy: yBench(peak.bench), r: 3.5, class: 'curve-peak' }));
+      svg.append(node('text', { x: Math.min(x(peak.exercise), width - right - 30), y: yBench(peak.bench) - 6, 'text-anchor': 'middle', class: 'curve-label bench' }, `${Math.round(peak.bench)} kg`));
+      // Where they are now, read off the curve between its two nearest points.
+      const at = Math.max(0, Math.min(1, inputs.exercise));
+      const after = curvePoints.findIndex((point) => point.exercise >= at - 1e-9);
+      const [a, b] = after <= 0 ? [curvePoints[0], curvePoints[0]] : [curvePoints[after - 1], curvePoints[after]];
+      const u = b.exercise === a.exercise ? 0 : (at - a.exercise) / (b.exercise - a.exercise);
+      const benchNow = a.bench + (b.bench - a.bench) * u;
+      svg.append(node('line', { x1: x(at), y1: top, x2: x(at), y2: top + plotH, class: 'curve-now' }));
+      svg.append(node('circle', { cx: x(at), cy: yBench(benchNow), r: 4.5, class: 'curve-dot' }));
+      const legend = el('div', { className: 'curve-legend' },
+        el('span', { className: 'key bench', textContent: t('wizard.curve.bench') }),
+        el('span', { className: 'key fat', textContent: t('wizard.curve.fat') }),
+        el('span', { className: 'key past', textContent: t('wizard.curve.past') }));
+      const past = inputs.exercise > peak.exercise + 0.02;
+      curveBox.replaceChildren(el('b', { className: 'curve-title', textContent: t('wizard.curve.title') }), svg, legend,
+        el('p', { className: past ? 'hint curve-warn' : 'hint', textContent: past ? t('wizard.curve.over', { hours: Math.round(game.hours(peak.exercise)) }) : t('wizard.curve.under') }));
+    };
+    const trainingCurve = () => {
+      curveBox = el('div', { className: 'curve', ariaLive: 'polite' });
+      curveKey = '';
+      curvePoints = [];
+      drawTrainingCurve();
+      return curveBox;
     };
     const stats = () => {
+      curveBox = null;
       statsBox = el('div', { className: 'stats', ariaLive: 'polite' });
       refreshStats();
       return statsBox;
@@ -632,13 +712,27 @@ export function installMenus(game) {
         stats(),
       );
     }
+    // The Eating slider's travel, geometric between its ends (the user's call, 2026-11-24: finer on the left): each step
+    // of travel the same share more food, so the everyday 1,500–3,500 kcal take half the bar, not a third.
+    function eatingScale(low, high) {
+      const from = Math.floor(low / 10) * 10;
+      const to = Math.ceil(high / 10) * 10;
+      const positions = 400;
+      const ratio = Math.log(to / from);
+      return {
+        positions,
+        toValue: (position) => Math.round((from * Math.exp((ratio * position) / positions)) / 10) * 10,
+        toPosition: (kcal) => Math.round((positions * Math.log(Math.max(from, Math.min(to, kcal)) / from)) / ratio),
+      };
+    }
     function stepTraining(content) {
       const [low, high] = game.calorieRange(inputs);
       content.append(
         el('p', { className: 'hint', textContent: t('wizard.fatHint') }),
         slider({ label: t('wizard.training.label'), min: 0, max: 1, step: 0.01, get: () => inputs.exercise, set: (value) => { inputs.exercise = value; }, show: (value) => t('wizard.hours', { n: Math.round(game.hours(value)) }) }),
-        slider({ label: t('wizard.eating'), min: Math.floor(low / 10) * 10, max: Math.ceil(high / 10) * 10, step: 10, get: () => inputs.calories, set: (value) => { inputs.calories = value; }, show: (value) => t('wizard.kcal', { n: Math.round(value).toLocaleString(getLang() === 'zh' ? 'zh-CN' : 'en') }) }),
+        slider({ label: t('wizard.eating'), get: () => inputs.calories, set: (value) => { inputs.calories = value; }, scale: eatingScale(low, high), show: (value) => t('wizard.kcal', { n: Math.round(value).toLocaleString(getLang() === 'zh' ? 'zh-CN' : 'en') }) }),
         stats(),
+        trainingCurve(),
       );
     }
     function stepStyle(content) {

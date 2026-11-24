@@ -1086,6 +1086,9 @@ export function buildBody(rawInputs) {
   const aged = ageing(inputs, { bodyFat: composition.bodyFat, starving });
   // A build's `strength`: force per kilogram of its muscle (or motor) against a man's.
   const muscleQuality = (aged.strength / aged.muscle ** BODY.allometryExponent) * (build?.strength ?? 1);
+  // The same for the stat sheet without starvation, which the sheet weighs on its own (physiology.js STATS.starvationWeakness).
+  const unstarved = build ? null : ageing(inputs, { bodyFat: composition.bodyFat });
+  const ageQuality = unstarved ? unstarved.strength / unstarved.muscle ** BODY.allometryExponent : 1;
 
   // A build's own proportions (`lengths`, shares of height) over a man's.
   const lengths = {};
@@ -1217,7 +1220,7 @@ export function buildBody(rawInputs) {
   const aerobic = (build?.aerobic ?? inputs.aerobic ?? clamp((0.45 + 0.6 * inputs.training - 1.2 * Math.max(0, inputs.bodyFat - 0.15)) * aged.aerobic, 0.1, 1.1)) * packed;
 
   return {
-    inputs, heightM, statureM, massKg: massKg + gearKg, bodyMassKg: massKg, gearKg, gear, leanKg, muscleKg, boneKg, fatKg, ffmi, boneDensity, bone, muscleQuality, neckIndex, composition, tScore,
+    inputs, heightM, statureM, massKg: massKg + gearKg, bodyMassKg: massKg, gearKg, gear, leanKg, muscleKg, boneKg, fatKg, ffmi, boneDensity, bone, muscleQuality, ageQuality, neckIndex, composition, tScore,
     // The years: shares of a young body's (aging.js); joints 1 young; stoop, the back's forward lean (rad).
     aged, joints: aged.joints, stoop: aged.stoop,
     lengths, segments, masses, motorForce, muscleForce, strikeForce, topSpeed, aerobic,

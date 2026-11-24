@@ -45,9 +45,13 @@ export const PHYSIOLOGY = {
   essentialFatKg: { male: 0.6, female: 2 },
   // The fat a fed body keeps (a share of its weight): a hard-training man eats to his work, and below ~8% (a woman ~15%) hunger
   // and the hormones defend it; contest bodybuilders get under it for days, not years. Only a body fed to at least
-  // `fedFromBmi`: the starving go on down to essential fat.
-  fedFat: { male: 0.08, female: 0.15, fedFromBmi: 18.5 },
+  // `fedFromBmi`: the starving go on down to essential fat, the defence given up gradually down to `starvedBmi` (a hard
+  // switch at one BMI made one notch more training drop body fat 8% to 3%, and strength with it).
+  fedFat: { male: 0.08, female: 0.15, fedFromBmi: 18.5, starvedBmi: 12 },
   bmi: { min: 10, max: 100 },
+  // Past 60 the body spends less than its lean and fat predict, ~0.7% a year (Pontzer et al. 2021, Science: adjusted
+  // total and basal expenditure both), from organs and cells that run slower, not only from muscle lost.
+  metabolicAgeing: { from: 60, perYear: 0.007 },
   weeksSimulated: 780, // fifteen years: enough for any diet to settle
   // Bone density as a T-score: loading from exercise and from carried mass
   // raises it; starvation (fat below the essential-plus margin) strips it.
@@ -96,8 +100,10 @@ function leanCurve(inputs, frameLean) {
 function fedFloor(inputs, { lean, fat }) {
   const weight = lean + fat;
   const height = inputs.heightCm / 100;
-  const floor = PHYSIOLOGY.fedFat[inputs.sex] ?? PHYSIOLOGY.fedFat.male;
-  if (weight / (height * height) < PHYSIOLOGY.fedFat.fedFromBmi || fat >= floor * weight) return { lean, fat };
+  const { fedFromBmi, starvedBmi } = PHYSIOLOGY.fedFat;
+  const defended = Math.max(0, Math.min(1, (weight / (height * height) - starvedBmi) / (fedFromBmi - starvedBmi)));
+  const floor = (PHYSIOLOGY.fedFat[inputs.sex] ?? PHYSIOLOGY.fedFat.male) * defended;
+  if (fat >= floor * weight) return { lean, fat };
   return { lean: weight * (1 - floor), fat: weight * floor };
 }
 
@@ -127,11 +133,17 @@ export function restingMetabolism(lean, fat) {
   return Math.max(400, PHYSIOLOGY.rmrPerLeanKg * lean + PHYSIOLOGY.rmrPerFatKg * fat + PHYSIOLOGY.rmrBase);
 }
 
+/** What age leaves of the expenditure lean and fat predict (PHYSIOLOGY.metabolicAgeing). */
+export function metabolicAge(age = 27) {
+  const { from, perYear } = PHYSIOLOGY.metabolicAgeing;
+  return 1 - perYear * Math.max(0, age - from);
+}
+
 /** Total daily energy expenditure, kcal/day. */
 export function dailyExpenditure(inputs, lean, fat) {
   const weight = lean + fat;
   const exercise = (exerciseHours(inputs.exercise) * PHYSIOLOGY.exerciseKcalPerKgHour * weight) / 7;
-  return restingMetabolism(lean, fat) * PHYSIOLOGY.dailyActivityFactor + PHYSIOLOGY.everydayKcalPerKg * weight + exercise;
+  return (restingMetabolism(lean, fat) * PHYSIOLOGY.dailyActivityFactor + PHYSIOLOGY.everydayKcalPerKg * weight) * metabolicAge(inputs.age) + exercise;
 }
 
 const settledBodies = new Map();
@@ -174,7 +186,7 @@ function simulateComposition(inputs, frameLean) {
     if (Math.abs(balance) > 15) weeks = week + 1;
   }
   const weight = lean + fat;
-  return { lean, fat, weight, bodyFat: fat / weight, bmi: weight / (height * height), rmr: restingMetabolism(lean, fat), tdee: dailyExpenditure(inputs, lean, fat), weeks, capped };
+  return { lean, fat, weight, bodyFat: fat / weight, bmi: weight / (height * height), rmr: restingMetabolism(lean, fat) * metabolicAge(inputs.age), tdee: dailyExpenditure(inputs, lean, fat), weeks, capped };
 }
 
 function scaleToWeight(inputs, weight, frameLean) {
@@ -257,9 +269,11 @@ export const STATS = {
   bench: { k: 5.327, exponent: 0.75, base: 0.9, carried: 4 },
   grip: { k: 3.024, exponent: 0.5, base: 2.5, carried: 0 },
   femaleUpperBody: 0.82,
-  // Starvation saps contractile force far beyond the muscle lost:
-  // electrolytes, glycogen, fibre damage.
-  starvationWeakness: 12,
+  // Starvation saps contractile force far beyond the muscle lost: electrolytes, glycogen, fibre damage. Mild at first (the
+  // Minnesota men, BMI ~16.5 at ~5% fat, had lost about a quarter to a third of their strength), then sudden near the
+  // end (anorexia's last stage, BMI ~9): 1 / (1 + k·s^p), s half the fat's starvation and half the weight's below
+  // `fromBmi` (to 1 at `fromBmi − span`). Fat alone cannot tell BMI 13 from BMI 9: both are down to essential fat.
+  starvationWeakness: { k: 12, power: 3, fromBmi: 18.5, span: 9.5 },
   // Sprint: horizontal force from the legs (N per kg^2/3 of leg muscle);
   // top speed from leg length, cut by carried mass beyond a reference.
   sprintForcePerMuscle: 120,
@@ -290,12 +304,16 @@ export function deriveStats(body) {
   const recruitment = 0.55 + 0.55 * exercise;
   // A fixed build (a robot, an animal) is not fed: never starving.
   const starving = inputs.build ? 0 : starvation(inputs, composition.bodyFat);
-  const weakness = 1 / (1 + STATS.starvationWeakness * starving * starving);
+  const { k, power, fromBmi, span } = STATS.starvationWeakness;
+  const wasted = inputs.build ? 0 : 0.5 * Math.min(1, starving) + 0.5 * Math.max(0, Math.min(1, (fromBmi - composition.bmi) / span));
+  const weakness = 1 / (1 + k * wasted ** power);
   const muscle = (keys) => keys.reduce((sum, key) => sum + segments[key].tissue.muscle, 0);
   const legs = muscle(['lThigh', 'rThigh', 'lShank', 'rShank']);
   const arms = muscle(['lUpperArm', 'rUpperArm', 'lForearm', 'rForearm']);
   const trunk = segments.trunk.tissue.muscle;
-  const lift = (spec, upperBody) => spec.k * body.muscleKg ** spec.exponent * (spec.base + exercise) * (upperBody && inputs.sex === 'female' ? STATS.femaleUpperBody : 1) * weakness;
+  // The years weaken each kilo of muscle left (aging.js, body.js `ageQuality`): the fight's force has it, so the sheet does.
+  const aged = body.ageQuality ?? 1;
+  const lift = (spec, upperBody) => spec.k * body.muscleKg ** spec.exponent * (spec.base + exercise) * (upperBody && inputs.sex === 'female' ? STATS.femaleUpperBody : 1) * weakness * aged;
   const squat = lift(STATS.squat, false) - STATS.squat.carried * massKg;
   const bench = lift(STATS.bench, true) - STATS.bench.carried;
   const grip = lift(STATS.grip, true);
