@@ -44,21 +44,24 @@ export const MAIMING = {
   flowExponent: 0.75,
   vessels: {
     // A hand off: the radial and ulnar arteries at the wrist.
-    wrist: { flow: 116, clamp: 0.28, clot: 90 },
+    wrist: { flow: 116, real: 17.5, clamp: 0.28, clot: 90 },
     // The forearm off: the brachial at the elbow (~4 mm), where it divides.
-    elbow: { flow: 141, clamp: 0.2, clot: 140 },
+    elbow: { flow: 141, real: 31.5, clamp: 0.2, clot: 140 },
     // The arm off at the shoulder: the axillary and the top of the brachial (~6 mm).
-    shoulder: { flow: 149, clamp: 0.1, clot: 200 },
+    shoulder: { flow: 149, real: 42, clamp: 0.1, clot: 200 },
     // A foot off: the tibial arteries at the ankle.
-    ankle: { flow: 128, clamp: 0.25, clot: 90 },
+    ankle: { flow: 128, real: 15.75, clamp: 0.25, clot: 90 },
     // The leg off at the knee: the popliteal (~6 mm).
-    knee: { flow: 160, clamp: 0.15, clot: 160 },
+    knee: { flow: 160, real: 38.5, clamp: 0.15, clot: 160 },
     // The leg off at the hip: the femoral (~8-10 mm), the worst there is short of the neck.
-    hip: { flow: 185, clamp: 0.05, clot: 240 },
+    hip: { flow: 185, real: 66.5, clamp: 0.05, clot: 240 },
   },
   // A clamped artery: this share of the flow, closing in this share of the time.
   clamped: { flow: 0.3, clot: 0.4 },
-  // A limb ruined by the edge and broken there (not off): the vessel torn, not cut: this share of the flow, never clamped.
+  // A limb ruined by the edge and broken there (not off): the vessel torn, not cut: this share of its `real` flow (the open
+  // artery's physiological flow, before the play setting above), never clamped. The play setting was for a limb off
+  // (aaf86fa); the torn vessel took it too, and once cuts broke bones often (squareness, 56d34d7) a forearm run through and
+  // broken dropped a man in ~9 s. Now ~45 s at the elbow, ~20 s at the hip.
   ruin: { flow: 0.7 },
   // Dead past this many times what collapses him: collapse at ~21 % of the blood (collapseAt × toughness: weak, faint,
   // down), death at ~45 % (class IV haemorrhage). A thigh off kills in a minute or two, an arm at the shoulder in two or
@@ -115,7 +118,7 @@ export function openArtery(fighter, level, random, { ruin = false } = {}) {
   const spec = MAIMING.vessels[level];
   const clamped = !ruin && random() < spec.clamp;
   const size = ((fighter.body.bodyMassKg ?? fighter.body.massKg ?? MAIMING.flowRefKg) / MAIMING.flowRefKg) ** MAIMING.flowExponent;
-  const flow = spec.flow * size * (ruin ? MAIMING.ruin.flow : clamped ? MAIMING.clamped.flow : 1);
+  const flow = (ruin ? spec.real * MAIMING.ruin.flow : spec.flow * (clamped ? MAIMING.clamped.flow : 1)) * size;
   const vessel = { level, rate: flow / bloodMl(fighter), clot: spec.clot * (clamped ? MAIMING.clamped.clot : 1), clamped };
   (fighter.vessels ??= []).push(vessel);
   return vessel;
