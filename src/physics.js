@@ -15,7 +15,7 @@ import { BLADES, edgeProofOf, bleedRate, bleedToLose, bulletRegion, SHIELDS, WEA
 import { desiredPose, lockedHead, POSE, restArmAngle, restPose, twoBoneIK, unleaned, vec, yawCos, yawRotate, yawSin } from './pose.js';
 import { WORLD } from './physics/config.js';
 import { gapChance, gapExposure, gapsOf, gapUnder, gapZoneAt, hungOff, rigidAt } from './physics/gaps.js';
-import { limbTwist, swivelIntoRange, trunkAxes, turnAbout, twistExcess } from './joints.js';
+import { limbTwist, shoulderBehindLimit, shoulderRangeOf, swivelIntoRange, trunkAxes, turnAbout, twistExcess } from './joints.js';
 import { aimTargets, CYLINDER_LOAD, drawBow, emptied, fire, flyArrows, loadStop, LONG_GUN, MAGAZINE_CHANGE, raisedAim, reload, reloadKind, sightsOn, SUPPORT_GRIP, TUBE_LOAD } from './physics/ranged.js';
 import { clinchGrip, countPin, drive, holdClinch, holdPin, neckLow, pinnedBy, pinPoints, startPin } from './physics/grappling.js';
 import { flyNets } from './physics/net.js';
@@ -6175,6 +6175,9 @@ function solveJointLimits(world, fighter, h) {
   // swinging legs give his pelvis (the knee's hinge goes with the thigh, not the pelvis). Held to the pelvis's front, a pelvis
   // swung 30-50 degrees by the stride pushed every straightened knee out sideways: the knees flew wide.
   const kneeForward = fighter.runPose > 0 ? vec.normalize(vec.lerp(forward, runForward(fighter, trunkUp), fighter.runPose)) : forward;
+  // The shoulders' own frame (their line, not the hips'): the upper arm's range is measured in it.
+  const shoulderAxes = limp ? null : trunkAxes(pelvis, neck, point(fighter.x, P.lShoulder), point(fighter.x, P.rShoulder));
+  const shoulderRange = shoulderRangeOf(fighter.body);
 
   for (const side of ['l', 'r']) {
     const sign = side === 'l' ? 1 : -1;
@@ -6189,6 +6192,7 @@ function solveJointLimits(world, fighter, h) {
     // Hips: the thigh swings within a cone about straight down.
     coneLimit(world, fighter, `${side}Hip`, P[`${side}Hip`], P[`${side}Knee`], vec.scale(trunkUp, -1), limp ? WORLD.ragdoll.hipCone : WORLD.joint.hipCone);
     if (limp) coneLimit(world, fighter, null, P[`${side}Shoulder`], P[`${side}Elbow`], vec.scale(trunkUp, -1), WORLD.ragdoll.shoulderCone);
+    else if (shoulderAxes) holdShoulder(fighter, side, shoulderAxes, shoulderRange);
     foldLimit(fighter, P[`${side}Hip`], P[`${side}Foot`], WORLD.minFold.leg);
     foldLimit(fighter, P[`${side}Shoulder`], P[`${side}Hand`], WORLD.minFold.arm);
   }
@@ -6205,6 +6209,40 @@ function solveJointLimits(world, fighter, h) {
   if (limp) solveConstraints(fighter, h, true);
   if (limp || fighter.state === 'rising') keepOutOfTrunk(fighter);
   else keepArmsOffRibs(fighter);
+}
+
+/**
+ * The shoulder's range on his feet (WORLD.joint.shoulder): an upper arm
+ * pointing further behind the trunk than the joint goes (a two-handed grip
+ * dragged round by a turning trunk, a blow on the arm, a weapon's swing) is
+ * turned forward about the shoulder to the edge of its range, the forearm
+ * carried with it so the elbow's bend is kept. Shared with the trunk by mass
+ * and capped per substep, as the other limits are (correctJoint).
+ */
+function holdShoulder(fighter, side, axes, range) {
+  const shoulder = point(fighter.x, P[`${side}Shoulder`]);
+  const upper = vec.sub(point(fighter.x, P[`${side}Elbow`]), shoulder);
+  const length = vec.length(upper);
+  if (length < 1e-6) return;
+  const along = vec.dot(upper, axes.forward) / length;
+  const elevation = Math.asin(Math.max(-1, Math.min(1, vec.dot(upper, axes.up) / length)));
+  const limit = shoulderBehindLimit(range, elevation);
+  if (Math.asin(Math.max(-1, Math.min(1, -along))) <= limit) return;
+  // The same way out from the trunk (up and across kept in proportion), brought forward to the limit.
+  const rest = vec.sub(upper, vec.scale(axes.forward, along * length));
+  if (vec.length(rest) < 1e-6) return;
+  const limited = vec.scale(vec.add(vec.scale(axes.forward, -Math.sin(limit)), vec.scale(vec.normalize(rest), Math.cos(limit))), length);
+  // The turn that takes the upper arm there, given to the forearm too.
+  const axis = vec.cross(upper, limited);
+  const sin = vec.length(axis) / (length * length);
+  if (sin < 1e-6) return;
+  const angle = Math.atan2(sin, vec.dot(upper, limited) / (length * length));
+  const unit = vec.normalize(axis);
+  const hand = P[`${side}Hand`];
+  const lower = vec.sub(point(fighter.x, hand), point(fighter.x, P[`${side}Elbow`]));
+  correctJoint(fighter, P[`${side}Elbow`], [P[`${side}Shoulder`]], vec.sub(limited, upper));
+  const elbow = point(fighter.x, P[`${side}Elbow`]);
+  correctJoint(fighter, hand, [], vec.sub(vec.add(elbow, turnAbout(lower, unit, angle)), point(fighter.x, hand)));
 }
 
 /**

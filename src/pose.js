@@ -4,7 +4,7 @@
 
 import { P, PARTICLES } from './body.js';
 import { WORLD } from './physics/config.js';
-import { swivelIntoRange, trunkAxes } from './joints.js';
+import { shoulderRangeOf, swivelIntoRange, trunkAxes } from './joints.js';
 
 export const POSE = {
   // Orthodox stance, bladed so the lead (left) side faces the opponent.
@@ -27,6 +27,14 @@ export const POSE = {
   // A polearm's rear hand drives from beside the hip, as far back as its
   // shoulder: the run-up a thrust needs. The front arm holds forward.
   polearmRearReach: 0,
+  // ...and, held, it is ahead of its shoulder's coronal plane (the trunk's own front, however the trunk has turned) by
+  // this share of the forearm, the haft moved forward with it: both arms forward of the trunk, the rear elbow at the
+  // side and not round behind it, as spearmen and pikemen hold (the user's call, 2026-11-24: with a pole arm the arms
+  // lean forward). Drawing a thrust back it may come to the plane itself (`polearmRearWindup`), no further; driving one
+  // home, the stroke's own path has it (held forward through the stroke too, the polearms won more often: a guard's
+  // matter, not the blow's).
+  polearmRearAhead: 0.6,
+  polearmRearWindup: 0,
   weaponPole: [0.25, -1, 0.6],
   // A weapon hand drawn in under its shoulder (a polearm's rear hand at the
   // hip) leaves "down" no way to bend the elbow, and the pole's outward part
@@ -326,6 +334,8 @@ export function desiredPose(body, intent = {}) {
   const margin = WORLD.limbTwist.softBand;
   const weaponShift = intent.weaponArms ? clearOfTrunk(body, out, intent) : null;
   const shoulderAxes = trunkAxes(out[P.pelvis], out[P.neck], out[P.lShoulder], out[P.rShoulder]);
+  const haftShift = polearmForward(body, out, intent, shoulderAxes, weaponShift);
+  const shoulderRange = shoulderRangeOf(body);
   const hipAxes = trunkAxes(out[P.pelvis], out[P.neck], out[P.lHip], out[P.rHip]);
   for (const side of ['l', 'r']) {
     const hip = out[P[`${side}Hip`]];
@@ -358,6 +368,7 @@ export function desiredPose(body, intent = {}) {
     const swinging = second ? intent.offSwinging : intent.swinging;
     let wanted = intent[`${side}Hand`] ?? guardPoint;
     if (weaponArm && weaponShift) wanted = vec.add(wanted, weaponShift);
+    if (weaponArm && haftShift) wanted = vec.add(wanted, haftShift);
     if (weaponArm) {
       const reach = windingUp ? POSE.weaponWindupReach : intent.polearmRear === side ? POSE.polearmRearReach : intent.weaponReach ?? POSE.weaponReach;
       wanted = [Math.max(wanted[0], shoulder[0] + reach * H), wanted[1], wanted[2]];
@@ -372,11 +383,30 @@ export function desiredPose(body, intent = {}) {
     const elbow = twoBoneIK(shoulder, target, L.upperArm, L.forearmToFist, pole);
     // Not mid-stroke: a swing's own path through the arm is what drives the blade.
     // A shield arm's forearm lies where the shield's straps put it.
-    out[P[`${side}Elbow`]] = (weaponArm && (swinging || windingUp)) || intent.shieldArm === side ? elbow : swivelIntoRange(shoulderAxes, 'arm', side, shoulder, elbow, target, { bladeDir: weaponArm ? (second ? intent.offBladeDir : intent.bladeDir) : null, margin: weaponArm ? margin : 0 });
+    // Every arm's elbow within the shoulder's range behind the trunk (WORLD.joint.shoulder), whatever else holds it.
+    out[P[`${side}Elbow`]] = (weaponArm && (swinging || windingUp)) || intent.shieldArm === side
+      ? swivelIntoRange(shoulderAxes, 'arm', side, shoulder, elbow, target, { shoulder: shoulderRange, twist: false })
+      : swivelIntoRange(shoulderAxes, 'arm', side, shoulder, elbow, target, { bladeDir: weaponArm ? (second ? intent.offBladeDir : intent.bladeDir) : null, margin: weaponArm ? margin : 0, shoulder: shoulderRange });
     // (A free arm's elbow kept clear of the trunk's side: POSE.armClear.)
     if (!weaponArm && intent.shieldArm !== side) out[P[`${side}Elbow`]] = elbowClearOfTrunk(body, shoulderAxes, out[P.pelvis], shoulder, out[P[`${side}Elbow`]], target);
   }
   return out;
+}
+
+/**
+ * How far to move both hands on a polearm (the haft with them) so that the
+ * rear hand is ahead of its shoulder's coronal plane by POSE.polearmRearAhead
+ * of the forearm (`polearmRearWindup` drawing a thrust back). Null if it is.
+ */
+function polearmForward(body, out, intent, axes, shift) {
+  const rear = intent.polearmRear;
+  if (!rear || !axes || !intent[`${rear}Hand`] || intent.swinging) return null;
+  const hand = shift ? vec.add(intent[`${rear}Hand`], shift) : intent[`${rear}Hand`];
+  const ahead = (intent.windingUp ? POSE.polearmRearWindup : POSE.polearmRearAhead) * body.lengths.forearmToFist;
+  const short = ahead - vec.dot(vec.sub(hand, out[P[`${rear}Shoulder`]]), axes.forward);
+  // Straight ahead along his way (local +x), not along the trunk's front: a bladed trunk's front points out over the rear
+  // side, and moved that way the hand went out wide of the hip and turned the forearm out past its range.
+  return short > 0 ? [short / Math.max(0.5, axes.forward[0]), 0, 0] : null;
 }
 
 /** Which way a weapon arm's elbow bends: down and out, and back as the hand comes in under the shoulder. */

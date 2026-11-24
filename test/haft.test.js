@@ -36,7 +36,9 @@ test('the kanabo strikes along all its length: near the hands slower and weaker 
 
 test('a spear point laid on a bare man as the thrust begins is driven in: it stabs, not lost because it touched him first', () => {
   // Before the fix this thrust met him slowly at the start of its drive, was put down as no blow, and never tested again: a miss.
-  const { hit } = strikeAt('spear', 'spearThrust', 'body', 1.9);
+  // (2.1 m, was 1.9: the rear hand is held ahead of the hip since (pose.js polearmRearAhead), the haft ~0.2 m further out
+  // at guard, so his point lies on him from that much further off.)
+  const { hit } = strikeAt('spear', 'spearThrust', 'body', 2.1);
   assert.ok(hit, 'it lands');
   assert.equal(hit.target, 'trunk');
   assert.ok(hit.pierce > 20 && hit.effects.some((effect) => /stabbed|run through/.test(effect)), `a wound (${hit?.pierce.toFixed(0)} J of point)`);
