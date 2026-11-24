@@ -61,7 +61,10 @@ test('a cut met in the window is deflected: no harm to him, the striker pays the
 test('a guard held past its time is down: the blow lands', () => {
   const held = meet('katana', 'kesagiri', 'katana', { lead: 0, hold: WORLD.deflect.holdFor + 0.2 });
   assert.ok(!held.kinds.includes('deflect') && !held.kinds.includes('parry'), `held too long: ${held.kinds.join(', ')}`);
-  assert.ok(held.harm > 0.05, `the blow lands (${held.harm.toFixed(3)})`);
+  // (It lands as a cut: on the arm in the way it now goes deep and stops in it, a limb taking a strong square cut to part,
+  // BLADES.tissueCut, where before it took the arm off and most of his health with it.)
+  const cut = Math.max(0, ...held.events.filter((event) => event.kind === 'landed' || event.kind === 'blocked').map((event) => event.cut ?? 0));
+  assert.ok(held.harm > 0.05 || cut > 30, `the blow lands (${held.harm.toFixed(3)}, a cut of ${cut.toFixed(0)} J)`);
   const { world, man } = pair('boxing', 'katana');
   man.guardUp = true;
   // (Half way from the end of his window to WORLD.deflect holdFor.)
