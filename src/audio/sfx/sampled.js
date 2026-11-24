@@ -8,7 +8,7 @@
 // blade's scrape), the synth plays that part beside the take.
 //
 // Footsteps: the ground's own take (stone, grass, mud, water; earth from grass), walk or run by the pace, weighed by the man (STEP_WEIGHT),
-// shaped by what is on his foot (SHOE_STEPS), with the armour's clank on top for plate or mail; heels on a hard floor (stone, tile, boards) click (the recorded heels; boards, the
+// shaped by what is on his foot (SHOE_STEPS), with the armour's clank, jingle or rattle on top at its own level (STEP_ARMOUR); heels on a hard floor (stone, tile, boards) click (the recorded heels; boards, the
 // ring's canvas among them, are otherwise the synth's). Hooves: on hard ground or soft by the surface, by the gait; the neigh recorded. Blows: a helmet rings, a wooden shield
 // (or a haft) knocks, a fist, foot, knee or elbow on the body punches, the fist's whoosh rises into it; thunder near cracks, far rumbles.
 // A man going down thuds (the recorded body fall; in plate or mail the crash of his kit over it), a whip's tip cracks on what it lashes, a
@@ -221,12 +221,22 @@ export const stepWeight = (mass) => sfxClamp(((mass ?? 80) - STEP_WEIGHT.light) 
  */
 // (Mail its own recording since 2026-11-18, raised to be heard over the step (the clip is quiet: rings, not plates); hard leather
 // (a riot shell, a gladiator's hide) the lamellar rattle low and soft, a creak, in place of a recording of its own; quilting none.)
-const STEP_ARMOUR = {
+// Since 2026-11-24 each armour is played at its own level, not the footfall's (sfx/step.js ARMOUR_MOVE, levelOfParts): as loud on
+// grass, earth and sand as on stone. Lamellar and scale were the quietest iron (1.1: the takes are short, a few small plates each, 3-7
+// dB under plate's clank at the same trim) and are raised to plate's; near the ear (`settle.within` m) a second take follows the
+// first as the rows of plates fall back against each other (`delay` s, a little lower), the rattle of many plates, not one.
+export const STEP_ARMOUR = {
   plate: { set: 'armourstep', trim: 1.45, rate: 1 },
   mail: { set: 'mailstep', trim: 1.5, rate: 1 },
-  lamellar: { set: 'lamellarstep', trim: 1.1, rate: 1 },
+  lamellar: { set: 'lamellarstep', trim: 1.5, rate: 1, settle: { trim: 0.75, rate: 0.9, delay: 0.07, within: 4 } },
   leather: { set: 'lamellarstep', trim: 0.4, rate: 0.7 },
 };
+/**
+ * The armour's pitch by what he carries (`kit`, kg, the step event's: sfx/step.js ARMOUR_MOVE): heavier plates lower, as
+ * (kg / kit)^power within `range`; an event without it is taken at `kg`.
+ */
+const STEP_ARMOUR_KIT = { kg: 20, power: 0.15, range: [0.88, 1.1] };
+const kitRate = (kit) => sfxClamp((STEP_ARMOUR_KIT.kg / Math.max(1, kit ?? STEP_ARMOUR_KIT.kg)) ** STEP_ARMOUR_KIT.power, ...STEP_ARMOUR_KIT.range);
 // A horse's armour (and his rider's) heard with the hoof: a share of a man's step's loudness (each comes with two hooves a stride, the
 // rider's with one), the bard's a little lower (a horse's bigger plates on a heavier body).
 const HOOF_ARMOUR = { trim: 0.85, bardRate: 0.85 };
@@ -234,6 +244,14 @@ function armourTake(armour, strength, rate, jitter) {
   const spec = STEP_ARMOUR[armour];
   if (!spec) return null;
   return { set: spec.set, trim: spec.trim * sampleLerp(0.8, 1.3, strength), rate: rate * spec.rate * jitter(0.05), seconds: null, fade: 0.06, skip: 0 };
+}
+/** The armour's takes with a step or a hoof at `share` of the event's gain (levelOfParts' armourGain): its take, and its settle near the ear. */
+function armourTakes(armour, strength, rate, jitter, share) {
+  const take = armourTake(armour, strength, rate, jitter);
+  if (!take) return [];
+  take.trim *= share;
+  const settle = STEP_ARMOUR[armour].settle;
+  return settle ? [take, { ...take, trim: take.trim * settle.trim, rate: take.rate * settle.rate * jitter(0.05), delay: (take.delay ?? 0) + settle.delay, within: settle.within }] : [take];
 }
 
 function groundStep(params, event, jitter) {
@@ -247,8 +265,11 @@ function groundStep(params, event, jitter) {
   // What is on his foot (SHOE_STEPS), as far as this ground lets it be heard.
   const shoe = shoeStep(event.shoe, params.surface, sampleStrength(params.pace, 0.5, 6), jitter);
   return {
-    set: run ? ground.run : ground.walk, trim: ground.trim * shoe.trim * 10 ** ((pick(STEP_WEIGHT.gainDb) + paceDb) / 20), rate: ground.rate * shoe.rate * pick(STEP_WEIGHT.rate) * (run ? STEP_PACE.runRate : 1) * jitter(0.04),
-    seconds: null, share: pick(STEP_WEIGHT.length) * shoe.length * (run ? STEP_PACE.runLength : 1), fade: pick(STEP_WEIGHT.fade), skip: 0, lowpass: shoe.lowpass, layers: shoe.layers,
+    set: run ? ground.run : ground.walk, rate: ground.rate * shoe.rate * pick(STEP_WEIGHT.rate) * (run ? STEP_PACE.runRate : 1) * jitter(0.04),
+    // (`groundGain`: the footfall's share of the event's gain, the armour heard with it at its own: sfx/step.js levelOfParts.)
+    trim: ground.trim * shoe.trim * 10 ** ((pick(STEP_WEIGHT.gainDb) + paceDb) / 20) * (params.groundGain ?? 1),
+    seconds: null, share: pick(STEP_WEIGHT.length) * shoe.length * (run ? STEP_PACE.runLength : 1), fade: pick(STEP_WEIGHT.fade), skip: 0, lowpass: shoe.lowpass,
+    layers: params.groundGain === undefined || params.groundGain === 1 ? shoe.layers : shoe.layers.map((layer) => ({ ...layer, trim: layer.trim * params.groundGain })),
     synth: ground.synthGain ? { ...params, armour: 'none' } : null, synthGain: (ground.synthGain ?? 0) * shoe.trim,
   };
 }
@@ -368,16 +389,19 @@ export function samplePlan(type, params, event = {}, random = Math.random) {
     case 'step': {
       // The armour's clank with each step (mail lighter and brighter), over the footfall: a man in plate is heard by his kit
       // before his feet (it was 0.6 and 0.4 of the clip's peak, under the step; raised to carry over it; plate 1.45, was 1.2, a
-      // little louder again: the user's call, 2026-11-18). Lamellar or scale rattles (its own recording).
-      const armour = armourTake(params.armour, sampleStrength(params.pace, 0.5, 6), sfxClamp((85 / Math.max(40, event.mass ?? 85)) ** 0.25, 0.85, 1.15), jitter);
+      // little louder again: the user's call, 2026-11-18). Lamellar or scale rattles (its own recording). Played at its own
+      // level (`armourGain`: sfx/step.js levelOfParts), the harder the faster he goes, lower the more he carries (kitRate).
+      const armour = armourTakes(params.armour, sampleStrength(params.pace, 0.5, 6), kitRate(event.kit), jitter, params.armourGain ?? 1);
       const ground = groundStep(params, event, jitter);
       // The ground recorded (the armour's take on top of it), or the synth's ground under the armour's take, or the synth alone.
       // (The shoe's own layers after the armour's: its plates' tick, its heel's knock, near the ear only.)
       if (ground) {
         const { layers, ...take } = ground;
-        return { ...take, extra: armour ? [armour, ...layers] : layers, synth: ground.synth, synthGain: ground.synthGain };
+        return { ...take, extra: [...armour, ...layers], synth: ground.synth, synthGain: ground.synthGain };
       }
-      return armour ? { ...armour, synth: { ...params, armour: 'none' }, synthGain: 0.8 } : null;
+      if (!armour.length) return null;
+      const [first, ...more] = armour;
+      return { ...first, extra: more, synth: { ...params, armour: 'none' }, synthGain: 0.8 };
     }
     case 'fall':
     case 'land': {
@@ -480,8 +504,10 @@ export function samplePlan(type, params, event = {}, random = Math.random) {
       // scale rattle, plate clanks; lower, as the plates are bigger and the horse heavier: HOOF_ARMOUR), his rider's armour once
       // a stride (`rider`), the faster the gait the harder.
       const strength = sampleStrength(event.speed ?? 3, 1, 12);
-      const extra = [armourTake(event.bard, strength, HOOF_ARMOUR.bardRate, jitter), armourTake(event.rider, strength, 1, jitter)].filter(Boolean).map((take) => ({ ...take, trim: take.trim * HOOF_ARMOUR.trim, delay: 0.01 }));
-      return { set, trim: pace.trim * (wet ? 1.3 : 1), rate: sfxClamp((500 / Math.max(150, event.mass ?? 500)) ** 0.15, 0.85, 1.15) * pace.rate * (wet ? 0.75 : 1) * jitter(0.05), seconds: null, fade: wet ? 0.08 : 0.03, skip: 0, extra, synth: null, synthGain: 0 };
+      // (Each at its own level, the hoof at its: sfx/horse.js horseParams, step.js levelOfParts.)
+      const share = HOOF_ARMOUR.trim * (params.armourGain ?? 1);
+      const extra = [...armourTakes(event.bard, strength, HOOF_ARMOUR.bardRate, jitter, share), ...armourTakes(event.rider, strength, 1, jitter, share)].map((take) => ({ ...take, delay: (take.delay ?? 0) + 0.01 }));
+      return { set, trim: pace.trim * (wet ? 1.3 : 1) * (params.groundGain ?? 1), rate: sfxClamp((500 / Math.max(150, event.mass ?? 500)) ** 0.15, 0.85, 1.15) * pace.rate * (wet ? 0.75 : 1) * jitter(0.05), seconds: null, fade: wet ? 0.08 : 0.03, skip: 0, extra, synth: null, synthGain: 0 };
     }
     case 'shot':
       // A matchlock: the recorded report, the synth's low boom under it (what a recording through a phone has little of).

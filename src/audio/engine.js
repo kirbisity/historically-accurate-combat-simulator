@@ -117,7 +117,8 @@ export function createAudioEngine(env = typeof window === 'undefined' ? null : w
   const listeners = new Set();
   const state = {
     ctx: null, samples: null, buses: null, master: null, mute: null, reverb: null, music: null, ambience: null, farField: null, farMode: null, deafFilter: null, deafGain: null, compressor: null,
-    active: [], world: null, cursor: 0, clock: 0, occlusionClock: 0, probeClock: 0, ambienceClock: 0,
+    // `trace`: a function told each tick what was heard (tools and measurements: the events, the candidates, which got a voice), or null.
+    active: [], world: null, cursor: 0, clock: 0, trace: null, occlusionClock: 0, probeClock: 0, ambienceClock: 0,
     room: copyRoom(OPEN_ROOM), probeHits: new Array(12), terrain: null, roomTest: null,
     breaths: new Map(), whizzed: new WeakSet(), excitement: 0, loud: 0, loudNow: 0, worldBorn: 0,
     // The cries rationed (cries.js), and each side's charge roar (charge.js): { sides (chargeOf's last), beds: corner → { source, gain, chain } }.
@@ -403,6 +404,7 @@ export function createAudioEngine(env = typeof window === 'undefined' ? null : w
     const at = [event.x ?? listener.x, event.y ?? listener.y, event.z ?? listener.z];
     const voice = placeVoice(at, family.bus, { mapWide: candidate.mapWide, atEar: candidate.atEar, direction: candidate });
     if (!voice) return;
+    if (state.trace) candidate.played = true;
     const chain = voice.chain;
     // Thunder far over the sea: placed at the strike's bearing, heard at its own distance.
     if (event.type === 'thunder') {
@@ -495,6 +497,7 @@ export function createAudioEngine(env = typeof window === 'undefined' ? null : w
         if ((e.type === 'hit' && e.energy > 150) || (e.type === 'wound' && e.severity > 0.5) || e.type === 'fall' || (e.type === 'voice' && e.kind === 'death')) state.excitement = Math.min(1, state.excitement + 0.35);
       }
     }
+    state.trace?.({ now, events, candidates, voices: state.active.length, budget: budget() });
     state.loud = Math.max(0, state.loud - 25 * dt);
     state.excitement = Math.max(0, state.excitement - 0.25 * dt);
     // The long voices' walls looked at again as the ear moves (and their pan, on speakers, as the camera turns).
@@ -896,6 +899,10 @@ export function createAudioEngine(env = typeof window === 'undefined' ? null : w
     /** What is going on (the bench, tests): the context's state, voices playing, the room, the far field's sums. */
     status: () => ({ running: state.ctx?.state === 'running', voices: state.active.length, budget: budget(), room: { ...state.room }, sectors, mode: speakers() ? 'stereo' : 'hrtf', music: state.music?.status() ?? null, samples: state.samples?.count() ?? 0, loops: Object.keys(state.ambience?.recorded ?? {}) }),
     context: () => state.ctx,
+    /** Be told each tick what was heard (`fn({ now, events, candidates, voices, budget })`, a candidate `played` if it got a voice); null to stop. */
+    trace(fn) {
+      state.trace = fn ?? null;
+    },
     bench: {
       open(on) {
         state.bench.open = on;

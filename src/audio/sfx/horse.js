@@ -3,7 +3,7 @@
 // falling). The four-beat walk and the three-beat canter come from the events' own timing.
 
 import { bandMakeUp, levelFromEnergy, sfxBurst, sfxEnvelope, sfxFilter, sfxGain, sfxModes, sfxNoise, sfxRun } from '../synth.js';
-import { SURFACES, playStep, stepParams } from './step.js';
+import { ARMOUR_MOVE, SURFACES, levelOfParts, playStep, stepParams } from './step.js';
 
 /** What a horse event sounds like, without a context. */
 export function horseParams(event) {
@@ -19,7 +19,11 @@ export function horseParams(event) {
     const seconds = hard ? 0.08 : 0.12;
     // The hoof is horn: it rings a little on hard ground (a horn shell's knock, lower for a bigger horse).
     const clop = hard ? 650 * (500 / mass) ** 0.25 : 0;
-    return { kind, surface, level: levelFromEnergy(energy, SURFACES[surface].efficiency * (hard ? 2.5 : 1.2), seconds), clop, layer: stepParams({ surface, mass: mass * 0.25, speed: speed * 0.6, depth: event.depth ?? 0 }), seconds };
+    // His bard and his rider's armour (`bard`, `rider`) are shaken by the stride, not rung by the ground: as loud as the hoof on hard
+    // ground, whatever it comes down on (step.js ARMOUR_MOVE), the two heard together (levelOfParts).
+    const armoured = Boolean(event.bard || ARMOUR_MOVE.db[event.rider] !== undefined);
+    const armour = armoured ? levelFromEnergy(energy, SURFACES[ARMOUR_MOVE.ground].efficiency * 2.5, 0.08) : -Infinity;
+    return { kind, surface, ...levelOfParts(levelFromEnergy(energy, SURFACES[surface].efficiency * (hard ? 2.5 : 1.2), seconds), armour), clop, layer: stepParams({ surface, mass: mass * 0.25, speed: speed * 0.6, depth: event.depth ?? 0 }), seconds };
   }
   if (kind === 'snort') return { kind, level: 74, seconds: 0.45, flutter: 32 * (500 / mass) ** 0.2 };
   // A neigh: the larynx of a horse, ~ 500-900 Hz at its height, wavering and falling.
@@ -29,8 +33,10 @@ export function horseParams(event) {
 /** Play a horse event into `out`. Returns the end time. */
 export function playHorse(voice, out, params, when, gain) {
   if (params.kind === 'hoof') {
-    const end = playStep(voice, out, params.layer, when, gain * 0.8);
-    if (params.clop) sfxModes(voice, out, when, [{ f: params.clop, decay: 0.07, amp: 1 }, { f: params.clop * 1.8, decay: 0.05, amp: 0.6 }, { f: params.clop * 3.1, decay: 0.03, amp: 0.3 }], gain);
+    // (The hoof at its share of the event's gain, the armour's beside it played from its recordings: levelOfParts.)
+    const hoof = gain * (params.groundGain ?? 1);
+    const end = playStep(voice, out, params.layer, when, hoof * 0.8);
+    if (params.clop) sfxModes(voice, out, when, [{ f: params.clop, decay: 0.07, amp: 1 }, { f: params.clop * 1.8, decay: 0.05, amp: 0.6 }, { f: params.clop * 3.1, decay: 0.03, amp: 0.3 }], hoof);
     return Math.max(end, when + params.seconds + 0.05);
   }
   if (params.kind === 'snort') {
