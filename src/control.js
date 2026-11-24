@@ -16,7 +16,7 @@ import { BLADES, WEAPONS } from './weapons.js';
 import { rigidAt } from './physics/gaps.js';
 import { handling } from './handling.js';
 import { RUN_STEER, runSteer } from './runsteer.js';
-import { jogSpeed, runSpeed } from './physics/gait.js';
+import { jogSpeed, preferredWalk, runSpeed } from './physics/gait.js';
 import { executable, FINISHER, finishTarget, startFinisher, updateFinisher } from './finisher.js';
 import { lowTarget, startLowStrike, updateLowStrike } from './lowstrike.js';
 import { chargeAt, ringHeading } from './riding.js';
@@ -28,6 +28,13 @@ export const CONTROL = {
   // (his walk-to-run speed, physics/gait.js jogSpeed) to his sprint at full throw, in proportion to the throw between.
   // (The run was 0.88 to 1, at his sprint whatever the throw, and the walk full from 0.8.)
   stick: { deadZone: 0.12, walkFrom: 0.3, fullFrom: 0.55, runFrom: 0.6 },
+  // Free of any man (not locked on, no guard), the stick's walk is his own walk at any pace (walkPace): from the slowest walk
+  // (WORLD.gait.walk.slowest) at the dead zone, through his easy walk (physics/gait.js preferredWalk) at `fullFrom` (the keys'
+  // walk), to his fastest walk (his walk-run switch, gait.js jogSpeed) at `runFrom`, where the run takes it on from a jog: one
+  // continuous speed over the whole throw, no step between the walk and the run.
+  // keys: the keys have no throw, so Shift is held as a pedal: the run's throw (from a jog at the threshold to his sprint) grows from
+  // `runStart` to full over `rampSeconds` of holding it (let go and he eases back to his walk); the keys alone are his easy walk.
+  keys: { runStart: 0, rampSeconds: 1.5 },
   // Run mode (the stick past `runFrom`, or Shift): no guard, weapon carried, faster (WORLD.runMode). A run lasts as long as the stick is
   // held out there (or Shift is): let go and he stops. There is no run lock.
   // - staminaPerSecond: what running flat out costs (stamina is 0..1; divided by his aerobic; it recovers at WORLD.staminaRecovery × aerobic, and
@@ -159,10 +166,11 @@ export function newOrders() {
 
 /**
  * The movement keys held (w a s d and the arrows) as a stick: a way on the
- * floor taken from the camera's own axes (`ahead`, `right`), at full throw,
- * or a run with `running`; null when none are held or they cancel out.
+ * floor taken from the camera's own axes (`ahead`, `right`), at the walk's
+ * full throw, or a run with `running` (at `throttle` of the run's throw:
+ * CONTROL.keys); null when none are held or they cancel out.
  */
-export function keyStick(held, { ahead, right }, running = false) {
+export function keyStick(held, { ahead, right }, running = false, throttle = 1) {
   let along = 0;
   let across = 0;
   for (const key of held) {
@@ -173,7 +181,8 @@ export function keyStick(held, { ahead, right }, running = false) {
   const way = [ahead[0] * along + right[0] * across, ahead[1] * along + right[1] * across];
   const length = Math.hypot(way[0], way[1]);
   if (length < 1e-6) return null;
-  return { dir: [way[0] / length, way[1] / length], amount: running ? 1 : CONTROL.stick.fullFrom };
+  const run = CONTROL.stick.runFrom + (1 - CONTROL.stick.runFrom) * Math.max(0, Math.min(1, throttle));
+  return { dir: [way[0] / length, way[1] / length], amount: running ? run : CONTROL.stick.fullFrom };
 }
 
 /** The movement keys: [ahead, right] on the screen. */
@@ -202,6 +211,27 @@ export function runShare(fighter, share) {
   if (top <= 0) return 0;
   const jog = Math.min(top, jogSpeed(fighter));
   return (jog + (top - jog) * Math.max(0, Math.min(1, share))) / top;
+}
+
+/**
+ * The Shift key's run throttle (0..1) after holding it `held` s (CONTROL.keys): the pedal pressed further the longer it is held.
+ */
+export function keyThrottle(held) {
+  const spec = CONTROL.keys;
+  return Math.min(1, spec.runStart + (1 - spec.runStart) * Math.max(0, held) / spec.rampSeconds);
+}
+
+/**
+ * The pace (m/s) of his free walk at the stick's throw `amount` (CONTROL.stick): the slowest walk at the dead zone, his easy walk
+ * at `fullFrom`, his fastest walk at `runFrom`, straight lines between.
+ */
+export function walkPace(fighter, amount) {
+  const spec = CONTROL.stick;
+  const slowest = WORLD.gait.walk.slowest;
+  const easy = Math.max(slowest, preferredWalk(fighter));
+  const fastest = Math.max(easy, jogSpeed(fighter));
+  if (amount <= spec.fullFrom) return slowest + (easy - slowest) * Math.max(0, (amount - spec.deadZone) / (spec.fullFrom - spec.deadZone));
+  return easy + (fastest - easy) * Math.min(1, (amount - spec.fullFrom) / (spec.runFrom - spec.fullFrom));
 }
 
 /** Where he wants to stand from his man: the edge of his reach, or with a gun room to raise it. */
@@ -296,6 +326,7 @@ function steer(world, fighter, orders, opponent, dt) {
   fighter.strafe = 0;
   fighter.running = false;
   fighter.runMode = false;
+  fighter.walkSpeed = null;
   const locked = orders.lock !== null && opponent?.id === orders.lock;
   const held = orders.stick ?? orders.keyStick;
   const stick = held && held.amount >= CONTROL.stick.deadZone ? held : null;
@@ -338,6 +369,8 @@ function steer(world, fighter, orders, opponent, dt) {
       // A man in his way: the run held to a pace he can brush past him at (runsteer.js).
       if (orders.runSteer.speedCap) fighter.move = Math.min(fighter.move, orders.runSteer.speedCap / runSpeed(fighter, true));
       fighter.running = running && !orders.guard;
+      // Walking free (no guard asked for, no man faced): his own walk at the stick's pace (walkPace), carried as a gait is.
+      if (!fighter.running && !orders.guard && !fighter.mount && !fighter.faceFoe) fighter.walkSpeed = walkPace(fighter, stick.amount);
     }
     // A run is another gait, not the guard hurrying: the weapon carried, nothing guarded, his heading his own. It costs breath.
     fighter.runMode = fighter.running && !fighter.mount;
@@ -433,6 +466,7 @@ function rideStick(world, fighter, orders, stick, opponent, dt) {
   fighter.strafe = 0;
   fighter.running = gallop;
   fighter.runMode = false;
+  fighter.walkSpeed = null;
 }
 
 // ---- The attack pad ----------------------------------------------------------
@@ -1414,6 +1448,7 @@ export function directFighter(world, fighter, orders, dt) {
   fighter.focusAny = Boolean(locked) && orders.lock !== null && !hostile(locked, fighter);
   fighter.faceFoe = facesFoe(world, fighter, orders);
   fighter.runMode = false;
+  fighter.walkSpeed = null;
   fighter.guardHeld = false;
   const opponent = opponentFor(world, fighter);
   // A gun is kept up on the man locked on.

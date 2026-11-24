@@ -174,7 +174,8 @@ test('a sword is carried at the waist in a run, and an enemy close by does not s
     const hand = () => at(me, P[`${me.weapon.main}Hand`])[1] - at(me, P.pelvis)[1];
     const low = hand();
     game.orders.stick = null;
-    game.step(1.5);
+    // (The stop is the gait's, sitting back into the brake until he has stopped, physics.js brakesFromGait; then the guard.)
+    game.step(2);
     assert.equal(me.runMode, false);
     assert.ok(me.runPose < 0.05, `${key}: out of the run pose`);
     assert.ok(hand() > low + 0.1, `${key}: the weapon up in the guard (${low.toFixed(2)} → ${hand().toFixed(2)} m over the hips)`);
