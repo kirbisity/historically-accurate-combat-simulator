@@ -53,13 +53,22 @@ export const AFFLICT = {
     perfuseFrom: 0.15,
     perfuseWatts: 350,
     perfuseLeast: 0.1,
-    // s for hands in plain clothes with no blood to go most of the way (1/e) to where they are held; full cover makes it `keepTau` times
-    // slower. What they are held at: `keep` of the way from the air to the blood under full cover, `clothes` of that in plain clothes
-    // (sleeves, a coat). Water he stands in: `wetTau` times faster, toward the water (no colder than `waterFloor`).
+    // s for bare hands with no blood to go most of the way (1/e) to where they are held; his dress and kit make it up to `keepTau`
+    // times slower. What they are held at: `keep` of the way from the air to the blood, by how well he is wrapped: `clothes` for
+    // ordinary dress (a coat, sleeves, leggings: most men in most places), all of it under full armour's padding, less in thin dress
+    // (`dress`, by outfit: a boxer's trunks, a gladiator's loincloth). Ordinary clothes keep a man standing in Pyongyang's -4 °C from
+    // numbness for a quarter of an hour; a man in a loincloth goes numb in minutes. Water he stands in: `wetTau` times faster, toward the
+    // water (no colder than `waterFloor`), whatever he wears.
     tau: 300,
     keepTau: 2.5,
-    keep: 0.55,
-    clothes: 0.4,
+    keep: 0.5,
+    clothes: 0.85,
+    dress: {
+      none: 0.05, sumo: 0.05, mma: 0.1, sports: 0.2, rags: 0.3, retiarius: 0.1, hoplomachus: 0.15, thraex: 0.15, murmillo: 0.15,
+      secutor: 0.15, commodus: 0.2, lorarius: 0.2, maximus: 0.4, mexicaElite: 0.4,
+      // (A coat of fur of his own.)
+      silverback: 1.1, monkeyFur: 1.1,
+    },
     wetTau: 6,
     waterFloor: 0.5,
     // Chill 0 with the hands at `from` °C, 1 at `full` (numb: grip and fine movement going; Heus et al. 1995, finger skin under ~15 °C).
@@ -167,11 +176,12 @@ export function stepCold(world, fighter, kit, made, dry, dt) {
   const air = world.climate?.air ?? WORLD.heat.reference.air;
   const cold = (fighter.cold ??= { hands: null, harm: 0 });
   const blood = Math.max(spec.perfuseLeast, afflictClamp(spec.perfuseFrom + (made - dry) / spec.perfuseWatts));
-  const cover = afflictClamp(kit.cover);
-  const held = air + (spec.blood - air) * spec.keep * (spec.clothes + (1 - spec.clothes) * cover);
+  const clothes = spec.clothes * (spec.dress[fighter.body.inputs?.outfit?.kind ?? 'none'] ?? 1);
+  const wrapped = Math.min(1.1, clothes + Math.max(0, 1 - clothes) * afflictClamp(kit.cover));
+  const held = air + (spec.blood - air) * spec.keep * wrapped;
   if (cold.hands === null) cold.hands = Math.min(spec.blood - 2, spec.startBlood * spec.blood + (1 - spec.startBlood) * held);
   let target = blood * spec.blood + (1 - blood) * held;
-  let tau = spec.tau * (1 + (spec.keepTau - 1) * cover);
+  let tau = spec.tau * (1 + (spec.keepTau - 1) * Math.min(1, wrapped));
   if (fighter.wading) {
     target = blood * spec.blood + (1 - blood) * Math.max(spec.waterFloor, air);
     tau /= spec.wetTau;

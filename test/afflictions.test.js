@@ -44,25 +44,33 @@ function sickened(smell, steeped, seconds, after = 0) {
   return { world, fighter, most, lowest, gags };
 }
 
-test('cold: idle in Pyongyang\'s winter a man in a plain coat goes numb over minutes; a padded brigandine keeps him warm; nothing in temperate air', () => {
-  const coat = cooled('mingSpear', 'pyongyang', 300);
-  const brigandine = cooled('swordShield', 'pyongyang', 300);
-  assert.ok(coat.chill > 0.3, `coat ${coat.chill}`);
-  assert.ok(brigandine.chill < 0.05, `brigandine ${brigandine.chill}`);
-  assert.ok(cooled('mingSpear', 'pyongyang', 60).chill < 0.1, 'a minute is not yet cold');
-  assert.equal(cooled('unskilled', null, 300).chill, 0);
-  assert.ok(coat.strength < 1, 'cold muscles are weaker');
+test('cold: in Pyongyang\'s winter ordinary clothes and armour keep a man from numbness a long while; only thin dress freezes him fast', () => {
+  const coat = (seconds) => cooled('mingSpear', 'pyongyang', seconds);
+  assert.ok(coat(600).chill < 0.15, `coat, ten minutes still: ${coat(600).chill}`);
+  assert.ok(coat(1800).chill > 0.2, `coat, half an hour still: ${coat(1800).chill}`);
+  assert.ok(cooled('swordShield', 'pyongyang', 1800).chill < coat(1800).chill, 'a brigandine is warmer than a coat');
+  const loincloth = cooled('retiarius', 'pyongyang', 300);
+  assert.ok(loincloth.chill > 0.8 && loincloth.strength < 0.85, `loincloth ${loincloth.chill}`);
+  assert.ok(cooled('mingSpear', 'abdali1619', 1800).chill < 0.1, 'Sarhu\'s spring cold is little in a coat');
+  assert.equal(cooled('unskilled', null, 1800).chill, 0);
 });
 
-test('cold: work warms the hands (a man fighting has heat to spare)', () => {
-  const idle = cooled('mingSpear', 'pyongyang', 300);
-  const working = cooled('mingSpear', 'pyongyang', 300, 0.03);
-  assert.ok(working.chill < idle.chill - 0.3, `${working.chill} vs ${idle.chill}`);
+test('cold: work warms the hands (a man fighting has heat to spare); standing in winter water numbs anyone in minutes', () => {
+  assert.equal(cooled('mingSpear', 'pyongyang', 1800, 0.03).chill, 0);
+  const world = createWorld([{ ...PRESETS.swordShield }], { seed: 1, place: 'pyongyang' });
+  const fighter = world.fighters[0];
+  fighter.wading = { act: 1 };
+  for (let t = 0; t < 300; t += 0.1) {
+    stepHeat(world, fighter, 0.1);
+    heatMark(fighter);
+  }
+  assert.ok(chillOf(fighter) > 0.8, `${chillOf(fighter)}`);
 });
 
 test('cold: harm comes only once the hands are numb, slowly, and never past its most', () => {
-  assert.equal(cooled('unskilled', 'pyongyang', 180).harm, 0);
-  const long = cooled('unskilled', 'pyongyang', 1500);
+  assert.equal(cooled('retiarius', 'pyongyang', 60).harm, 0);
+  assert.equal(cooled('mingSpear', 'pyongyang', 1800).harm, 0);
+  const long = cooled('retiarius', 'pyongyang', 1500);
   assert.ok(long.harm > 0 && long.harm <= AFFLICT.cold.harmMost, `${long.harm}`);
 });
 
