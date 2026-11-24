@@ -34,6 +34,8 @@ import { swayGrass } from './clothwind.js';
 import { coastFarPlaneGuard, coastFort, coastGabions, coastHouses, coastNetRacks, coastPalms, coastPier, coastSampans, coastShip, coastShipMaterials } from './props/coast.js';
 import { buildHarness, buildLionPelt, buildRomanKit, buildScaleShirt, netCord } from './arenaview.js';
 import { ankleFit, footFit } from './footwear.js';
+import { wristFit } from './handform.js';
+import { handHold, updateHands } from './handview.js';
 import { buildAirPack, buildBackBox, buildBackPrint, buildBanner, buildSigns, signsLocal, buildFootwear, buildHand, buildHeadgear, buildSwinging, dressFor, handKind, roleColors, steelEnvironment, steelMaterial, tattooColor, buildHeadProp } from './wardrobe.js';
 import { buildHead, hairCurtain, hairCurtainSoft } from './face.js';
 import { HELM_HEAD_BREADTH, HELM_SPAN } from './helmforms.js';
@@ -2503,7 +2505,14 @@ function detailedView(view, fighter, simple) {
       }
       hand.add(fist, thumb, cuff);
       hand.matrixAutoUpdate = false;
-    } else hand = buildHand(body, side, hands, skinColor, plainSteel, dress.look?.gloves ?? null);
+    } else {
+      // (The hand runs out of the forearm's end as this body was built: handform.js wristFit; in what it is doing: handview.js.)
+      const armFrame = built.bindFrames?.[BONE[`${side}Forearm`]];
+      const handAt = (built.bindPoints ?? bindPoints(body))[P[`${side}Hand`]];
+      const wrist = armFrame && built.positions?.length ? wristFit(built.positions, armFrame, handAt, body.lengths.wristToFist, body.heightM / 1.8, hands !== 'bare') : null;
+      const { hold, radius, slant } = handHold(fighter, side);
+      hand = buildHand(body, side, hands, skinColor, plainSteel, dress.look?.gloves ?? null, { fit: wrist, lowDetail: simple, hold: { hold, radius, slant }, dress });
+    }
     layers.skin.add(hand);
     attachments.push({ object: hand, bone: BONE[`${side}Forearm`], at: P[`${side}Hand`] });
     // (The foot meets the shank's end as this body was built: footwear.js ankleFit.)
@@ -3676,6 +3685,8 @@ export function updateFighterView(fighterView, dt, time) {
     object.matrix.fromArray(frameMatrix({ ...frames[bone], origin: points[at] }));
     object.matrixWorldNeedsUpdate = true;
   }
+  // Each hand in what it is doing (a crowd man's are baked as he stood: none among his attachments).
+  updateHands(fighterView, frames);
   if (fighter.damageVersion !== fighterView.damageVersion) paintDamage(fighterView);
   // A baked crowd fighter has no flesh, face or cloth of his own to move.
   if (fighterView.baked) {
