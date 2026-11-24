@@ -16,9 +16,9 @@ const SEEDS = [0, 1, 2];
 const mean = (values) => values.reduce((sum, value) => sum + value, 0) / Math.max(1, values.length);
 
 /** Falls and rises of one build (RISE_BUILDS entry), over a few seeds: { stood, time (mean of those who stood), braced, crawled }. */
-function rises(entry, seconds = 30) {
+function rises(entry, seconds = 30, seeds = SEEDS) {
   const { inputs, setup } = entry.inputs ? entry : { inputs: entry };
-  const runs = SEEDS.map((seed) => riseAlone(inputs, seed, seconds, { setup })).filter((run) => run.fell);
+  const runs = seeds.map((seed) => riseAlone(inputs, seed, seconds, { setup })).filter((run) => run.fell);
   const stood = runs.filter((run) => run.stood);
   return { runs, stood: stood.length, time: stood.length ? mean(stood.map((run) => run.time)) : Infinity, braced: runs.filter((run) => run.braced).length, crawled: runs.filter((run) => run.crawling).length };
 }
@@ -27,7 +27,8 @@ test('getting up: the starved man is slow and the frail one cannot stand (he cra
   const starved = rises(RISE_BUILDS.starved);
   const light = rises(RISE_BUILDS.light);
   assert.ok(starved.time > light.time * 1.8, `starved ${starved.time.toFixed(1)} s against a light man's ${light.time.toFixed(1)}`);
-  const frail = rises(RISE_BUILDS.frail, 40);
+  // (Five tries, not three: he stalls one to four times and stands in 15-35 s or not at all, so three can all come up by chance.)
+  const frail = rises(RISE_BUILDS.frail, 40, [0, 1, 2, 3, 4]);
   assert.ok(frail.stood < frail.runs.length, `the frail man fails at least once (${frail.stood} of ${frail.runs.length} stood)`);
   for (const run of frail.runs) assert.ok(run.stood || run.crawling || run.tries >= 3, `up, crawling or trying again (${JSON.stringify(run.stalls)})`);
   // The very weakest: he gives it up and lies (out of the fight), every part finite, trying again after a long rest.
