@@ -66,18 +66,24 @@ const BARE_BELOW = 0.12;
  * manicae of lames) and quilted linen where they do not.
  */
 export const ARMOUR_COVERING = {
-  plate: 'plate', breastplate: 'plate', conquistador: 'plate', segmentata: 'plate', toseiDo: 'plate', okegawa: 'plate', robot: 'plate',
-  templar: 'mail', haubergeon: 'mail', hauberk: 'mail', centurion: 'mail', krug: 'mail', krugDisc: 'mail', bekhter: 'mail', cumanMail: 'mail', mailMirror: 'mail',
+  // (The nanban dō: a European breastplate traded east and laced into a samurai's harness.)
+  plate: 'plate', breastplate: 'plate', conquistador: 'plate', segmentata: 'plate', toseiDo: 'plate', okegawa: 'plate', robot: 'plate', nanbanDo: 'plate',
+  // (The hamata: the Republic's legionary's mail shirt.)
+  hamata: 'mail', templar: 'mail', haubergeon: 'mail', hauberk: 'mail', centurion: 'mail', krug: 'mail', krugDisc: 'mail', bekhter: 'mail', cumanMail: 'mail', mailMirror: 'mail',
   lamellar: 'lamellar', oyoroi: 'lamellar', doMaru: 'lamellar', doMaruSode: 'lamellar', hanLamellar: 'lamellar', mingLamellar: 'lamellar', mingEliteLamellar: 'lamellar',
   mongolLamellar: 'lamellar', mongolIron: 'lamellar', kheshig: 'lamellar', ironPagoda: 'lamellar',
   // Small plates riveted inside cloth or sewn over it: a rattle of little plates under the blow.
-  scissor: 'scale', guanYu: 'scale', mingScale: 'scale', mingScaleCoat: 'scale', brigandine: 'scale', mingBrigandine: 'scale', mingEliteInfantry: 'scale', mingElite: 'scale', bannerCoat: 'scale', bayaraCoat: 'scale',
+  // (The cataphract's coat and Koxinga's iron men's broad coat are iron scale.)
+  cataphract: 'scale', ironManScale: 'scale', scissor: 'scale', guanYu: 'scale', mingScale: 'scale', mingScaleCoat: 'scale', brigandine: 'scale', mingBrigandine: 'scale', mingEliteInfantry: 'scale', mingElite: 'scale', bannerCoat: 'scale', bayaraCoat: 'scale',
   // Quilted cotton and linen, felt and cloth over mail (a kazaghand's outside is cloth), a soft vest: the blow lands in padding.
   mingQuilt: 'padded', escaupil: 'padded', ichcahuipilli: 'padded', jaguarSuit: 'padded', featherSuit: 'padded', dolama: 'padded', kazaghand: 'padded',
   mongolDeel: 'padded', patrolVest: 'padded', plateCarrier: 'padded',
   // Hard leather, a lion's hide, a riot suit's moulded shell: a sharp slap, no ring.
   maximus: 'leather', commodus: 'leather', riot: 'leather', heavyRiot: 'leather',
   hoplomachus: null, murmillo: null, secutor: null, retiarius: null, thraex: null,
+  // Cloth, fur or a corset in the armour's place: no armour (a blow meets the man; his steps carry no kit).
+  deel: null, girdle: null, mingVest: null, wuxiaRobe: null, uncu: null, uncuChecks: null, uncuTocapu: null, uncuRoyal: null,
+  corset: null, overbust: null, overbustSleeved: null, silverback: null,
 };
 
 /** What each helm (outfits.js HELMETS, by the design's `head.kind`) is made of: iron and bronze ring as plate; the rest by their stuff. */
@@ -220,7 +226,8 @@ export function soundStep(world, fighter, side, at, speed) {
   const ground = surfaceUnder(world, at[0], at[1], at[2]);
   // `heels`: a heeled boot (outfits.js heels, the gear's lift): it clicks on a hard floor. `shoe`: what is on his feet (the
   // design's `feet.kind`, or bare): it shapes the step (sfx/sampled.js SHOE_STEPS).
-  soundEvent(world, 'step', { at, speed, mass: fighter.body.massKg, surface: ground.surface, depth: ground.depth, armour: armourOf(fighter), heels: (fighter.body.gear?.heelLift ?? 0) > 0, shoe: fighter.body.gear?.cover?.feet ?? 'bare', who: fighter.id, foot: side });
+  // `kit`: what he carries over his body's own mass (kg): the more of it, the louder and lower his armour as he moves (sfx/step.js).
+  soundEvent(world, 'step', { at, speed, mass: fighter.body.massKg, kit: fighter.body.gearKg ?? 0, surface: ground.surface, depth: ground.depth, armour: armourOf(fighter), heels: (fighter.body.gear?.heelLift ?? 0) > 0, shoe: fighter.body.gear?.cover?.feet ?? 'bare', who: fighter.id, foot: side });
 }
 
 // A weapon's tip slower than this (m/s) does not whoosh.

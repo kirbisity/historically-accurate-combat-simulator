@@ -3,7 +3,7 @@
 // tap, snow a crunch. The energy is the foot's (the leg's share of the body, ~15%, at the speed it comes down at, which grows with the
 // pace): a heavier man is louder and lower; his armour moves with every step (a jingle of mail, a clank of plate, a rattle of lamellar).
 
-import { levelFromEnergy, sfxBuffer, sfxBurst, sfxClamp, sfxModes, sfxPlayBuffer, sfxTone, writeCrackle, writeGrains, lowpassInPlace } from '../synth.js';
+import { AUDIO_LEVEL, levelFromEnergy, sfxBuffer, sfxBurst, sfxClamp, sfxModes, sfxPlayBuffer, sfxTone, writeCrackle, writeGrains, lowpassInPlace } from '../synth.js';
 import { playArmourShake } from './impact.js';
 
 /**
@@ -26,7 +26,41 @@ export const SURFACES = {
 const LEG_SHARE = 0.15;
 export const footSpeed = (pace) => 0.35 + 0.25 * Math.max(0, pace);
 
-/** What a step sounds like, without a context: { surface, level, thud (Hz), seconds, splash (0..1), armour }. */
+/**
+ * A moving man's armour is heard by its own loudness, not the floor's: its clatter is the kit shaken by his stride, so it is as loud
+ * on turf, earth or sand as on stone (it was the footfall's level on every ground, so where the ground swallows the foot, 9 dB under
+ * stone on grass, earth and sand, most of the battlefields, the plates went under the footfall and out with it at 10-20 m). Its
+ * level: the same foot at the same pace on stone (`ground`), the level the clank was set against (sfx/sampled.js STEP_ARMOUR), `db`
+ * by kind (hard leather's creak far under iron), and `kitDb` dB a doubling of what he carries (`kit`, the step event's, kg) over
+ * `kitKg`, within `kitRange`: the Jin's iron pagoda louder than a Ming soldier's coat of plates.
+ */
+export const ARMOUR_MOVE = { ground: 'stone', db: { plate: 0, mail: 0, lamellar: 0, leather: -8 }, kitKg: 20, kitDb: 3, kitRange: [-6, 3] };
+
+/** The level (dB at 1 m) of a moving man's armour (ARMOUR_MOVE) for his step's energy (J) and mass, or -Infinity for none. */
+export function armourMoveLevel(armour, energy, mass, kit) {
+  const db = ARMOUR_MOVE.db[armour];
+  if (db === undefined) return -Infinity;
+  const spec = SURFACES[ARMOUR_MOVE.ground];
+  const kitDb = sfxClamp(ARMOUR_MOVE.kitDb * Math.log2(Math.max(0.5, kit ?? ARMOUR_MOVE.kitKg) / ARMOUR_MOVE.kitKg), ...ARMOUR_MOVE.kitRange);
+  return levelFromEnergy(energy, spec.efficiency, spec.seconds * (1 + (mass - 80) / 400)) + db + kitDb;
+}
+
+/**
+ * Two sounds of one event heard as one (a footfall and the armour over it, a hoof and the bard): the level of both together (dB, their
+ * powers summed: what the ear's distance and crowd rules rank), and each one's share of the gain played at it (`gainOfLevel` squeezes
+ * the range: a part `d` dB under the whole is played at 10^(d·SQUEEZE/20) of its gain), so each part sounds as it would alone.
+ */
+export function levelOfParts(ground, armour) {
+  if (armour === -Infinity) return { level: ground, groundGain: 1, armourGain: 0 };
+  const level = 10 * Math.log10(10 ** (ground / 10) + 10 ** (armour / 10));
+  const share = (part) => 10 ** (((part - level) * AUDIO_LEVEL.SQUEEZE) / 20);
+  return { level, groundGain: share(ground), armourGain: share(armour) };
+}
+
+/**
+ * What a step sounds like, without a context: { surface, level (the footfall's and the armour's together), groundLevel, armourLevel,
+ * groundGain, armourGain (levelOfParts), thud (Hz), seconds, splash (0..1), armour, energy, pace }.
+ */
 export function stepParams(event) {
   const surface = SURFACES[event.surface] ? event.surface : 'earth';
   const spec = SURFACES[surface];
@@ -39,15 +73,19 @@ export function stepParams(event) {
   const depth = sfxClamp(event.depth ?? 0, 0, 1.2);
   const splash = surface === 'water' ? sfxClamp(depth * 2 * (0.4 + pace / 4), 0.05, 1.5) : spec.squelch && depth > 0 ? sfxClamp(depth * 2 * (0.4 + pace / 4), 0.05, 1.5) : 0;
   const seconds = spec.seconds * (1 + (mass - 80) / 400) * (surface === 'water' ? 0.7 + splash : 1);
-  const level = levelFromEnergy(energy * (1 + splash * 3), spec.efficiency, seconds);
+  const groundLevel = levelFromEnergy(energy * (1 + splash * 3), spec.efficiency, seconds);
+  const armour = event.armour ?? 'none';
+  const armourLevel = armourMoveLevel(armour, energy, mass, event.kit);
   // The heel's thud: the leg's mass on the floor's give (a spring-mass: lower for a heavier man).
   const thud = spec.thud * (80 / mass) ** 0.5;
-  return { surface, level, thud, seconds, splash, armour: event.armour ?? 'none', energy, pace };
+  return { surface, ...levelOfParts(groundLevel, armourLevel), groundLevel, armourLevel, thud, seconds, splash, armour, energy, pace };
 }
 
 /** Play a step into `out`. Returns the end time. */
-export function playStep(voice, out, params, when, gain) {
+export function playStep(voice, out, params, when, whole) {
   const spec = SURFACES[params.surface];
+  // (The footfall at its own share of the event's gain, the armour at its: levelOfParts.)
+  const gain = whole * (params.groundGain ?? 1);
   const { seconds } = params;
   sfxTone(voice, out, { when, peak: gain * 0.6, decay: seconds, frequency: params.thud, to: params.thud * 0.7 });
   if (spec.tap) sfxBurst(voice, out, { when: when + 0.004, peak: gain * 0.55, decay: 0.018, type: 'bandpass', frequency: spec.tap * (0.85 + Math.random() * 0.3), q: 1.4 });
@@ -82,6 +120,6 @@ export function playStep(voice, out, params, when, gain) {
     });
     sfxPlayBuffer(voice, out, drops, when, gain * 0.8);
   }
-  if (params.armour !== 'none') playArmourShake(voice, out, params.armour, when + 0.01, gain * (params.armour === 'plate' ? 0.85 : 0.9), 0.08 + params.pace * 0.02);
+  if (params.armour !== 'none') playArmourShake(voice, out, params.armour, when + 0.01, whole * (params.armourGain ?? 1) * (params.armour === 'plate' ? 0.85 : 0.9), 0.08 + params.pace * 0.02);
   return when + seconds + 0.25;
 }

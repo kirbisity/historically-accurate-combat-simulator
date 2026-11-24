@@ -9,11 +9,13 @@ import { BLOW_TAIL, BOW_DRAW_PLAY, BREATH_TAKES, breathHeard, breathPlan, playPl
 import { SOUND_FAMILIES } from '../src/audio/families.js';
 import { breathParams } from '../src/audio/sfx/voice.js';
 import { exertionOf } from '../src/audio/engine.js';
-import { normaliseInputs, PRESETS } from '../src/body.js';
+import { buildBody, normaliseInputs, PRESETS } from '../src/body.js';
 import { advance, createWorld, placeFighter, throwPunch } from '../src/physics.js';
 import { machineFxCreate, machineFxHear } from '../src/machinefx.js';
 import { OUTFITS } from '../src/outfits.js';
-import { EAR } from '../src/audio/ear.js';
+import { EAR, levelAtEar, thinningKeeps } from '../src/audio/ear.js';
+import { ARMOUR_COVERING, armourOf, coveringAt } from '../src/audio/log.js';
+import { gainOfLevel } from '../src/audio/synth.js';
 
 const DIR = 'src/audio/samples';
 // (A thunder's roar is the longest single take, 2.6 s; the army's charge loop, 6 s of a dull roar at 32 kb/s, is the largest one-shot file.)
@@ -517,7 +519,8 @@ test('armour heard as it moves: lamellar rattles with the step, plate clanks, ma
   assert.equal(step('none').extra.length, 0);
   const hoof = (event) => samplePlan('horse', { kind: 'hoof', surface: 'grass' }, { gait: 'gallop', speed: 9, mass: 600, ...event }, half);
   assert.equal(hoof({}).extra.length, 0, 'an unarmoured horse: the hoof alone');
-  assert.deepEqual(hoof({ bard: 'lamellar' }).extra.map((take) => take.set), ['lamellarstep']);
+  assert.deepEqual(hoof({ bard: 'lamellar' }).extra.map((take) => take.set), ['lamellarstep', 'lamellarstep'], 'the plates\' rattle and their settling after it');
+  assert.ok(hoof({ bard: 'lamellar' }).extra[1].within <= SHOE_PLAY.near, 'the settling near the ear only');
   assert.deepEqual(hoof({ bard: 'plate', rider: 'plate' }).extra.map((take) => take.set), ['armourstep', 'armourstep']);
   assert.ok(hoof({ bard: 'lamellar' }).extra[0].rate < lamellar.extra[0].rate * 1.1, 'the bard lower than a man\'s coat');
 });
@@ -612,4 +615,74 @@ test('a shoe\'s layers are for the steps near the ear: past SHOE_PLAY.near a ste
   assert.deepEqual(play('sabaton', 2, 'plate'), { sources: 3, filters: 1 });
   assert.deepEqual(play('ridingBoot', null), { sources: 2, filters: 0 }, 'no chain (the sound board): heard as near');
   assert.ok(SHOE_PLAY.near <= EAR.full, 'inside the circle where every step is its own voice');
+});
+
+// The sets an armour's step plays (sfx/sampled.js STEP_ARMOUR).
+const ARMOUR_SETS = new Set(['armourstep', 'mailstep', 'lamellarstep']);
+// A step as the log writes one for a man (log.js soundStep), and what plays of his armour with it: the armour's layers at their gain.
+const stepOf = (body, surface, speed = 1.4) => ({ type: 'step', speed, mass: body.massKg, kit: body.gearKg, surface, armour: armourOf({ body }), shoe: body.gear?.cover?.feet ?? 'bare' });
+const armourHeard = (event, distance = 2) => {
+  const params = SOUND_FAMILIES.step.params(event);
+  const step = plan(event);
+  const gain = gainOfLevel(levelAtEar(params.level, distance));
+  return { layers: (step?.extra ?? []).filter((layer) => ARMOUR_SETS.has(layer.set) && !(layer.within < distance)), gain, ground: step && !ARMOUR_SETS.has(step.set) ? gain * step.trim : 0, params };
+};
+
+test('every armoured outfit\'s step carries its armour: each kit\'s armour is in the table, and iron on the trunk (plate, mail, lamellar, scale) is heard with every step on every ground', () => {
+  const unlisted = new Set();
+  const silent = [];
+  for (const [kind, outfit] of Object.entries(OUTFITS)) {
+    outfit.designs.forEach((design, index) => {
+      const armorKind = design.armor?.kind;
+      if (armorKind && !(armorKind in ARMOUR_COVERING)) unlisted.add(armorKind);
+      const body = buildBody(normaliseInputs({ ...structuredClone(PRESETS.contender), outfit: { kind, design: index }, accessories: [] }));
+      const covering = coveringAt({ body }, 'trunk');
+      if (!['plate', 'mail', 'lamellar', 'scale'].includes(covering)) return;
+      for (const surface of ['stone', 'grass', 'earth', 'sand', 'wood']) {
+        const { layers, gain } = armourHeard(stepOf(body, surface));
+        if (!layers.length || layers[0].trim * gain < 0.01) silent.push(`${kind}#${index} (${armorKind}, ${covering}) on ${surface}`);
+      }
+    });
+  }
+  assert.deepEqual([...unlisted], [], 'every armour kind says what it is made of (log.js ARMOUR_COVERING)');
+  assert.deepEqual(silent, [], 'an armoured man\'s step has its armour\'s take, at a gain to be heard');
+  const preset = (key) => armourOf({ body: buildBody(normaliseInputs(structuredClone(PRESETS[key]))) });
+  assert.equal(preset('ironPagoda'), 'lamellar');
+  assert.equal(preset('nanbanLord'), 'plate', 'the nanban dō a breastplate');
+  assert.equal(armourOf({ body: buildBody(normaliseInputs({ ...structuredClone(PRESETS.contender), outfit: { kind: 'ironMan', design: 0 } })) }), 'lamellar', 'the iron men\'s scale rattles');
+});
+
+test('an armour moving is heard at its own level, not the floor\'s: as loud on grass, earth and sand as on stone, over the footfall near and far, and kept by the ear past 10 m where a bare step thins out', () => {
+  const pagoda = buildBody(normaliseInputs(structuredClone(PRESETS.ironPagoda)));
+  const loudness = (layer, gain) => layer.trim * gain;
+  for (const distance of [2, 8]) {
+    const stone = armourHeard(stepOf(pagoda, 'stone'), distance);
+    for (const surface of ['grass', 'earth', 'sand']) {
+      const soft = armourHeard(stepOf(pagoda, surface), distance);
+      assert.ok(Math.abs(loudness(soft.layers[0], soft.gain) / loudness(stone.layers[0], stone.gain) - 1) < 0.01, `the plates as loud on ${surface} as on stone at ${distance} m`);
+      const bare = armourHeard({ ...stepOf(pagoda, surface), armour: 'none' }, distance);
+      assert.ok(Math.abs(soft.ground / bare.ground - 1) < 0.01, `the footfall on ${surface} as it was without the armour`);
+    }
+  }
+  const at15 = (event) => thinningKeeps(levelAtEar(SOUND_FAMILIES.step.params(event).level, 15), 15);
+  assert.ok(at15(stepOf(pagoda, 'grass')), 'the iron pagoda walking on grass is heard 15 m off');
+  assert.ok(!at15({ ...stepOf(pagoda, 'grass'), armour: 'none' }), 'a bare step there is not');
+  const knight = buildBody(normaliseInputs(structuredClone(PRESETS.knight)));
+  const walk = armourHeard(stepOf(knight, 'grass', 1.4)).layers[0];
+  const run = armourHeard(stepOf(knight, 'grass', 4)).layers[0];
+  const walkParams = SOUND_FAMILIES.step.params(stepOf(knight, 'grass', 1.4));
+  const runParams = SOUND_FAMILIES.step.params(stepOf(knight, 'grass', 4));
+  assert.ok(runParams.armourLevel > walkParams.armourLevel + 3 && run.trim > walk.trim * 0.9, 'louder running');
+  // Heavier kit heavier and lower: what he carries (kg) sets the level and the pitch.
+  const heavy = SOUND_FAMILIES.step.params({ ...stepOf(knight, 'stone'), kit: 33 });
+  const light = SOUND_FAMILIES.step.params({ ...stepOf(knight, 'stone'), kit: 8 });
+  assert.ok(heavy.armourLevel > light.armourLevel + 3);
+  assert.ok(plan({ ...stepOf(knight, 'stone'), kit: 33 }).extra[0].rate < plan({ ...stepOf(knight, 'stone'), kit: 8 }).extra[0].rate);
+  // A barded horse's plates and his rider's armour the same on soft ground as on hard.
+  const hoof = (surface) => {
+    const event = { type: 'horse', kind: 'hoof', gait: 'trot', speed: 4, mass: 600, surface, bard: 'lamellar', rider: 'lamellar' };
+    const params = SOUND_FAMILIES.horse.params(event);
+    return gainOfLevel(params.level) * samplePlan('horse', params, event, half).extra[0].trim;
+  };
+  assert.ok(Math.abs(hoof('grass') / hoof('stone') - 1) < 0.01, 'the bard as loud on grass as on stone');
 });
