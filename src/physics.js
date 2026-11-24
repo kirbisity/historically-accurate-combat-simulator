@@ -283,8 +283,9 @@ function armFighter(fighter, styleKey, { random = Math.random, shield = true, ma
   if (style.weapon) fighter.mixed = null;
   // (Not onto an arm he has lost.)
   if (shield && style.shield && !fighter.shield && !armGone(fighter, 'l')) {
-    const spec = SHIELDS[style.shield];
-    fighter.shield = { kind: style.shield, spec, strain: undefined, wear: undefined };
+    const kind = shieldMakeFor(style.shield, fighter.body.inputs);
+    const spec = SHIELDS[kind];
+    fighter.shield = { kind, spec, strain: undefined, wear: undefined };
     addParticleMass(fighter, P.lHand, spec.mass * 0.6);
     addParticleMass(fighter, P.lElbow, spec.mass * 0.4);
   }
@@ -331,6 +332,14 @@ function gripSpec(kind, grip, make = null) {
 }
 
 /** Whose make of a weapon a man carries: his people's (his kit's faction, a key of the weapon's `makes`), or null for the weapon as listed. */
+/** The shield a style's `shield` is in this man's hands (its `makes`: by his kit, else his faction), else that shield. */
+function shieldMakeFor(kind, inputs) {
+  const makes = SHIELDS[kind]?.makes;
+  if (!makes || !inputs) return kind;
+  const own = makes[inputs.outfit?.kind] ?? makes[factionOf(inputs)];
+  return own && SHIELDS[own] ? own : kind;
+}
+
 function weaponMakeFor(kind, inputs) {
   const makes = WEAPONS[kind]?.makes;
   if (!makes || !inputs) return null;

@@ -1663,6 +1663,195 @@ function tengpaiShield(spec, envMap) {
   return group;
 }
 
+// A wicker shield's back: lined (velvet or leather on a kalkan, rawhide on the steppe's), a hair behind the face so it is what
+// shows from behind (the face drawn on both sides would show its pattern through), and the grip's two straps across it.
+function shieldLining(geometry, colour, R) {
+  const lining = new THREE.Mesh(geometry, surface(colour, { roughness: 0.9 }));
+  lining.position.z = -0.005;
+  const strapMaterial = surface(0x3a2616, { roughness: 0.8 });
+  const group = new THREE.Group();
+  group.add(lining);
+  for (const y of [-0.06, 0.06]) {
+    const strap = new THREE.Mesh(new THREE.BoxGeometry(R * 0.9, 0.028, 0.008), strapMaterial);
+    strap.position.set(0, y, -0.012);
+    group.add(strap);
+  }
+  return group;
+}
+
+// The Ottoman kalkan (16th-17th c., as the surviving ones in the Topkapı, Vienna and Dresden armouries): fig-wood or cane rods
+// coiled in a flat spiral and bound with silk and cotton thread, the colours of the thread laid in bands to make the pattern
+// (a cream ground; a field of crimson-purple with cream palmettes and rūmī leaves; a narrow ring of crimson round the boss),
+// convex, ~0.6 m across, a domed steel boss engraved with a wavy sunburst, and iron rivets holding the grip's straps round it.
+// `rise`: the dome's height at the middle (m); `coils`: thread bands across the radius; `boss` the boss's share of the radius;
+// the band edges as shares of the radius, out from the boss.
+const KALKAN = { rise: 0.07, coils: 70, boss: 0.36, bands: { innerRing: 0.4, innerGround: 0.47, field: 0.86 }, palmettes: 11, rivets: 8 };
+function kalkanShield(spec, envMap) {
+  const look = KALKAN;
+  const R = spec.radius;
+  const texture = paintedFace(512, 512, (g, w, h) => {
+    const c = w / 2;
+    const ring = (r0, r1, colour) => { g.fillStyle = colour; g.beginPath(); g.arc(c, c, r1 * c, 0, Math.PI * 2); g.arc(c, c, r0 * c, 0, Math.PI * 2, true); g.fill(); };
+    const { innerRing, innerGround, field } = look.bands;
+    ring(0, 1, '#bba56c');
+    ring(field, 1, '#c4ae74');
+    ring(innerGround, field, '#7c2a4a');
+    ring(innerRing, innerGround, '#c8b37a');
+    ring(look.boss, innerRing, '#83304e');
+    // The palmettes in the crimson field, in cream thread outlined dark: each a pointed leaf with its tip out, a smaller leaf
+    // of crimson inside it and a cream heart inside that; a little cream lozenge between each pair, nearer the boss.
+    const mid = ((innerGround + field) / 2) * c;
+    const size = ((field - innerGround) / 2) * c;
+    const leaf = (scale) => {
+      g.beginPath();
+      g.moveTo(0, -size * 0.98 * scale);
+      g.bezierCurveTo(size * 0.25 * scale, -size * 0.55 * scale, size * 0.95 * scale, -size * 0.2 * scale, size * 0.62 * scale, size * 0.5 * scale);
+      g.quadraticCurveTo(size * 0.3 * scale, size * 0.85 * scale, 0, size * 0.62 * scale);
+      g.quadraticCurveTo(-size * 0.3 * scale, size * 0.85 * scale, -size * 0.62 * scale, size * 0.5 * scale);
+      g.bezierCurveTo(-size * 0.95 * scale, -size * 0.2 * scale, -size * 0.25 * scale, -size * 0.55 * scale, 0, -size * 0.98 * scale);
+    };
+    g.lineWidth = w * 0.004;
+    g.strokeStyle = '#2e1c14';
+    for (let k = 0; k < look.palmettes; k += 1) {
+      const a = (k / look.palmettes) * Math.PI * 2;
+      g.save();
+      g.translate(c + Math.cos(a) * mid, c + Math.sin(a) * mid);
+      g.rotate(a + Math.PI / 2);
+      leaf(1); g.fillStyle = '#d9c995'; g.fill(); g.stroke();
+      leaf(0.62); g.fillStyle = '#7a2848'; g.fill(); g.stroke();
+      leaf(0.3); g.fillStyle = '#d9c995'; g.fill();
+      g.restore();
+      const b = a + Math.PI / look.palmettes;
+      const at = (innerGround * c + size * 0.55);
+      g.save();
+      g.translate(c + Math.cos(b) * at, c + Math.sin(b) * at);
+      g.rotate(b + Math.PI / 2);
+      g.beginPath();
+      g.moveTo(0, -size * 0.32); g.lineTo(size * 0.17, 0); g.lineTo(0, size * 0.28); g.lineTo(-size * 0.17, 0); g.closePath();
+      g.fillStyle = '#cbb983'; g.fill(); g.stroke();
+      g.restore();
+    }
+    // A band of writing in the outer ground, as the kalkans carry (a line of verse or a blessing): dark strokes on cream.
+    g.strokeStyle = 'rgba(40, 28, 20, 0.55)';
+    g.lineWidth = w * 0.003;
+    const script = ((field + 1) / 2) * c;
+    for (let k = 0; k < 60; k += 1) {
+      const a = (k / 60) * Math.PI * 2;
+      const [x, y] = [c + Math.cos(a) * script, c + Math.sin(a) * script];
+      g.beginPath(); g.moveTo(x - Math.sin(a) * w * 0.012, y + Math.cos(a) * w * 0.012);
+      g.quadraticCurveTo(x + Math.cos(a) * w * 0.012, y + Math.sin(a) * w * 0.012, x + Math.sin(a) * w * 0.01, y - Math.cos(a) * w * 0.01);
+      g.stroke();
+    }
+    // The coils: every thread band a fine ridge, lighter on its crown, over everything (the pattern is in the thread).
+    for (let k = 1; k <= look.coils; k += 1) {
+      const r = (k / look.coils) * c;
+      g.strokeStyle = k % 2 ? 'rgba(255, 245, 215, 0.13)' : 'rgba(30, 18, 10, 0.2)';
+      g.lineWidth = c / look.coils * 0.55;
+      g.beginPath(); g.arc(c, c, r, 0, Math.PI * 2); g.stroke();
+    }
+  });
+  const geometry = new THREE.RingGeometry(0.0001, R, 56, 12);
+  const position = geometry.attributes.position;
+  // Convex: a shallow dome, steeper toward the rim.
+  for (let i = 0; i < position.count; i += 1) position.setZ(i, look.rise * (1 - (Math.hypot(position.getX(i), position.getY(i)) / R) ** 2));
+  geometry.computeVertexNormals();
+  const face = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({ map: texture, roughness: 0.72, side: THREE.DoubleSide }));
+  const rim = new THREE.Mesh(new THREE.TorusGeometry(R, 0.011, 6, 56), surface(0xa48e5c, { roughness: 0.7 }));
+  const steel = steelMaterial(envMap, { vertexColors: false, color: 0x6e6a60, roughness: 0.55 });
+  // The boss engraved with a wavy sunburst: rays from the crown that wander, cut into the steel (a texture over the dome).
+  const engraving = paintedFace(256, 256, (g, w, h) => {
+    g.fillStyle = '#9a968a';
+    g.fillRect(0, 0, w, h);
+    g.strokeStyle = 'rgba(30, 28, 24, 0.75)';
+    g.lineWidth = 1.6;
+    for (let k = 0; k < 28; k += 1) {
+      g.beginPath();
+      for (let y = 0; y <= h; y += 6) {
+        const x = ((k + 0.5) / 28) * w + Math.sin(y * 0.12 + k) * 3.5;
+        if (y === 0) g.moveTo(x, y); else g.lineTo(x, y);
+      }
+      g.stroke();
+    }
+  });
+  const bossMaterial = steelMaterial(envMap, { vertexColors: false, color: 0xffffff, roughness: 0.5, map: engraving });
+  const boss = new THREE.Mesh(new THREE.SphereGeometry(look.boss * R, 28, 10, 0, Math.PI * 2, 0, Math.PI / 2), bossMaterial);
+  boss.rotation.x = Math.PI / 2;
+  boss.scale.y = 0.42;
+  boss.position.z = look.rise * (1 - look.boss ** 2) - 0.003;
+  const group = new THREE.Group();
+  group.add(face, rim, boss, shieldLining(geometry, 0x5a1e2c, R));
+  // The rivets round the boss, on the cream ring.
+  const rivetGeometry = new THREE.SphereGeometry(0.009, 8, 6, 0, Math.PI * 2, 0, Math.PI / 2);
+  const ringAt = ((look.boss + look.bands.innerRing) / 2 + 0.035) * R;
+  // (And a second ring out in the field, where the straps of the grip are riveted through.)
+  const fieldAt = (look.bands.field - 0.07) * R;
+  for (const [count, at, turn] of [[look.rivets, ringAt, 0.5], [look.palmettes, fieldAt, 0.5]]) {
+    for (let k = 0; k < count; k += 1) {
+      const a = ((k + turn) / count) * Math.PI * 2;
+      const rivet = new THREE.Mesh(rivetGeometry, steel);
+      rivet.rotation.x = Math.PI / 2;
+      rivet.position.set(Math.cos(a) * at, Math.sin(a) * at, look.rise * (1 - (at / R) ** 2));
+      group.add(rivet);
+    }
+  }
+  for (const mesh of [face, rim, boss]) {
+    mesh.castShadow = true;
+    mesh.add(outlineFor(mesh, 0.003));
+  }
+  return group;
+}
+
+// The steppe shield (the Mongols', the Cumans', the Kipchaks' of the 13th-15th c.: Carpini and Rubruck saw them carry shields of
+// wicker or of osiers, and the surviving later kalkans of the steppe are the same work, plainer): willow or cane coiled in a spiral
+// and bound with leather thong and plain wool, undyed and smoked dark, a leather-faced rim and a small iron boss. A look only:
+// met as the wicker kalkan it is.
+const STEPPE_SHIELD = { rise: 0.06, coils: 44, boss: 0.22, binds: 16 };
+function steppeShield(spec, envMap) {
+  const look = STEPPE_SHIELD;
+  const R = spec.radius;
+  const texture = paintedFace(512, 512, (g, w, h) => {
+    const c = w / 2;
+    g.fillStyle = '#8a6a42';
+    g.fillRect(0, 0, w, h);
+    for (let k = look.coils; k > 0; k -= 1) {
+      const r = (k / look.coils) * c;
+      const band = g.createRadialGradient(c, c, Math.max(0, r - c / look.coils), c, c, r);
+      band.addColorStop(0, '#7a5c38');
+      band.addColorStop(0.55, k % 5 === 0 ? '#5a3c22' : '#9c7a4c');
+      band.addColorStop(1, '#3e2a18');
+      g.fillStyle = band;
+      g.beginPath(); g.arc(c, c, r, 0, Math.PI * 2); g.fill();
+    }
+    // The thong binding the coils, in radial stitches crossing them.
+    g.strokeStyle = '#3a2614';
+    g.lineWidth = w * 0.008;
+    for (let k = 0; k < look.binds; k += 1) {
+      const a = (k / look.binds) * Math.PI * 2;
+      for (let r = look.boss + 0.04; r < 0.98; r += 0.055) {
+        const [x, y] = [c + Math.cos(a) * c * r, c + Math.sin(a) * c * r];
+        g.beginPath(); g.moveTo(x - Math.cos(a) * w * 0.01, y - Math.sin(a) * w * 0.01); g.lineTo(x + Math.cos(a) * w * 0.01, y + Math.sin(a) * w * 0.01); g.stroke();
+      }
+    }
+  });
+  const geometry = new THREE.RingGeometry(0.0001, R, 48, 10);
+  const position = geometry.attributes.position;
+  for (let i = 0; i < position.count; i += 1) position.setZ(i, look.rise * (1 - (Math.hypot(position.getX(i), position.getY(i)) / R) ** 2));
+  geometry.computeVertexNormals();
+  const face = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({ map: texture, roughness: 0.9, side: THREE.DoubleSide }));
+  const rim = new THREE.Mesh(new THREE.TorusGeometry(R, 0.015, 6, 48), surface(0x3a2616, { roughness: 0.85 }));
+  const boss = new THREE.Mesh(new THREE.SphereGeometry(look.boss * R, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2), steelMaterial(envMap, { vertexColors: false, color: 0x55524c, roughness: 0.55 }));
+  boss.rotation.x = Math.PI / 2;
+  boss.scale.y = 0.5;
+  boss.position.z = look.rise - 0.003;
+  const group = new THREE.Group();
+  group.add(face, rim, boss, shieldLining(geometry, 0x6a5238, R));
+  for (const mesh of [face, rim]) {
+    mesh.castShadow = true;
+    mesh.add(outlineFor(mesh, 0.003));
+  }
+  return group;
+}
+
 /** The late Roman oval shield: the dished board cut to its oval from the painted face, rimmed, its boss. Faces +z. */
 function ovalShield(spec, envMap, paint) {
   const look = LATE_SHIELDS.oval;
@@ -1788,6 +1977,8 @@ function shieldMesh(spec, envMap, paint) {
   if (spec.look === 'oval') return ovalShield(spec, envMap, paint);
   if (spec.look === 'germanic') return germanicShield(spec, envMap, paint);
   if (spec.look === 'tengpai') return tengpaiShield(spec, envMap);
+  if (spec.look === 'kalkan') return kalkanShield(spec, envMap);
+  if (spec.look === 'steppe') return steppeShield(spec, envMap);
   // The arena's shaped shields and the scissor's crescent, in detail.
   if (spec.shape || spec.look === 'scissores') return buildArenaShield(spec, envMap, steelMaterial);
   const group = new THREE.Group();
@@ -1856,23 +2047,6 @@ function shieldMesh(spec, envMap, paint) {
       head.position.set(Math.cos(angle) * at, Math.sin(angle) * at, onDome(at));
       group.add(head);
     }
-    for (const mesh of [face, rim, boss]) {
-      mesh.castShadow = true;
-      mesh.add(outlineFor(mesh, 0.003));
-    }
-    return group;
-  }
-  if (spec.look === 'ming') {
-    // Lacquered red wood, a black ring painted inside an iron rim, a gilt boss.
-    const face = new THREE.Mesh(new THREE.CylinderGeometry(spec.radius, spec.radius * 0.97, 0.03, 32), surface(0x9a1c18, { roughness: 0.5 }));
-    face.rotation.x = Math.PI / 2;
-    const ring = new THREE.Mesh(new THREE.TorusGeometry(spec.radius * 0.66, 0.016, 6, 30), surface(0x151515, { roughness: 0.6 }));
-    ring.position.z = 0.016;
-    const rim = new THREE.Mesh(new THREE.TorusGeometry(spec.radius, 0.012, 8, 36), steelMaterial(envMap, { vertexColors: false, color: 0x5a5c62, roughness: 0.45 }));
-    const boss = new THREE.Mesh(new THREE.SphereGeometry(0.06, 14, 10, 0, Math.PI * 2, 0, Math.PI / 2), steelMaterial(envMap, { vertexColors: false, color: BRONZE, roughness: 0.32 }));
-    boss.rotation.x = Math.PI / 2;
-    boss.position.z = 0.015;
-    group.add(face, ring, rim, boss);
     for (const mesh of [face, rim, boss]) {
       mesh.castShadow = true;
       mesh.add(outlineFor(mesh, 0.003));
