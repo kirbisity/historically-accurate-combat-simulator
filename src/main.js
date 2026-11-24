@@ -4035,6 +4035,16 @@ const menus = installMenus({
   stats: (inputs) => deriveStats(buildBody(normaliseInputs(structuredClone(inputs)))),
   calorieRange: (inputs) => calorieRange(inputs, (FRAMES[inputs.frame] ?? FRAMES.medium).lean),
   hours: exerciseHours,
+  // Bench and body fat across training 0..1 at these inputs' diet: the Training step's curve.
+  trainingCurve: (inputs) => {
+    const points = [];
+    for (let step = 0; step <= 20; step += 1) {
+      const exercise = step / 20;
+      const sheet = deriveStats(buildBody(normaliseInputs(structuredClone({ ...inputs, exercise }))));
+      points.push({ exercise, bench: Math.max(0, sheet.bench), bodyFat: sheet.bodyFat });
+    }
+    return points;
+  },
   onMenu: (home) => { goHome = home; },
   audio,
   soundBench: () => soundBench.open(),
