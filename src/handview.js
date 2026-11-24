@@ -157,7 +157,7 @@ export function updateHands(fighterView, frames) {
     const hand = object.userData.hand;
     if (!hand) continue;
     const now = handHold(fighter, hand.side, frames[BONE[`${hand.side}Forearm`]], fighterView);
-    const state = (hand.state ??= { spec: null, key: '', from: null, step: HAND_VIEW.blendFrames });
+    const state = (hand.state ??= { spec: null, key: '', from: null, step: HAND_VIEW.blendFrames, turn: 0 });
     const key = `${now.hold}|${Math.round((now.radius ?? 0) * 500)}|${now.slant ?? 0}`;
     if (key !== state.key) {
       state.from = state.spec;
@@ -166,7 +166,7 @@ export function updateHands(fighterView, frames) {
       state.step = state.from ? 0 : HAND_VIEW.blendFrames;
     }
     if (state.step < HAND_VIEW.blendFrames) state.step += 1;
-    hand.pose(state.spec, state.step < HAND_VIEW.blendFrames ? state.from : null, state.step / HAND_VIEW.blendFrames);
-    if (now.turn !== null && now.turn !== undefined) hand.turn(now.turn);
+    if (now.turn !== null && now.turn !== undefined) state.turn = now.turn;
+    hand.pose(state.spec, state.step < HAND_VIEW.blendFrames ? state.from : null, state.step / HAND_VIEW.blendFrames, state.turn);
   }
 }

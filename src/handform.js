@@ -40,9 +40,12 @@ const HAND_LIMITS = { finger: [1.5, 1.98, 1.3], thumb: [1.0, 1.35] };
 // A hand closed on a handle: the wrist joint this far inside the forearm's end (m), which sets the handle under the knuckles.
 const HAND_GRIP_WRIST = 0.004;
 const HAND_SLANT_MOST = 0.4;
+// The hand's sleeve of skin over the forearm's end: how far behind the wrist its rings lie (m): the one sunk inside the
+// forearm, the one that meets its surface, and the wrist's own.
+const HAND_WRIST = { sunk: 0.125, far: 0.1, near: 0.035 };
 // The palm (hand lengths): at the knuckles its back over the joints' line and its face under it, half its thickness at the
 // wrist, the wrist's half breadth, and how far the webs run past the knuckle line.
-const HAND_PALM = { backKnuckle: 0.05, faceKnuckle: 0.07, thickWrist: 0.092, wristHalf: 0.148, web: 0.085 };
+const HAND_PALM = { backKnuckle: 0.056, faceKnuckle: 0.07, thickWrist: 0.092, wristHalf: 0.148, web: 0.085 };
 
 const handClamp = (x, low = 0, high = 1) => Math.min(high, Math.max(low, x));
 const handLerp = (a, b, t) => a + (b - a) * t;
@@ -320,7 +323,7 @@ function handDigitRings(digit, frame, bends, { around = 10, fans = 3, thumb = fa
     if (!(thumb && index === 0)) {
       // The joint: a fan about its crease, the knuckle swelling on the back as it bends.
       const bent = Math.sin(Math.min(Math.PI / 2, Math.abs(segment.turn) / 1.2));
-      const knuckle = (index === 0 || (thumb && index === 1) ? 0.2 : 0.13) * bent + (index === 0 ? 0.04 : 0.07);
+      const knuckle = (index === 0 || (thumb && index === 1) ? 0.13 : 0.13) * bent + (index === 0 ? 0.04 : 0.07);
       const depth = HAND_SECTION.crease * HAND_SECTION.pad * half;
       for (let k = 0; k <= fans; k += 1) {
         const share = k / fans;
@@ -409,7 +412,7 @@ function handPalmSpan(inside, L) {
 const handPalmPower = (inside) => 2 / handLerp(2.2, 2.9, handEase(0, 0.6, inside));
 // How the palm's sections lie on the sheet: across (a share of the half turn from one edge to the other) and along.
 const handSheetAcross = (share) => 0.04 + 0.92 * share;
-const handSheetAlong = (s) => handLerp(0.02, 0.98, (s + 0.2) / 1.33);
+const handSheetAlong = (s) => handLerp(0.02, 0.98, (s + 0.3) / 1.43);
 
 /**
  * Where a place on the back of the hand or the palm lies on the sheet, for what is drawn there (handmaps.js): `surface`
@@ -479,9 +482,11 @@ function handPalmPoint(sizes, pose, s, angle, grow = 0) {
  * { positions, normals, uvs, indices } }, triangles }. `pose`: handPose's (or a blend). `side`: 'l' or 'r'. `fit`: the
  * forearm's end the wrist runs into: { a, b: its half breadth along the forearm's x and z, heel: how far behind the hand
  * point (m, at HAND_STATURE) }. `detail`: 'full', or 'low' (a crowd's: fewer sections, the same shape). `girth`: a heavy
- * build's thicker hand. `cover`: what is worn (HAND_WEAR's name) and `wear`: its design's own figures.
+ * build's thicker hand. `cover`: what is worn (HAND_WEAR's name) and `wear`: its design's own figures. `turn`: the hand turned
+ * about the forearm by this much (rad, as a rotation about y: what it holds lies that way round), the wrist's skin staying
+ * on the forearm's end.
  */
-export function handParts(pose, { side = 'r', fit = null, detail = 'full', girth = 1, cover = 'bare', wear = {} } = {}) {
+export function handParts(pose, { side = 'r', fit = null, detail = 'full', girth = 1, cover = 'bare', wear = {}, turn = 0 } = {}) {
   const low = detail === 'low';
   const sizes = handSizes(girth);
   const spec = HAND_WEAR[cover] ?? HAND_WEAR.bare;
@@ -510,8 +515,8 @@ export function handParts(pose, { side = 'r', fit = null, detail = 'full', girth
   const palmRows = { back: [], palm: [] };
   const palmStart = skin.positions.length / 3;
   for (const [name, [x0, x1], from] of [['back', HAND_SHEET.back, -Math.PI / 2], ['palm', HAND_SHEET.palm, Math.PI / 2]]) {
-    // (Two sections first for the wrist: fitted to the forearm's end below.)
-    for (const s of [-0.2, -0.1, ...stations]) {
+    // (Three sections first for the wrist and the forearm's end: fitted to the forearm below.)
+    for (const s of [-0.3, -0.2, -0.1, ...stations]) {
       const row = [];
       for (let k = 0; k <= half; k += 1) {
         const angle = from + (k / half) * Math.PI;
@@ -566,8 +571,18 @@ export function handParts(pose, { side = 'r', fit = null, detail = 'full', girth
   const c = Math.cos(lean);
   const s = Math.sin(lean);
   const mirror = side === 'l' ? 1 : -1;
-  const place = ([u, v, w]) => [w + pose.at[0], u * c - v * s + pose.at[1], -(v * c + u * s) * mirror + pose.at[2] * mirror];
-  const ring = fit ?? { a: 0.03, b: 0.024, heel: -pose.at[1] };
+  const turnC = Math.cos(turn);
+  const turnS = Math.sin(turn);
+  const turned = (x, z) => [x * turnC + z * turnS, -x * turnS + z * turnC];
+  const place = ([u, v, w]) => {
+    const [x, z] = turned(w + pose.at[0], -(v * c + u * s) * mirror + pose.at[2] * mirror);
+    return [x, u * c - v * s + pose.at[1], z];
+  };
+  const ring = { heel: -pose.at[1], far: { a: 0.031, b: 0.027, x: 0, z: 0 }, near: { a: 0.027, b: 0.021, x: 0, z: 0 }, sleeved: false, ...fit };
+  ring.a = ring.near.a;
+  ring.b = ring.near.b;
+  ring.x = ring.near.x;
+  ring.z = ring.near.z;
   context.ring = ring;
   for (const piece of spec.pieces ?? []) HAND_PIECES[piece.kind](context, piece);
   const parts = {};
@@ -576,26 +591,42 @@ export function handParts(pose, { side = 'r', fit = null, detail = 'full', girth
     const positions = new Float32Array(made.positions.length);
     for (let index = 0; index < positions.length; index += 3) positions.set(place([made.positions[index], made.positions[index + 1], made.positions[index + 2]]), index);
     if (made === skin) {
-      // The wrist: the palm's first sections drawn onto the forearm's end (an oval of its size, its first ring inside
-      // the forearm), so the hand runs out of the arm with no step however the wrist is bent.
+      // The wrist. A body's forearm is drawn narrowing to its end, and not on the line from the elbow to the fist: the
+      // hand brings its own wrist and runs back over the forearm's last part as a sleeve of skin, its first ring sunk
+      // inside the forearm where that is as thick as a wrist, so the hand runs out of the arm with no step however it
+      // is turned. (Under a sleeve or a vambrace it stays inside it.)
       const rowLength = half + 1;
-      const pull = [1, 1, 0.8, 0.4, 0.14];
-      const size = 1 + grow / Math.max(0.01, Math.min(ring.a, ring.b));
+      const own = { a: HAND_PALM.wristHalf * sizes.L * (1 + (girth - 1) * 0.5) + grow, b: HAND_PALM.thickWrist * sizes.L * girth * 0.86 + grow, x: 0, z: 0 };
+      const over = ring.sleeved ? 0.9 : 1.05;
+      const mixed = (first, second, t) => ({ a: handLerp(first.a, second.a, t), b: handLerp(first.b, second.b, t), x: handLerp(first.x, second.x, t), z: handLerp(first.z, second.z, t) });
+      const fitted = (section, scale) => ({ a: section.a * scale, b: section.b * scale, x: section.x, z: section.z });
+      // (No thinner than a wrist where the forearm is bare; no thicker than what covers it where it is not.)
+      const far = ring.sleeved ? { ...fitted(ring.far, over), a: Math.min(own.a, ring.far.a * over), b: Math.min(own.b, ring.far.b * over) } : { ...fitted(ring.far, over), a: Math.max(own.a * 0.9, ring.far.a * over), b: Math.max(own.b * 0.9, ring.far.b * over) };
+      const sections = [
+        { behind: HAND_WRIST.sunk, shape: fitted(far, 0.85), all: true },
+        { behind: HAND_WRIST.far, shape: far, all: true },
+        { behind: HAND_WRIST.near, shape: mixed(far, { ...own, x: ring.near.x * 0.6, z: ring.near.z * 0.6 }, 0.6), all: true },
+        { shape: { ...own, x: ring.near.x * 0.3, z: ring.near.z * 0.3 }, share: 0.5 },
+        { shape: { ...own, x: ring.near.x * 0.1, z: ring.near.z * 0.1 }, share: 0.2 },
+      ];
       for (const [start, first] of [[palmStart, -Math.PI / 2], [palmStart + (palmEnd - palmStart) / 2, Math.PI / 2]]) {
-        for (let row = 0; row < pull.length; row += 1) {
+        sections.forEach(({ behind, shape, all, share = 1 }, row) => {
           for (let k = 0; k <= half; k += 1) {
             const angle = first + (k / half) * Math.PI;
             const at = (start + row * rowLength + k) * 3;
-            const sink = row === 0 ? 0.03 : row === 1 ? 0.008 : 0;
-            const shrink = row === 0 ? 0.8 : 0.97;
-            const wanted = [ring.a * size * shrink * Math.sin(angle), -ring.heel - sink, -ring.b * size * shrink * Math.cos(angle) * mirror];
-            const share = pull[row];
-            // (Only across the arm, past the first rings: the palm keeps its own length.)
-            positions[at] = handLerp(positions[at], wanted[0], share);
-            if (row < 2) positions[at + 1] = wanted[1];
-            positions[at + 2] = handLerp(positions[at + 2], wanted[2], share);
+            // (The point of the section the way this point of the turned hand faces.)
+            const [faceX, faceZ] = turned(Math.sin(angle), -Math.cos(angle) * mirror);
+            if (all) {
+              positions[at] = shape.x + shape.a * faceX;
+              positions[at + 1] = -ring.heel - behind;
+              positions[at + 2] = shape.z + shape.b * faceZ;
+            } else {
+              // (Only moved across towards the forearm's own line: the palm keeps its shape and its length.)
+              positions[at] += shape.x * share;
+              positions[at + 2] += shape.z * share;
+            }
           }
-        }
+        });
       }
     }
     const indices = Uint16Array.from(made.indices);
@@ -758,6 +789,7 @@ const HAND_PIECES = {
    * (a Gothic cuff's point), `flutes`: that many ridges round it.
    */
   cuff({ placedMesh, low, ring, mirror }, { role = 'metal', profile, point = 0, flutes = 0 }) {
+    // (Close on the wrist at the hand's end, and set on the forearm's own line at its far end.)
     const out = placedMesh(role);
     const around = low ? 8 : flutes ? 32 : 18;
     const rows = profile.map(([behind, outside], row) => {
@@ -770,9 +802,11 @@ const HAND_PIECES = {
         const share = row / (profile.length - 1);
         const y = -ring.heel - behind - point * back * back * share;
         // (Close on the wrist at the hand's end; at its far end clear of whatever the forearm wears there.)
-        const a = Math.max(ring.a + outside, handLerp(ring.a, (ring.outerA ?? ring.a) + 0.003, share));
-        const b = Math.max(ring.b + outside, handLerp(ring.b, (ring.outerB ?? ring.b) + 0.003, share));
-        points.push(handPoint(out, [(a + fluted) * Math.sin(angle), y, (b + fluted) * Math.cos(angle) * mirror], HAND_PLAIN));
+        const wristA = HAND_PALM.wristHalf * HAND_LONG;
+        const wristB = HAND_PALM.thickWrist * HAND_LONG * 0.86;
+        const a = Math.max(wristA + outside, handLerp(wristA, (ring.outerA ?? wristA) + 0.003, share));
+        const b = Math.max(wristB + outside, handLerp(wristB, (ring.outerB ?? wristB) + 0.003, share));
+        points.push(handPoint(out, [(ring.x ?? 0) * (0.3 + 0.7 * share) + (a + fluted) * Math.sin(angle), y, (ring.z ?? 0) * (0.3 + 0.7 * share) + (b + fluted) * Math.cos(angle) * mirror], HAND_PLAIN));
       }
       return points;
     });
@@ -858,37 +892,32 @@ export const HAND_WEAR = {
 };
 
 /**
- * The forearm's end, for a hand to run out of: from the body's mesh as built (`positions`), the ring of it nearest the
- * wrist (`heel` m behind the hand point `at`, in the forearm's bind `frame`), as { a, b: the half breadth along the frame's
- * x and z of the innermost surface there (the skin), outerA, outerB: of the outermost (a sleeve's or a vambrace's, for a
- * cuff to go over), heel } in metres at HAND_STATURE (`scale`: the body's own size over that). Null where the mesh has
- * nothing there.
+ * The forearm's end, for a hand to run out of: from the body's mesh as built (`positions`; `belongs(vertex)`: whether a
+ * point is the forearm's; `isSkin(vertex)`: whether it is bare skin), its sections `far` and `near` behind the wrist (the
+ * wrist `heel` m behind the hand point `at`, in the forearm's bind `frame`), each { a, b: its half breadth along the
+ * frame's x and z, x, z: its middle off the forearm's line }; `sleeved`: something is worn there; `outerA`, `outerB`: the
+ * half breadth of all that is drawn at the wrist (for a cuff to go over); `heel`. Metres at HAND_STATURE (`scale`: the
+ * body's own size over that). Null where the mesh has nothing there.
  */
-export function wristFit(positions, frame, at, heel, scale = 1) {
-  const slab = [-heel - 0.035 * scale, -heel + 0.012 * scale];
-  const inner = Array.from({ length: 8 }, () => null);
-  const outer = Array.from({ length: 8 }, () => null);
-  let found = 0;
+export function wristFit(positions, frame, at, heel, scale = 1, belongs = () => true, isSkin = () => true) {
+  const box = () => ({ low: [Infinity, Infinity], high: [-Infinity, -Infinity], count: 0, skin: 0 });
+  const bands = { far: box(), near: box() };
   for (let vertex = 0; vertex < positions.length / 3; vertex += 1) {
+    if (!belongs(vertex)) continue;
     const d = [positions[vertex * 3] - at[0], positions[vertex * 3 + 1] - at[1], positions[vertex * 3 + 2] - at[2]];
-    const along = handDot(d, frame.y);
-    if (along < slab[0] || along > slab[1]) continue;
-    const x = handDot(d, frame.x);
-    const z = handDot(d, frame.z);
-    const r = Math.hypot(x, z);
-    if (r > 0.09 * scale) continue;
-    found += 1;
-    const sector = ((Math.round((Math.atan2(z, x) / (2 * Math.PI)) * 8) % 8) + 8) % 8;
-    if (inner[sector] === null || r < inner[sector]) inner[sector] = r;
-    if (outer[sector] === null || r > outer[sector]) outer[sector] = r;
+    const behind = -(handDot(d, frame.y) + heel) / scale;
+    const into = behind > HAND_WRIST.far - 0.03 && behind < HAND_WRIST.far + 0.03 ? bands.far : behind > -0.005 && behind < HAND_WRIST.far - 0.03 ? bands.near : null;
+    if (!into) continue;
+    const x = handDot(d, frame.x) / scale;
+    const z = handDot(d, frame.z) / scale;
+    if (Math.hypot(x, z) > 0.1) continue;
+    into.low = [Math.min(into.low[0], x), Math.min(into.low[1], z)];
+    into.high = [Math.max(into.high[0], x), Math.max(into.high[1], z)];
+    into.count += 1;
+    if (isSkin(vertex)) into.skin += 1;
   }
-  if (found < 6 || inner.filter((r) => r !== null).length < 4) return null;
-  const across = (sectors, first) => {
-    const known = sectors.filter((r) => r !== null);
-    const mean = known.reduce((sum, r) => sum + r, 0) / known.length;
-    return ((sectors[first] ?? mean) + (sectors[first + 4] ?? mean)) / 2 / scale;
-  };
-  // (A wrist's own size at most: a body drawn without its forearm's skin, under plate, leaves only the plate to measure.)
-  const most = HAND_PALM.wristHalf * HAND_LONG * 1.25;
-  return { a: Math.min(most, across(inner, 0)), b: Math.min(most, across(inner, 2)), outerA: across(outer, 0), outerB: across(outer, 2), heel: heel / scale };
+  if (bands.far.count < 4 || bands.near.count < 4) return null;
+  const section = (band) => ({ a: (band.high[0] - band.low[0]) / 2, b: (band.high[1] - band.low[1]) / 2, x: (band.high[0] + band.low[0]) / 2, z: (band.high[1] + band.low[1]) / 2 });
+  const near = section(bands.near);
+  return { far: section(bands.far), near, sleeved: bands.far.skin < bands.far.count, outerA: near.a, outerB: near.b, heel: heel / scale };
 }

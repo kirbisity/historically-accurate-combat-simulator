@@ -279,7 +279,8 @@ const finish = (group) => {
 const HAND_GEOMETRY = new Map();
 const HAND_POSES = new Map();
 const HAND_BUILT_FOR = 1.8;
-const HAND_CACHE = { most: 400, steps: 3 };
+// `turns`: the steps of a full turn about the forearm a hand is drawn at.
+const HAND_CACHE = { most: 400, steps: 3, turns: 16 };
 // A hand's thickness against the reference man's, from the frame's bone (body.js FRAMES) and the fat over it, a woman's the
 // finer (ANSUR II: her hand's breadth 0.42 of its length to his 0.44); and how far the tendons, veins and folds stand out of
 // the back of it: more on an older hand and a leaner one (the sheet's relief times this).
@@ -331,8 +332,8 @@ function handSkinMaterial(skinColor, relief, mapped) {
  * glove's colour (a design's `gloves`). `fit`: the forearm's end it runs out of (handform.js wristFit); `lowDetail`: a
  * crowd's, coarser and unmapped; `hold`: the posture it starts in ({ hold, radius, slant }: handform.js handPose); `dress`:
  * the design, for what its harness puts on the hand.
- * The group's `userData.hand`: { pose(hold, from, share): show a posture, or `share` of the way to it from another;
- * turn(angle): turn the hand about the forearm (what it holds lies that way round) }.
+ * The group's `userData.hand`: { pose(hold, from, share, turn): show a posture, or `share` of the way to it from another,
+ * the hand turned about the forearm by `turn` (what it holds lies that way round) }.
  */
 export function buildHand(body, side, kind, skinColor, steel, glove = null, { fit = null, lowDetail = false, hold = { hold: 'fist' }, dress = null } = {}) {
   const scale = body.heightM / HAND_BUILT_FOR;
@@ -344,7 +345,8 @@ export function buildHand(body, side, kind, skinColor, steel, glove = null, { fi
   const { girth, relief } = handBuild(body);
   const { cover, wear } = handWear(kind, glove, dress);
   // (To 4 mm: hands of near the same wrist share their geometry.)
-  const rounded = fit && { ...Object.fromEntries(['a', 'b', 'outerA', 'outerB'].filter((name) => fit[name] !== undefined).map((name) => [name, Math.round(fit[name] * 250) / 250])), heel };
+  const coarse = (value) => (typeof value === 'number' ? Math.round(value * 250) / 250 : value && typeof value === 'object' ? Object.fromEntries(Object.entries(value).map(([name, inner]) => [name, coarse(inner)])) : value);
+  const rounded = fit && { ...coarse(fit), heel };
   const base = JSON.stringify([cover, wear, side, heel, face, girth, rounded, lowDetail]);
   const poseOf = (spec) => {
     const key = `${heel}|${face}|${girth}|${handHoldKey(spec)}`;
@@ -352,15 +354,16 @@ export function buildHand(body, side, kind, skinColor, steel, glove = null, { fi
     if (!pose) HAND_POSES.set(key, (pose = handPose(spec, { heel, face, girth })));
     return pose;
   };
-  const geometryOf = (spec, from, share) => {
+  const geometryOf = (spec, from = null, share = 1, turn = 0) => {
+    const turnStep = ((Math.round((turn / (2 * Math.PI)) * HAND_CACHE.turns) % HAND_CACHE.turns) + HAND_CACHE.turns) % HAND_CACHE.turns;
     const step = from ? Math.round(Math.min(1, Math.max(0, share)) * HAND_CACHE.steps) : HAND_CACHE.steps;
     const blended = from && step < HAND_CACHE.steps && step > 0;
     const shown = from && step === 0 ? from : spec;
-    const key = `${base}#${blended ? `${handHoldKey(from)}>${handHoldKey(spec)}@${step}` : handHoldKey(shown)}`;
+    const key = `${base}#${blended ? `${handHoldKey(from)}>${handHoldKey(spec)}@${step}` : handHoldKey(shown)}#${turnStep}`;
     let made = HAND_GEOMETRY.get(key);
     if (!made) {
       const pose = blended ? handBlend(poseOf(from), poseOf(spec), step / HAND_CACHE.steps) : poseOf(shown);
-      const { parts, spec: worn } = handParts(pose, { side, fit: rounded ?? undefined, detail: lowDetail ? 'low' : 'full', girth, cover, wear });
+      const { parts, spec: worn } = handParts(pose, { side, fit: rounded ?? undefined, detail: lowDetail ? 'low' : 'full', girth, cover, wear, turn: (turnStep / HAND_CACHE.turns) * 2 * Math.PI });
       made = { worn, geometry: {} };
       for (const [role, { positions, normals, uvs, indices }] of Object.entries(parts)) {
         const geometry = new THREE.BufferGeometry();
@@ -381,11 +384,9 @@ export function buildHand(body, side, kind, skinColor, steel, glove = null, { fi
     return made;
   };
   const hand = new THREE.Group();
-  const turned = new THREE.Group();
   const sized = new THREE.Group();
   sized.scale.setScalar(scale);
-  turned.add(sized);
-  hand.add(turned);
+  hand.add(sized);
   const first = geometryOf(hold);
   const materials = handMaterials(first.worn, { kind, skinColor, steel, glove, relief, mapped: !lowDetail && DETAIL_MAPS.on });
   const pieces = {};
@@ -399,8 +400,8 @@ export function buildHand(body, side, kind, skinColor, steel, glove = null, { fi
   let showing = first;
   hand.userData.hand = {
     side,
-    pose(spec, from = null, share = 1) {
-      const made = geometryOf(spec, from, share);
+    pose(spec, from = null, share = 1, turn = 0) {
+      const made = geometryOf(spec, from, share, turn);
       if (made === showing) return;
       showing = made;
       for (const [role, piece] of Object.entries(pieces)) {
@@ -410,12 +411,6 @@ export function buildHand(body, side, kind, skinColor, steel, glove = null, { fi
         // (Its ink line is the same mesh drawn again: toon.js outlineFor.)
         for (const child of piece.children) if (child.userData.outline) child.geometry = geometry;
       }
-    },
-    turn(angle) {
-      if (turned.rotation.y === angle) return;
-      turned.rotation.y = angle;
-      turned.updateMatrix();
-      hand.matrixWorldNeedsUpdate = true;
     },
   };
   return hand;

@@ -2509,7 +2509,9 @@ function detailedView(view, fighter, simple) {
       // (The hand runs out of the forearm's end as this body was built: handform.js wristFit; in what it is doing: handview.js.)
       const armFrame = built.bindFrames?.[BONE[`${side}Forearm`]];
       const handAt = (built.bindPoints ?? bindPoints(body))[P[`${side}Hand`]];
-      const wrist = armFrame && built.positions?.length ? wristFit(built.positions, armFrame, handAt, body.lengths.wristToFist, body.heightM / 1.8) : null;
+      const armBone = BONE[`${side}Forearm`];
+      const onArm = (vertex) => [0, 1, 2, 3].reduce((sum, k) => sum + (built.skinIndex[vertex * 4 + k] === armBone ? built.skinWeight[vertex * 4 + k] : 0), 0) >= 0.5;
+      const wrist = armFrame && built.positions?.length && built.skinIndex ? wristFit(built.positions, armFrame, handAt, body.lengths.wristToFist, body.heightM / 1.8, onArm, (vertex) => !built.regions || built.regions[vertex] === 'skin') : null;
       const { hold, radius, slant } = handHold(fighter, side);
       hand = buildHand(body, side, hands, skinColor, plainSteel, dress.look?.gloves ?? null, { fit: wrist, lowDetail: simple, hold: { hold, radius, slant }, dress });
     }
