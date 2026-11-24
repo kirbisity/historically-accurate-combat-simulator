@@ -280,7 +280,7 @@ const HAND_GEOMETRY = new Map();
 const HAND_POSES = new Map();
 const HAND_BUILT_FOR = 1.8;
 // `turns`: the steps of a full turn about the forearm a hand is drawn at.
-const HAND_CACHE = { most: 400, steps: 3, turns: 16 };
+const HAND_CACHE = { most: 240, steps: 3, turns: 16 };
 // A hand's thickness against the reference man's, from the frame's bone (body.js FRAMES) and the fat over it, a woman's the
 // finer (ANSUR II: her hand's breadth 0.42 of its length to his 0.44); and how far the tendons, veins and folds stand out of
 // the back of it: more on an older hand and a leaner one (the sheet's relief times this).
