@@ -1983,7 +1983,12 @@ export const BLADES = {
   // edge (estimated from the anatomy, unverified); a point's channel `channel` m either side of its line (a blade's half
   // width and the vessel's own). It was any cut or point `reach` 0.6 of the way to the bone by boneShare, whichever side
   // it came from; with every blow then counted a graze (boneShare at most 0.3), no cut ever reached it.
-  bleed: { from: { cut: 40, pierce: 25 }, perJoule: { cut: 0.00002, pierce: 0.00003 }, zone: { head: 1.2, trunk: 1.5, limb: 1 }, artery: { vessel: 0.35, channel: 0.015, seconds: 90 } },
+  // A wound's size stops growing once the blade is through the part: the joules past `from` count fully at first, then
+  // less and less, to at most `through[zone]` J (rate = perJoule·zone·through·(1 − e^(−excess/through))). Without it a
+  // spear thrust at 100-180 J through a forearm (no artery) bled a fifth of the blood by itself, and two or three such
+  // wounds with a chest stab dropped a man in 4 s: a deep limb wound now loses at most ~4-6 % of his blood, a deep belly
+  // wound ~11-16 %, as above.
+  bleed: { from: { cut: 40, pierce: 25 }, perJoule: { cut: 0.00002, pierce: 0.00003 }, zone: { head: 1.2, trunk: 1.5, limb: 1 }, through: { head: 40, trunk: 60, limb: 35 }, artery: { vessel: 0.35, channel: 0.015, seconds: 90 } },
   // A wound eases as it clots, over about a minute of fighting (exertion keeps it open).
   clotSeconds: 60,
   collapseAt: 0.38,
@@ -2018,7 +2023,9 @@ export const WEAPON_KEYS = Object.keys(WEAPONS);
 /** How fast a wound of `joules` (edge or point, `kind`, past the armour) bleeds, a share of his blood a second; 0 short of a deep one. */
 export function bleedRate(kind, joules, zone) {
   const spec = BLADES.bleed;
-  return Math.max(0, joules - spec.from[kind]) * spec.perJoule[kind] * spec.zone[zone];
+  const excess = Math.max(0, joules - spec.from[kind]);
+  const through = spec.through[zone];
+  return through * (1 - Math.exp(-excess / through)) * spec.perJoule[kind] * spec.zone[zone];
 }
 
 /** The bleeding (share a second) that, easing as it clots, loses `left` of the blood in `seconds` s: a great vessel opened. */
