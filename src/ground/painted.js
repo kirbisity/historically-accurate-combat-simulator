@@ -550,11 +550,11 @@ const PAINTED_GROUND_LAYERS = {
 
   /** Arena sand raked in parallel furrows. */
   sandRaked(random) {
-    const s = paintedGroundSheet(random, '#b9ab9c', 0.5);
+    const s = paintedGroundSheet(random, '#c1a99a', 0.5);
     const { rr } = s;
     for (let index = 0; index < 14000; index += 1) {
       const kind = random();
-      const fill = kind < 0.4 ? paintedGroundHsl(34, 16, rr(72, 84), 0.6) : kind < 0.8 ? paintedGroundHsl(30, 10, rr(42, 54), 0.5) : paintedGroundHsl(18, 14, rr(44, 54), 0.6);
+      const fill = kind < 0.4 ? paintedGroundHsl(24, 24, rr(72, 84), 0.6) : kind < 0.8 ? paintedGroundHsl(20, 14, rr(42, 54), 0.5) : paintedGroundHsl(14, 18, rr(44, 54), 0.6);
       s.blob(rr(0, 512), rr(0, 512), rr(0.5, 1.2), rr(0.5, 1.2), 0, fill, null);
     }
     for (let index = 0; index < 90; index += 1) {
@@ -585,11 +585,11 @@ const PAINTED_GROUND_LAYERS = {
   /** Arena sand trodden: the rake lines gone, footprints and scuffs. */
   sandTrodden(random) {
     // (The raked sand's own colour and grains, sandRaked: laid beside it, the two differ by their relief alone.)
-    const s = paintedGroundSheet(random, '#b9ab9c', 0.5);
+    const s = paintedGroundSheet(random, '#c1a99a', 0.5);
     const { rr } = s;
     for (let index = 0; index < 12000; index += 1) {
       const kind = random();
-      const fill = kind < 0.4 ? paintedGroundHsl(34, 16, rr(72, 84), 0.6) : kind < 0.8 ? paintedGroundHsl(30, 10, rr(42, 54), 0.5) : paintedGroundHsl(18, 14, rr(44, 54), 0.6);
+      const fill = kind < 0.4 ? paintedGroundHsl(24, 24, rr(72, 84), 0.6) : kind < 0.8 ? paintedGroundHsl(20, 14, rr(42, 54), 0.5) : paintedGroundHsl(14, 18, rr(44, 54), 0.6);
       s.blob(rr(0, 512), rr(0, 512), rr(0.5, 1.2), rr(0.5, 1.2), 0, fill, null);
     }
     for (let index = 0; index < 22; index += 1) {
@@ -936,6 +936,11 @@ function paintedGroundNoise() {
 
 const PAINTED_GROUND_GRASS_MACRO = [[1.14, 1.04, 0.78], [0.86, 1.0, 0.9]];
 const PAINTED_GROUND_DRY_MACRO = [[1.06, 0.98, 0.9], [0.92, 0.95, 1.0]];
+// A place's `tint`: its layers' colours times this (display values), where a layer's tile is shared or baked and its
+// colour is not the place's to repaint. The beach's tile is a saturated yellow and lighter than dry sand is; under
+// the open air's sun it drew a beach as one cream glare with no shadow on it. This takes it to the arena's sand, a
+// shade lighter (about 0.45 of the light thrown back, a little warm: sandRaked). By measurement of the tile in the sun.
+const PAINTED_GROUND_BEACH_TINT = [0.86, 0.83, 0.97];
 const PAINTED_GROUND_SAND_MACRO = [[1.04, 1.0, 0.95], [0.95, 0.95, 0.97]];
 const PAINTED_GROUND_STONE_MACRO = [[1.06, 1.01, 0.95], [0.9, 0.92, 0.95]];
 
@@ -1076,14 +1081,14 @@ const PAINTED_GROUND_PLACES = {
     },
   },
   coastFort: {
-    a: 'beachDry', b: 'beachWet', tiles: [1.6, 1.6], bomb: [2, 1], macro: PAINTED_GROUND_SAND_MACRO, match: 0.35,
+    a: 'beachDry', b: 'beachWet', tiles: [1.6, 1.6], bomb: [2, 1], macro: PAINTED_GROUND_SAND_MACRO, match: 0, tint: PAINTED_GROUND_BEACH_TINT,
     wet: [0.55, 0.22, 1, 0.6], env: 1, envSplit: [0.15, 0.55], decal: [0.42, 0.34, 0.24, 0.8], decalRough: 0.8,
     // (The beach takes a print as the arena's sand does, and its hollows stand out under a low sun.)
     relief: 1.4, press: [0.045, 3.2, 0.2],
     layout: (x, z, f) => paintedGroundShore(x, z, f, 28),
   },
   coastVillage: {
-    a: 'beachDry', b: 'beachWet', tiles: [1.6, 1.6], bomb: [2, 1], macro: PAINTED_GROUND_SAND_MACRO, match: 0.35,
+    a: 'beachDry', b: 'beachWet', tiles: [1.6, 1.6], bomb: [2, 1], macro: PAINTED_GROUND_SAND_MACRO, match: 0, tint: PAINTED_GROUND_BEACH_TINT,
     wet: [0.55, 0.22, 1, 0.6], env: 1, envSplit: [0.15, 0.55], decal: [0.2, 0.22, 0.12, 0.9], decalRough: 0.3,
     layout: (x, z, f) => paintedGroundShore(x, z, f, 29),
   },
@@ -1165,6 +1170,9 @@ function paintedGroundMeanOf(map) {
 /** Wetness from which a painted puddle is standing water (smoothstep edges). */
 const PAINTED_GROUND_POOL = [0.5, 0.75];
 
+// (PAINTED_PRESS_GLSL, PAINTED_BODIES_GLSL and, below, PAINTED_PRESS_SNOW: the open air's own GLSL and figures, put in where the material is made,
+// paintedGroundMaterial. The env modules are read after this file in the one-file build, where a name of theirs used
+// here as the file is read stopped the page: "cannot access before initialization".)
 const PAINTED_GROUND_FRAGMENT_HEAD = `
 uniform sampler2D uPgColA;
 uniform sampler2D uPgNrmA;
@@ -1188,13 +1196,13 @@ uniform vec2 uPgEnv;
 varying vec3 vPaintedWorld;
 #ifdef PAINTED_PRESS
 uniform vec3 uPgPress;
-${ENV_GLSL_PRESS}
+PAINTED_PRESS_GLSL
 #endif
 #ifdef PAINTED_POOLS
 ${BLOOD_DYE_GLSL}
 #endif
 #ifdef PAINTED_BODIES
-${ENV_GLSL_BODIES_SKY}
+PAINTED_BODIES_GLSL
 #endif
 vec2 pgRot(vec2 p) { return vec2(0.6 * p.x - 0.8 * p.y, 0.8 * p.x + 0.6 * p.y); }
 vec2 pgUnrot(vec2 p) { return vec2(0.6 * p.x + 0.8 * p.y, -0.8 * p.x + 0.6 * p.y); }
@@ -1269,8 +1277,8 @@ pgRough = mix(pgRough, uPgDecalRough, pgDec);
   // snow reads it but only uPgPress.x m deep): the print's walls lean the light, its bed is packed darker.
   // (The record keeps a body's underside, and a planted foot's is its ankle, some centimetres up: the print is read
   // at lying snow's depth, which that reaches, and drawn at the sand's.)
-  vec4 pgPrint = envSnowPrint(pgP, ${ENV_PRESS.snow.toFixed(3)});
-  pgSlope -= pgPrint.yz * uPgPress.x / ${ENV_PRESS.snow.toFixed(3)} * uPgPress.y;
+  vec4 pgPrint = envSnowPrint(pgP, PAINTED_PRESS_SNOW);
+  pgSlope -= pgPrint.yz * uPgPress.x / PAINTED_PRESS_SNOW * uPgPress.y;
   pgCol *= 1.0 - uPgPress.z * pgPrint.w;
 #endif
 diffuseColor.rgb *= pgCol;
@@ -1328,8 +1336,8 @@ function paintedGroundMaterial(view, spec, layers, layout, box, original) {
       .replace('#include <common>', '#include <common>\nvarying vec3 vPaintedWorld;')
       .replace('#include <begin_vertex>', '#include <begin_vertex>\nvPaintedWorld = (modelMatrix * vec4(transformed, 1.0)).xyz;');
     shader.fragmentShader = shader.fragmentShader
-      .replace('#include <common>', `#include <common>\n${PAINTED_GROUND_FRAGMENT_HEAD}`)
-      .replace('#include <map_fragment>', PAINTED_GROUND_FRAGMENT_BODY)
+      .replace('#include <common>', `#include <common>\n${PAINTED_GROUND_FRAGMENT_HEAD.replace('PAINTED_PRESS_GLSL', ENV_GLSL_PRESS).replace('PAINTED_BODIES_GLSL', ENV_GLSL_BODIES_SKY)}`)
+      .replace('#include <map_fragment>', PAINTED_GROUND_FRAGMENT_BODY.split('PAINTED_PRESS_SNOW').join(ENV_PRESS.snow.toFixed(3)))
       .replace('#include <roughnessmap_fragment>', 'float roughnessFactor = pgRough;')
       .replace('#include <normal_fragment_maps>', 'normal = normalize((viewMatrix * vec4(pgNormalW, 0.0)).xyz);')
       .replace('#include <lights_fragment_maps>', '#include <lights_fragment_maps>\n#if defined( RE_IndirectSpecular )\nradiance *= mix(uPgEnv.x, uPgEnv.y, pgWet);\n#endif')
@@ -1372,6 +1380,7 @@ function paintedGroundBuild({ place, view, scale, keepOut, grounds, rng }) {
     const own = paintedGroundMeanOf(ground.material.map);
     const mine = layers.a.mean;
     const calib = own ? own.map((value, channel) => Math.max(0.6, Math.min(1.6, 1 + (value / Math.max(0.02, mine[channel]) - 1) * spec.match))) : [1, 1, 1];
+    if (spec.tint) for (let channel = 0; channel < 3; channel += 1) calib[channel] *= spec.tint[channel];
     const material = paintedGroundMaterial(view, tiled, layers, layout.texture, box, { map: ground.material.map, roughness: ground.material.roughness ?? 0.95, calib });
     // (On a place that draws itself and joins the open air, env/config.js `own`, the ground takes the air's haze as its walls do.)
     if (PLACE_ENV[place]?.own) envDress(material);

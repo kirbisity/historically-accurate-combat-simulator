@@ -291,6 +291,15 @@ export const ENV = {
     // The finer map round the fight (a place's `shadowNear`): how many of its texels of depth a point is taken
     // toward the sun before it is looked up. By eye, the least that leaves no stripes on a cloak or a banner
     // (the things drawn into a shadow map from both sides).
+    // Every open-air place has it unless it says otherwise (`shadowNear: null`, or its own { half, size }): `half`
+    // m each way round the fight, `size` texels a side on every tier; not under a weather that leaves less than
+    // `nearSun` of the sun (a lid, rain, snow: there is no shadow's edge to draw, and the second map's cost is
+    // saved). 1024: a texel of 16 mm, where the wide map's is 3 to 7 cm. At 2048 (8 mm) the edge at a foot is a
+    // little crisper in a close-up and nothing more, and the map four times the memory; neither size could be told
+    // from the other in frame time on the bench machine (the cost is the second pass's draws, not its texels: about
+    // 0.2 to 0.4 ms a frame in a duel, 0.1 ms in a battle of seventy at 3200 by 1800).
+    near: { half: 8, size: 1024 },
+    nearSun: 0.2,
     finerBias: 1.5,
     // How many looks its filter takes at an edge (terrain.js): twelve on a turned spiral leave a grain finer than
     // the sand's own; at eight the grain showed on a pale floor. By eye.
@@ -912,10 +921,9 @@ export const ENV_WEATHER = {
 //     look's own box round the middle of the floor); `size`: the shadow map's side in texels at the top tier (left
 //     out: the look's own);
 //   far: m, the camera's far plane (left out: as the place's own lighting set it);
-//   (any place, not only one that draws itself) shadowNear: { half, size }: a second, finer map of the sun's
-//     shadow carried with the fight, `half` m each way and `size` texels a side at the top tier (half that below
-//     it), for the fighters' own shadows where the sun's one map is spread over a whole arena or a field
-//     (index.js envCarryFiner). Left out: the sun has its one map;
+//   (any place, not only one that draws itself) shadowNear: { half, size }: the second, finer map of the sun's
+//     shadow carried with the fight, `half` m each way and `size` texels a side, for the fighters' own shadows where the sun's one map is spread over a whole arena or a field
+//     (index.js envCarryFiner). Left out: ENV.shadow.near; null: the sun has its one map;
 //   wind: { toward: [x, z], speed m/s, gust 0..1 }, its own wind where wind.js PLACE_WIND has none for it;
 //   cover: what stands over the ground (roofs, a vault, a bridge), so nothing falls through it and blown snow
 //     starts from its top: { at: (x, z) => m, the top of the highest thing over the point, min: [x, z], size:
@@ -972,9 +980,8 @@ export const PLACE_ENV = {
     // (The sand: it throws back two fifths of the light on it, a little warm, `cast`: display values over their
     // mean, of the sand as it is painted, ground/painted.js sandRaked. That light from below is most of what the
     // podium, the lower seats and a man's shaded side are lit by under a high sun.)
-    ground: { ...ENV_PLACE_PLAIN.ground, albedo: 0.4, cast: [1.07, 0.99, 0.9] },
+    ground: { ...ENV_PLACE_PLAIN.ground, albedo: 0.4, cast: [1.09, 0.98, 0.9] },
     shadowBox: { half: 34, depth: 110, size: 2048 },
-    shadowNear: { half: 8, size: 2048 },
     far: 400,
     meter: { sky: 0.75, frame: 0.1, albedo: 0.4 },
     litAt: [0, 45, 0],
@@ -995,7 +1002,9 @@ export const PLACE_ENV = {
     sun: { azimuth: -0.5, elevation: 11 },
     air: { visibility: 14000, hazeHeight: 700 },
     clouds: { cover: 0.3, deck: 1 },
-    ground: { ...ENV_PLACE_PLAIN.ground, albedo: 0.3 },
+    // (Dry beach sand, pale as the arena's and metered as pale ground is: PLACE_ENV.colosseum `ground`, `meter`.)
+    ground: { ...ENV_PLACE_PLAIN.ground, albedo: 0.4, cast: [1.09, 0.98, 0.9] },
+    meter: { albedo: 0.4 },
     shadowBox: { half: 34, depth: 110, size: 2048 },
     far: 9000,
     drift: [{ kind: 'motes', share: 0.3, colours: [0xf2e8d0] }],
@@ -1011,7 +1020,9 @@ export const PLACE_ENV = {
     sun: { azimuth: -0.6, elevation: 26 },
     air: { visibility: 12000, hazeHeight: 600 },
     clouds: { cover: 0.4 },
-    ground: { ...ENV_PLACE_PLAIN.ground, albedo: 0.3 },
+    // (Dry beach sand, pale as the arena's and metered as pale ground is: PLACE_ENV.colosseum `ground`, `meter`.)
+    ground: { ...ENV_PLACE_PLAIN.ground, albedo: 0.4, cast: [1.09, 0.98, 0.9] },
+    meter: { albedo: 0.4 },
     shadowBox: { half: 34, depth: 110, size: 2048 },
     far: 9000,
     drift: [{ kind: 'motes', share: 0.3, colours: [0xf2ecd8] }],
@@ -1067,7 +1078,7 @@ export const PLACE_ENV = {
     sun: { azimuth: -0.5, elevation: 17 },
     air: { visibility: 60000, hazeHeight: 1200 },
     clouds: { cover: 0.45 },
-    ground: { ...ENV_PLACE_PLAIN.ground, albedo: 0.28 },
+    ground: { ...ENV_PLACE_PLAIN.ground, albedo: 0.28, cast: [1.06, 0.99, 0.92] },
     shadowBox: { half: 40, depth: 130, size: 2048 },
     far: 11000,
     meter: { sky: 0.85, frame: 0.2 },
@@ -1257,14 +1268,19 @@ export const PLACE_ENV = {
 // battle's: late in the afternoon a great wind got up and drove sand and gravel into the men's faces until neither
 // army could see the other (Shiji 111; the hour and the wind are the source's, their figures are not: by eye).
 // So the sun stands 22 degrees up ahead and to the left of a fight as it is first watched, through blown dust that
-// hides the ridges and takes the light as the arena's dust did before its noon was made a clear one (a warm,
-// glaring grade, a little less of each: open ground under a low sun glares less than a bowl of pale sand at
-// midday). Its own mood, a dust storm against a low sun: left as it is.
+// hides the ridges; the picture's grade is the arena's (PLACE_ENV.colosseum), a little less closed down for a low
+// sun on darker ground.
 PLACE_ENV.mobei = {
   weather: 'dust',
-  weatherHere: { visibility: 1500, hazeHeight: 70, wind: 1.6, gust: 0.3, sun: 0.85, cover: 0.12, shafts: 1.3, fall: { kind: 'dust', share: 0.8 }, grade: { contrast: 1.5, white: 6, saturation: 0.95, warmth: 0.05, split: 0.16, ev: 0.35, bloom: 2.0, bloomFrom: 0.85 } },
+  // (The storm stays: a low sun through blown dust, the ridges hidden. Its picture follows the arena's rules: the
+  // balance neutral and the dust pale, not ochre, where a warm grade and an ochre veil had laid one yellow over
+  // gravel, men and sky; the frame exposed for pale ground; the glare kept to what is truly bright. A visibility
+  // of 1500 m in a layer 70 m deep takes about a quarter of a 22 degree sun's beam, so shadows are still cast,
+  // long and plain: the dust dims the sun, it does not put it out.)
+  weatherHere: { visibility: 1500, hazeHeight: 70, wind: 1.6, gust: 0.3, sun: 0.85, cover: 0.12, shafts: 1.3, tint: 0xcabfae, fall: { kind: 'dust', share: 0.8 }, grade: { contrast: 1.42, white: 6, saturation: 1.0, warmth: 0.03, split: 0.06, ev: -0.15, bloom: 1.2, bloomFrom: 1.0 } },
   sun: { azimuth: -2.2, elevation: 22 },
   air: { visibility: 22000, hazeHeight: 900 },
+  meter: { albedo: 0.3 },
   clouds: { cover: 0.15 },
   // (Under any other weather the sun of a clear mid-afternoon, as the field's.)
   other: { than: 'dust', sun: { azimuth: -2.2, elevation: 34 }, clouds: { cover: 0.35 } },
@@ -1281,7 +1297,7 @@ PLACE_ENV.mobei = {
   },
   // Grey-brown gravel and grit with sand blown between the stones: bare over most of it (`wear`), a little loose.
   // (Colours: display values of dry gravel, about a quarter of the light thrown back; approximate.)
-  ground: { grass: 0x8a8658, dry: 0xa39a66, soil: 0x9a8a68, rock: 0x6a6258, wear: 1.15, loose: 0.6, ripple: 0.12, paths: [{ points: [[-160, 9], [-50, 2], [0, -3], [60, -5], [170, -16]], width: 2.2, by: 0.9 }], worn: [] },
+  ground: { grass: 0x8a8658, dry: 0xa39a66, soil: 0xa8967c, rock: 0x6a6258, albedo: 0.3, cast: [1.06, 0.99, 0.92], wear: 1.15, loose: 0.6, ripple: 0.12, paths: [{ points: [[-160, 9], [-50, 2], [0, -3], [60, -5], [170, -16]], width: 2.2, by: 0.9 }], worn: [] },
   grass: { height: [0.1, 0.2], grazed: 0, kept: 0.3, dry: 0.75, flowers: 0, flowerColours: [], share: 0.15 },
   rocks: [{ count: 22, from: 28, to: 260, clump: 0.4, size: [0.25, 0.9] }, { count: 520, from: 0, to: 80, clump: 0.3, size: [0.03, 0.11] }],
   trees: [{ kind: 'bunch', count: 900, from: 0, to: 110, clump: 0.55 }, { kind: 'bunch', count: 1400, from: 110, to: 420, clump: 0.6 }, { kind: 'thorn', count: 40, from: 14, to: 160, clump: 0.4 }],
@@ -1315,9 +1331,8 @@ PLACE_ENV.carrhae = {
     ],
   },
   // (Pale and nearly neutral, as dry sand is: about two fifths of the light thrown back, the arena's `ground`.)
-  ground: { grass: 0x7a8458, dry: 0x969268, soil: 0xc2ab91, rock: 0xa39a8c, wear: 1.3, loose: 1, ripple: 0.22, paths: [], worn: [], albedo: 0.4, cast: [1.07, 0.99, 0.9] },
+  ground: { grass: 0x7a8458, dry: 0x969268, soil: 0xc8ab92, rock: 0xa39a8c, wear: 1.3, loose: 1, ripple: 0.22, paths: [], worn: [], albedo: 0.4, cast: [1.09, 0.98, 0.9] },
   meter: { albedo: 0.4 },
-  shadowNear: { half: 8, size: 2048 },
   grass: { height: [0.16, 0.26], grazed: 0, kept: 0.3, dry: 0.5, flowers: 0, flowerColours: [], share: 0.08 },
   rocks: [{ count: 10, from: 30, to: 240, clump: 0.3, size: [0.2, 0.7] }, { count: 360, from: 0, to: 80, clump: 0.3, size: [0.02, 0.08] }],
   trees: [{ kind: 'thorn', count: 260, from: 0, to: 120, clump: 0.35 }, { kind: 'thorn', count: 500, from: 120, to: 460, clump: 0.4 }, { kind: 'bunch', count: 160, from: 0, to: 110, clump: 0.5 }],
@@ -1391,7 +1406,7 @@ PLACE_ENV.plain = {
       { from: 2400, full: 6500, height: 620, length: 3600, shape: 'ridge' },
     ],
   },
-  ground: { grass: 0x66702e, dry: 0x9c9250, soil: 0x86734c, rock: 0x6a6258, wear: 0.45, paths: [{ points: [[-120, 10], [-30, 3], [0, 0], [40, -4], [130, -14]], width: 1.6, by: 0.8 }], worn: [] },
+  ground: { grass: 0x66702e, dry: 0x9c9250, soil: 0x86734c, rock: 0x6a6258, albedo: 0.25, cast: [1.06, 1.0, 0.9], wear: 0.45, paths: [{ points: [[-120, 10], [-30, 3], [0, 0], [40, -4], [130, -14]], width: 1.6, by: 0.8 }], worn: [] },
   grass: { height: [0.18, 0.4], grazed: 0.3, kept: 0.14, dry: 0.7, flowers: 0.01, flowerColours: [0xe8c83a], share: 0.7 },
   rocks: [{ count: 18, from: 20, to: 240, clump: 0.4, size: [0.25, 0.9] }, { count: 320, from: 0, to: 70, clump: 0.4, size: [0.03, 0.1] }],
   trees: [
