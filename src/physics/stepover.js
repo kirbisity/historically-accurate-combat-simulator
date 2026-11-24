@@ -57,7 +57,7 @@ export const STEPOVER = {
   // s: a walking step's swing (~0.4 s at 0.7 m of step: Perry, Gait Analysis, 1992), longer in proportion for a longer step.
   swing: 0.4, swingStep: 0.7,
   // m/s: from this pace he leaps what lies across his way rather than stepping over it (a quick walk's top; a run begins
-  // at WORLD.gait.runFrom, 2.2).
+  // at WORLD.gait.runFrom, 2.2): a trunk with a bound, an arm or a shin with little more than a long stride (`leap.least`).
   leapFrom: 1.8,
   // The leap. `tuck`: the knees come up this share of his leg length as he goes over (a bound's, more than a standing
   // jump's WORLD.jump.tuck: a hurdler's lead thigh comes level; half that here, unverified). `crouch` s: the gather, a
@@ -109,9 +109,9 @@ function wayOf(fighter) {
  * What lies across his way: the runs of lying men's parts (joined where no foot fits between them, STEPOVER.heap) that his
  * track (STEPOVER.track either side of his line) passes over, from STEPOVER.behind m behind him (the foot he has yet to
  * bring over) to `reach` m ahead, nearest first. `near`: the indices of the men to look at (null: all). Each run:
- * { from, to (m along his way, from his stance), height (m, the highest top in it), low (the highest top among its parts
- * other than trunks and heads), left, right (m: how far its parts reach to either side of his line), id (the first man
- * in it), moving (one of them crawls), ox, oz, dx, dz (the line it was measured on) }. Null standing still.
+ * { from, to (m along his way, from his stance), height (m, the highest top in it), left, right (m: how far its parts
+ * reach to either side of his line), id (the first man in it), moving (one of them crawls), ox, oz, dx, dz (the line
+ * it was measured on) }. Null standing still.
  */
 export function crossingsAhead(world, fighter, near, reach) {
   const way = wayOf(fighter);
@@ -132,7 +132,6 @@ export function crossingsAhead(world, fighter, near, reach) {
     for (const capsule of capsules(lying)) {
       const [a, b] = capsuleEnds(lying, capsule);
       const radius = capsule.radius * (capsule.key === 'head' ? lying.body.gear.headBulk ?? 1 : 1);
-      const core = capsule.key === 'trunk' || capsule.key === 'head';
       // (Three places along the part: its ends and its middle. A trunk is ~0.5 m of a ~0.14 m radius, a shin ~0.4 m of 0.05.)
       for (let n = 0; n < 3; n += 1) {
         const t = n / 2;
@@ -148,7 +147,7 @@ export function crossingsAhead(world, fighter, near, reach) {
         if (top < WORLD.bodyFooting.least) continue;
         const half = Math.sqrt(radius * radius - outside * outside);
         if (s + half < -back || s - half > reach) continue;
-        spans.push({ from: s - half, to: s + half, top, core, left: off + radius, right: radius - off, id: lying.id, moving: Boolean(lying.crawling && lying.state === 'up') });
+        spans.push({ from: s - half, to: s + half, top, left: off + radius, right: radius - off, id: lying.id, moving: Boolean(lying.crawling && lying.state === 'up') });
       }
     }
   }
@@ -158,13 +157,12 @@ export function crossingsAhead(world, fighter, near, reach) {
   let run = null;
   for (const span of spans) {
     if (!run || span.from > run.to + STEPOVER.heap) {
-      run = { from: span.from, to: span.to, height: span.top, low: span.core ? 0 : span.top, left: span.left, right: span.right, id: span.id, moving: span.moving, ox: way.x, oz: way.z, dx: way.dx, dz: way.dz };
+      run = { from: span.from, to: span.to, height: span.top, left: span.left, right: span.right, id: span.id, moving: span.moving, ox: way.x, oz: way.z, dx: way.dx, dz: way.dz };
       runs.push(run);
       continue;
     }
     run.to = Math.max(run.to, span.to);
     run.height = Math.max(run.height, span.top);
-    if (!span.core) run.low = Math.max(run.low, span.top);
     run.left = Math.max(run.left, span.left);
     run.right = Math.max(run.right, span.right);
     run.moving ||= span.moving;
@@ -294,7 +292,7 @@ export function planCrossing(world, fighter, dt, tools) {
       ahead.round = { side: ahead.left <= ahead.right ? 1 : -1, need: Math.min(ahead.left, ahead.right) + spec.track };
       ahead.reach = reachNow;
       if (ahead.moving) ahead.how = 'onto';
-      else if (way.pace >= spec.leapFrom && ahead.height > ahead.low && ahead.from > 0 && !ahead.failed) ahead.how = 'leap';
+      else if (way.pace >= spec.leapFrom && ahead.from > 0 && !ahead.failed) ahead.how = 'leap';
       else if (ahead.height > reachNow.rise) ahead.how = 'onto';
       else ahead.how = width <= reachNow.span ? 'step' : 'pick';
       // (The man he is in the air over is being leapt.)
