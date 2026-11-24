@@ -956,7 +956,7 @@ export const PLACE_ENV = {
     ...ENV_PLACE_PLAIN,
     own: true,
     weather: 'dust',
-    weatherHere: { visibility: 1100, hazeHeight: 26, wind: 0.25, gust: 0.05, sun: 1, cover: 0, shafts: 1.6, tint: 0xcabfae, fall: { kind: 'dust', share: 0.35 }, grade: { contrast: 1.5, white: 6, saturation: 1.0, warmth: -0.01, split: 0.12, ev: -0.3, bloom: 1.2, bloomFrom: 1.0 } },
+    weatherHere: { visibility: 1100, hazeHeight: 26, wind: 0.25, gust: 0.05, sun: 1, cover: 0, shafts: 1.6, tint: 0xcabfae, fall: { kind: 'dust', share: 0.35 }, grade: { contrast: 1.42, white: 6, saturation: 1.0, warmth: -0.01, split: 0.12, ev: -0.3, bloom: 1.2, bloomFrom: 1.0 } },
     sun: { azimuth: -2.6, elevation: 54 },
     air: { visibility: 20000, hazeHeight: 900 },
     clouds: { cover: 0.12 },
@@ -967,7 +967,7 @@ export const PLACE_ENV = {
     shadowBox: { half: 34, depth: 110, size: 2048 },
     shadowNear: { half: 8, size: 2048 },
     far: 400,
-    meter: { sky: 0.7, frame: 0.1, albedo: 0.4 },
+    meter: { sky: 0.75, frame: 0.1, albedo: 0.4 },
     litAt: [0, 45, 0],
     drift: [{ kind: 'motes', share: 1, colours: [0xf2dcae, 0xe6c890] }],
   },
@@ -1287,7 +1287,9 @@ PLACE_ENV.mobei = {
 // toward the horizon, so the hills are a paler band and the sky near the ground is the ground's colour.
 PLACE_ENV.carrhae = {
   weather: 'dust',
-  weatherHere: { visibility: 3200, hazeHeight: 60, wind: 0.9, gust: 0.15, sun: 0.95, cover: 0, shafts: 1.2, fall: { kind: 'dust', share: 0.55 }, grade: { contrast: 1.58, white: 6, saturation: 1.0, warmth: 0.04, split: 0.17, ev: 0.35, bloom: 2.4, bloomFrom: 0.82 } },
+  // (The arena's noon in the open, PLACE_ENV.colosseum: the frame exposed for pale sand in a hard sun, its balance
+  // neutral, its shade deep and cool, the glare kept to what is truly bright; the dust a paler veil than it was.)
+  weatherHere: { visibility: 4200, hazeHeight: 60, wind: 0.9, gust: 0.15, sun: 1, cover: 0, shafts: 1.2, tint: 0xcabfae, fall: { kind: 'dust', share: 0.4 }, grade: { contrast: 1.42, white: 6, saturation: 1.0, warmth: 0, split: 0.08, ev: -0.3, bloom: 1.2, bloomFrom: 1.0 } },
   sun: { azimuth: -2.5, elevation: 52 },
   air: { visibility: 20000, hazeHeight: 900 },
   clouds: { cover: 0 },
@@ -1302,8 +1304,10 @@ PLACE_ENV.carrhae = {
       { from: 4200, full: 8000, height: 260, length: 4200, shape: 'ridge' },
     ],
   },
-  // (The sand's colour is the arena's own, ground/painted.js sandRaked, a little paler and greyer with flint.)
-  ground: { grass: 0x7a8458, dry: 0x969268, soil: 0xc6a672, rock: 0xa89878, wear: 1.3, loose: 1, ripple: 0.22, paths: [], worn: [] },
+  // (Pale and nearly neutral, as dry sand is: about two fifths of the light thrown back, the arena's `ground`.)
+  ground: { grass: 0x7a8458, dry: 0x969268, soil: 0xc2ab91, rock: 0xa39a8c, wear: 1.3, loose: 1, ripple: 0.22, paths: [], worn: [], albedo: 0.4, cast: [1.07, 0.99, 0.9] },
+  meter: { albedo: 0.4 },
+  shadowNear: { half: 8, size: 2048 },
   grass: { height: [0.16, 0.26], grazed: 0, kept: 0.3, dry: 0.5, flowers: 0, flowerColours: [], share: 0.08 },
   rocks: [{ count: 10, from: 30, to: 240, clump: 0.3, size: [0.2, 0.7] }, { count: 360, from: 0, to: 80, clump: 0.3, size: [0.02, 0.08] }],
   trees: [{ kind: 'thorn', count: 260, from: 0, to: 120, clump: 0.35 }, { kind: 'thorn', count: 500, from: 120, to: 460, clump: 0.4 }, { kind: 'bunch', count: 160, from: 0, to: 110, clump: 0.5 }],
