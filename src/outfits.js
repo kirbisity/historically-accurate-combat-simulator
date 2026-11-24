@@ -432,7 +432,13 @@ function ironManDesign(label, steel, cloth, lace) {
     label, top: { kind: 'longsleeve', color: shade(cloth, 0.6) }, bottom: { kind: 'pants', color: '#1c1a18' },
     armor: { kind: 'ironManScale', color: steel, cloth, cloth2: shade(cloth, 0.35), gold: '#c9a24a', leather: '#2a1d14', lace },
     head: { kind: 'mingHelm', color: steel, gold: '#c9a24a', coif: steel, aventail: 'lamellar', lace, tassel: '#b3161b', mask: true, maskDesign: 'somen' },
-    feet: { kind: 'clothBoot', color: '#141416' },
+    // The armoured boot (footwear.js lamellarBoot), as the Iron Pagoda's, in the coat's dark leather (the user's call,
+    // 2026-11-24). The record is split: the Taiwan waiji has them in iron face and iron armour (戴鐵面，被鐵甲) and Xing Hang
+    // (dissertation, 2010, as quoted) armoured all over but for openings at the eyes and mouth; a list with iron boots
+    // (鐵靴) is a modern secondary one with no source given (the Great Ming Military blog, "Tie Ren", 2015), unverified;
+    // against it a Dutch diary quoted second-hand has them in iron scale all but the arms and feet, and the same blog has
+    // them shedding leg armour and footwear to fight from boats. Drawn as they went into a land battle fully armed.
+    feet: { kind: 'lamellarBoot', color: '#2a1d14' },
   };
 }
 
@@ -612,9 +618,10 @@ function gladiatorDesign(kind, look, helmet, { barefoot = false } = {}) {
 // - `clothBoot`: the Ming's and the Qing's men, and the kung fu, monk and wuxia designs: black cloth boots (皂靴) on white
 //   soles of layered cloth, the trousers tucked in (the Ming court's Departure Herald and Return Clearing scrolls, 出警入跸图;
 //   the Qing's 大阅图 for the bannermen's black satin boots).
-// - `lamellarBoot`: the Jin Iron Pagoda alone: Song writers have the 铁浮屠 armoured whole, man and horse (重铠全装; Yue Ke's
-//   Jintuo cuibian); lames over the instep are drawn on Song and Jin armoured figures. No Ming or Qing unit wears it: their
-//   armour stopped at the skirt, over an ordinary boot.
+// - `lamellarBoot`: the Jin Iron Pagoda: Song writers have the 铁浮屠 armoured whole, man and horse (重铠全装; Yue Ke's
+//   Jintuo cuibian); lames over the instep are drawn on Song and Jin armoured figures. And Koxinga's iron men, armoured
+//   head to foot in iron (ironManDesign, where the thin record is set out; the user's call, 2026-11-24). No other Ming or
+//   Qing unit wears it: their armour stopped at the skirt, over an ordinary boot.
 // - `kogake`: armoured samurai of the tōsei age and after (the `samurai` and `samuraiTosei` kits): the armoured tabi worn
 //   under the suneate (Bottomley & Hopson, Arms and Armour of the Samurai, 1988). The ō-yoroi's age knew fur boots and plain
 //   tabi, and the ashigaru, ronin and monks go in tabi or bare feet with waraji: all keep theirs.
