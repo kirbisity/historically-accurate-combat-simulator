@@ -25,6 +25,7 @@ import { climbLadder, createLadders, LADDERS, ladderPose, stepLadders } from './
 import { brushKeepsOff, brushTouch, caughtBlade, holdBrushes, pinnedByBrush, tangled } from './physics/brush.js';
 import { artTurn, beakMix, coiledTwist, hiltCrush, hiltKnob, hiltMix, hookPull, rangeDrive, rangeOff, retreatDrive, strikeSpan, turningMass, turnsWithBlow } from './physics/arts.js';
 import { footingOn, lyingLow, partUnder, treadOn } from './physics/footing.js';
+import { clearHeight, clearStep, planCrossing, STEPOVER } from './physics/stepover.js';
 import { armourHardness, bluntEdge, driveShaft, dullEdge, hackShield, partHardness, shieldHardness, stopIn, strainBlade, strikeShaft } from './physics/wear.js';
 import { blockStep, carried, recordContact, setDrive, slopeFall, slopeHold, solvePress } from './physics/press.js';
 import { beginRise, restedToRise, riseMargins, riseTarget, standWobble, supportLimit, updateRise } from './physics/rising.js';
@@ -207,6 +208,8 @@ export function createFighter(inputs, { id, corner, x, facing, random }) {
     // A jump (physics/jump.js: startJump): jump (the one under way: { phase, t, ... }), jumpReadyAt (when he can jump again), jumpBody (his body's jump, cached),
     // jumpLandedAt (when he last came down from one: WORLD.jump.land.grace), landBruise ({ l, r }: the landing's bruise of his legDamage, healing).
     jump: undefined, jumpReadyAt: undefined, jumpBody: undefined, jumpLandedAt: undefined, landBruise: undefined,
+    // A man lying in his way (physics/stepover.js planCrossing): crossing (what lies there, whether he has seen it, what he means to do), crossed (what a foot has yet to come over), crossingOwed (his beat).
+    crossing: undefined, crossed: undefined, crossingOwed: undefined,
     // Level mode (levelmode/level.js): hands at a wound while a bandage goes on ({ t, seconds }).
     tending: undefined,
     // The player's stamina overdraft (physics/overdraft.js): player (the man played), faintDue (a cost would pass the floor), fainted (down in a faint), blackout (the screen's black, 0..1), faintGrace (s after waking).
@@ -2758,6 +2761,8 @@ function payForBlocks(world) {
 /** Start a whole-body move (rush, clinch) or a defence. */
 export function perform(world, fighter, name, { side = world.random() < 0.5 ? 1 : -1, from = null, held = false } = {}) {
   if (fighter.state !== 'up' || fighter.netted) return false;
+  // Gathering for a leap over a man on the floor, or in its flight: neither a blow nor a guard (physics/stepover.js).
+  if (fighter.jump?.over !== undefined && fighter.jump.phase !== 'land') return false;
   // His shield lost, he covers up with his arms.
   if (name === 'shieldBlock' && !fighter.shield) name = 'guard';
   // His shield knocked out of line: it cannot be brought to meet this one.
@@ -3559,6 +3564,8 @@ function updateFeet(world, fighter, dt) {
   }
   // Getting up, he stands up off the feet where he put them; he steps once up.
   if (fighter.state === 'rising') return;
+  // A man lying in his way: seen or not, and what he means to do about it (physics/stepover.js).
+  keepCrossing(world, fighter, dt);
   // Running (anyone at a run's pace, or in the run's pose): longer steps, the next foot away before the last has landed, laid out for
   // his speed and body (physics/gait.js strideOf). On a stair (or a steep slope) the stride is the short quick step of the stair, a foot
   // to a tread, not the leaping stride of the flat.
@@ -3598,13 +3605,17 @@ function updateFeet(world, fighter, dt) {
     // (A run's foot comes up behind him at once, the heel towards the seat, and is highest a third of the way through its swing: `early`.)
     // (A run's swing is laid out about the stance, from where the foot leaves it: `rel`, the take-off from the stance's root; runSwing.)
     worst.step = { from: [...worst.planted], to, t: 0, floorFrom: undefined, floorTo: undefined, seconds: own.seconds, lift: run ? spec.lift : undefined, retarget: Boolean(run) && !stair, early: Boolean(run) && !stair, rel: run && !stair ? [worst.planted[0] - fighter.root[0], worst.planted[2] - fighter.root[1]] : undefined };
+    // Over a man he has seen lying there: the step lifted and lengthened to clear him (stepover.js clearStep).
+    stepOverBody(world, fighter, worst.step, run);
   }
   for (const foot of feet) {
     if (!foot.step) continue;
     foot.step.t += dt / foot.step.seconds;
     if (foot.step.retarget) {
-      if (foot.step.t < WORLD.runMode.settle && run) foot.step.to = landingOf(fighter, foot, { ...limped(fighter, foot, spec), seconds: foot.step.seconds }, 1, foot.step.t);
-      else foot.step.retarget = false;
+      if (foot.step.t < WORLD.runMode.settle && run) {
+        foot.step.to = landingOf(fighter, foot, { ...limped(fighter, foot, spec), seconds: foot.step.seconds }, 1, foot.step.t);
+        stepOverBody(world, fighter, foot.step, run);
+      } else foot.step.retarget = false;
     }
     if (foot.step.t >= 1) {
       // Heard: the foot coming down, where it lands, at the pace he is going.
@@ -3613,6 +3624,47 @@ function updateFeet(world, fighter, dt) {
       foot.step = null;
       footDown(world, fighter, foot);
     }
+  }
+}
+
+/** What lies in his way and what he means to do about it, kept each step (physics/stepover.js planCrossing; the leap is startJump's). */
+function keepCrossing(world, fighter, dt) {
+  if (fighter.mount) return;
+  const fighters = world.fighters;
+  // (The men near him: in a big fight the contact grid's, as footDown; none listed yet, nothing is looked for.)
+  const near = fighters.length <= WORLD.tiers.full ? null : world.contactCache?.count === fighters.length ? world.contactCache.near[fighter.id] : undefined;
+  if (near === undefined || (near && !near.length)) {
+    fighter.crossing = null;
+    fighter.crossed = null;
+    return;
+  }
+  crossingTools.near = near;
+  planCrossing(world, fighter, dt, crossingTools);
+}
+const crossingTools = { near: null, legsOf: (fighter) => limbShares(fighter).leg, jumpNow, startLeap: (world, fighter, leap, crossing) => startJump(world, fighter, { leap: { ...leap, over: crossing.id } }) };
+
+/** A step just aimed (`step.to`), by a man who has seen a body in his way: moved off it and lifted over it (stepover.js clearStep). */
+function stepOverBody(world, fighter, step, run) {
+  if (!fighter.crossing?.seen && !fighter.crossed?.seen) return;
+  let clear = clearStep(fighter, step.from, step.to, run ? Math.hypot(step.to[0] - step.from[0], step.to[2] - step.from[2]) : 0);
+  if (!clear) return;
+  // A fighter's quick step is too quick for a step over a body: it takes a walking step's swing (a run's stride keeps its own
+  // time), and so is aimed again at where his stance will be when that longer swing lands (WORLD.runMode.step's lead, a
+  // walking stride's: the foot comes down ahead of his hips), and cleared from there.
+  if (!run && clear.seconds > step.seconds) {
+    const more = WORLD.runMode.step.lead * clear.seconds - WORLD.step.lead * step.seconds;
+    step.seconds = clear.seconds;
+    step.to = [step.to[0] + fighter.rootVelocity[0] * more, step.to[1], step.to[2] + fighter.rootVelocity[1] * more];
+    clear = clearStep(fighter, step.from, step.to) ?? { ...clear, to: step.to };
+  }
+  step.to = clear.to;
+  // The foot rises over him for as much of the swing as it is above him (`clear`: rawFootTarget), whatever the step's own arc.
+  step.clear = clear;
+  // (Counted once a body, for the tools: world.crossings.)
+  const crossing = fighter.crossing?.seen ? fighter.crossing : fighter.crossed;
+  if (!crossing.told) {
+    crossing.told = true;
+    (world.crossings ??= { step: 0, leap: 0 }).step += 1;
   }
 }
 
@@ -3659,8 +3711,8 @@ function kickLying(world, fighter, under, side) {
  * slip, the step met high, the body moving under him): put over past what his legs hold, stumbling near it. Looked for
  * among the men near him (in a big fight, the contact grid's: collideCrowd).
  */
-function footDown(world, fighter, foot) {
-  if (fighter.mount || fighter.crawling || fighter.air || fighter.jump || fighter.state !== 'up') return;
+function footDown(world, fighter, foot, landing = false) {
+  if (fighter.mount || fighter.crawling || fighter.air || (fighter.jump && !landing) || fighter.state !== 'up') return;
   const fighters = world.fighters;
   const near = fighters.length <= WORLD.tiers.full ? null : world.contactCache?.count === fighters.length ? world.contactCache.near[fighter.id] : undefined;
   if (near === undefined || (near && !near.length)) return;
@@ -3817,8 +3869,10 @@ function rawFootTarget(fighter, foot) {
   }
   // On terrain the foot rises to the next tread early (and drops to a lower one late), and clears the edge.
   const arc = Math.sin(Math.PI * (foot.step.early ? t ** WORLD.gait.heelUp : t));
-  if (foot.step.floorFrom !== undefined) return [along[0], fighter.desired[foot.index][1] + (foot.step.lift ?? WORLD.step.lift) * arc + stepHeight(foot.step, t), along[2]];
-  return [along[0], fighter.desired[foot.index][1] + (foot.step.lift ?? WORLD.step.lift) * arc, along[2]];
+  // (A step over a man he has seen lying there, stepOverBody: up over him for as long as the foot is above him.)
+  const lifted = Math.max((foot.step.lift ?? WORLD.step.lift) * arc, foot.step.clear ? clearHeight(foot.step.clear, t) : 0);
+  if (foot.step.floorFrom !== undefined) return [along[0], fighter.desired[foot.index][1] + lifted + stepHeight(foot.step, t), along[2]];
+  return [along[0], fighter.desired[foot.index][1] + lifted, along[2]];
 }
 
 /**
@@ -4031,7 +4085,7 @@ export function jumpNow(world, fighter) {
  * way he was going (and `forward` of the takeoff along it); the flight is the body's own; he lands on his legs (landJump). It
  * costs stamina by the work. False if he cannot jump now.
  */
-export function startJump(world, fighter, { hop = null } = {}) {
+export function startJump(world, fighter, { hop = null, leap = null } = {}) {
   // On a robot dog's back (robotdogs.js `legs`), the robot jumps (physics/mounted.js mountJump): on the move, a leap the way it
   // is going; standing, straight up.
   const robot = fighter?.mount?.spec?.legs ? fighter.mount : null;
@@ -4044,7 +4098,14 @@ export function startJump(world, fighter, { hop = null } = {}) {
   if (model.blocked) return false;
   const running = Math.max(WORLD.jump.crouch.running, 1 - Math.hypot(fighter.rootVelocity[0], fighter.rootVelocity[1]) / WORLD.jump.crouch.fast);
   // (A hop out of a blow, startEvade: paid for there, gathered in a flick, low, and away.)
-  if (!hop) drawStamina(fighter, model.cost);
+  // (A leap over a man lying in his way, physics/stepover.js leapOver: the share of his jump that clears him, paid for as that
+  // share of its work, gathered as a running take-off is, and carried on at the speed he has.)
+  if (leap) {
+    drawStamina(fighter, leap.cost);
+    hop = { crouch: STEPOVER.leap.crouch, up: leap.up, away: [fighter.rootVelocity[0], fighter.rootVelocity[1]] };
+    fighter.punch = null;
+    fighter.guardHeld = false;
+  } else if (!hop) drawStamina(fighter, model.cost);
   fighter.defence = null;
   fighter.rush = null;
   fighter.jump = {
@@ -4054,9 +4115,12 @@ export function startJump(world, fighter, { hop = null } = {}) {
     from: fighter.x[P.pelvis * 3 + 1], apex: -Infinity, takeoff: 0, ground: 0, landing: null, bumped: false,
     // (`away`: a hop's own push off the floor, m/s on the ground, [x, z]; `up` its share of his full jump's speed.)
     away: hop?.away ?? null, up: hop?.up ?? 1,
+    // (`over`: the man he leaps, by id; in that flight the knees come up further and the feet part fore and aft: jumpStance.)
+    over: leap ? leap.over : undefined,
   };
   if (hop) fighter.jump.depth *= hop.up;
-  world.events.push({ time: world.time, kind: 'jump', fighter: fighter.id, height: model.height, effects: ['jumps'] });
+  if (leap) (world.crossings ??= { step: 0, leap: 0 }).leap += 1;
+  world.events.push({ time: world.time, kind: 'jump', fighter: fighter.id, height: leap ? leap.rise : model.height, leap: leap ? leap.over : undefined, effects: ['jumps'] });
   return true;
 }
 
@@ -4165,7 +4229,11 @@ function jumpStance(world, fighter, dt) {
     jump.apex = Math.max(jump.apex, y);
     // The knees come up as he rises and go down again to meet the floor. The stance is where his feet are: over the hips'
     // standing height by the tuck (its floor is what a ledge's face is measured from: keepClearOfSolids), under the hips as they fly.
-    const tuck = spec.tuck * jumpLegLength(fighter) * Math.max(0, Math.min(1, 1 + vy / (0.35 * Math.max(0.5, jump.model.v))));
+    const leaping = jump.over !== undefined;
+    const tuck = (leaping ? STEPOVER.leap.tuck : spec.tuck) * jumpLegLength(fighter) * Math.max(0, Math.min(1, 1 + vy / (0.35 * Math.max(0.5, jump.model.v))));
+    // (Over a body, one leg leads and the other trails, widest at the top of the flight, together again as he comes down.)
+    const split = leaping ? STEPOVER.leap.split * jumpLegLength(fighter) * Math.max(0, Math.min(1, 1 - Math.abs(vy) / Math.max(0.5, jump.model.v * jump.up))) : 0;
+    const pace = split ? Math.hypot(fighter.v[pelvis], fighter.v[pelvis + 2]) : 0;
     fighter.lift = y - fighter.desired[P.pelvis][1] + tuck;
     const turned = yawRotate(fighter.desired[P.pelvis], fighter.yaw);
     fighter.root[0] = fighter.x[pelvis] - turned[0];
@@ -4178,6 +4246,11 @@ function jumpStance(world, fighter, dt) {
       if (!foot.lifted) {
         const under = toWorld(fighter, fighter.desired[foot.index]);
         foot.planted = [under[0], fighter.desired[foot.index][1], under[2]];
+        if (pace > 0.3) {
+          const lead = foot.index === P.lFoot ? 1 : -1;
+          foot.planted[0] += (lead * split * fighter.v[pelvis]) / pace;
+          foot.planted[2] += (lead * split * fighter.v[pelvis + 2]) / pace;
+        }
       }
       foot.floor = fighter.lift;
     }
@@ -4329,7 +4402,8 @@ function landJump(world, fighter, speed, floor) {
   // Come down on a ledge near its edge: the stance is brought on over it (along his way), so that neither foot's place under
   // it is off the edge (the stance stands on the lower foot: a foot left over the drop would take him back down it).
   if (terrain) settleOnLedge(fighter, terrain, floor);
-  fighter.jumpReadyAt = world.time + landing.seconds + landing.recover;
+  // (A leap over a man is a long stride: he can bound again once his legs are back under him, the dip over.)
+  fighter.jumpReadyAt = world.time + landing.seconds + (jump.over !== undefined ? 0 : landing.recover);
   fighter.jumpLandedAt = world.time;
   // His legs take the fall: the body's way down is stopped by them (the dip is the stance's), not by the floor meeting each
   // part at full speed in one substep (a spike the joints and the floor's own fall rules would read as a far worse landing).
@@ -4363,6 +4437,8 @@ function landJump(world, fighter, speed, floor) {
     return;
   }
   if (landing.stumble) fighter.wobble = standWobble(fighter);
+  // A leap over a man that came down short, or on the next man: the foot's footing on him, as any step's (footDown).
+  if (jump.over !== undefined) for (const foot of Object.values(fighter.feet)) if (fighter.state === 'up' && !foot.lifted) footDown(world, fighter, foot, true);
 }
 
 /**
