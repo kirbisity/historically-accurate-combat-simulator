@@ -1258,32 +1258,53 @@ export function buildHeadgear(body, head, colors, steel, cornerHex, { lowDetail 
       break;
     }
     case 'gorillaHead': {
-      // A silverback's head over the man's: the black-furred cranium with
-      // its sagittal crest, the heavy brow ridge, the deep-set eyes under
-      // it, the broad dark muzzle and its nostrils.
-      const fur = surface(color, { roughness: 0.9 });
-      const face = surface(0x34302f, { roughness: 0.7 });
-      const cranium = new THREE.Mesh(new THREE.SphereGeometry(1.14 * r, 20, 14), fur);
-      cranium.scale.set(1.02, 1.0, 0.98);
-      cranium.position.y = 0.06 * r;
-      const crest = new THREE.Mesh(new THREE.SphereGeometry(0.62 * r, 14, 10), fur);
-      crest.scale.set(1.35, 0.85, 0.42);
-      crest.position.set(-0.2 * r, 0.82 * r, 0);
-      const brow = new THREE.Mesh(new THREE.CylinderGeometry(0.24 * r, 0.24 * r, 1.7 * r, 12), face);
+      // A silverback's head over the man's (the photographs of western lowland males): the black-furred skull rising to a
+      // tall sagittal crest at the back of the crown (the anchor of the jaw muscles that give the bite), the heavy brow ridge
+      // jutting over deep-set eyes, the broad bare face of dark grey skin, the wide flat nose and its flared nostrils, the
+      // deep muzzle and jaw, small ears close to the head. The face is bigger than a man's on the same skull: drawn out past it.
+      // (A size up on the man's skull it is built over: a silverback's skull is far bigger than its brain needs.)
+      const g = 1.25 * r;
+      const fur = surface(color, { roughness: 0.95 });
+      const face = surface(0x2c2a2b, { roughness: 0.6 });
+      const dark = surface(0x0c0908, { roughness: 0.3 });
+      const cranium = new THREE.Mesh(new THREE.SphereGeometry(1.18 * g, 22, 16), fur);
+      cranium.scale.set(1.08, 1.0, 1.0);
+      cranium.position.set(-0.08 * g, 0.1 * g, 0);
+      // The crest: a ridge along the midline, highest behind the crown, so the head comes to a peak.
+      const crest = new THREE.Mesh(new THREE.SphereGeometry(0.9 * g, 18, 12), fur);
+      crest.scale.set(1.25, 1.05, 0.55);
+      crest.position.set(-0.32 * g, 0.78 * g, 0);
+      group.add(cranium, crest);
+      // The face: a broad bare plate in front of the skull, down to the jaw.
+      const plate = new THREE.Mesh(new THREE.SphereGeometry(0.95 * g, 18, 14), face);
+      plate.scale.set(0.55, 1.0, 0.95);
+      plate.position.set(0.72 * g, -0.12 * g, 0);
+      // The brow ridge: a thick bar across over the eyes.
+      const brow = new THREE.Mesh(new THREE.CylinderGeometry(0.22 * g, 0.22 * g, 1.5 * g, 12), face);
       brow.rotation.x = Math.PI / 2;
-      brow.scale.set(1, 1, 0.8);
-      brow.position.set(0.98 * r, 0.3 * r, 0);
-      const muzzle = new THREE.Mesh(new THREE.SphereGeometry(0.66 * r, 16, 12), face);
-      muzzle.scale.set(0.8, 0.78, 1.05);
-      muzzle.position.set(0.82 * r, -0.38 * r, 0);
-      group.add(cranium, crest, brow, muzzle);
-      const dark = surface(0x120c08, { roughness: 0.3 });
+      brow.scale.set(1.1, 1, 0.85);
+      brow.position.set(1.0 * g, 0.3 * g, 0);
+      // The muzzle and jaw: deep, wide, the lips a band across its front.
+      const muzzle = new THREE.Mesh(new THREE.SphereGeometry(0.72 * g, 18, 12), face);
+      muzzle.scale.set(0.85, 0.9, 1.1);
+      muzzle.position.set(0.95 * g, -0.55 * g, 0);
+      const jaw = new THREE.Mesh(new THREE.SphereGeometry(0.85 * g, 16, 12), fur);
+      jaw.scale.set(0.8, 0.7, 1.05);
+      jaw.position.set(0.35 * g, -0.62 * g, 0);
+      const nose = new THREE.Mesh(new THREE.SphereGeometry(0.34 * g, 14, 10), face);
+      nose.scale.set(0.55, 0.7, 1.15);
+      nose.position.set(1.42 * g, -0.12 * g, 0);
+      group.add(plate, brow, muzzle, jaw, nose);
       for (const side of [1, -1]) {
-        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.11 * r, 10, 8), dark);
-        eye.position.set(1.08 * r, 0.08 * r, side * 0.34 * r);
-        const nostril = new THREE.Mesh(new THREE.SphereGeometry(0.1 * r, 8, 6), dark);
-        nostril.position.set(1.32 * r, -0.2 * r, side * 0.14 * r);
-        group.add(eye, nostril);
+        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.1 * g, 10, 8), dark);
+        eye.position.set(1.12 * g, 0.1 * g, side * 0.33 * g);
+        const nostril = new THREE.Mesh(new THREE.SphereGeometry(0.13 * g, 8, 6), dark);
+        nostril.scale.set(0.6, 0.7, 1);
+        nostril.position.set(1.55 * g, -0.24 * g, side * 0.17 * g);
+        const ear = new THREE.Mesh(new THREE.SphereGeometry(0.2 * g, 10, 8), face);
+        ear.scale.set(0.45, 1, 0.35);
+        ear.position.set(0.05 * g, 0.05 * g, side * 1.16 * g);
+        group.add(eye, nostril, ear);
       }
       break;
     }

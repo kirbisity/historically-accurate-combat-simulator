@@ -31,6 +31,7 @@ import { heatStrain } from './physics/heat.js';
 import { ammoLeft, bowArcFouled, comradeInLane, emptied, sightFrom } from './physics/ranged.js';
 import { rayBlocked } from './physics/terrain.js';
 import { dismount, dismountReady, horseHealth, turretLaid } from './physics/mounted.js';
+import { displayMoves, startDisplay } from './physics/display.js';
 
 export const AI = {
   // Against a gun: close in (to `within` m, then fight), weaving (rad/s),
@@ -142,6 +143,8 @@ export const AI = {
   // Charges per second at range, per unit of the style's rush weight: at
   // 0.006 about one every two minutes, more for the charging styles.
   rushPerWeight: 1.5,
+  // A display (physics/display.js) is made at a man no further than this (m) beyond where it may begin: past it he would not see it.
+  display: { within: 6 },
   // A charge after the bow (ranged.charge) runs until he is within this share of the sword's reach.
   chargeInto: 1.1,
   // A man who charges (inputs.charging) runs in from this far (m) beyond his reach.
@@ -3805,6 +3808,22 @@ function roundFallen(world, fighter) {
   }
 }
 
+/**
+ * Whether he begins a display at his man now (physics/display.js): standing off past his reach by `from` m (and not so far that
+ * the man would not see it), not lately displayed (`every` s), his man not coming at him with a blow, at `rate` a second;
+ * the strut or the chest-beat by their weights.
+ */
+function showOff(world, fighter, opponent, spec, distance, dt) {
+  const near = reachOf(fighter) + spec.from;
+  if (distance < near || distance > near + AI.display.within || opponent.punch || opponent.rush) return false;
+  if (world.time < (fighter.displayAt ?? -Infinity) + spec.every || world.random() >= spec.rate * dt) return false;
+  const kind = pickWeighted({ beat: spec.beat?.weight ?? 0, strut: spec.strut?.weight ?? 0 }, world.random);
+  if (!kind || !startDisplay(world, fighter, kind, opponent)) return false;
+  fighter.displayAt = world.time;
+  displayMoves(world, fighter, opponent);
+  return true;
+}
+
 /** What he does this step (think). */
 function decide(world, fighter, dt) {
   const random = world.random;
@@ -4070,6 +4089,12 @@ function decide(world, fighter, dt) {
     fighter.strafe = 0;
     return;
   }
+  // A display at his man (a style's `display`, physics/display.js): the strut side-on or the chest-beat, standing off, before the charge.
+  if (fighter.display) {
+    displayMoves(world, fighter, opponent);
+    return;
+  }
+  if (style.display && !fighter.slot && showOff(world, fighter, opponent, style.display, distance, dt)) return;
   const spacing = teamSpacing(world, fighter, opponent);
   fighter.strafe = spacing.strafe;
   // In a gang, wait my turn: only the nearest few take him on.
@@ -4241,7 +4266,10 @@ function decide(world, fighter, dt) {
     }
     if (spec.kind === 'rush') {
       // A charge is its own decision, not a fallback when nothing else reaches.
-      if (distance > range - 0.1 && distance < range + 1.2 && random() < weight * AI.rushPerWeight * (1 + 3 * fighter.body.gear.courage) * charging * dt) {
+      // (From as far as the style charges from, `chargeFrom` m past its range: a silverback's charge comes from well out, once it
+      // has displayed at him, within its display's `charge` s: the display is the warning, the charge what follows it.)
+      const warned = !style.display || world.time - (fighter.displayAt ?? -Infinity) < style.display.charge;
+      if (distance > range - 0.1 && distance < range + (style.chargeFrom && warned ? style.chargeFrom : 1.2) && random() < weight * AI.rushPerWeight * (1 + 3 * fighter.body.gear.courage) * charging * dt) {
         if (throwPunch(world, fighter, name)) fighter.cooldown = AI.restMin + random() * AI.restRange;
         return;
       }

@@ -31,6 +31,8 @@ import { armourHardness, bluntEdge, driveShaft, dullEdge, hackShield, partHardne
 import { blockStep, carried, recordContact, setDrive, slopeFall, slopeHold, solvePress } from './physics/press.js';
 import { beginRise, restedToRise, riseMargins, riseTarget, standWobble, supportLimit, updateRise } from './physics/rising.js';
 import { bankOf, cornerPace, cornerShare, cornering, footworkQuickness, limpOf, pushOff, runChange, runLean, runSpeed, strideOf, turnRateMost } from './physics/gait.js';
+import { handsBase, quadBearing, quadPose, quadRunSpeed, quadRush, styledCharge } from './physics/quadruped.js';
+import { displayPose, stepDisplay } from './physics/display.js';
 import { awayFromEdges, ceilingAt, floorAt, pushOut, solidAt } from './physics/terrain.js';
 import { overdraftDepth, drawStamina, overdraws, takeWind, fatigueScale, recoveryShare } from './physics/overdraft.js';
 import { climateOf, freshHeat, heatMark, heatRecovery, heatStrength, stepHeat } from './physics/heat.js';
@@ -202,7 +204,7 @@ export function createFighter(inputs, { id, corner, x, facing, random }) {
     // What he has left to shoot (physics/ranged.js ammoLeft: arrows, or bolts and charges), and since when he has held a shot his own men foul (ai.js).
     arrows: undefined, rounds: undefined, holdingShot: undefined,
     aiFleeing: undefined, aiFleeSince: undefined, aiCharge: undefined,
-    mount: undefined, rideYaw: undefined, lift: undefined, carrier: undefined, faceAt: undefined, handsDown: undefined, pain: undefined, cuts: undefined,
+    mount: undefined, quad: undefined, display: undefined, displayAt: undefined, rideYaw: undefined, lift: undefined, carrier: undefined, faceAt: undefined, handsDown: undefined, pain: undefined, cuts: undefined,
     // A story scene's standing at ease (story/scenes/stage.js: the hands, the weapon's carry, the feet and the trunk; easePose).
     ease: undefined,
     // Level mode (terrain.js, levelmode/stage.js): dormant (his section is not active: he is not simulated, thought for or drawn), air (off the ground, falling), landedAt (the last hard landing), spawn (his post in the stage).
@@ -3041,14 +3043,15 @@ function updateIntent(world, fighter, dt) {
   weaponIntent(world, fighter, intent);
   pairedGun(world, fighter, intent, dt);
   weaveHead(world, fighter, intent, dt);
-  const charge = fighter.rush && STYLES[fighter.style]?.charge;
+  // (A body on all fours charges on them: physics/quadruped.js quadPose.)
+  const charge = fighter.rush && styledCharge(fighter) && STYLES[fighter.style].charge;
   if (charge) {
     // An ape's charge (a style's `charge`): low over its arms, square on, the hands down and forward as if on its knuckles.
     intent.lean += charge.lean;
     intent.dip += charge.dip;
     intent.twist = 0;
     for (const [side, sign] of [['l', 1], ['r', -1]]) intent[`${side}Hand`] = vec.scale([charge.hands[0], charge.hands[1], sign * charge.hands[2]], H);
-  } else if (fighter.rush) {
+  } else if (fighter.rush && !quadBearing(fighter)) {
     // Charging: head down, shoulder first, hands up.
     intent.lean += 0.28;
     intent.dip += 0.04;
@@ -3135,6 +3138,11 @@ function updateIntent(world, fighter, dt) {
     intent.lean -= 0.05;
   }
   if (fighter.player && fighter.stamina < 0) slumpPose(world, fighter, intent, runPose);
+  // A display before the fight (physics/display.js): the chest-beat reared up.
+  stepDisplay(fighter, dt);
+  displayPose(fighter, intent);
+  // On all fours, a body built to go so (physics/quadruped.js): its rearing up and down, and the pose blended by how far down it is.
+  quadPose(world, fighter, intent, dt);
   fighter.intent = intent;
   fighter.desired = desiredPose(fighter.body, intent);
 }
@@ -4673,9 +4681,10 @@ function checkBalance(world, fighter) {
   const planted = Object.values(fighter.feet).every((foot) => !foot.lifted);
   // (A runner's hips are never over a base: they are carried from one foot to the other.)
   // (An animal running on all fours: a style's `charge.fours`: its base runs from its feet to its hands.)
-  const fours = fighter.rush && STYLES[fighter.style]?.charge?.fours;
+  // (And a body on its knuckles, physics/quadruped.js: its base runs from its feet to its hands, charging or not.)
+  const fours = (fighter.rush && STYLES[fighter.style]?.charge?.fours) || quadBearing(fighter);
   const between = (a, b) => vec.scale(vec.add(point(fighter.x, a), point(fighter.x, b)), 0.5);
-  const outside = fours ? outsideBase(point(fighter.x, P.pelvis), between(P.lFoot, P.rFoot), between(P.lHand, P.rHand)) : planted && !striding(fighter) ? outsideBase(point(fighter.x, P.pelvis), point(fighter.x, P.lFoot), point(fighter.x, P.rFoot)) : 0;
+  const outside = fours ? outsideBase(point(fighter.x, P.pelvis), between(P.lFoot, P.rFoot), handsBase(fighter)) : planted && !striding(fighter) ? outsideBase(point(fighter.x, P.pelvis), point(fighter.x, P.lFoot), point(fighter.x, P.rFoot)) : 0;
   const legLength = fighter.body.lengths.thigh + fighter.body.lengths.shank;
   // Heels make it easy to go over; riot gear's wide stance and weight, hard.
   // (Wet clay under him, fieldworks.js `mired`: a shove puts him down sooner.)
@@ -4846,7 +4855,8 @@ function moveRoot(world, fighter, dt) {
   // Running: as fast as his body runs (physics/gait.js): flat out in the player's run mode, a run's pace else, at the share asked.
   let runPace = null;
   if (fighter.running && !fighter.rush && !fighter.crawling) {
-    runPace = Math.max(0, fighter.move) * runSpeed(fighter, Boolean(fighter.runMode));
+    // (On all fours, the four-legged pace: physics/quadruped.js.)
+    runPace = Math.max(0, fighter.move) * (quadRunSpeed(fighter, Boolean(fighter.runMode)) ?? runSpeed(fighter, Boolean(fighter.runMode)));
     // A turn still to make slows him to the pace at which his grip carries him round it in `room` m (gait.js cornerPace).
     // (Running to a place nearer than that, the room is the distance to it: he must be round the turn by there, or he circles it, never arriving.)
     const room = fighter.goTo ? Math.max(WORLD.gait.corner.roomLeast, Math.min(WORLD.gait.corner.room, Math.hypot(fighter.goTo[0] - fighter.root[0], fighter.goTo[2] - fighter.root[1]))) : WORLD.gait.corner.room;
@@ -4863,6 +4873,9 @@ function moveRoot(world, fighter, dt) {
     // A charge (the bull rush of a bout, from a step or two away): at what the legs can reach in it.
     fighter.rush.t += dt;
     drive = WORLD.rush.speedFactor;
+    // (On all fours, a gallop at the body's own pace: physics/quadruped.js quadRush, as a share of the footwork's speed below.)
+    const galloping = quadRush(fighter);
+    if (galloping) drive = galloping.speed / (WORLD.footSpeed * legs * fighter.body.gear.foot);
     if (fighter.rush.t >= fighter.rush.duration) fighter.rush = null;
   }
   // A sidestep (+ to the left), slower than stepping in or out.
@@ -4951,7 +4964,8 @@ function moveRoot(world, fighter, dt) {
     }
   } else {
     // (A step out, startEvade, is the legs thrown into it as a charge is, harder still: WORLD.evade `accel`.)
-    const limit = WORLD.footAcceleration * legs * gear.accel * (fighter.rush ? 1.6 : fighter.crawling ? WORLD.crawl.accel : fighter.defence?.name === 'evade' ? WORLD.evade.accel : 1) * dt;
+    const galloping = fighter.rush ? quadRush(fighter) : null;
+    const limit = galloping ? galloping.accel * dt : WORLD.footAcceleration * legs * gear.accel * (fighter.rush ? 1.6 : fighter.crawling ? WORLD.crawl.accel : fighter.defence?.name === 'evade' ? WORLD.evade.accel : 1) * dt;
     // (Off the ground, the legs push on nothing.)
     const scale = fighter.air ? 0 : size > limit ? limit / size : 1;
     fighter.rootVelocity[0] += change[0] * scale;

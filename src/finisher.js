@@ -300,7 +300,8 @@ function pointed(fighter) {
 
 /** Whether the fighter is in a state to kneel and strike: on his feet, steady, hands free. */
 export function canFinish(fighter) {
-  return fighter.state === 'up' && !fighter.crawling && !fighter.netted && !fighter.mount && !fighter.finisher && !fighter.clinch && !fighter.pin
+  // (A beast, an `unarmed` kit, has no knife to draw: it holds a man down and bites him instead, ai.js holdDown, grappling.js biteOf.)
+  return fighter.state === 'up' && !fighter.body.gear.unarmed && !fighter.crawling && !fighter.netted && !fighter.mount && !fighter.finisher && !fighter.clinch && !fighter.pin
     && !fighter.pickup && !fighter.pain && !fighter.reloading && !(fighter.stagger > 0) && !(fighter.dazed > 0) && !fighter.weapon?.spec.mounted;
 }
 

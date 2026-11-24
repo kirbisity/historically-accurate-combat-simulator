@@ -3042,7 +3042,7 @@ export const OUTFITS = {
     label: 'Silverback', movement: 'excellent', fists: 'bare', courage: 0.6, unarmed: true,
     protection: { blunt: 0.05, cut: 0.05, pierce: 0, bullet: { head: 0, torso: 0, limb: 0 } },
     designs: [
-      { label: 'Silverback', armor: { kind: 'silverback', color: '#8c8c89', cloth: '#232226', matte: true }, head: { kind: 'gorillaHead', color: '#232226' }, feet: { kind: 'bare' } },
+      { label: 'Silverback', armor: { kind: 'silverback', color: '#636366', cloth: '#232226', matte: true }, head: { kind: 'gorillaHead', color: '#232226' }, feet: { kind: 'bare' } },
     ],
   },
   // The monkeys' and the chimpanzee's coats (body.js PRESETS), drawn as
