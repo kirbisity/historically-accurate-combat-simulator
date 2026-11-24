@@ -16,6 +16,7 @@
 //   his legs by the jump's landing rules (a man in plate needs more of a lower jump, and comes down harder); none with an
 //   enemy within reach (in the air he neither strikes nor guards). What he cannot clear he treads on or kicks, as before.
 // - Going round it is the mover's choice (ai.js roundFallen reads `crossing.round`); the man played steers himself.
+// - A horse sets its hooves clear of a man lying still where it can (STEPOVER.horse; physics/mounted.js hoofClear).
 
 import { P } from '../body.js';
 import { WORLD } from './config.js';
@@ -83,8 +84,17 @@ export const STEPOVER = {
   hides: 0.35,
   // s: how often a man works out what lies ahead (each on his own beat). m/s: slower than this he is going nowhere.
   every: 0.1, still: 0.25,
-  // m: stepping aside by no more than this costs little: he goes round (ai.js roundFallen). A sidestep or two.
-  round: 0.6,
+  // A horse: it does not willingly set a hoof on a man lying still (the cavalry's old complaint, that a horse will not be
+  // ridden over a man it can avoid: Keegan, The Face of Battle, 1976, on Waterloo; and a loose or ridden horse over a faller
+  // on a racecourse), so a hoof coming down on a man out of the fight is set down clear of him when the horse sees where it
+  // goes: going forward, its line not broken (its shock under `shock` of what brings it down, WORLD.mount.crash.fall, and
+  // shoved across at less than `shove` m/s), with clear ground within `shift` x its withers height before or behind the
+  // hoof (a stride shortened or lengthened by ~0.4 m). All three figures unverified. Men lying too thick for that, and men
+  // still in the fight (down or crawling: the rider rides them down), are trodden as before (physics/mounted.js trodOn).
+  horse: { shift: 0.28, shock: 0.25, shove: 0.6 },
+  // m: stepping aside by no more than this costs little: he goes round (ai.js roundFallen). A sidestep or two; a man in the
+  // ranks has `roundInRank` of it (his place in the line is his order's: half a file's interval of ~0.9 m, less a body).
+  round: 0.6, roundInRank: 0.5,
 };
 
 /** His way over the ground: where he is (hips' stance), the unit direction he moves in, and his pace; null standing still. */
@@ -131,7 +141,7 @@ export function crossingsAhead(world, fighter, near, reach) {
         const pz = a[2] + (b[2] - a[2]) * t - way.z;
         const s = px * way.dx + pz * way.dz;
         // (Across his way: + to his left, as the stance's strafe is.)
-        const off = px * way.dz - pz * way.dx;
+        const off = pz * way.dx - px * way.dz;
         const outside = Math.max(0, Math.abs(off) - STEPOVER.track);
         if (outside >= radius) continue;
         const top = py + radius - floorUnder(lying.arena, pz + way.z, px + way.x, py);
