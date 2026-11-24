@@ -2384,7 +2384,7 @@ export function severView(view, fighterView, event, debris) {
   bloodSite(blood, fighterView.fighter.id, ends.base, ends.from);
   // The stump's blood on what is left of the limb (markview.js): all round its end.
   const stays = BONE[`${event.side}${STUMP_BONE[event.joint]}`] ?? (event.joint === 'hip' ? BONE.pelvis : BONE.chest);
-  if (fighterView.frames?.[stays]) markAdd(fighterView.fighter, stays, fighterView.frames[stays], event.point, null, null, { kind: MARK_KIND.wound, width: 0, reach: debris.radius * 1.5 + 0.03, strength: 0 }, event.time);
+  if (fighterView.frames?.[stays]) markAdd(fighterView.fighter, stays, fighterView.frames[stays], event.point, null, null, { kind: MARK_KIND.wound, width: 0, reach: Math.min(0.07, debris.radius * 0.7 + 0.015), strength: 0 }, event.time);
   blood.emitters.push({ kind: 'piece', debris, start: view.clock ?? 0, seconds: GORE.pieceSeconds });
   spawnBlood(view, event.point, [0, 1, 0], 40, 3.2);
 }
@@ -2405,7 +2405,7 @@ function severTrunkView(view, fighterView, event) {
   if (fighter.body.gear.machine) return;
   // Both parts' clothes and skin soak with it round the cut (markview.js): a mark all round each end.
   for (const [bone, frames] of [[BONE.pelvis, split.lowerFrames ?? fighterView.frames], [BONE.chest, fighterView.frames]]) {
-    if (frames?.[bone]) markAdd(fighter, bone, frames[bone], event.point, null, null, { kind: MARK_KIND.wound, width: 0, reach: fighter.body.segments.trunk.skinRadius * 1.25, strength: 0 }, fighter.trunkCut.time);
+    if (frames?.[bone]) markAdd(fighter, bone, frames[bone], event.point, null, null, { kind: MARK_KIND.wound, width: 0, reach: fighter.body.segments.trunk.skinRadius * 0.75, strength: 0 }, fighter.trunkCut.time);
   }
   // What the blade threw as it went through: a sheet of drops along its way, from the width of the cut.
   const across = new THREE.Vector3(...event.normal).cross(new THREE.Vector3(...event.travel));

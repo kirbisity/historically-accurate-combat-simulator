@@ -296,6 +296,23 @@ function woundSplitGeometry(geometry, plane, boneUpper) {
       rim.push({ at, bare: attributes.wetSkin ? attributes.wetSkin.array[near] > 0.5 : false, lower: low, upper: high });
     }
   }
+  // A point's bones on one part: a limb's bone that went with the other part pulls nothing here (its share is the rest's).
+  const own = (index, weight, at, upper) => {
+    let total = 0;
+    let kept = 0;
+    for (let k = 0; k < 4; k += 1) {
+      total += weight[at + k];
+      if (!WOUND_PLANE_BONES.has(index[at + k]) && Boolean(boneUpper[index[at + k]]) !== upper) weight[at + k] = 0;
+      kept += weight[at + k];
+    }
+    if (kept <= 1e-6) {
+      // (All of it another part's limb: the trunk's own bone there holds it.)
+      index[at] = upper ? BONE.chest : BONE.pelvis;
+      weight[at] = total || 1;
+      return;
+    }
+    for (let k = 0; k < 4; k += 1) weight[at + k] *= total / kept;
+  };
   const build = (side) => {
     if (!side.index.length) return null;
     const made = new THREE.BufferGeometry();
@@ -314,14 +331,20 @@ function woundSplitGeometry(geometry, plane, boneUpper) {
       }
       made.setAttribute(name, new THREE.BufferAttribute(array, size, source.normalized));
     }
+    const [madeIndex, madeWeight] = [made.attributes.skinIndex.array, made.attributes.skinWeight.array];
+    for (let vertex = 0; vertex < side.from.length; vertex += 1) own(madeIndex, madeWeight, vertex * 4, side === sides[1]);
     made.setIndex(side.from.length > 65535 ? new THREE.Uint32BufferAttribute(side.index, 1) : new THREE.Uint16BufferAttribute(side.index, 1));
     return made;
   };
   // (The rim's bones, read from the first geometry while it is still there.)
-  const bound = (vertex) => ({ index: [0, 1, 2, 3].map((k) => skinIndex.array[vertex * 4 + k]), weight: [0, 1, 2, 3].map((k) => attributes.skinWeight.array[vertex * 4 + k]) });
+  const bound = (vertex, upper) => {
+    const found = { index: [0, 1, 2, 3].map((k) => skinIndex.array[vertex * 4 + k]), weight: [0, 1, 2, 3].map((k) => attributes.skinWeight.array[vertex * 4 + k]) };
+    own(found.index, found.weight, 0, upper);
+    return found;
+  };
   for (const point of rim) {
-    point.lower = bound(point.lower);
-    point.upper = bound(point.upper);
+    point.lower = bound(point.lower, false);
+    point.upper = bound(point.upper, true);
   }
   return { lower: build(sides[0]), upper: build(sides[1]), rim };
 }
