@@ -98,6 +98,14 @@ function board() {
       { title: 'Sand', sets: ['step-grass-walk'], isNew: true, event: step('sand', 1.4), ends: MASS, note: 'The grass\'s steps, lower; the synth\'s crunch beside.' },
       { title: 'Snow', sets: ['step-grass-walk'], isNew: true, event: step('snow', 1.4), ends: MASS, note: 'The grass\'s steps, lower still; the synth\'s crunch beside.' },
     ]],
+    // What is on the foot (sfx/sampled.js SHOE_STEPS): each kind walking on stone, where the shoe tells most, and a few on grass, where it hardly does.
+    ['Shoes', 'One footfall by what is on the foot: the same ground takes re-levelled, re-pitched and dulled, a few with a second take over them (a heel\'s knock, the plates\' tick). The slider is the man\'s weight.', [
+      ...['compactBoot', 'bare', 'footRags', 'tabi', 'sandal', 'turnshoe', 'ottomanBoot', 'feltBoot', 'clothBoot', 'jinBoot', 'ridingBoot', 'dressShoe', 'boxingBoot', 'trainer', 'hikingBoot', 'tacticalBoot', 'lugBoot', 'proximityBoot', 'sabaton', 'lamellarBoot', 'kogake']
+        .map((shoe) => ({ title: `${shoe}, stone`, sets: ['step-stone-walk'], isNew: true, event: step('stone', 1.4, { shoe }), ends: MASS })),
+      ...['heelAnkleBoot', 'platformShoe'].map((shoe) => ({ title: `${shoe}, stone`, sets: ['step-heel'], isNew: true, event: step('stone', 1.4, { shoe, heels: true }), ends: MASS })),
+      ...['compactBoot', 'bare', 'ridingBoot', 'lugBoot', 'sabaton', 'kogake'].map((shoe) => ({ title: `${shoe}, grass`, sets: ['step-grass-walk'], isNew: true, event: step('grass', 1.4, { shoe }), ends: MASS })),
+      { title: 'sabaton under plate, stone', sets: ['step-stone-walk', 'armourstep', 'crossbow-latch'], isNew: true, event: step('stone', 1.4, { shoe: 'sabaton', armour: 'plate' }), ends: MASS, note: 'The harness\'s clank as before, the sabaton\'s tick under it.' },
+    ]],
     ['Horses', 'The slider is the gait, from a walk to a gallop.', [
       { title: 'Hooves on stone', sets: ['hoof-stone'], event: (s) => ({ type: 'horse', kind: 'hoof', gait: ['walk', 'trot', 'canter', 'gallop'][Math.min(3, Math.floor(s * 4))], speed: lerp(1.5, 12, s), surface: 'stone', mass: 550 }), ends: ['walk', 'gallop'] },
       { title: 'Hooves on turf', sets: ['hoof-soft'], event: (s) => ({ type: 'horse', kind: 'hoof', gait: ['walk', 'trot', 'canter', 'gallop'][Math.min(3, Math.floor(s * 4))], speed: lerp(1.5, 12, s), surface: 'grass', mass: 550 }), ends: ['walk', 'gallop'] },

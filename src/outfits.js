@@ -93,6 +93,52 @@ export const HAND_COVERS = {
   gauntlet: null,
 };
 
+// What covers the feet (a design's `feet.kind`; physics.js protectionAt for a foot, the far end of the shank past
+// coverage.js ARMOUR_COVER.footFrom), as HAND_COVERS for the hands. A sabaton carries the harness on over the foot (`sabaton`:
+// null, the kit's own figures there, as before). The rest is what the shoe itself stops, and it only ever adds: the foot
+// meets the better of this and whatever the kit already had over it (a greave's figures, a kit that keeps its figures
+// everywhere), figure by figure.
+// - `kogake`: the samurai's armoured tabi, small lacquered iron plates over the instep and toes joined by mail on a cloth
+//   backing, the sole open and the whole tied on over tabi and straw sandals (Stone, A Glossary of the Construction,
+//   Decoration and Use of Arms and Armor, 1934, s.v. kogake; Bottomley and Hopson, Arms and Armor of the Samurai, 1988).
+//   The same make as the tekkō on the back of the hand, and argued as it is: some of a cut turned on the plates, little of a
+//   point (the mail between them is butted, and opens to one) or of a blow (thin plate on cloth on the bones of the foot);
+//   a shade under the tekkō's 0.2 / 0.55 / 0.2, more plates and more joins over a part that bends at every step.
+// - `lamellarBoot`: the Chinese boot with iron lames over the instep, set in or sewn on its leather (the plated boots of Song
+//   and Ming armoured guards in painting and tomb sculpture; none is known to survive to measure, so the figure is the
+//   kōgake's by likeness of make, not a measurement). The lames as the kōgake's plates without the mail, on a stout boot
+//   and not on cloth: the two proofs summed as layers are (layeredProtection), ~13 J of edge for the lames and ~4 J for
+//   the leather, cut 0.5; the leather holds a point a little better than cloth does, pierce 0.25.
+//   On both the sole, the heel and the sides are leather or straw: the figures are for the foot as a blow from above finds it.
+// - Stout leather (`STOUT_LEATHER`: a riding or steppe boot, a modern work or combat boot, 2.5-3.5 mm of vegetable-tanned
+//   upper): a little against an edge, next to nothing against a point or a blow. Williams (The Knight and the Blast
+//   Furnace, 2003) cut 5 mm of hardened leather with a blade at ~50 J and buff leather at ~70 J, against ~80 J for a
+//   16-fold linen jack and ~30 J for a point through the leather; boot upper is half as thick and not hardened, a third or
+//   less of the jack's proof. On this game's scale (EDGE_PROOF: a jack's cut 0.6 is ~25 J) that is 4-8 J: cut 0.2 (4 J),
+//   the low end, the same order as the conquistador's breeches and riding boots (0.25, his `worn` Shank); pierce 0.05
+//   (~16 J at a bodkin, PUNCTURE), blunt 0.05.
+// - Light leather (`LIGHT_LEATHER`: a turnshoe, an Ottoman soft boot, a dress shoe, a boxing boot, a plain ankle boot, 1-1.5 mm
+//   of upper): by the same reckoning under 2 J of edge: cut 0.1, a slash's last joules and no more; nothing against a point.
+// - Cloth, felt, straw, rubber foam and the bare foot: nothing. (A cloth boot's thick sole is under the foot, where no blow
+//   lands; a sandal's straps and a felt boot's felt part for an edge.)
+// A kind not listed here is as the bare foot.
+const STOUT_LEATHER = { blunt: 0.05, cut: 0.2, pierce: 0.05 };
+const LIGHT_LEATHER = { blunt: 0, cut: 0.1, pierce: 0 };
+const NO_FOOT_COVER = { blunt: 0, cut: 0, pierce: 0 };
+export const FOOT_COVERS = {
+  bare: NO_FOOT_COVER, sandal: NO_FOOT_COVER, footRags: NO_FOOT_COVER, tabi: NO_FOOT_COVER, clothBoot: NO_FOOT_COVER, feltBoot: NO_FOOT_COVER, trainer: NO_FOOT_COVER,
+  turnshoe: LIGHT_LEATHER, ottomanBoot: LIGHT_LEATHER, compactBoot: LIGHT_LEATHER, dressShoe: LIGHT_LEATHER, boxingBoot: LIGHT_LEATHER, heelAnkleBoot: LIGHT_LEATHER, platformShoe: LIGHT_LEATHER,
+  ridingBoot: STOUT_LEATHER, jinBoot: STOUT_LEATHER, hikingBoot: STOUT_LEATHER, tacticalBoot: STOUT_LEATHER, lugBoot: STOUT_LEATHER, proximityBoot: STOUT_LEATHER,
+  kogake: { blunt: 0.15, cut: 0.5, pierce: 0.2 },
+  lamellarBoot: { blunt: 0.15, cut: 0.5, pierce: 0.25 },
+  sabaton: null,
+};
+
+/** What a kind of shoe (a design's `feet.kind`, or none) stops over the foot (FOOT_COVERS): its figures, or null for a sabaton (the harness's own). */
+export function footCoverOf(kind) {
+  return kind in FOOT_COVERS ? FOOT_COVERS[kind] : NO_FOOT_COVER;
+}
+
 /** Cloth colours by name, for designs' palettes and the builder's pickers. */
 export const CLOTH_COLORS = {
   navy: '#24324a', maroon: '#7a2230', black: '#1c1c20', charcoal: '#26262b', grey: '#6b6e74', white: '#e4e4e6',
@@ -3687,6 +3733,8 @@ export function gearTraits(inputs) {
     deflects: Boolean(spec.deflects),
     // What covers his hands (HAND_COVERS): null, a gauntlet (the harness carries on over them); else its figures.
     handCover: HAND_COVERS[spec.hands ?? (spec.fists === 'gauntlet' ? 'gauntlet' : 'bare')] ?? null,
+    // What covers his feet (FOOT_COVERS): null, a sabaton (the harness carries on over them); else the shoe's own figures.
+    footCover: footCoverOf(feet?.kind ?? 'bare'),
     // What his armour is drawn as, and what is on his hands and feet: what covers each place on him (coverage.js, read by
     // physics.js protectionAt where a blow lands).
     cover: { armor: look.armor?.kind ?? null, fists: spec.fists ?? null, hands: spec.hands ?? null, feet: feet?.kind ?? null, also: spec.coverAlso ?? null },

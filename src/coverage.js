@@ -6,7 +6,8 @@
 //
 // The far end of a forearm is the hand (from ARMOUR_COVER.handFrom of the way to the fist), covered only by a gauntlet (a kit's
 // `fists: 'gauntlet'`) or the samurai's tekkō (`hands: 'tekko'`): outfits.js HAND_COVERS. The far end of a shank is the foot
-// (from ARMOUR_COVER.footFrom), covered by sabatons (`feet.kind` 'sabaton'). The skirt (its hem a share of the thigh's length below
+// (from ARMOUR_COVER.footFrom), covered by sabatons (`feet.kind` 'sabaton'), any other shoe guarding it only as far as the shoe
+// itself does (outfits.js FOOT_COVERS). The skirt (its hem a share of the thigh's length below
 // the waist: loftbody.js skirtTo) covers each thigh from the hip down to its hem, and the shank below the knee where it hangs
 // past it.
 

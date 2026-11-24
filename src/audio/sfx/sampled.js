@@ -8,7 +8,7 @@
 // blade's scrape), the synth plays that part beside the take.
 //
 // Footsteps: the ground's own take (stone, grass, mud, water; earth from grass), walk or run by the pace, weighed by the man (STEP_WEIGHT),
-// with the armour's clank on top for plate or mail; heels on a hard floor (stone, tile, boards) click (the recorded heels; boards, the
+// shaped by what is on his foot (SHOE_STEPS), with the armour's clank on top for plate or mail; heels on a hard floor (stone, tile, boards) click (the recorded heels; boards, the
 // ring's canvas among them, are otherwise the synth's). Hooves: on hard ground or soft by the surface, by the gait; the neigh recorded. Blows: a helmet rings, a wooden shield
 // (or a haft) knocks, a fist, foot, knee or elbow on the body punches, the fist's whoosh rises into it; thunder near cracks, far rumbles.
 // A man going down thuds (the recorded body fall; in plate or mail the crash of his kit over it), a whip's tip cracks on what it lashes, a
@@ -100,6 +100,95 @@ const HEEL_STEPS = {
   tile: { walk: 'step-heel', run: 'step-heel', trim: 1.1, rate: 1.05 },
   wood: { walk: 'step-heel', run: 'step-heel', trim: 1.1, rate: 0.95, synthGain: 0.35 },
 };
+/**
+ * What is on the foot (the step event's `shoe`: a design's `feet.kind`, outfits.js) shapes the step it makes: no recording of its own,
+ * the ground's take re-levelled, re-pitched, dulled and cut, and for a few a second take already in the bank laid over it.
+ * The step's sound has two parts (Ekimov and Sabatier, Vibration and sound signatures of human footsteps in buildings, JASA 120,
+ * 2006): the heel's blow, low, and the sole's slide and roll, a broad hiss. The blow is a contact of two bodies and the softer of
+ * them sets how long it lasts and so how bright it is (Hertz): on a hard floor that is the sole, and a hard sole clicks where a soft
+ * one or a bare heel pads (listeners tell a hard sole from a soft one by the spectrum: Li, Logan and Pastore, Perception of acoustic
+ * source characteristics: walking sounds, JASA 90, 1991); on turf, mud or in water it is the ground, and what is on the foot hardly
+ * tells. So each kind's figures are for a hard floor, and SHOE_GROUND says how much of them a ground lets through.
+ *   gainDb   dB on the ground's take (the recordings are of a hard-soled shoe: `plain`, nothing changed)
+ *   rate     its playback rate: a soft or heavy sole lower (and longer), a small hard heel higher
+ *   lowpass  Hz: a soft sole's pad has no click in it (null: left open)
+ *   length   the share of the take played: a light soft shoe's is the pat alone, a heavy boot's the whole of it
+ *   layers   more takes with it: { set, trim, rate, seconds, fade, delay, hard } (`hard`: of the sole on a hard floor, gone on soft
+ *            ground; else of the shoe itself, its plates or its straw, heard on any ground). Played only near the ear (SHOE_PLAY).
+ * - bare: the heel's fat pad on stone, soft and dull, and the slap of the sole after it (the punch's take, a hand's breadth of
+ *   flesh on something hard, high and cut to its first instant). Rags and tabi the same without the slap: cloth between.
+ * - sandal: a leather sole strapped on, flat and thin: a slap, little under it.
+ * - turnshoe, ottomanBoot: one thin layer of leather turned inside out, no heel: a soft pat. feltBoot: the same sole under felt.
+ * - clothBoot: a thumb's thickness of stitched cloth layers: muffled, the dullest of the shod.
+ * - jinBoot: a steppe rider's boot, a leather sole without a built heel. plain boots (compactBoot) as recorded.
+ * - ridingBoot, dressShoe: a stacked leather heel, the hardest thing here: its knock on stone (the recorded heel, lower for the
+ *   broad heel of a boot), and nearly nothing of it on grass (`hard`).
+ * - heelAnkleBoot, platformShoe: the heels' own take on a hard floor (HEEL_STEPS, by the kit's `heels`): a narrow heel high, a
+ *   platform's block lower.
+ * - trainer, boxingBoot: foam and thin rubber: quiet, no click. hikingBoot, tacticalBoot, lugBoot, proximityBoot: a thick
+ *   rubber lug sole on a heavy boot: a dull thud, low, the whole of it, louder than a trainer and duller than leather.
+ * - sabaton, lamellarBoot, kogake: the footfall is the shoe under the plates (a turnshoe, a leather boot, straw sandals over
+ *   tabi: the straw's dry rustle is the grass's take, high and short), and the plates tick as the foot bends: small plates,
+ *   high and brief (a plate's pitch goes as its thickness over its length squared), so not the harness's clank (STEP_ARMOUR,
+ *   which plays as before) at a higher pitch but the bank's one small click of steel on steel (the crossbow's latch), a little
+ *   after the heel as the foot rolls; the kōgake's plates hang on mail and jingle (the mail's step, high and cut short).
+ */
+export const SHOE_STEPS = {
+  plain: { gainDb: 0, rate: 1, lowpass: null, length: 1 },
+  compactBoot: { gainDb: 0, rate: 1, lowpass: null, length: 1 },
+  bare: { gainDb: -10, rate: 0.88, lowpass: 1200, length: 0.6, layers: [{ set: 'punch', trim: 0.09, rate: 1.4, seconds: 0.04, fade: 0.02, delay: 0.02, hard: true }] },
+  footRags: { gainDb: -9, rate: 0.9, lowpass: 1100, length: 0.65 },
+  tabi: { gainDb: -9, rate: 0.92, lowpass: 1300, length: 0.65 },
+  sandal: { gainDb: -3, rate: 1.06, lowpass: 5000, length: 0.8 },
+  turnshoe: { gainDb: -6, rate: 1.02, lowpass: 2400, length: 0.7 },
+  ottomanBoot: { gainDb: -6, rate: 0.98, lowpass: 2400, length: 0.75 },
+  feltBoot: { gainDb: -6, rate: 0.9, lowpass: 1900, length: 0.8 },
+  clothBoot: { gainDb: -8, rate: 0.86, lowpass: 1400, length: 0.8 },
+  jinBoot: { gainDb: -3, rate: 0.96, lowpass: 3500, length: 0.9 },
+  ridingBoot: { gainDb: 1, rate: 1.02, lowpass: null, length: 1, layers: [{ set: 'step-heel', trim: 0.5, rate: 0.8, seconds: 0.09, fade: 0.04, delay: 0, hard: true }] },
+  dressShoe: { gainDb: 1, rate: 1.1, lowpass: null, length: 0.9, layers: [{ set: 'step-heel', trim: 0.45, rate: 1, seconds: 0.07, fade: 0.03, delay: 0, hard: true }] },
+  heelAnkleBoot: { gainDb: 0, rate: 1.25, lowpass: null, length: 0.8 },
+  platformShoe: { gainDb: 1, rate: 0.92, lowpass: null, length: 1 },
+  boxingBoot: { gainDb: -7, rate: 1.05, lowpass: 2800, length: 0.65 },
+  trainer: { gainDb: -9, rate: 0.9, lowpass: 1500, length: 0.75 },
+  hikingBoot: { gainDb: -4, rate: 0.84, lowpass: 1800, length: 1 },
+  tacticalBoot: { gainDb: -4, rate: 0.86, lowpass: 1900, length: 1 },
+  lugBoot: { gainDb: -3, rate: 0.8, lowpass: 1600, length: 1 },
+  proximityBoot: { gainDb: -3, rate: 0.8, lowpass: 1500, length: 1 },
+  sabaton: { gainDb: -5, rate: 1, lowpass: 2800, length: 0.75, layers: [{ set: 'crossbow-latch', trim: 0.3, rate: 0.9, seconds: 0.08, fade: 0.04, delay: 0.05 }] },
+  lamellarBoot: { gainDb: -2, rate: 0.98, lowpass: 4000, length: 0.9, layers: [{ set: 'crossbow-latch', trim: 0.26, rate: 1.15, seconds: 0.07, fade: 0.04, delay: 0.05 }] },
+  kogake: {
+    gainDb: -6, rate: 1, lowpass: 2600, length: 0.8,
+    layers: [{ set: 'step-grass-walk', trim: 0.25, rate: 1.5, seconds: 0.1, fade: 0.05, delay: 0, hard: true }, { set: 'mailstep', trim: 0.2, rate: 1.5, seconds: 0.09, fade: 0.05, delay: 0.05 }],
+  },
+};
+/**
+ * How much of the shoe a ground lets through (0..1: SHOE_STEPS's figures are taken to this share, in dB, in pitch and in the
+ * filter's octaves): a hard floor all of it, boards nearly, packed earth half, turf, sand and snow a third (the ground gives before
+ * the sole does), mud and water next to none (the squelch and the splash are the mud's and the water's).
+ */
+export const SHOE_GROUND = { stone: 1, tile: 1, wood: 0.9, earth: 0.5, grass: 0.35, sand: 0.3, snow: 0.3, mud: 0.15, water: 0.05 };
+/**
+ * A shoe's layers cost a source each, so they are for the steps near the ear only: within `near` m (past it a step is its ground
+ * take and the armour's, as before: a battle's hundred men add nothing), and none whose trim on this ground comes under `least`
+ * (a heel's knock on grass). A filter left this open (Hz) is not made.
+ */
+export const SHOE_PLAY = { near: 8, least: 0.08, open: 12000, full: 16000 };
+
+/** The shoe's shaping of a step on `surface` (SHOE_STEPS at the ground's share): { trim, rate, lowpass (Hz or null), length, layers }; a kind not listed changes nothing. */
+export function shoeStep(kind, surface, strength = 0.5, jitter = () => 1) {
+  const shoe = SHOE_STEPS[kind] ?? SHOE_STEPS.plain;
+  const share = SHOE_GROUND[surface] ?? 0.5;
+  const cutoff = shoe.lowpass ? SHOE_PLAY.full * (shoe.lowpass / SHOE_PLAY.full) ** share : null;
+  const layers = [];
+  for (const layer of shoe.layers ?? []) {
+    // (The sole's own knock or slap goes with the square of the ground's share; the plates' tick is the same on any ground the foot
+    // stays on top of, and less as it sinks into mud or water.)
+    const trim = layer.trim * (layer.hard ? share * share : Math.min(1, 0.5 + 2 * share)) * sampleLerp(0.8, 1.2, strength);
+    if (trim >= SHOE_PLAY.least) layers.push({ set: layer.set, trim, rate: layer.rate * jitter(0.05), seconds: layer.seconds, fade: layer.fade, skip: 0, delay: layer.delay, within: SHOE_PLAY.near });
+  }
+  return { trim: 10 ** (shoe.gainDb * share / 20), rate: shoe.rate ** share, lowpass: cutoff && cutoff < SHOE_PLAY.open ? cutoff : null, length: Math.min(1, sampleLerp(1, shoe.length, share)), layers };
+}
 /** A limb's (or a body's) blow: its pitch (a foot or a knee heavier than a fist, lower; a shoulder's crash a dull thud) and its trim. */
 const LIMB_BLOWS = { fist: { rate: 1.04, trim: 1.2 }, elbow: { rate: 1, trim: 1.2 }, head: { rate: 0.95, trim: 1.1 }, knee: { rate: 0.92, trim: 1.25 }, foot: { rate: 0.88, trim: 1.3 }, body: { rate: 0.8, trim: 1 }, shield: { rate: 0.85, trim: 1.15 } };
 const HOOF_HARD = new Set(['stone', 'tile', 'wood']);
@@ -155,10 +244,12 @@ function groundStep(params, event, jitter) {
   const run = params.pace >= STEP_PACE.run;
   const paceDb = run ? STEP_PACE.runGainDb : params.pace < STEP_PACE.slow ? STEP_PACE.slowGainDb : 0;
   // (The take's own length, about 0.2-0.5 s, is cut to `length` of itself: seconds here is a share, made seconds in playSample.)
+  // What is on his foot (SHOE_STEPS), as far as this ground lets it be heard.
+  const shoe = shoeStep(event.shoe, params.surface, sampleStrength(params.pace, 0.5, 6), jitter);
   return {
-    set: run ? ground.run : ground.walk, trim: ground.trim * 10 ** ((pick(STEP_WEIGHT.gainDb) + paceDb) / 20), rate: ground.rate * pick(STEP_WEIGHT.rate) * (run ? STEP_PACE.runRate : 1) * jitter(0.04),
-    seconds: null, share: pick(STEP_WEIGHT.length) * (run ? STEP_PACE.runLength : 1), fade: pick(STEP_WEIGHT.fade), skip: 0,
-    synth: ground.synthGain ? { ...params, armour: 'none' } : null, synthGain: ground.synthGain ?? 0,
+    set: run ? ground.run : ground.walk, trim: ground.trim * shoe.trim * 10 ** ((pick(STEP_WEIGHT.gainDb) + paceDb) / 20), rate: ground.rate * shoe.rate * pick(STEP_WEIGHT.rate) * (run ? STEP_PACE.runRate : 1) * jitter(0.04),
+    seconds: null, share: pick(STEP_WEIGHT.length) * shoe.length * (run ? STEP_PACE.runLength : 1), fade: pick(STEP_WEIGHT.fade), skip: 0, lowpass: shoe.lowpass, layers: shoe.layers,
+    synth: ground.synthGain ? { ...params, armour: 'none' } : null, synthGain: (ground.synthGain ?? 0) * shoe.trim,
   };
 }
 
@@ -281,7 +372,11 @@ export function samplePlan(type, params, event = {}, random = Math.random) {
       const armour = armourTake(params.armour, sampleStrength(params.pace, 0.5, 6), sfxClamp((85 / Math.max(40, event.mass ?? 85)) ** 0.25, 0.85, 1.15), jitter);
       const ground = groundStep(params, event, jitter);
       // The ground recorded (the armour's take on top of it), or the synth's ground under the armour's take, or the synth alone.
-      if (ground) return { ...ground, extra: armour ? [armour] : [], synth: ground.synth, synthGain: ground.synthGain };
+      // (The shoe's own layers after the armour's: its plates' tick, its heel's knock, near the ear only.)
+      if (ground) {
+        const { layers, ...take } = ground;
+        return { ...take, extra: armour ? [armour, ...layers] : layers, synth: ground.synth, synthGain: ground.synthGain };
+      }
       return armour ? { ...armour, synth: { ...params, armour: 'none' }, synthGain: 0.8 } : null;
     }
     case 'fall':
@@ -505,7 +600,15 @@ export function playSample(voice, out, take, plan, at, gain) {
   } else envelope.gain.setValueAtTime(peak, when);
   envelope.gain.setValueAtTime(peak, when + seconds - fade);
   envelope.gain.exponentialRampToValueAtTime(peak * 0.001, when + seconds);
-  envelope.connect(out);
+  // (`lowpass`: the take dulled, Hz: a soft sole's step.)
+  if (plan.lowpass) {
+    const dull = sfxKeep(voice, ctx.createBiquadFilter());
+    dull.type = 'lowpass';
+    dull.frequency.value = plan.lowpass;
+    dull.Q.value = 0.7;
+    envelope.connect(dull);
+    dull.connect(out);
+  } else envelope.connect(out);
   const source = ctx.createBufferSource();
   source.buffer = take.buffer;
   source.playbackRate.value = rate;
@@ -518,8 +621,14 @@ export function playSample(voice, out, take, plan, at, gain) {
 export function playPlan(bank, voice, plan, when, gain) {
   const take = plan && bank ? bank.pick(plan.set) : null;
   if (!take) return null;
-  let end = playSample(voice, voice.out, take, plan, when, gain);
+  return playLayers(bank, voice, plan, playSample(voice, voice.out, take, plan, when, gain), when, gain);
+}
+
+/** A plan's extra layers after its take (`end`: the take's end); a layer `within` so many metres is left out of a voice farther off (the engine's chain). Returns the end time. */
+function playLayers(bank, voice, plan, end, when, gain) {
+  const distance = voice.chain?.distance ?? 0;
   for (const layer of plan.extra ?? []) {
+    if (layer.within !== undefined && distance > layer.within) continue;
     const more = bank.pick(layer.set);
     if (more) end = Math.max(end, playSample(voice, voice.out, more, layer, when + (layer.delay ?? 0), gain));
   }
@@ -535,11 +644,7 @@ export function playWithSamples(bank, voice, family, event, params, when, gain) 
   const take = plan ? bank.pick(plan.set) : null;
   // (A family played only from its recordings, the cries: nothing until they have loaded.)
   if (!take) return family.sampledOnly ? when : family.play(voice, voice.out, params, when, gain);
-  let end = playSample(voice, voice.out, take, plan, when, gain);
-  for (const layer of plan.extra ?? []) {
-    const more = bank.pick(layer.set);
-    if (more) end = Math.max(end, playSample(voice, voice.out, more, layer, when + (layer.delay ?? 0), gain));
-  }
+  let end = playLayers(bank, voice, plan, playSample(voice, voice.out, take, plan, when, gain), when, gain);
   if (plan.synth) end = Math.max(end, family.play(voice, voice.out, plan.synth, when, gain * plan.synthGain));
   return end;
 }

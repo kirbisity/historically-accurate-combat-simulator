@@ -218,8 +218,9 @@ export function soundDown(world, fighter, type, at, speed) {
 export function soundStep(world, fighter, side, at, speed) {
   if (!world.ear) return;
   const ground = surfaceUnder(world, at[0], at[1], at[2]);
-  // `heels`: a heeled boot (outfits.js heels, the gear's lift): it clicks on a hard floor.
-  soundEvent(world, 'step', { at, speed, mass: fighter.body.massKg, surface: ground.surface, depth: ground.depth, armour: armourOf(fighter), heels: (fighter.body.gear?.heelLift ?? 0) > 0, who: fighter.id, foot: side });
+  // `heels`: a heeled boot (outfits.js heels, the gear's lift): it clicks on a hard floor. `shoe`: what is on his feet (the
+  // design's `feet.kind`, or bare): it shapes the step (sfx/sampled.js SHOE_STEPS).
+  soundEvent(world, 'step', { at, speed, mass: fighter.body.massKg, surface: ground.surface, depth: ground.depth, armour: armourOf(fighter), heels: (fighter.body.gear?.heelLift ?? 0) > 0, shoe: fighter.body.gear?.cover?.feet ?? 'bare', who: fighter.id, foot: side });
 }
 
 // A weapon's tip slower than this (m/s) does not whoosh.

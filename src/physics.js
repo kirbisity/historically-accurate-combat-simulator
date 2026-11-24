@@ -853,7 +853,7 @@ function updatePickup(world, fighter, dt) {
  * over that place (coverage.js). A part the kit names has its own figures. One it does not name takes the kit's only where a
  * piece of armour is drawn over it, and a piece of another stuff than the kit's own (mail sleeves under a breastplate) that
  * stuff's (COVERED_STUFF); where none is, what is under (a mail shirt, UNDER_ARMOUR) or nothing: a hand or a foot past its
- * sleeve or greave, the arm out of a sleeveless coat, a leg below a short skirt. Medieval armour covers the whole man alike;
+ * sleeve or greave (the foot what its shoe stops, outfits.js FOOT_COVERS), the arm out of a sleeveless coat, a leg below a short skirt. Medieval armour covers the whole man alike;
  * a modern vest guards the torso alone.
  */
 export function protectionAt(gear, capsuleKey, along = null) {
@@ -881,6 +881,16 @@ function stuffAt(gear, capsuleKey, along) {
 }
 
 function guardAt(gear, capsuleKey, along = null) {
+  const guard = kitGuardAt(gear, capsuleKey, along);
+  // The foot (the far end of the shank): what the shoe itself stops (outfits.js FOOT_COVERS), where that is more than the kit
+  // has over it, figure by figure. A sabaton has none of its own (the harness's figures, as they were).
+  const shoe = gear.footCover;
+  if (!shoe || along == null || along < ARMOUR_COVER.footFrom || !/^[lr]?Shank$/.test(capsuleKey)) return guard;
+  if (shoe.blunt <= (guard.blunt ?? 0) && shoe.cut <= (guard.cut ?? 0) && shoe.pierce <= (guard.pierce ?? 0)) return guard;
+  return { ...guard, blunt: Math.max(guard.blunt ?? 0, shoe.blunt), cut: Math.max(guard.cut ?? 0, shoe.cut), pierce: Math.max(guard.pierce ?? 0, shoe.pierce) };
+}
+
+function kitGuardAt(gear, capsuleKey, along = null) {
   const regions = gear.protection.regions;
   const part = capsuleKey.replace(/^[lr](?=[A-Z])/, '');
   // The hand: its own key (a fist), or the far end of the forearm; the foot, the far end of the shank.

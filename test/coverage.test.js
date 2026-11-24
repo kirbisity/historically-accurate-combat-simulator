@@ -5,7 +5,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { buildBody, normaliseInputs, PRESETS } from '../src/body.js';
-import { OUTFITS } from '../src/outfits.js';
+import { FOOT_COVERS, HAND_COVERS, OUTFITS, footCoverOf } from '../src/outfits.js';
 import { protectionAt } from '../src/physics.js';
 import { ARMOUR_COVER, coverageKnown, coverageOf, piecesAt } from '../src/coverage.js';
 
@@ -138,4 +138,53 @@ test('mail has no gaps: its rings run on over the joints; plate and a coat of pl
   assert.equal(at('conquistadorPlate', 'trunk', 0.6), true, 'the breastplate');
   assert.equal(at('knight', 'trunk', 0.5), true);
   assert.equal(at('mingBrigandine', 'trunk', 0.5), true, 'a coat of plates');
+});
+
+// The foot (the far end of the shank) as the hand: what the shoe itself stops (outfits.js FOOT_COVERS), a little, and only ever
+// more than the kit had there.
+const FOOT_AT = 0.97;
+const shod = (kind, design, feet) => {
+  const gear = gearOf(kind, design);
+  return { ...gear, footCover: footCoverOf(feet) };
+};
+
+test('a shoe guards the foot a little: plates on cloth or leather some of a cut, stout leather a trace, cloth, felt, straw and the bare foot nothing', () => {
+  // (On a kit whose coverage is known and whose legs are bare below the coat: the foot met nothing before.)
+  const foot = (feet) => protectionAt(shod('mingGarrison', 0, feet), 'lShank', FOOT_AT);
+  for (const feet of ['bare', 'sandal', 'footRags', 'tabi', 'clothBoot', 'feltBoot', 'trainer']) assert.deepEqual([foot(feet).blunt, foot(feet).cut, foot(feet).pierce], [0, 0, 0], feet);
+  for (const feet of ['kogake', 'lamellarBoot']) {
+    const guard = foot(feet);
+    assert.ok(guard.cut >= 0.4 && guard.cut <= HAND_COVERS.tekko.cut, `${feet}: some of a cut, no more than the tekkō`);
+    assert.ok(guard.pierce > 0 && guard.pierce <= 0.25 && guard.blunt > 0 && guard.blunt <= HAND_COVERS.tekko.blunt, `${feet}: little of a point or a blow`);
+    assert.equal(Boolean(guard.deflects), false, `${feet}: nothing glances off it`);
+  }
+  for (const feet of ['ridingBoot', 'jinBoot', 'tacticalBoot', 'hikingBoot', 'lugBoot']) {
+    assert.ok(foot(feet).cut > foot('turnshoe').cut && foot(feet).cut <= 0.25, `${feet}: stout leather over light`);
+    assert.ok(foot(feet).cut < foot('kogake').cut && foot(feet).pierce <= 0.05, feet);
+  }
+  for (const feet of ['turnshoe', 'ottomanBoot', 'compactBoot', 'dressShoe']) assert.ok(foot(feet).cut > 0 && foot(feet).cut <= 0.1 && foot(feet).pierce === 0, feet);
+  // A kind no table names: as the bare foot.
+  assert.deepEqual(footCoverOf('clog'), FOOT_COVERS.bare);
+  assert.equal(foot('clog').cut, 0);
+  // Only the foot: the shin above it is as it was.
+  assert.equal(protectionAt(shod('mingGarrison', 0, 'kogake'), 'lShank', 0.5).cut, protectionAt(gearOf('mingGarrison', 0), 'lShank', 0.5).cut);
+  assert.equal(protectionAt(shod('mingGarrison', 0, 'kogake'), 'lForearm', 0.95).cut, 0, 'not the hand');
+});
+
+test('a shoe never takes from what the kit had over the foot: the sabaton the harness, a greave or a whole kit its own figures', () => {
+  const knight = gearOf('knight', 0);
+  assert.equal(knight.footCover, null, 'a sabaton: the harness carries on');
+  assert.ok(protectionAt(knight, 'lShank', FOOT_AT).cut >= 0.95);
+  assert.equal(protectionAt(knight, 'lShank', FOOT_AT).deflects, true);
+  for (const [kind, spec] of Object.entries(OUTFITS)) {
+    spec.designs?.forEach((design, index) => {
+      const gear = gearOf(kind, index);
+      const bare = protectionAt({ ...gear, footCover: null }, 'rShank', FOOT_AT);
+      const now = protectionAt(gear, 'rShank', FOOT_AT);
+      const shoe = gear.footCover ?? { blunt: 0, cut: 0, pierce: 0 };
+      for (const figure of ['blunt', 'cut', 'pierce']) assert.equal(now[figure] ?? 0, Math.max(bare[figure] ?? 0, shoe[figure]), `${kind} ${index} ${figure}`);
+      // The kit says what is on its feet from its design (the kind's figures, not a case of its own).
+      assert.deepEqual(gear.footCover, footCoverOf(gear.cover.feet ?? 'bare'), `${kind} ${index}`);
+    });
+  }
 });
