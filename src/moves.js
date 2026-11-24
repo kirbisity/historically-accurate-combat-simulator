@@ -626,14 +626,16 @@ export const STYLES = {
     headMovement: 0.5,
     pressure: 0.2,
   },
-  // A silverback, fought as apes fight (gorillas' and chimpanzees' fights
-  // and displays): hunched, arms hanging low and forward. It charges, low
-  // and fast, into a man (`rush`, `charge`: the knuckle-walking rush);
-  // clubs down on him with fist and forearm and swipes him with the open
-  // hand; grabs him with one hand and clubs him with the other
-  // (`collarTie`, `clinchStrikes`), or with both, drags and shoves him
-  // about and throws him down (`clinch`, `clinchDrive`, `throws`); and,
-  // holding him, bites (`bite`). No craft in defence but to cover and back off.
+  // A silverback, fought as silverbacks fight each other (filmed fights between captive males; Schaller's and Fossey's field
+  // accounts): on all fours, as its body goes (physics/quadruped.js: the stance, the walk and the gallop are its build's, not
+  // this style's), rearing up only to strike or grapple. Before it closes it displays (`display`, physics/display.js): the
+  // strut, walking stiffly side-on across in front of him, or the chest-beat reared up; then the charge, from well out
+  // (`chargeFrom` m: the gallop on its knuckles, its whole weight behind it, bowling a man over: `rush`). Up on its legs it
+  // clubs down on him with fist and forearm, the trunk coming down behind the arm, and swipes him with the open hand; it wraps
+  // its arms round him, drags and shoves him about and throws him down (`clinch`, `clinchDrive`, `throws`), or holds him with
+  // one arm and clubs him with the other (`collarTie`, `clinchStrikes`); holding him, standing or pinned under it, it bites
+  // (`bite`: when and where; the jaw's force and the canines' depth are its body's, body.js PRESETS.gorilla `build.bite`).
+  // Its strength and speed are its body's too: nothing here multiplies them. No craft in defence but to cover and back off.
   gorilla: {
     art: 'artSlam',
     label: 'Gorilla',
@@ -647,14 +649,16 @@ export const STYLES = {
     clinchDrive: true,
     clinchDriveShare: 1,
     throws: { after: 0.5, rate: 1 },
-    // Its canines (~5 cm) driven in by the jaw: a silverback's bite is
-    // estimated at several kilonewtons at the molars, ~2.5 kN at the canines
-    // (a man's ~0.8 kN); the work a bite does is that force over the depth
-    // the teeth go in, part a puncture and part a tear. Once a hand holds
-    // him, a bite `first` s after the grip and then every `every` s, at his neck and shoulders or an arm.
-    bite: { first: 0.3, every: 1.6, forceN: 2500, depth: 0.03, pierceShare: 0.6 },
-    // The charge: low on the arms, as a knuckle-walking rush looks (lean and dip added, hands low and forward, shares of height).
-    charge: { lean: 0.5, dip: 0.1, hands: [0.4, 0.3, 0.14] },
+    // Its canines driven in by the jaw (the force and depth: its body's); the work a bite does is that force over the depth the
+    // teeth go in, part a puncture and part a tear (`pierceShare`). Once a hand holds him, a bite `first` s after the grip and
+    // then every `every` s, at his neck and shoulders or an arm: in the filmed fights the bites come again and again while
+    // the two are locked together, at the shoulder and the neck.
+    bite: { first: 0.3, every: 1.2, pierceShare: 0.6 },
+    // The display: the strut (`turn` rad off his man, `pace` of its footwork, a few seconds) is the commoner; the chest-beat
+    // (`hz` beats a second each hand: the recorded beats run ~5-10 a second in all; a second or two of it).
+    display: { rate: 1.2, from: 1.5, every: 6, charge: 8, beat: { weight: 0.4, seconds: 1.6, hz: 3.5 }, strut: { weight: 0.6, seconds: 2.6, pace: 0.6, turn: 1.3 } },
+    // The charge from well out: a silverback's rush covers several metres (the filmed charges: from ~5-10 m).
+    chargeFrom: 5,
     tempo: 0.85,
     defences: { guard: 0.45, stepBack: 0.4, parry: 0.15 },
     defendChance: 0.3,
@@ -673,8 +677,8 @@ export const STYLES = {
   //   grabs and bites, hangs on, bites again (the way it kills a dog or a leopard).
   // - the chimpanzee: Goodall's attacks: the charge, the grab, beating him with its arms, biting the
   //   hands, the face, the feet (Travis, Moe: the attacks on people), drags and throws as the gorilla does.
-  // Bites: force ~mass^(2/3) from the silverback's ~2.5 kN (macaque ~280 N, baboon ~640 N, chimp ~960 N),
-  // `depth` the canines' length, `slash` the gash torn as the head is wrenched back (a baboon's canine slashes
+  // Each runs on all fours as its body does (physics/quadruped.js), rearing up to strike and grab.
+  // Bites: the jaw's force and the canines' depth are the body's (body.js `build.bite`); here `slash`, the gash torn as the head is wrenched back (a baboon's canine slashes
   // are long, ~5-10 cm; a macaque's and a chimpanzee's bites shorter tears); how often, as quick as the kind
   // bites (a macaque in a frenzy two a second).
   macaque: {
@@ -687,8 +691,7 @@ export const STYLES = {
     combos: { 'rush clinch': 0.7, 'swipeL swipeR': 0.3 },
     comboChance: 0.6,
     clinchStrikes: { swipeR: 1 },
-    bite: { first: 0.15, every: 0.45, forceN: 280, depth: 0.012, slash: 0.03, low: true },
-    charge: { lean: 0.45, dip: 0.08, hands: [0.4, 0.22, 0.14], fours: true },
+    bite: { first: 0.15, every: 0.45, slash: 0.03, low: true },
     tempo: 0.6,
     defences: { stepBack: 0.7, guard: 0.3 },
     defendChance: 0.45,
@@ -709,8 +712,7 @@ export const STYLES = {
     clinchStrikes: { swipeR: 0.6, clubR: 0.4 },
     clinchDrive: true,
     clinchDriveShare: 0.5,
-    bite: { first: 0.2, every: 0.8, forceN: 640, depth: 0.035, slash: 0.08, low: true },
-    charge: { lean: 0.45, dip: 0.08, hands: [0.42, 0.24, 0.14], fours: true },
+    bite: { first: 0.2, every: 0.8, slash: 0.08, low: true },
     tempo: 0.7,
     defences: { stepBack: 0.6, guard: 0.4 },
     defendChance: 0.4,
@@ -732,8 +734,7 @@ export const STYLES = {
     clinchDrive: true,
     clinchDriveShare: 1,
     throws: { after: 0.6, rate: 0.7 },
-    bite: { first: 0.25, every: 1, forceN: 960, depth: 0.022, slash: 0.04, low: true },
-    charge: { lean: 0.5, dip: 0.1, hands: [0.4, 0.28, 0.14], fours: true },
+    bite: { first: 0.25, every: 1, slash: 0.04, low: true },
     tempo: 0.8,
     defences: { guard: 0.4, stepBack: 0.45, parry: 0.15 },
     defendChance: 0.3,

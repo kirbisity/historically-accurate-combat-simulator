@@ -31,6 +31,7 @@
 // Every round-two style also morphs the face with the body (the `face` flag; the head is built in face.js).
 
 import { buildBodyMesh } from './bodymesh.js';
+import { buildApeBody } from './apebody.js';
 import { baseBoneRelief, baseLoftOptions, baseRigOf, buildLoftBody, buildLoftBodySteps, LOFT, runSteps } from './loftbody.js';
 import { BASE_BODY, NECK_JOIN, baseStarvedDetail } from './basebody.js';
 import { outfitOf } from './outfits.js';
@@ -63,6 +64,8 @@ export const STYLE_SPECS = {
   // the knee's front, the shin's crest down the shin and the abs on the abs at every build; at `share` 1 (round 1) they were left
   // out, when the loft's angles still turned against the model.)
   base: { face: true, tex: { source: 'rules', layers: ALL_MAPS, share: 0.35, upgrade: true }, label: 'Base meshes + V2 maps' },
+  // A great ape's furred body (apebody.js), not a man's: a look's `bodyStyle` (body.js PRESETS.gorilla).
+  ape: { label: 'Ape: flesh and coat as one field' },
 };
 export const BODY_STYLE_KEYS = Object.keys(STYLE_SPECS);
 /**
@@ -123,6 +126,7 @@ export function* buildSkinMeshSteps(body, style) {
     case 'detail': return { ...buildLoftBody(body, { sculpt: 'mass' }), detail: buildDetailMap(body) };
     case 'faceted': return buildLoftBody(body, { faceted: true });
     case 'smoothed': return buildBodyMesh(body, 'skin', 0.024, 4);
+    case 'ape': return buildApeBody(body);
     case 'v1': case 'v2': case 'v3': return buildLoftBody(body, { sculpt: 'rules', rules: { share: 0, fine: false }, fillet: true });
     case 'v4': return buildLoftBody(body, { sculpt: 'rules', rules: { share: STYLE_SPECS.v4.tex.share, fine: true }, fillet: true });
     case 'v5': return buildFleshBody(body, { cell: 0.012, paint: true, refined: true });

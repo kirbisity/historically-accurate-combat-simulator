@@ -848,25 +848,29 @@ export const PRESETS = {
   // heavyweight's, its legs ~3 times a man's. Its bones are as much
   // stronger as they are thicker (`bones`: a bone's strength goes with its
   // section, ~mass^(2/3): (230/80)^(2/3) ≈ 2; a knuckle-walker's hands
-  // carry its weight). It fights as apes do (STYLES.gorilla): charges,
+  // carry its weight). Its jaw (`bite`): a silverback's bite is put at ~1300 psi in the popular accounts and at several
+  // kilonewtons at the molars from its jaw muscles' section (the sagittal crest anchors them); ~2.5 kN at the canines (a
+  // man's whole bite ~0.8 kN), driven in as deep as the canines stand out of the gum (~3 cm of a ~5 cm tooth). It goes on
+  // all fours as its build makes it (physics/quadruped.js) and fights as apes do (STYLES.gorilla): displays, charges,
   // clubbing and slapping blows, grabs, bites.
   gorilla: {
     name: 'Kumbuka', style: 'gorilla', sex: 'male', heightCm: 180, frame: 'large', age: 25, exercise: 0.5, calories: 2800, skill: 0.3,
     build: {
-      massKg: 230, bodyFat: 0.08, strength: 1.35, fast: 1.15, bulk: 3.1, bones: 2,
-      lengths: { thigh: 0.21, shank: 0.2, trunk: 0.36, neckToHead: 0.1, upperArm: 0.29, forearmToFist: 0.3, shoulderSpan: 0.25, hipSpan: 0.13 },
+      massKg: 230, bodyFat: 0.08, strength: 1.35, fast: 1.15, bulk: 3.1, bones: 2, bite: { forceN: 2500, depth: 0.03 },
+      lengths: { thigh: 0.21, shank: 0.2, trunk: 0.36, neckToHead: 0.1, upperArm: 0.29, forearmToFist: 0.3, wristToFist: 0.065, shoulderSpan: 0.25, hipSpan: 0.13 },
       muscle: { upperArm: 1.6, forearm: 1.75, thigh: 0.7, shank: 0.6 },
     },
     outfit: { kind: 'silverback', design: 0 }, accessories: [],
-    look: { skinTone: 'deep', skinColor: '#26252a', hairStyle: 'bald', hairColor: '#1a1a1c', facialHair: 'none', eyeColor: 'brown' },
+    // Drawn as an ape, not a man in a coat (`bodyStyle` 'ape': apebody.js, the hump, the barrel, the gut, the coat and its saddle).
+    look: { bodyStyle: 'ape', skinTone: 'deep', skinColor: '#1f1e22', hairStyle: 'bald', hairColor: '#1a1a1c', facialHair: 'none', eyeColor: 'brown' },
   },
   // Three primates smaller than a gorilla, built as it is (a fixed `build`, shares of the height for
   // the limbs, muscle per kilogram, bones by section). The height is the animal reared up on its hind legs,
-  // the way it stands to fight; each runs in on all fours (STYLES `charge`). The coat is the skin's colour
+  // the way it stands to fight; each goes on all fours as its build makes it (physics/quadruped.js). The coat is the skin's colour
   // (`skinColor`), as the gorilla's. Bones as the gorilla's: a bone's strength goes with its section,
-  // ~mass^(2/3) against an 80 kg man's. Bite (STYLES `bite`): a jaw's force goes with its muscles'
-  // section, ~mass^(2/3), scaled from the silverback's ~2.5 kN at the canines, and goes in as deep as the
-  // canines are long. Brain (`brain`): a small brain takes a far harder jolt than a man's before it is
+  // ~mass^(2/3) against an 80 kg man's. Bite (`build.bite`; when and where, STYLES `bite`): a jaw's force goes with its
+  // muscles' section, ~mass^(2/3), scaled from the silverback's ~2.5 kN at the canines (macaque ~280 N, baboon ~640 N,
+  // chimpanzee ~960 N), and goes in as deep as the canines are long. Brain (`brain`): a small brain takes a far harder jolt than a man's before it is
   // concussed: the tolerable acceleration goes as brain mass^(-2/3) (Holbourn 1943; Ommaya et al. 1967, the
   // scaling from the rhesus experiments to men), taken here on the head's speed change over a like contact.
   // A man's brain ~1.35 kg; a rhesus's ~0.09 kg (x6.1), a chacma's ~0.19 kg (x3.7), a chimpanzee's ~0.38 kg
@@ -881,7 +885,7 @@ export const PRESETS = {
   macaque: {
     name: 'Rhesus', style: 'macaque', sex: 'male', heightCm: 60, frame: 'medium', age: 25, exercise: 0.6, calories: 2800, skill: 0.25, noPrize: true,
     build: {
-      massKg: 8.5, bodyFat: 0.05, strength: 1.35, fast: 1.25, bulk: 1, bones: 0.22, brain: 6.1,
+      massKg: 8.5, bodyFat: 0.05, strength: 1.35, fast: 1.25, bulk: 1, bones: 0.22, brain: 6.1, bite: { forceN: 280, depth: 0.012 },
       lengths: { thigh: 0.23, shank: 0.22, trunk: 0.33, neckToHead: 0.09, upperArm: 0.2, forearmToFist: 0.24, shoulderSpan: 0.17, hipSpan: 0.11, headRadius: 0.075 },
       muscle: { upperArm: 1.2, forearm: 1.2, thigh: 1.1, shank: 1 },
     },
@@ -896,7 +900,7 @@ export const PRESETS = {
   baboon: {
     name: 'Chacma', style: 'baboon', sex: 'male', heightCm: 100, frame: 'large', age: 25, exercise: 0.6, calories: 2800, skill: 0.3, noPrize: true,
     build: {
-      massKg: 30, bodyFat: 0.05, strength: 1.35, fast: 1.2, bulk: 1.2, bones: 0.52, brain: 3.7,
+      massKg: 30, bodyFat: 0.05, strength: 1.35, fast: 1.2, bulk: 1.2, bones: 0.52, brain: 3.7, bite: { forceN: 640, depth: 0.035 },
       lengths: { thigh: 0.23, shank: 0.22, trunk: 0.34, neckToHead: 0.09, upperArm: 0.23, forearmToFist: 0.26, shoulderSpan: 0.19, hipSpan: 0.11, headRadius: 0.07 },
       muscle: { upperArm: 1.3, forearm: 1.3, thigh: 1, shank: 0.9 },
     },
@@ -912,7 +916,7 @@ export const PRESETS = {
   chimp: {
     name: 'Bruno', style: 'chimp', sex: 'male', heightCm: 120, frame: 'large', age: 22, exercise: 0.6, calories: 2800, skill: 0.3, noPrize: true,
     build: {
-      massKg: 55, bodyFat: 0.06, strength: 1.35, fast: 1.15, bulk: 1.6, bones: 0.78, brain: 2.3,
+      massKg: 55, bodyFat: 0.06, strength: 1.35, fast: 1.15, bulk: 1.6, bones: 0.78, brain: 2.3, bite: { forceN: 960, depth: 0.022 },
       lengths: { thigh: 0.22, shank: 0.2, trunk: 0.36, neckToHead: 0.1, upperArm: 0.27, forearmToFist: 0.28, shoulderSpan: 0.23, hipSpan: 0.12, headRadius: 0.065 },
       muscle: { upperArm: 1.5, forearm: 1.6, thigh: 0.8, shank: 0.7 },
     },

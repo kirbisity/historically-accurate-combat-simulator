@@ -30,14 +30,8 @@ export function holdClinch(world, fighter) {
     }
     if (art.then) throwPunch(world, fighter, art.then, art.zone ?? MOVES[art.then].zones[0]);
   }
-  // Holding him, an ape bites (`bite`).
-  if (style?.bite && Object.values(fighter.clinch.locked ?? {}).some(Boolean)) {
-    fighter.clinch.biteAt ??= world.time + style.bite.first;
-    if (world.time >= fighter.clinch.biteAt) {
-      fighter.clinch.biteAt = world.time + style.bite.every;
-      bite(world, fighter, target, style.bite);
-    }
-  }
+  // Holding him, a body with the jaws for it bites (biteOf).
+  if (Object.values(fighter.clinch.locked ?? {}).some(Boolean)) biteWhileHolding(world, fighter, target, fighter.clinch);
   // Holding him by the collar and the sleeve, a judoka turns in for the throw over his shoulder (`shoulderThrow`).
   const shoulder = style?.shoulderThrow;
   if (shoulder && fighter.clinch.locked?.l && fighter.clinch.locked?.r && fighter.clinch.t > shoulder.after && target.state === 'up' && !target.mount
@@ -102,6 +96,27 @@ export function clinchGrip(fighter, target) {
   // through its hands is pulled up into it instead.)
   for (const index of [P.neck, P.pelvis]) if (point(target.x, index)[1] <= top) return { index, drop: 0 };
   return { index: P.lKnee, drop: 0 };
+}
+
+/**
+ * The bite a fighter has (null: none): the jaw's force and how deep its canines go are his body's (a build's `bite`: { forceN,
+ * depth }; a man has no such canines, and has none), how often and where he bites his style's (`bite`: first, every,
+ * pierceShare, slash, low).
+ */
+export function biteOf(fighter) {
+  const jaws = fighter.body.inputs.build?.bite;
+  const style = STYLES[fighter.style]?.bite;
+  return jaws && style ? { ...style, ...jaws } : null;
+}
+
+/** Holding him (a clinch or a pin: `hold`), a bite `first` s after taking hold and then every `every` s. */
+function biteWhileHolding(world, fighter, target, hold) {
+  const spec = biteOf(fighter);
+  if (!spec) return;
+  hold.biteAt ??= world.time + spec.first;
+  if (world.time < hold.biteAt) return;
+  hold.biteAt = world.time + spec.every;
+  bite(world, fighter, target, spec);
 }
 
 // What a bite can take: the neck and shoulders, the upper arms; a small animal at a man's legs (`bite.low`), his thighs and calves too.
@@ -190,6 +205,8 @@ export function neckLow(fighter) {
  */
 export function holdPin(world, fighter, h) {
   const target = world.fighters[fighter.pin.target];
+  // Over him and holding him down, a body with the jaws for it bites, as a silverback bites a rival pinned under him.
+  if (fighter.pin.locked.l || fighter.pin.locked.r) biteWhileHolding(world, fighter, target, fighter.pin);
   const spec = WORLD.pin;
   const places = pinPoints(target);
   const held = [P.neck, P.pelvis];
