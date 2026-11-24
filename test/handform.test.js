@@ -82,3 +82,15 @@ test('postures blend, a crowd\'s hand is far cheaper, and every covering builds 
     }
   }
 });
+
+test('the Gothic gauntlet is fingered, and its steel stays off a hilt held in the fist', () => {
+  assert.ok(!HAND_WEAR.gothic.mitten);
+  for (const radius of [0.01, 0.016, 0.02]) {
+    const { parts } = handParts(handPose({ hold: 'grip', radius }, { heel: HEEL, face: FACE }), { cover: 'gothic' });
+    // (What is held lies across the palm through the hand point, along the forearm's x.)
+    const steel = parts.metal.positions;
+    let nearest = Infinity;
+    for (let index = 0; index < steel.length; index += 3) nearest = Math.min(nearest, Math.hypot(steel[index + 1], steel[index + 2]));
+    assert.ok(nearest >= radius, `${radius}: steel ${nearest.toFixed(4)} from the hilt's line`);
+  }
+});

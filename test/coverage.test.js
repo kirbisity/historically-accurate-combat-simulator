@@ -188,3 +188,10 @@ test('a shoe never takes from what the kit had over the foot: the sabaton the ha
     });
   }
 });
+
+test('the armoured Chinese boot is the Iron Pagoda\'s and Koxinga\'s iron men\'s, every design of each', () => {
+  for (const kind of ['ironPagoda', 'ironMan']) {
+    OUTFITS[kind].designs.forEach((design, index) => assert.equal(design.feet?.kind, 'lamellarBoot', `${kind} ${index}`));
+  }
+  assert.ok(footCoverOf('lamellarBoot').cut > footCoverOf('clothBoot').cut);
+});
