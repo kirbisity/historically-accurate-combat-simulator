@@ -39,6 +39,7 @@ const HAND_SECTION = { back: 0.84, pad: 0.92, crease: 0.12 };
 const HAND_LIMITS = { finger: [1.5, 1.98, 1.3], thumb: [1.0, 1.35] };
 // A hand closed on a handle: the wrist joint this far inside the forearm's end (m), which sets the handle under the knuckles.
 const HAND_GRIP_WRIST = 0.004;
+const HAND_SLANT_MOST = 0.4;
 // The palm (hand lengths): at the knuckles its back over the joints' line and its face under it, half its thickness at the
 // wrist, the wrist's half breadth, and how far the webs run past the knuckle line.
 const HAND_PALM = { backKnuckle: 0.05, faceKnuckle: 0.07, thickWrist: 0.092, wristHalf: 0.148, web: 0.055 };
@@ -181,7 +182,8 @@ export function handPose(spec, { heel = 0.0637, face = 0.042, girth = 1 } = {}) 
   const posture = HAND_POSTURES[spec.hold] ?? HAND_POSTURES.rest;
   const sizes = handSizes(girth);
   const radius = posture.hold ? Math.max(0.002, spec.radius ?? 0.015) : 0;
-  const slant = posture.hold === 'palm' ? spec.slant ?? 0 : 0;
+  // (The fingers close as on a handle no more than HAND_SLANT_MOST aslant: past that they would lie along it, not round it.)
+  const slant = posture.hold === 'palm' ? Math.min(HAND_SLANT_MOST, spec.slant ?? 0) : 0;
   // What is held: a line through `held` along `heldDir`, across the palm under the knuckles, clear of the palm by its own
   // thickness. It lies on the hand point, `heel` from the forearm's end: the wrist joint HAND_GRIP_WRIST inside that end.
   let held = null;
@@ -215,7 +217,15 @@ export function handPose(spec, { heel = 0.0637, face = 0.042, girth = 1 } = {}) 
     return [spread, ...bends];
   });
   // The thumb, closed on what is held and on the fingers already closed.
-  const [out, fore, roll] = posture.thumb;
+  const [out, , roll] = posture.thumb;
+  let [, fore] = posture.thumb;
+  // (Round a thick handle the thumb's root stands further out of the palm, until its first bone clears it.)
+  if (held) {
+    for (; fore < posture.thumb[1] + 0.6; fore += 0.05) {
+      const bone = handChain(sizes.thumb.root, handThumbFrame(out, fore, roll), sizes.thumb.bones, [0, 0, 0], sizes.thumb.half)[0];
+      if (handLineGap(handAdd(bone.from, bone.fwd, bone.length * 0.5), bone.to, held, heldDir) >= radius + 0.7 * sizes.thumb.half) break;
+    }
+  }
   let thumbBends;
   if (posture.thumbBend === 'wrap') {
     const chains = fingers.slice(0, 3).map((angles, index) => {
@@ -287,17 +297,18 @@ function handDigitRings(digit, frame, bends, { around = 10, fans = 3, thumb = fa
     const wide = half * taper(station) * shrink + grow;
     const back = HAND_SECTION.back * half * taper(station) * shrink * (1 + swell) + grow;
     const pad = HAND_SECTION.pad * half * taper(station) * shrink * (1 - pinch) + grow;
-    const points = [];
-    for (let k = 0; k <= around; k += 1) {
-      const angle = -Math.PI + (k / around) * 2 * Math.PI;
+    // (Squarer than an ellipse: a finger's sides are nearly flat.)
+    const round = (x) => Math.sign(x) * Math.abs(x) ** 0.82;
+    /** The section's point at a turn round it (0 the middle of the back), `over` m outside its surface. */
+    const at = (angle, over = 0) => {
       const c = Math.cos(angle);
       const s = Math.sin(angle);
-      // (Squarer than an ellipse: a finger's sides are nearly flat.)
-      const round = (x) => Math.sign(x) * Math.abs(x) ** 0.82;
-      const high = c > 0 ? back * round(c) * squash : pad * round(c);
-      points.push(handAdd(handAdd(centre, up, high + lift), side, wide * round(s)));
-    }
-    rings.push({ points, along: handClamp(station / count), centre, up, side });
+      const high = c > 0 ? (back * squash + over) * round(c) : (pad + over) * round(c);
+      return handAdd(handAdd(centre, up, high + lift), side, (wide + over) * round(s));
+    };
+    const points = [];
+    for (let k = 0; k <= around; k += 1) points.push(at(-Math.PI + (k / around) * 2 * Math.PI));
+    rings.push({ points, along: handClamp(station / count), station, at });
   };
   segments.forEach((segment, index) => {
     const { side } = segment;
@@ -557,17 +568,20 @@ export function handParts(pose, { side = 'r', fit = null, detail = 'full', girth
     if (handCross(handSub(corner(1), corner(0)), handSub(corner(2), corner(0)))[0] < 0) for (let index = edge; index < skin.indices.length; index += 3) [skin.indices[index + 1], skin.indices[index + 2]] = [skin.indices[index + 2], skin.indices[index + 1]];
   }
   // What is worn over it: plates, a cuff.
-  const context = { sizes, pose, digits, mesh, low, wear, grow, fingerAngles };
-  for (const piece of spec.pieces ?? []) HAND_PIECES[piece.kind](context, piece);
+  const placed = {};
+  const context = { sizes, pose, digits, mesh, placedMesh: (role) => (placed[role] ??= handMesh()), low, wear, grow, mirror: side === 'l' ? 1 : -1 };
 
   // Into the forearm's frame: the wrist bent back by the posture's `lean` (less a limp wrist's `drop`), the wrist joint at
-  // `at`; the thumb's side to the forearm's front, the back of a right hand to -z.
+  // `at`; the thumb's side to the forearm's front, the back of the hand outwards (the frame's z runs to the man's right: a
+  // right hand's back to +z).
   const lean = pose.lean - pose.drop;
   const c = Math.cos(lean);
   const s = Math.sin(lean);
-  const mirror = side === 'l' ? -1 : 1;
+  const mirror = side === 'l' ? 1 : -1;
   const place = ([u, v, w]) => [w + pose.at[0], u * c - v * s + pose.at[1], -(v * c + u * s) * mirror + pose.at[2] * mirror];
   const ring = fit ?? { a: 0.03, b: 0.024, heel: -pose.at[1] };
+  context.ring = ring;
+  for (const piece of spec.pieces ?? []) HAND_PIECES[piece.kind](context, piece);
   const parts = {};
   let triangles = 0;
   for (const [role, made] of Object.entries(meshes)) {
@@ -597,9 +611,17 @@ export function handParts(pose, { side = 'r', fit = null, detail = 'full', girth
       }
     }
     const indices = Uint16Array.from(made.indices);
-    // (Gathered wound for the hand's own frame, which the forearm's mirrors for a right hand.)
+    // (Gathered wound for the hand's own frame, which the forearm's mirrors for a left hand.)
     if (mirror > 0) for (let index = 0; index < indices.length; index += 3) [indices[index + 1], indices[index + 2]] = [indices[index + 2], indices[index + 1]];
     parts[role] = { positions, uvs: Float32Array.from(made.uvs), indices, normals: handNormals(positions, indices) };
+    triangles += indices.length / 3;
+  }
+  // What was built in the forearm's own frame (a cuff round the arm): joined to its role's part as it stands.
+  for (const [role, made] of Object.entries(placed)) {
+    const positions = Float32Array.from(made.positions);
+    const indices = Uint16Array.from(made.indices);
+    const part = { positions, uvs: Float32Array.from(made.uvs), indices, normals: handNormals(positions, indices) };
+    parts[role] = parts[role] ? handJoin(parts[role], part) : part;
     triangles += indices.length / 3;
   }
   return { parts, triangles, spec };
@@ -639,26 +661,225 @@ function handNormals(positions, indices) {
   return normals;
 }
 
-// What is laid on the hand (filled in below the kinds).
-const HAND_PIECES = {};
+/** Two parts as one. */
+function handJoin(a, b) {
+  const join = (Type, first, second) => {
+    const joined = new Type(first.length + second.length);
+    joined.set(first);
+    joined.set(second, first.length);
+    return joined;
+  };
+  const offset = a.positions.length / 3;
+  return { positions: join(Float32Array, a.positions, b.positions), uvs: join(Float32Array, a.uvs, b.uvs), normals: join(Float32Array, a.normals, b.normals), indices: join(Uint16Array, a.indices, b.indices.map((index) => index + offset)) };
+}
+
+// Where a plate's points lie on the sheet: nowhere drawn (a plate's own material has no use for the hand's sheet).
+const HAND_PLAIN = [0.19, 0.5];
+
+// What is laid on the hand.
+const HAND_PIECES = {
+  /**
+   * Plates down the back of each digit, riding its joints: one over each joint and one along each bone between
+   * (`spans`: [from, to] along the digit, 0 its knuckle, 1 and 2 its joints; a thumb's 1 is its knuckle), each a shell
+   * over the back and sides (`arc`, rad each way from the middle of the back), `lift` m off the glove at its near end
+   * and `lap` more at its far end, so each lies over the next one out as a finger's scales do and they slide over each
+   * other as it bends. `digits`: which (0-3 the fingers, 4 the thumb). `swell`: [station, m] a joint's plate raised (a gadling).
+   */
+  lames({ digits, mesh, low }, { role = 'metal', spans, thumbSpans = null, arc = 1.9, lift = 0.0012, lap = 0.0016, which = [0, 1, 2, 3, 4], swell = null }) {
+    const out = mesh(role);
+    const steps = low ? 2 : 5;
+    for (const index of which) {
+      const rings = digits[index].filter((ring) => !ring.apex);
+      for (const [from, to] of index === 4 ? thumbSpans ?? spans : spans) {
+        const run = rings.filter((ring) => ring.station >= from - 1e-6 && ring.station <= to + 1e-6);
+        if (run.length < 2) continue;
+        const rows = run.map((ring, row) => {
+          const share = row / (run.length - 1);
+          const raised = swell && Math.abs(ring.station - swell[0]) < 0.05 ? swell[1] * Math.sin(share * Math.PI) : 0;
+          const over = lift + lap * share + raised;
+          const points = [];
+          for (let k = 0; k <= steps; k += 1) points.push(handPoint(out, ring.at(-arc + (k / steps) * 2 * arc, over), HAND_PLAIN));
+          return points;
+        });
+        handSkin(out, rows);
+      }
+    }
+  },
+  /**
+   * Plates across the four fingers together (a mitten gauntlet's): each spans from the little finger's outer side over the
+   * fingers' backs to the first finger's outer side, `spans` along the fingers as `lames`.
+   */
+  mittenLames({ digits, mesh, low }, { role = 'metal', spans, lift = 0.0016, lap = 0.002, closed = false }) {
+    const out = mesh(role);
+    for (const [from, to] of spans) {
+      const runs = [0, 1, 2, 3].map((index) => digits[index].filter((ring) => !ring.apex && ring.station >= from - 1e-6 && ring.station <= to + 1e-6));
+      const count = Math.min(...runs.map((run) => run.length));
+      if (count < 2) continue;
+      const rows = [];
+      for (let row = 0; row < count; row += 1) {
+        const over = lift + lap * (row / (count - 1));
+        const turns = low ? [1.7, 0.6] : [2.0, 1.4, 0.7];
+        const points = [];
+        // (Round the little finger's side, over each finger's back, round the first finger's side.)
+        for (const turn of turns) points.push(handPoint(out, runs[3][row].at(-turn, over), HAND_PLAIN));
+        for (const index of [3, 2, 1, 0]) points.push(handPoint(out, runs[index][row].at(0, over + 0.0006), HAND_PLAIN));
+        for (const turn of turns.slice().reverse()) points.push(handPoint(out, runs[0][row].at(turn, over), HAND_PLAIN));
+        // (`closed`: round under the fingers too, a bag: a mail mitten.)
+        if (closed) {
+          for (const index of [0, 1, 2, 3]) points.push(handPoint(out, runs[index][row].at(Math.PI, over), HAND_PLAIN));
+          points.push(handPoint(out, runs[3][row].at(-turns[0], over), HAND_PLAIN));
+        }
+        rows.push(points);
+      }
+      handSkin(out, rows);
+    }
+  },
+  /**
+   * A plate over the back of the hand from station `from` to `to` (0 the wrist, 1 the knuckle line), `arc` rad each way
+   * round from the middle of the back, `lift` m off the glove; `lames`: in that many overlapping strips across (a
+   * gauntlet's metacarpal lames), each lapping the next one out by `lap`; `lobes`: its far edge scalloped over the four
+   * knuckles by this share of the web (a tekkō's); `ridge`: m raised along the knuckle line (a gauntlet's knuckle plate).
+   */
+  backPlate({ sizes, pose, mesh, low, grow }, { role = 'metal', from = 0.12, to = 1.02, arc = 1.75, lift = 0.0015, lames = 1, lap = 0.0015, lobes = 0, ridge = 0 }) {
+    const out = mesh(role);
+    const across = low ? 4 : lobes ? 16 : 10;
+    const rows = low ? 2 : 4;
+    for (let lame = 0; lame < lames; lame += 1) {
+      const start = handLerp(from, to, lame / lames);
+      const end = handLerp(from, to, (lame + 1) / lames) + (lame + 1 < lames ? 0.02 : 0);
+      const made = [];
+      for (let row = 0; row <= rows; row += 1) {
+        const share = row / rows;
+        const points = [];
+        for (let k = 0; k <= across; k += 1) {
+          const angle = -arc + (k / across) * 2 * arc;
+          // (A scalloped edge: longest over each knuckle.)
+          const scallop = lobes && lame === lames - 1 ? lobes * share * Math.abs(Math.sin((k / across) * 4 * Math.PI)) ** 0.5 : 0;
+          const s = handLerp(start, end, share) + scallop;
+          const raised = ridge * handBump((s - 0.99) / 0.07) * (Math.abs(angle) < 1.3 ? 1 : 0.4);
+          points.push(handPoint(out, handPalmPoint(sizes, pose, s, angle, grow + lift + lap * (lames > 1 ? share : 0) + raised), HAND_PLAIN));
+        }
+        made.push(points);
+      }
+      handSkin(out, made);
+    }
+  },
+  /**
+   * A cuff round the forearm's end, in the forearm's own frame: `profile` [[m behind the wrist (negative: towards the
+   * hand), m outside the arm], ...] from the hand's end back, `point`: m longer at the back of the arm than at the front
+   * (a Gothic cuff's point), `flutes`: that many ridges round it.
+   */
+  cuff({ placedMesh, low, ring, mirror }, { role = 'metal', profile, point = 0, flutes = 0 }) {
+    const out = placedMesh(role);
+    const around = low ? 8 : flutes ? 32 : 18;
+    const rows = profile.map(([behind, outside], row) => {
+      const points = [];
+      for (let k = 0; k <= around; k += 1) {
+        const angle = (k / around) * 2 * Math.PI;
+        // (The back of the arm is the back of the hand's side.)
+        const back = Math.max(0, -Math.cos(angle));
+        const fluted = flutes ? 0.0014 * Math.cos(angle * flutes) * (row / (profile.length - 1)) : 0;
+        const share = row / (profile.length - 1);
+        const y = -ring.heel - behind - point * back * back * share;
+        // (Close on the wrist at the hand's end; at its far end clear of whatever the forearm wears there.)
+        const a = Math.max(ring.a + outside, handLerp(ring.a, (ring.outerA ?? ring.a) + 0.003, share));
+        const b = Math.max(ring.b + outside, handLerp(ring.b, (ring.outerB ?? ring.b) + 0.003, share));
+        points.push(handPoint(out, [(a + fluted) * Math.sin(angle), y, (b + fluted) * Math.cos(angle) * mirror], HAND_PLAIN));
+      }
+      return points;
+    });
+    handSkin(out, mirror > 0 ? rows.map((row) => row.slice().reverse()) : rows);
+  },
+};
+
+const HAND_FINGER_SPANS = [[-0.011, 0.011], [0.009, 0.991], [0.989, 1.011], [1.009, 1.991], [1.989, 2.011], [2.009, 2.8]];
+const HAND_THUMB_SPANS = [[0.45, 0.991], [0.989, 1.011], [1.009, 1.991], [1.989, 2.011], [2.009, 2.8]];
 
 /**
- * What a hand wears. Of each: `role`: what the hand itself is drawn in ('skin', 'glove': leather or cloth, 'mail'),
- * `thick`: its thickness over the skin (m), `mitten`: the four fingers in one, `pieces`: what is laid on it.
+ * What a hand wears. Of each: `role`: what the hand itself is drawn in ('skin'; 'glove': leather or cloth in the design's
+ * colour; 'leather': a gauntlet's own glove; 'mail'; 'metal'; 'foil'), `thick`: its thickness over the skin (m), `mitten`:
+ * the four fingers bend as one, `pieces`: what is laid on it (HAND_PIECES), `finish`: how polished each role's material is
+ * (0 matt to 1 mirror-bright, as footwear.js's).
  */
 export const HAND_WEAR = {
   bare: { role: 'skin' },
+  // A dress glove of kid: close as the skin, run a little way up the wrist.
+  kid: { role: 'glove', thick: 0.0008, finish: { glove: 0.4 }, pieces: [{ kind: 'cuff', role: 'glove', profile: [[-0.004, 0.0012], [0.02, 0.0016], [0.045, 0.0024]] }] },
+  // A tactical glove: synthetic leather and knit, a moulded guard over the knuckles, a strapped cuff.
+  tactical: {
+    role: 'glove', thick: 0.002, finish: { glove: 0.12, guard: 0.35 },
+    pieces: [
+      { kind: 'backPlate', role: 'guard', from: 0.86, to: 1.06, arc: 1.35, lift: 0.0025, ridge: 0.002 },
+      { kind: 'cuff', role: 'glove', profile: [[-0.006, 0.003], [0.012, 0.0035], [0.04, 0.0045]] },
+    ],
+  },
+  // A proximity suit's aluminized glove: thick, its long cuff over the sleeve.
+  proximity: { role: 'foil', thick: 0.004, pieces: [{ kind: 'cuff', role: 'foil', profile: [[-0.008, 0.005], [0.02, 0.008], [0.07, 0.016], [0.12, 0.02]] }] },
+  // A machine's hand: the hand's shape in its own metal.
+  steel: { role: 'metal', thick: 0.0015 },
+  // The tekkō of a samurai's kote: a plate of lacquered iron over the back of the hand, its far edge lobed over the
+  // knuckles, on the sleeve's cloth, with a smaller plate over the thumb's root; the fingers and the palm bare.
+  tekko: {
+    role: 'skin', finish: { lacquer: 0.85, cloth: 0 },
+    pieces: [
+      { kind: 'backPlate', role: 'cloth', from: 0.0, to: 0.97, arc: 1.95, lift: 0.0012 },
+      { kind: 'backPlate', role: 'lacquer', from: 0.1, to: 0.97, arc: 1.5, lift: 0.0028, lobes: 0.1 },
+      { kind: 'lames', role: 'lacquer', which: [4], spans: [[0.45, 0.991]], arc: 1.5, lift: 0.0026, lap: 0 },
+      { kind: 'cuff', role: 'cloth', profile: [[-0.004, 0.0015], [0.02, 0.002], [0.05, 0.003]] },
+    ],
+  },
+  // Mail mittens (mufflers), the hauberk's sleeve run on over the hand: a bag of mail over the four fingers and a stall for the thumb.
+  mailMitten: {
+    role: 'mail', thick: 0.003, mitten: true,
+    pieces: [
+      { kind: 'mittenLames', role: 'mail', spans: [[-0.3, 2.99]], lift: 0.001, lap: 0, closed: true },
+      { kind: 'cuff', role: 'mail', profile: [[-0.006, 0.003], [0.02, 0.004], [0.06, 0.006]] },
+    ],
+  },
+  // The hourglass gauntlet of the later 14th century: cuff and back of the hand in one plate, waisted at the wrist and
+  // flaring to a short bell, a ridge over the knuckles, small scales down each finger on a leather glove.
+  hourglass: {
+    role: 'leather', thick: 0.0015, finish: { leather: 0.15 },
+    pieces: [
+      { kind: 'cuff', profile: [[-0.034, 0.012], [-0.012, 0.006], [0.01, 0.0035], [0.03, 0.009], [0.055, 0.021], [0.072, 0.031]] },
+      { kind: 'backPlate', from: 0.26, to: 1.05, arc: 1.7, lift: 0.003, ridge: 0.003 },
+      { kind: 'lames', spans: HAND_FINGER_SPANS, thumbSpans: HAND_THUMB_SPANS, arc: 1.7 },
+    ],
+  },
+  // The Gothic gauntlet of the later 15th century: a long cuff drawn to a point and fluted, the back of the hand in
+  // overlapping lames, a raised gadling on each knuckle, each finger in its own scales.
+  gothic: {
+    role: 'leather', thick: 0.0015, finish: { leather: 0.15 },
+    pieces: [
+      { kind: 'cuff', profile: [[-0.032, 0.009], [0.0, 0.005], [0.04, 0.01], [0.08, 0.017], [0.11, 0.023]], point: 0.055, flutes: 12 },
+      { kind: 'backPlate', from: 0.26, to: 1.04, arc: 1.7, lift: 0.003, lames: 3, ridge: 0.002 },
+      { kind: 'lames', spans: HAND_FINGER_SPANS, thumbSpans: HAND_THUMB_SPANS, arc: 1.7, swell: [0, 0.0035] },
+    ],
+  },
+  // The mitten gauntlet of the Milanese and the later harnesses: a bell cuff, the back of the hand in lames, and broad
+  // lames across the four fingers together; the thumb in its own.
+  mitten: {
+    role: 'leather', thick: 0.0015, mitten: true, finish: { leather: 0.15 },
+    pieces: [
+      { kind: 'cuff', profile: [[-0.032, 0.009], [0.0, 0.005], [0.04, 0.012], [0.07, 0.019], [0.095, 0.023]] },
+      { kind: 'backPlate', from: 0.26, to: 1.0, arc: 1.7, lift: 0.003, lames: 4, ridge: 0.0025 },
+      { kind: 'mittenLames', spans: [[-0.02, 0.5], [0.5, 1.011], [0.989, 1.5], [1.5, 2.011], [1.989, 2.9]] },
+      { kind: 'lames', which: [4], spans: HAND_THUMB_SPANS, arc: 1.7 },
+    ],
+  },
 };
 
 /**
  * The forearm's end, for a hand to run out of: from the body's mesh as built (`positions`), the ring of it nearest the
- * wrist (`heel` m behind the hand point `at`, in the forearm's bind `frame`), as { a, b: its half breadth along the frame's
- * x and z, heel } in metres at HAND_STATURE (`scale`: the body's own size over that). `outer`: the outermost surface there
- * (a sleeve's, for a cuff to go over), else the innermost (the skin). Null where the mesh has nothing there.
+ * wrist (`heel` m behind the hand point `at`, in the forearm's bind `frame`), as { a, b: the half breadth along the frame's
+ * x and z of the innermost surface there (the skin), outerA, outerB: of the outermost (a sleeve's or a vambrace's, for a
+ * cuff to go over), heel } in metres at HAND_STATURE (`scale`: the body's own size over that). Null where the mesh has
+ * nothing there.
  */
-export function wristFit(positions, frame, at, heel, scale = 1, outer = false) {
+export function wristFit(positions, frame, at, heel, scale = 1) {
   const slab = [-heel - 0.035 * scale, -heel + 0.012 * scale];
-  const sectors = Array.from({ length: 8 }, () => null);
+  const inner = Array.from({ length: 8 }, () => null);
+  const outer = Array.from({ length: 8 }, () => null);
   let found = 0;
   for (let vertex = 0; vertex < positions.length / 3; vertex += 1) {
     const d = [positions[vertex * 3] - at[0], positions[vertex * 3 + 1] - at[1], positions[vertex * 3 + 2] - at[2]];
@@ -670,11 +891,16 @@ export function wristFit(positions, frame, at, heel, scale = 1, outer = false) {
     if (r > 0.09 * scale) continue;
     found += 1;
     const sector = ((Math.round((Math.atan2(z, x) / (2 * Math.PI)) * 8) % 8) + 8) % 8;
-    if (sectors[sector] === null || (outer ? r > sectors[sector] : r < sectors[sector])) sectors[sector] = r;
+    if (inner[sector] === null || r < inner[sector]) inner[sector] = r;
+    if (outer[sector] === null || r > outer[sector]) outer[sector] = r;
   }
-  const known = sectors.filter((r) => r !== null);
-  if (found < 6 || known.length < 4) return null;
-  const mean = known.reduce((sum, r) => sum + r, 0) / known.length;
-  const r = (sector) => sectors[sector] ?? mean;
-  return { a: (r(0) + r(4)) / 2 / scale, b: (r(2) + r(6)) / 2 / scale, heel: heel / scale };
+  if (found < 6 || inner.filter((r) => r !== null).length < 4) return null;
+  const across = (sectors, first) => {
+    const known = sectors.filter((r) => r !== null);
+    const mean = known.reduce((sum, r) => sum + r, 0) / known.length;
+    return ((sectors[first] ?? mean) + (sectors[first + 4] ?? mean)) / 2 / scale;
+  };
+  // (A wrist's own size at most: a body drawn without its forearm's skin, under plate, leaves only the plate to measure.)
+  const most = HAND_PALM.wristHalf * HAND_LONG * 1.25;
+  return { a: Math.min(most, across(inner, 0)), b: Math.min(most, across(inner, 2)), outerA: across(outer, 0), outerB: across(outer, 2), heel: heel / scale };
 }

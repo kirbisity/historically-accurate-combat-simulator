@@ -7,7 +7,7 @@ import { WEAPONS } from './weapons.js';
 import { clothWearOf, drapeWear } from './clothwear.js';
 import { Dangle } from './dangle.js';
 import { WORLD } from './physics/config.js';
-import { FACTIONS, factionOf, HEADGEAR, OUTFITS, outfitOf, RAGS, ragStrips, ragTear, resolveColor } from './outfits.js';
+import { FACTIONS, factionOf, gauntletOf, HEADGEAR, OUTFITS, outfitOf, RAGS, ragStrips, ragTear, resolveColor } from './outfits.js';
 import { doubleSided, outlineFor, surface } from './toon.js';
 import { activeLook } from './looks.js';
 import { outlineScale } from './looks/kit.js';
@@ -279,7 +279,7 @@ const finish = (group) => {
 const HAND_GEOMETRY = new Map();
 const HAND_POSES = new Map();
 const HAND_BUILT_FOR = 1.8;
-const HAND_CACHE = { most: 900, steps: 3 };
+const HAND_CACHE = { most: 600, steps: 3 };
 // A hand's thickness against the reference man's, from the frame's bone (body.js FRAMES) and the fat over it, a woman's the
 // finer (ANSUR II: her hand's breadth 0.42 of its length to his 0.44); and how far the tendons, veins and folds stand out of
 // the back of it: more on an older hand and a leaner one (the sheet's relief times this).
@@ -342,7 +342,8 @@ export function buildHand(body, side, kind, skinColor, steel, glove = null, { fi
   const face = Math.round((WORLD.fists.bare.radius / scale) * 1000) / 1000;
   const { girth, relief } = handBuild(body);
   const { cover, wear } = handWear(kind, glove, dress);
-  const rounded = fit && { a: Math.round(fit.a * 500) / 500, b: Math.round(fit.b * 500) / 500, heel };
+  // (To 4 mm: hands of near the same wrist share their geometry.)
+  const rounded = fit && { ...Object.fromEntries(['a', 'b', 'outerA', 'outerB'].filter((name) => fit[name] !== undefined).map((name) => [name, Math.round(fit[name] * 250) / 250])), heel };
   const base = JSON.stringify([cover, wear, side, heel, face, girth, rounded, lowDetail]);
   const poseOf = (spec) => {
     const key = `${heel}|${face}|${girth}|${handHoldKey(spec)}`;
@@ -369,8 +370,9 @@ export function buildHand(body, side, kind, skinColor, steel, glove = null, { fi
         made.geometry[role] = geometry;
       }
       if (HAND_GEOMETRY.size >= HAND_CACHE.most) {
-        // (The oldest goes; a hand still showing it keeps its own hold on the geometry.)
+        // (The oldest goes, its buffers freed; a hand still showing it has them made again when it is next drawn.)
         const oldest = HAND_GEOMETRY.keys().next().value;
+        for (const geometry of Object.values(HAND_GEOMETRY.get(oldest).geometry)) geometry.dispose();
         HAND_GEOMETRY.delete(oldest);
       }
       HAND_GEOMETRY.set(key, made);
@@ -384,7 +386,7 @@ export function buildHand(body, side, kind, skinColor, steel, glove = null, { fi
   turned.add(sized);
   hand.add(turned);
   const first = geometryOf(hold);
-  const materials = handMaterials(first.worn, { skinColor, steel, glove, relief, mapped: !lowDetail && DETAIL_MAPS.on });
+  const materials = handMaterials(first.worn, { kind, skinColor, steel, glove, relief, mapped: !lowDetail && DETAIL_MAPS.on });
   const pieces = {};
   for (const [role, geometry] of Object.entries(first.geometry)) {
     const piece = new THREE.Mesh(geometry, materials[role]());
@@ -418,20 +420,51 @@ export function buildHand(body, side, kind, skinColor, steel, glove = null, { fi
   return hand;
 }
 
-/** What a hand wears, as handform.js names it, and the design's own figures for it. */
+/** What a hand wears, as handform.js HAND_WEAR names it (`kind`: handKind's; `glove`: a design's dress gloves; `dress`: the design). */
 function handWear(kind, glove, dress) {
-  void dress;
-  if (kind === 'bare' && glove) return { cover: 'bare', wear: {} };
-  return { cover: 'bare', wear: {} };
+  if (kind === 'gauntlet') return { cover: dress?.armor?.robot ? 'steel' : gauntletOf(dress?.look ?? dress ?? {}), wear: {} };
+  if (kind === 'tekko' || kind === 'tactical' || kind === 'proximity') return { cover: kind, wear: {} };
+  return { cover: glove ? 'kid' : 'bare', wear: {} };
 }
 
-/** A hand's materials by role, each made when first asked for. */
-function handMaterials(worn, { skinColor, steel, glove, relief, mapped }) {
-  void worn;
-  void steel;
-  void glove;
+// A hand's leathers and cloths where the design names none: a gauntlet's buff glove, a tekkō's indigo cloth, a tactical glove's black.
+const HAND_STUFF = { leather: 0x6b4a30, cloth: 0x1b2233, tactical: 0x18191d, guard: 0x242528, lacquer: 0x121214 };
+// From this much polish up a hand's material is given a highlight and the sky's reflection (as a shoe's: FOOT_SHINE).
+const HAND_SHINE = { from: 0.15, sky: 1.0 };
+
+/** A hand's materials by role (handform.js HAND_WEAR), each made when asked for. */
+function handMaterials(worn, { kind, skinColor, steel, glove, relief, mapped }) {
+  const finishes = worn.finish ?? {};
+  // Leather or cloth following the hand: the glove's sheet (its seams and grain) under the stuff's own colour and finish.
+  const gloved = (role, color) => {
+    const gloss = finishes[role] ?? 0;
+    const shines = gloss > HAND_SHINE.from;
+    const material = shines
+      ? new THREE.MeshStandardMaterial({ color, metalness: 0, roughness: 0.95 - 0.85 * gloss, envMap: steel?.envMap ?? null, envMapIntensity: gloss * HAND_SHINE.sky })
+      : surface(color, { roughness: 0.95 - 0.85 * gloss });
+    if (mapped) {
+      const sheet = handSheet('glove');
+      material.map = sheet.map;
+      material.color.multiplyScalar(1 / HAND_MAPS.neutral);
+      if (material.isMeshStandardMaterial || material.isMeshToonMaterial || material.isMeshPhongMaterial) material.normalMap = sheet.normalMap;
+    }
+    return material;
+  };
   return {
     skin: () => handSkinMaterial(skinColor, relief, mapped),
+    glove: () => gloved('glove', kind === 'tactical' ? HAND_STUFF.tactical : glove ?? HAND_STUFF.leather),
+    guard: () => gloved('guard', HAND_STUFF.guard),
+    leather: () => gloved('leather', HAND_STUFF.leather),
+    cloth: () => gloved('cloth', HAND_STUFF.cloth),
+    foil: () => foilMaterial(steel?.envMap ?? null, 0xc9ccd1),
+    metal: () => steel,
+    // Mail: the steel, duller, under the mail tile where the maps are on.
+    mail: () => {
+      const material = Object.assign(metal(steel, new THREE.Color(steel.color).multiplyScalar(0.8).getHex()), { roughness: 0.55 });
+      return mapped ? clothPropMaterial(material, 'mail') : material;
+    },
+    // Iron under black lacquer: glossy, the sky in it (as a kōgake's plates).
+    lacquer: () => Object.assign(metal(steel, HAND_STUFF.lacquer), { metalness: 0.35, roughness: 0.95 - 0.85 * (finishes.lacquer ?? 0.85), envMapIntensity: 1.5 }),
   };
 }
 
@@ -4807,7 +4840,8 @@ export function buildAirPack(body, pack, colors, envMap) {
 /** Which kind of hand an outfit gives. */
 export function handKind(inputs, gloved) {
   if (gloved) return 'gloved';
-  const fists = outfitOf(inputs).spec.fists;
+  const { fists, hands } = outfitOf(inputs).spec;
+  if (hands === 'tekko') return 'tekko';
   if (fists === 'gloved-tactical') return 'tactical';
   if (fists === 'gauntlet') return 'gauntlet';
   if (fists === 'gloved-proximity') return 'proximity';

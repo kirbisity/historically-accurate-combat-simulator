@@ -266,6 +266,20 @@ function exoKit(label, frameKg, kit) {
 // out ~17 cm past the foot in a thin point over six lames riveted in brass (the Met's 29.150.9a,b; the Wallace's A 21).
 const SABATONS = { sallet: { point: 0.17, lames: 6, rivets: true } };
 
+// A harness's gauntlets by its date, told by its helmet (wardrobe.js buildHand, handform.js HAND_WEAR; a design may name its
+// own, `gauntlet`): mail mittens with the great helm's hauberk (the 12th-13th c.: the sleeve run on over the hand); the
+// hourglass gauntlet with the hounskull bascinet (c. 1350-1410); the fingered Gothic gauntlet, long-cuffed and fluted, with
+// the sallet (c. 1470-90); the mitten gauntlet with the close helmet and the Maximilian harness (c. 1500-30) and on the
+// Stechzeug; any other plate harness the mitten of the Milanese export armours.
+const GAUNTLETS = { greatHelm: 'mailMitten', hounskull: 'hourglass', sallet: 'gothic', closeHelmet: 'mitten', stechhelm: 'mitten' };
+
+/** The gauntlet a design's harness has (a HAND_WEAR name). */
+export function gauntletOf(look) {
+  if (look.gauntlet) return look.gauntlet;
+  const helm = look.head?.design ?? look.head?.kind;
+  return GAUNTLETS[helm] ?? (look.armor?.kind === 'mail' ? 'mailMitten' : 'mitten');
+}
+
 /**
  * Knight plate in another finish, and its helmet (`helm`, knighthelms.js: the hounskull bascinet of the early harness, the
  * German sallet and bevor of the Gothic, the close helmet of the fluted Maximilian harness).

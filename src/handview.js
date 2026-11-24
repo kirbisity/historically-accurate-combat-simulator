@@ -24,7 +24,8 @@ export const HAND_VIEW = {
   held: 0.034,
   // A hand counts as on the weapon within this of its line (m).
   onLine: 0.06,
-  // How the handle lies in the hand by its lean from square across the palm (rad): square, aslant, in line with the forearm.
+  // How the handle lies in the hand by its lean from square across the palm (rad): square, aslant, along the palm (a
+  // weapon carried in line with the forearm, its butt along the wrist).
   slants: [0, 0.4, 0.8],
   // A weapon pointing back past this along the forearm (the cosine of its angle to it) is held point down, the thumb to the pommel.
   reversed: -0.45,
@@ -128,10 +129,10 @@ export function handHold(fighter, side, frame = null, fighterView = null) {
     const dot = (axis) => held.dir[0] * axis[0] + held.dir[1] * axis[1] + held.dir[2] * axis[2];
     let line = [dot(frame.x), dot(frame.y), dot(frame.z)];
     if (line[1] < HAND_VIEW.reversed) line = line.map((value) => -value);
-    const lean = Math.asin(Math.min(1, Math.max(-1, line[1])));
+    const lean = Math.asin(Math.min(1, Math.max(-1, line[1] / Math.sqrt(1 - HAND_LEAN * HAND_LEAN))));
     let slant = HAND_VIEW.slants[0];
     for (const step of HAND_VIEW.slants) if (Math.abs(lean - step) < Math.abs(lean - slant)) slant = step;
-    const mirror = side === 'l' ? -1 : 1;
+    const mirror = side === 'l' ? 1 : -1;
     // (As handform.js lays what is held: across the palm, leaning to the fingertips by `slant`, the wrist bent back by HAND_LEAN.)
     const across = Math.hypot(line[0], line[2]);
     const turn = across > 0.2 ? Math.atan2(-Math.sin(slant) * HAND_LEAN * mirror, Math.cos(slant)) - Math.atan2(line[2], line[0]) : null;
