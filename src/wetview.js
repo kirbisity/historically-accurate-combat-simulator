@@ -35,7 +35,7 @@ import { tkWeatherNow } from './townkit/weather.js';
 import { bloodDyeWaterAt } from './blooddye.js';
 import { ENV } from './env/config.js';
 import { MUD_VIEW } from './mudview.js';
-import { MARKS, markShader, marksPose, markUniforms } from './markview.js';
+import { markFar, markShader, marksPose, markUniforms } from './markview.js';
 import { WET, WET_CHANNEL, WET_COUNT, WET_POINTS, WET_SEGMENTS, createWetness, setWetness, stepWetness, wetHeights, wetSummary } from './wetness.js';
 
 export const WET_VIEW = {
@@ -363,7 +363,7 @@ const wetLit = (material) => material.isMeshStandardMaterial || material.isMeshL
  * `wetSkin` attribute: a body's mesh carries its painted cloth too). The material's other patches are kept and run
  * first, and their includes are left where they were for those laid on afterwards.
  */
-function wetMaterial(material, wet, { skin = false, hair = false, mask = false } = {}) {
+function wetMaterial(material, wet, { skin = false, hair = false, mask = false, mail = false } = {}) {
   // (The hook is the mark, as looks/kit.js shadeFigure's is: a clone keeps userData and not the hook.)
   for (let hook = material.onBeforeCompile; hook; hook = hook.previous) if (hook.wets) return;
   if (!wetLit(material)) return;
@@ -383,7 +383,7 @@ function wetMaterial(material, wet, { skin = false, hair = false, mask = false }
       .replace('#include <emissivemap_fragment>', wetSurface())
       .replace('#include <tonemapping_fragment>', wetLight());
     // The marks of blows (markview.js): laid in with the wetness, on the same uniforms.
-    markShader(shader);
+    markShader(shader, { mail });
   };
   patched.previous = previous;
   patched.wets = true;
@@ -436,7 +436,8 @@ export function wetDress(fighterView) {
     const hairMesh = Boolean(object.userData.photoHair || object.userData.photoBeard || object.userData.photoHairRim);
     for (const material of Array.isArray(object.material) ? object.material : [object.material]) {
       const kind = material.userData.wetKind;
-      wetMaterial(material, wet.uniforms, { skin: mask || kind === 'skin' || Boolean(material.userData.photoFace), hair: hairMesh || kind === 'hair', mask });
+      // (Mail is told by its mesh, the detail maps' kind: its rings burst where a mark is, markview.js.)
+      wetMaterial(material, wet.uniforms, { skin: mask || kind === 'skin' || Boolean(material.userData.photoFace), hair: hairMesh || kind === 'hair', mask, mail: object.userData.detailMaps === 'mail' });
     }
   });
   // Which of what hangs from him is hair (a curtain down the back): it takes the head's wetness, the rest his clothes'.
@@ -577,7 +578,7 @@ export function wetUpdate(view, world, fighterViews, dt) {
       }
     }
     // The marks blows left on him (markview.js), where his bones are now; none drawn far from the camera.
-    marksPose(fighter, fighterView.frames, wet.uniforms, world.time, fighterView.group.visible && (fighter.x[24] - view.camera.position.x) ** 2 + (fighter.x[26] - view.camera.position.z) ** 2 < MARKS.far ** 2);
+    marksPose(fighter, fighterView.frames, wet.uniforms, world.time, fighterView.group.visible && (fighter.x[24] - view.camera.position.x) ** 2 + (fighter.x[26] - view.camera.position.z) ** 2 < markFar() ** 2);
     wet.uniforms.uWetOn.value = state.any ? 1 : 0;
     const swing = fighterView.bones?.swing;
     if (swing) swing.wet.value = state.cloth;

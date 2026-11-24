@@ -24,8 +24,8 @@
 //
 // Drawing it (stepLodged): the man pulls with what his arms have on the grip (each hand's motor force, as tired and hurt
 // as it is, both hands on a two-handed weapon) and with his weight if he steps back from the man it is in; only the
-// part of that along the way the blade went in counts (`align`: a blade is drawn back down its own cut). Past `stick` of
-// the hold it slides, the faster the more he has over it, and working at it loosens it (`loosen` s). Out, it opens the
+// part of that along the way the blade went in counts (a blade is drawn back down its own cut: less as the man it is in turns or falls away from that line, at least `askew`). Past `stick` of
+// the hold it slides, the faster the more he has over it, and working at it loosens it (his pull's worth of the hold every `loosen` s). Out, it opens the
 // wound again (`reopen` of the bleeding the blow started).
 //
 // While it is in (holdLodged, each substep): the hand is kept on the blade's line at the wound, by moving the hand and
@@ -51,10 +51,10 @@ export const LODGE = {
   thrustN: 260,
   flesh: 5000, bonePerM: 25000, boneMost: 1500, pinch: 120, barbs: 2.5,
   // Drawing: m/s it slides at with twice the hold in hand; the share of the hold below which it does not move; s of
-  // working at it for the hold to fall to 1/e; the share of his weight he can put into it stepping back at `backPace` m/s.
-  pullSpeed: 1.2, stick: 0.55, loosen: 2.2, weight: 0.3, backPace: 0.8,
+  // working at it for the hold to fall by what he pulls with; the share of his weight he can put into it stepping back at `backPace` m/s.
+  pullSpeed: 1.2, stick: 0.55, loosen: 1.3, weight: 0.3, backPace: 0.8,
   // The least of his pull that works along the way out, however he stands to it (he shifts his grip and his feet to it).
-  askew: 0.5,
+  askew: 0.8,
   // How far (m) the hand may be dragged off the blade's line in one substep's correction, how far off it counts as torn
   // from him, and for how long (s).
   step: 0.008, torn: 0.2, tornSeconds: 0.3,
@@ -74,7 +74,7 @@ const LODGE_REF = {
 };
 
 /** A struck part's own frame now: `origin` at `t` along it, `y` along it, `x` and `z` square to it (by LODGE_REF). */
-function partFrame(fighter, hold) {
+function lodgeFrame(fighter, hold) {
   const a = point(fighter.x, hold.a);
   const b = point(fighter.x, hold.b);
   // (The head is one particle: its line is the neck's.)
@@ -86,8 +86,8 @@ function partFrame(fighter, hold) {
   z = vec.length(z) > 1e-6 ? vec.normalize(z) : vec.normalize(vec.cross(y, Math.abs(y[1]) < 0.9 ? [0, 1, 0] : [1, 0, 0]));
   return { origin, x: vec.cross(y, z), y, z };
 }
-const intoFrame = (frame, v) => [vec.dot(v, frame.x), vec.dot(v, frame.y), vec.dot(v, frame.z)];
-const outOfFrame = (frame, v) => vec.add(vec.add(vec.scale(frame.x, v[0]), vec.scale(frame.y, v[1])), vec.scale(frame.z, v[2]));
+const lodgeInto = (frame, v) => [vec.dot(v, frame.x), vec.dot(v, frame.y), vec.dot(v, frame.z)];
+const lodgeOutOf = (frame, v) => vec.add(vec.add(vec.scale(frame.x, v[0]), vec.scale(frame.y, v[1])), vec.scale(frame.z, v[2]));
 
 /**
  * How deep (m) an edge with `cleaving` J, or a point with `pierce` J, went into a part whose section had `left` to give
@@ -141,18 +141,18 @@ export function lodgeBlade(world, attacker, defender, weapon, capsule, t, contac
   const engaged = went.thrust ? weapon.spec.pointWidth ?? Math.max(0.025, weapon.spec.radius * 2) : Math.min(weapon.spec.length, 2 * Math.sqrt(Math.max(0, went.depth * (2 * radius - went.depth))));
   const hold = lodgeHold(went, engaged, pinched, Boolean(weapon.spec.barbed));
   const held = { a: capsule.a, b: capsule.b, t, ref: P[LODGE_REF[key]] };
-  const frame = partFrame(defender, held);
+  const frame = lodgeFrame(defender, held);
   const way = vec.length(hit.travel) > 1e-6 ? vec.normalize(hit.travel) : weapon.dir;
   // (Drawn in the stroke's recovery: what he pulls with over what holds it, LODGE.atOnce.)
   const over = lodgePull(attacker, weapon, vec.scale(went.thrust ? weapon.dir : way, -1)) / Math.max(1, hold) - LODGE.stick;
   if (over > 0 && went.depth / (LODGE.pullSpeed * Math.min(2, over)) < LODGE.atOnce) return false;
   attacker.lodged = {
     in: defender.id, blade: weapon === attacker.offWeapon ? 'off' : 'main', ...held, key,
-    at: intoFrame(frame, vec.sub(contact, frame.origin)), dir: intoFrame(frame, weapon.dir),
+    at: lodgeInto(frame, vec.sub(contact, frame.origin)), dir: lodgeInto(frame, weapon.dir),
     // (Out the way it went in: a point back along the blade, an edge back against its travel.)
-    exit: intoFrame(frame, vec.scale(went.thrust ? weapon.dir : way, -1)),
+    exit: lodgeInto(frame, vec.scale(went.thrust ? weapon.dir : way, -1)),
     grip: hit.distance, depth: went.depth, bone: went.bone, thrust: went.thrust, hold, held: hold, out: 0, since: world.time, off: 0, bleed: hit.bleed ?? 0,
-    world: { dir: [...weapon.dir] },
+    world: { dir: [...weapon.dir], exit: vec.scale(went.thrust ? weapon.dir : way, -1) },
   };
   hit.event.lodged = { depth: went.depth, bone: went.bone > 0 || pinched, hold };
   hit.event.effects.push(went.bone > 0 ? 'the blade held in the bone' : pinched ? 'the point held between the bones' : 'the blade held in the wound');
@@ -160,17 +160,16 @@ export function lodgeBlade(world, attacker, defender, weapon, capsule, t, contac
   return true;
 }
 
-/** N he can pull on a held blade with now, along `exit` (the way out, world): his hands on the grip and his weight if he steps back. */
-export function lodgePull(fighter, weapon, exit) {
+/** N he can pull on a held blade with now, along `exit` (the way out, world; `from`: the way out as it was when the blade went in): his hands on the grip and his weight if he steps back. */
+export function lodgePull(fighter, weapon, exit, from = null) {
   const shares = limbShares(fighter);
   let force = fighter.body.motorForce[P[`${weapon.main}Hand`]] * shares.arm[weapon.main];
-  if (weapon.twoHanded) force += fighter.body.motorForce[P[`${weapon.off}Hand`]] * shares.arm[weapon.off];
+  if (weapon.spec.hands !== 'one') force += fighter.body.motorForce[P[`${weapon.off}Hand`]] * shares.arm[weapon.off];
   const back = fighter.rootVelocity ? fighter.rootVelocity[0] * exit[0] + fighter.rootVelocity[1] * exit[2] : 0;
   force += LODGE.weight * fighter.body.massKg * 9.81 * Math.min(1, Math.max(0, back / LODGE.backPace));
-  // (Drawn down its own cut: what of his pull, from the wound toward his shoulder, lies along the way out.)
-  const hand = point(fighter.x, P[`${weapon.main}Hand`]);
-  const toward = vec.sub(point(fighter.x, P[`${weapon.main}Shoulder`]), hand);
-  const align = vec.length(toward) > 1e-6 ? Math.max(LODGE.askew, vec.dot(vec.normalize(toward), exit)) : LODGE.askew;
+  // (Drawn down its own cut: he pulls the way his stroke went in, `from`; as far as the man it is in has turned or fallen
+  // since, the way out is no longer that way, and less of his pull works along it.)
+  const align = from ? Math.max(LODGE.askew, vec.dot(from, exit)) : 1;
   return force * align * Math.max(0, fighter.motorScale ?? 1);
 }
 
@@ -180,9 +179,12 @@ export function lodgeEta(world, fighter) {
   const weapon = lodgedBlade(fighter);
   const victim = world.fighters[held?.in];
   if (!held || !weapon?.held || !victim) return 0;
-  const frame = partFrame(victim, held);
-  const over = lodgePull(fighter, weapon, outOfFrame(frame, held.exit)) / Math.max(1, held.hold) - LODGE.stick;
-  if (over <= 0) return LODGE.loosen;
+  const frame = lodgeFrame(victim, held);
+  const pull = lodgePull(fighter, weapon, lodgeOutOf(frame, held.exit), held.world.exit);
+  if (pull <= 1) return Infinity;
+  const over = pull / Math.max(1, held.hold) - LODGE.stick;
+  // (Not moving yet: until he has worked it loose enough, then about as long again to draw it.)
+  if (over <= 0.1) return ((held.hold - pull / (LODGE.stick + 0.1)) * LODGE.loosen) / pull + (held.depth - held.out) / (LODGE.pullSpeed * 0.3);
   return (held.depth - held.out) / (LODGE.pullSpeed * Math.min(2, over));
 }
 
@@ -214,10 +216,10 @@ export function stickLodged(world, fighter, weapon, debris) {
 
 /** Where the hand on a held blade must be now (world), the blade's line and the way out: sunk `depth` in, less what he has drawn. */
 function lodgeWant(victim, held) {
-  const frame = partFrame(victim, held);
-  const dir = outOfFrame(frame, held.dir);
-  const exit = outOfFrame(frame, held.exit);
-  const wound = vec.add(frame.origin, outOfFrame(frame, held.at));
+  const frame = lodgeFrame(victim, held);
+  const dir = lodgeOutOf(frame, held.dir);
+  const exit = lodgeOutOf(frame, held.exit);
+  const wound = vec.add(frame.origin, lodgeOutOf(frame, held.at));
   return { dir, exit, wound, hand: vec.add(vec.sub(wound, vec.scale(dir, held.grip)), vec.scale(exit, held.out - held.depth)) };
 }
 
@@ -226,7 +228,13 @@ export function lodgePose(world, fighter, intent) {
   const weapon = lodgedBlade(fighter);
   const victim = world.fighters[fighter.lodged.in];
   if (!weapon?.held || !victim) return;
-  intent[`${weapon.main}Hand`] = toLocal(fighter, lodgeWant(victim, fighter.lodged).hand);
+  const want = lodgeWant(victim, fighter.lodged);
+  intent[`${weapon.main}Hand`] = toLocal(fighter, want.hand);
+  // (Both hands stay on a two-handed weapon's grip: he hauls on it with both.)
+  if (weapon.spec.hands !== 'one') {
+    intent[`${weapon.off}Hand`] = toLocal(fighter, vec.sub(want.hand, vec.scale(want.dir, weapon.spec.spacing ?? 0.2)));
+    intent.twoHanded = true;
+  }
 }
 
 /** Loose weapons left in bodies (stickLodged) go where the part they are in goes; one in a man who is down may be taken up. */
@@ -235,10 +243,10 @@ export function carryStuck(world) {
     const stuck = piece.stuck;
     if (!stuck || piece.taken) continue;
     const victim = world.fighters[stuck.in];
-    const frame = partFrame(victim, stuck);
-    const dir = outOfFrame(frame, stuck.dir);
-    const wound = vec.add(frame.origin, outOfFrame(frame, stuck.at));
-    piece.x = vec.sub(vec.sub(wound, vec.scale(dir, stuck.back)), vec.scale(outOfFrame(frame, stuck.exit), stuck.sunk));
+    const frame = lodgeFrame(victim, stuck);
+    const dir = lodgeOutOf(frame, stuck.dir);
+    const wound = vec.add(frame.origin, lodgeOutOf(frame, stuck.at));
+    piece.x = vec.sub(vec.sub(wound, vec.scale(dir, stuck.back)), vec.scale(lodgeOutOf(frame, stuck.exit), stuck.sunk));
     piece.q = quatFromTo([0, 1, 0], dir);
     piece.v = [0, 0, 0];
     piece.resting = victim.state !== 'up' && victim.state !== 'rising';
@@ -305,17 +313,18 @@ export function stepLodged(world, dt) {
       letGoLodged(world, fighter, 'his blade is torn from his hands, held in the wound');
       continue;
     }
-    const frame = partFrame(victim, held);
-    const pull = lodgePull(fighter, weapon, outOfFrame(frame, held.exit));
+    const frame = lodgeFrame(victim, held);
+    const pull = lodgePull(fighter, weapon, lodgeOutOf(frame, held.exit), held.world.exit);
     const over = pull / Math.max(1, held.hold) - LODGE.stick;
-    if (pull > 0.3 * held.hold) held.hold *= Math.exp(-dt / LODGE.loosen);
+    // (Worked at, it loosens by what he puts into it: his pull's worth of the hold every LODGE.loosen s.)
+    held.hold = Math.max(0, held.hold - (pull * dt) / LODGE.loosen);
     if (over > 0) held.out += LODGE.pullSpeed * Math.min(2, over) * dt;
     fighter.stamina = Math.max(0, fighter.stamina - LODGE.effort * dt);
     if (held.out < held.depth) continue;
     fighter.lodged = null;
     // Out: the wound opens again behind it.
     if (held.bleed > 0 && !victim.body.gear.machine) victim.bleed = (victim.bleed ?? 0) + held.bleed * LODGE.reopen;
-    const at = vec.add(frame.origin, outOfFrame(frame, held.at));
+    const at = vec.add(frame.origin, lodgeOutOf(frame, held.at));
     world.events.push({ time: world.time, kind: 'freed', fighter: fighter.id, defender: victim.id, weapon: weapon.kind, point: at, depth: held.depth, seconds: world.time - held.since, effects: [`pulls his ${weapon.spec.label.toLowerCase()} free`] });
   }
   if (world.debris.length) carryStuck(world);

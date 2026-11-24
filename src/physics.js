@@ -746,7 +746,7 @@ export function sidearmKindOf(fighter) {
 
 /** Whether he can put his missile weapon by for his sidearm now, or take it up again (swapSidearm). */
 export function sidearmSwapReady(fighter) {
-  if (fighter.state !== 'up' || fighter.punch || fighter.pickup || fighter.crawling || fighter.clinch || fighter.reloading) return false;
+  if (fighter.state !== 'up' || fighter.punch || fighter.pickup || fighter.crawling || fighter.clinch || fighter.reloading || fighter.lodged) return false;
   if (fighter.stowed) return true;
   return Boolean(fighter.weapon?.held && fighter.weapon.spec.ranged && !fighter.weapon.spec.mounted && sidearmKindOf(fighter));
 }
