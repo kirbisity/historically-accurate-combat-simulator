@@ -59,7 +59,8 @@ test('a shoulder range: extension behind the trunk hanging, less out at the side
 
 for (const style of ['spear', 'pike', 'naginata', 'staff']) {
   test(`${style} duels: no arm goes round behind the back past the shoulder's range, and the polearm is held with the arms forward`, () => {
-    const { worst, elbowBack, samples } = duel(style, [500, 501], 12);
+    // (Three seeds: a short bout of two leaves too few moments with both hands on the haft to count.)
+    const { worst, elbowBack, samples } = duel(style, [500, 501, 502], 12);
     assert.ok(samples > 300, `${samples} two-handed arm-samples`);
     // A substep's correction is capped (WORLD.limitStep): a hair over at most.
     assert.ok(worst < (2 * Math.PI) / 180, `worst ${((worst * 180) / Math.PI).toFixed(1)} degrees past the range`);
