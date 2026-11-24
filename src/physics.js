@@ -8451,7 +8451,7 @@ function bluntAt(defender, capsule, contactPoint, normal) {
   if (body.segments[capsule.key]?.kind !== 'forearm') return bluntPart(body, capsule.key);
   const side = capsule.key[0];
   const arm = { elbow: point(defender.x, P[`${side}Elbow`]), hand: point(defender.x, P[`${side}Hand`]), shoulder: point(defender.x, P[`${side}Shoulder`]) };
-  return guardMeets(body, capsule.key, contactPoint, normal, arm, glovedFists(body.inputs), WORLD.fists.gloved.contactSeconds / WORLD.fists.bare.contactSeconds);
+  return guardMeets(body, capsule.key, contactPoint, normal, arm, glovedFists(body.inputs), WORLD.fists.gloved.contactSeconds / WORLD.fists.bare.contactSeconds, ARMOUR_COVER.handFrom);
 }
 
 /**

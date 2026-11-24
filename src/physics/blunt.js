@@ -5,10 +5,6 @@
 
 import { BODY, FRAMES, buildBody } from '../body.js';
 import { caloriesForWeight } from '../physiology.js';
-import { ARMOUR_COVER } from '../coverage.js';
-
-// (Where the hand begins along the forearm: coverage.js.)
-const HAND_FROM = ARMOUR_COVER.handFrom;
 
 export const BLUNT = {
   // The soft tissue over the bone where a blow meets a part, as shares of the part's own layers (body.js segments: fat
@@ -155,9 +151,10 @@ export function bluntPart(body, key) {
  * What a blow on a forearm meets (BLUNT.meets): `at` its contact, `normal` out of the arm toward the striker; `elbow`,
  * `hand` and `shoulder` the arm's particles; `gloved` whether his hands are in gloves. Returns this body's part there as
  * bluntPart does (`depth`, `stretch`, `pad`, `toll`, `size`), with `region` 'hand' (the fist, or the glove: the forearm
- * not bent by it) or 'forearm'. On any other part, the part as bluntPart has it.
+ * not bent by it) or 'forearm'; `handFrom`, where along the forearm the hand begins (coverage.js ARMOUR_COVER.handFrom,
+ * passed in: this module is below coverage.js in the one-file build). On any other part, the part as bluntPart has it.
  */
-export function guardMeets(body, key, at, normal, { elbow, hand, shoulder }, gloved = false, gloveStretch = 1) {
+export function guardMeets(body, key, at, normal, { elbow, hand, shoulder }, gloved = false, gloveStretch = 1, handFrom = 0.85) {
   const part = bluntPart(body, key);
   if (body.segments[key]?.kind !== 'forearm' || body.inputs?.build?.rigid) return { ...part, region: 'part' };
   const spec = BLUNT.meets;
@@ -165,12 +162,12 @@ export function guardMeets(body, key, at, normal, { elbow, hand, shoulder }, glo
   const length = Math.hypot(...span) || 1e-6;
   const axis = span.map((value) => value / length);
   const along = ((at[0] - elbow[0]) * axis[0] + (at[1] - elbow[1]) * axis[1] + (at[2] - elbow[2]) * axis[2]) / length;
-  const handFrom = HAND_FROM - (gloved ? spec.cuff / Math.max(0.05, body.segments[key].length) : 0);
+  const from = handFrom - (gloved ? spec.cuff / Math.max(0.05, body.segments[key].length) : 0);
   const same = (depth) => {
     const stretch = fleshStretch(depth);
     return { ...part, depth, stretch, pad: (part.pad * part.stretch) / stretch, toll: part.toll * (part.stretch / stretch) };
   };
-  if (along >= handFrom) {
+  if (along >= from) {
     const fist = same(spec.fist);
     if (!gloved) return { ...fist, region: 'hand' };
     return { ...fist, stretch: fist.stretch * gloveStretch, pad: fist.pad / gloveStretch, toll: fist.toll / gloveStretch, region: 'hand' };
