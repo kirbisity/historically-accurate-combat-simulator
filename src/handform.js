@@ -839,8 +839,12 @@ export const HAND_WEAR = {
   proximity: { role: 'foil', thick: 0.004, pieces: [{ kind: 'cuff', role: 'foil', profile: [[-0.008, 0.005], [0.02, 0.008], [0.07, 0.016], [0.12, 0.02]] }] },
   // A machine's hand: the hand's shape in its own metal.
   steel: { role: 'metal', thick: 0.0015 },
-  // The tekkō of a samurai's kote: a plate of lacquered iron over the back of the hand, its far edge lobed over the
-  // knuckles, on the sleeve's cloth, with a smaller plate over the thumb's root; the fingers and the palm bare.
+  // The tekkō of a samurai's kote, as on the Edo-period sleeves of the Cleveland Museum of Art (1921.404.h, 1922.31.e) and
+  // the Met (06.54a, b): one plate of russet- or black-lacquered iron over the back of the hand, joined to the forearm's
+  // splints by a band of mail at the wrist, its front edge embossed into four rounded lobes over the knuckles (flat and
+  // nearly straight on plainer ones), on the sleeve's cloth, with a smaller plate over the thumb's root hung on mail; the
+  // fingers and the palm bare. (Its cord loops for the middle finger and the thumb are not drawn. The long tongue-shaped
+  // tekkō of the ō-yoroi's sleeve, as the Kasuga shrine's pair, has no thumb plate: not told apart here.)
   tekko: {
     role: 'skin', finish: { lacquer: 0.85, cloth: 0 },
     pieces: [
@@ -850,7 +854,9 @@ export const HAND_WEAR = {
       { kind: 'cuff', role: 'cloth', profile: [[-0.004, 0.0015], [0.02, 0.002], [0.05, 0.003]] },
     ],
   },
-  // Mail mittens (mufflers), the hauberk's sleeve run on over the hand: a bag of mail over the four fingers and a stall for the thumb.
+  // Mail mittens (mufflers), the hauberk's sleeve run on over the hand: a bag of mail over the four fingers and a stall for
+  // the thumb, as the knights of the Morgan Picture Bible wear them (France, c. 1250). (Their palm was cloth or leather, as
+  // on later mail gloves, the Cleveland Museum's 1921.1255: drawn in mail all round here.)
   mailMitten: {
     role: 'mail', thick: 0.003, mitten: true,
     pieces: [
@@ -858,28 +864,39 @@ export const HAND_WEAR = {
       { kind: 'cuff', role: 'mail', profile: [[-0.006, 0.003], [0.02, 0.004], [0.06, 0.006]] },
     ],
   },
-  // The hourglass gauntlet of the later 14th century: cuff and back of the hand in one plate, waisted at the wrist and
-  // flaring to a short bell, a ridge over the knuckles, small scales down each finger on a leather glove.
+  // The hourglass gauntlet of the later 14th century, after the one from Tannenberg Castle (the Met's 29.150.108, c. 1380):
+  // cuff and back of the hand of one plate, a short flared cuff, a narrow waist at the wrist, swelling over the back of the
+  // hand and stopping at the knuckles; the fingers and thumb each in a row of small overlapping plates on the leather
+  // glove, with a boss on each knuckle, as on Sir Thomas Cawne's effigy at Ightham (drawn in Gardner, Armour in England,
+  // 1897). (Drawn as a cuff and a back plate that overlap, not as one piece.)
   hourglass: {
     role: 'leather', thick: 0.0015, finish: { leather: 0.15 },
     pieces: [
       { kind: 'cuff', profile: [[-0.034, 0.012], [-0.012, 0.006], [0.01, 0.0035], [0.03, 0.009], [0.055, 0.021], [0.072, 0.031]] },
       { kind: 'backPlate', from: 0.26, to: 1.1, arc: 1.7, lift: 0.003, ridge: 0.003 },
-      { kind: 'lames', spans: HAND_FINGER_SPANS, thumbSpans: HAND_THUMB_SPANS, arc: 1.7 },
+      { kind: 'lames', spans: HAND_FINGER_SPANS, thumbSpans: HAND_THUMB_SPANS, arc: 1.7, swell: [0, 0.002] },
     ],
   },
-  // The Gothic gauntlet of the later 15th century: a long cuff drawn to a point and fluted, the back of the hand in
-  // overlapping lames, a raised gadling on each knuckle, each finger in its own scales.
+  // The Gothic gauntlet of the later 15th century, after the Met's 14.25.909 (South German or Austrian, c. 1480), Maximilian
+  // I's by Lorenz Helmschmied (Vienna, A 56, c. 1485) and the Cleveland Museum's 1916.2081 (Innsbruck, c. 1490): a long cuff
+  // drawn out to a point and fluted, narrow lames at the wrist and over the back of the hand, a knuckle plate raised into
+  // a point on each knuckle, and lames across the four fingers together (a mitten, fluted to look fingered), each lying over
+  // the next towards the fingertips; the thumb in its own on a hinge. (The flutes and the cusped edges of its lames are
+  // not drawn; a fingered Gothic gauntlet, which the brief for this asked for, is in none of the pieces looked at.)
   gothic: {
-    role: 'leather', thick: 0.0015, finish: { leather: 0.15 },
+    role: 'leather', thick: 0.0015, mitten: true, finish: { leather: 0.15 },
     pieces: [
       { kind: 'cuff', profile: [[-0.032, 0.009], [0.0, 0.005], [0.04, 0.01], [0.08, 0.017], [0.11, 0.023]], point: 0.055, flutes: 12 },
-      { kind: 'backPlate', from: 0.26, to: 1.1, arc: 1.7, lift: 0.003, lames: 3, ridge: 0.002 },
-      { kind: 'lames', spans: HAND_FINGER_SPANS, thumbSpans: HAND_THUMB_SPANS, arc: 1.7, swell: [0, 0.0035] },
+      { kind: 'backPlate', from: 0.26, to: 1.1, arc: 1.7, lift: 0.003, lames: 3, ridge: 0.004 },
+      { kind: 'mittenLames', spans: [[-0.02, 0.5], [0.5, 1.011], [0.989, 1.5], [1.5, 2.011], [1.989, 2.9]] },
+      { kind: 'lames', which: [4], spans: HAND_THUMB_SPANS, arc: 1.7 },
     ],
   },
-  // The mitten gauntlet of the Milanese and the later harnesses: a bell cuff, the back of the hand in lames, and broad
-  // lames across the four fingers together; the thumb in its own.
+  // The mitten gauntlet of the Milanese and the 16th-century harnesses, after the Cleveland Museum's 1916.1645 (Italy, c.
+  // 1450: one plate for cuff and hand, one deep mitten plate pivoted at the knuckles) and the Met's pair by Valentin
+  // Siebenbürger (22.145.1-.2, Nuremberg, c. 1535): a short bell cuff, narrow lames over the back of the hand, a ridge
+  // across the knuckles, and lames across the four fingers together lying over each other towards the fingertips; the thumb
+  // in its own. (The later pair has some eight finger lames and a roped ridge: five and a plain one here.)
   mitten: {
     role: 'leather', thick: 0.0015, mitten: true, finish: { leather: 0.15 },
     pieces: [
