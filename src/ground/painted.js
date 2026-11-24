@@ -18,6 +18,7 @@
 import { envDress } from '../env/air.js';
 import { PLACE_ENV } from '../env/config.js';
 import { ENV_GLSL_PRESS, ENV_PRESS, envPressUniforms } from '../env/press.js';
+import { ENV_GLSL_BODIES_SKY } from '../env/terrain.js';
 import { BLOOD_DYE_GLSL, bloodDyeShader } from '../blooddye.js';
 import { LAST_GATE } from '../lastgate.js';
 import { groundDetailLayer } from '../detailtex.js';
@@ -583,11 +584,12 @@ const PAINTED_GROUND_LAYERS = {
 
   /** Arena sand trodden: the rake lines gone, footprints and scuffs. */
   sandTrodden(random) {
-    const s = paintedGroundSheet(random, '#b38a58', 0.5);
+    // (The raked sand's own colour and grains, sandRaked: laid beside it, the two differ by their relief alone.)
+    const s = paintedGroundSheet(random, '#b9ab9c', 0.5);
     const { rr } = s;
     for (let index = 0; index < 12000; index += 1) {
       const kind = random();
-      const fill = kind < 0.4 ? paintedGroundHsl(36, 45, rr(70, 82), 0.6) : kind < 0.8 ? paintedGroundHsl(30, 30, rr(38, 50), 0.5) : paintedGroundHsl(12, 35, rr(40, 50), 0.6);
+      const fill = kind < 0.4 ? paintedGroundHsl(34, 16, rr(72, 84), 0.6) : kind < 0.8 ? paintedGroundHsl(30, 10, rr(42, 54), 0.5) : paintedGroundHsl(18, 14, rr(44, 54), 0.6);
       s.blob(rr(0, 512), rr(0, 512), rr(0.5, 1.2), rr(0.5, 1.2), 0, fill, null);
     }
     for (let index = 0; index < 22; index += 1) {
@@ -597,8 +599,14 @@ const PAINTED_GROUND_LAYERS = {
       const length = rr(40, 90);
       for (let step = 0; step < 6; step += 1) {
         const t = step / 6;
-        s.dome(x + Math.cos(a) * length * t, y + Math.sin(a) * length * t, rr(6, 10), rr(4, 7), a, 'rgba(110,80,50,0.08)', 0.3, 0.5, 0.6);
+        s.dome(x + Math.cos(a) * length * t, y + Math.sin(a) * length * t, rr(6, 10), rr(4, 7), a, 'rgba(100,92,84,0.08)', 0.3, 0.5, 0.6);
       }
+    }
+    // Small stones and clods kicked up out of the sand: each stands proud of it and throws its own speck of shade
+    // under a high sun (a few millimetres to a centimetre and a half: the sheet is a metre and a half across).
+    for (let index = 0; index < 150; index += 1) {
+      const r = rr(1, 4.2);
+      s.dome(rr(0, 512), rr(0, 512), r, r * rr(0.6, 0.9), rr(0, 3), paintedGroundHsl(rr(24, 40), rr(8, 22), rr(40, 70)), 0.9, 0.5);
     }
     // (No painted prints: the same dozen feet came round with every tile and read as outlines; the sand takes the
     // prints of whoever walks on it, `press` below.)
@@ -1025,7 +1033,7 @@ const PAINTED_GROUND_PLACES = {
   colosseum: {
     // (Raked all over before the bout: what treads it since is the fighters' own prints, `press` below. A trodden
     // middle laid by the layout met the raked sand in a smooth dark band where the two were mixed.)
-    a: 'sandRaked', b: 'sandRaked', tiles: [1.5, 1.7], bomb: [2, 1], macro: PAINTED_GROUND_SAND_MACRO, match: 0,
+    a: 'sandRaked', b: 'sandTrodden', tiles: [1.5, 1.7], bomb: [2, 1], macro: PAINTED_GROUND_SAND_MACRO, match: 0,
     // The rake's furrows and the trodden hollows stand out under a high sun (`relief`: the layers' slopes, as many times
     // over), and the sand takes a print: loose to `press[0]` m (a foot sinks a few centimetres into raked dry sand, far
     // less than into new snow: by eye), its walls' slope drawn `press[1]` times over so so shallow a print still
@@ -1033,8 +1041,10 @@ const PAINTED_GROUND_PLACES = {
     relief: 1.8, press: [0.045, 3.2, 0.2],
     decal: [0.33, 0.13, 0.08, 0.7], decalRough: 0.6,
     layout: (x, z, f, random) => {
-      // (One layer: nothing is laid as trodden.)
-      const trodden = 0;
+      // Trodden in patches, more of them toward the middle where the bouts are fought: the rake's furrows are gone
+      // there and the sand lies in lumps, scuffs and kicked-up stones. (The two layers are one colour, so a patch
+      // has no band round it; when the trodden one was darker its edge showed as a smooth dark ring.)
+      const trodden = paintedGroundSmooth(0.42, 0.6, f(x * 0.21, z * 0.21, 20) * 0.8 + (1 - paintedGroundSmooth(0.2, 1.1, Math.hypot(x / 13, z / 8))) * 0.3);
       let stain = 0;
       for (const [sx, sz, r] of PAINTED_GROUND_STAINS) {
         const d = Math.hypot(x - sx, z - sz) / r;
@@ -1183,6 +1193,9 @@ ${ENV_GLSL_PRESS}
 #ifdef PAINTED_POOLS
 ${BLOOD_DYE_GLSL}
 #endif
+#ifdef PAINTED_BODIES
+${ENV_GLSL_BODIES_SKY}
+#endif
 vec2 pgRot(vec2 p) { return vec2(0.6 * p.x - 0.8 * p.y, 0.8 * p.x + 0.6 * p.y); }
 vec2 pgUnrot(vec2 p) { return vec2(0.6 * p.x + 0.8 * p.y, -0.8 * p.x + 0.6 * p.y); }
 void pgLayer(sampler2D colTex, sampler2D nrmTex, vec2 p, float tile, float bomb, float pick, out vec4 c, out vec4 n) {
@@ -1303,6 +1316,10 @@ function paintedGroundMaterial(view, spec, layers, layout, box, original) {
   if (spec.quay) material.defines = { ...material.defines, PAINTED_QUAY: '' };
   if (spec.pools) material.defines = { ...material.defines, PAINTED_POOLS: '' };
   if (spec.press) material.defines = { ...material.defines, PAINTED_PRESS: '' };
+  // In the open air the ground is darker at a foot and under a man lying on it: the bodies over it hide the sky
+  // from it (env/terrain.js envBodiesSky), as the land's own shader has it. The sky's light only: the sun's is the
+  // shadow map's. (The open air's uniforms are the dress's, envDress below: only a place that draws itself has them.)
+  if (spec.bodies) material.defines = { ...material.defines, PAINTED_BODIES: '' };
   material.onBeforeCompile = (shader) => {
     Object.assign(shader.uniforms, uniforms);
     if (spec.press) Object.assign(shader.uniforms, envPressUniforms());
@@ -1316,9 +1333,10 @@ function paintedGroundMaterial(view, spec, layers, layout, box, original) {
       .replace('#include <roughnessmap_fragment>', 'float roughnessFactor = pgRough;')
       .replace('#include <normal_fragment_maps>', 'normal = normalize((viewMatrix * vec4(pgNormalW, 0.0)).xyz);')
       .replace('#include <lights_fragment_maps>', '#include <lights_fragment_maps>\n#if defined( RE_IndirectSpecular )\nradiance *= mix(uPgEnv.x, uPgEnv.y, pgWet);\n#endif')
+      .replace('#include <aomap_fragment>', '#include <aomap_fragment>\n#ifdef PAINTED_BODIES\nif ( uEnvOn > 0.5 ) reflectedLight.indirectDiffuse *= envBodiesSky( vPaintedWorld );\n#endif')
       .replace('#include <tonemapping_fragment>', '#ifdef PAINTED_POOLS\ngl_FragColor.rgb *= mix(vec3(1.0), bloodDyeFilter, pgBlood);\n#endif\n#include <tonemapping_fragment>');
   };
-  material.customProgramCacheKey = () => `painted-ground${fade ? '-fade' : ''}${spec.quay ? '-quay' : ''}${spec.pools ? '-pools' : ''}${spec.press ? '-press' : ''}`;
+  material.customProgramCacheKey = () => `painted-ground${fade ? '-fade' : ''}${spec.quay ? '-quay' : ''}${spec.pools ? '-pools' : ''}${spec.press ? '-press' : ''}${spec.bodies ? '-bodies' : ''}`;
   return material;
 }
 
@@ -1336,7 +1354,7 @@ function paintedGroundBuild({ place, view, scale, keepOut, grounds, rng }) {
   const fresh = [spec.a, spec.b].filter((name) => !paintedGroundLayerCache.has(name));
   const layers = { a: paintedGroundLayer(spec.a), b: paintedGroundLayer(spec.b) };
   // (A baked layer tiles over its own metres.)
-  const tiled = { ...spec, tiles: [layers.a.metres ?? spec.tiles[0], layers.b.metres ?? spec.tiles[1]] };
+  const tiled = { ...spec, tiles: [layers.a.metres ?? spec.tiles[0], layers.b.metres ?? spec.tiles[1]], bodies: Boolean(PLACE_ENV[place]?.own) };
   const group = new THREE.Group();
   let bytes = fresh.reduce((sum, name) => sum + paintedGroundLayerCache.get(name).bytes, 0);
   let layoutMs = 0;

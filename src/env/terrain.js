@@ -309,6 +309,27 @@ float envDryAt(vec2 xz) {
   return smoothstep(-0.2, 0.2, broad * 0.6 + fine * 0.4 - 0.75 + 0.5 * uEnvDry);
 }`;
 
+/**
+ * The same shade at the feet for a ground that is not the land's (an arena's sand, a square's stones: a place that
+ * draws itself, ground/painted.js): envBodiesSky(ground) -> the share of the sky the bodies over it leave it, as
+ * envBodies' z. Not for a shader that has ENV_GLSL_MAP, which declares the same uniforms.
+ */
+export const ENV_GLSL_BODIES_SKY = /* glsl */ `
+uniform vec4 uEnvBodies[${ENV.shadow.bodyCount}];
+uniform vec4 uEnvBodiesAt;
+float envBodiesSky(vec3 ground) {
+  vec3 from = uEnvBodiesAt.xyz - ground;
+  if (dot(from, from) > uEnvBodiesAt.w * uEnvBodiesAt.w) return 1.0;
+  float by = 0.0;
+  for (int i = 0; i < ${ENV.shadow.bodyCount}; i++) {
+    vec4 body = uEnvBodies[i];
+    vec3 to = body.xyz - ground;
+    float d2 = dot(to, to) + 1e-4;
+    by += body.w * body.w * max(to.y, 0.0) / (d2 * sqrt(d2));
+  }
+  return 1.0 - min(by * ${ENV.shadow.contact.toFixed(2)}, 0.92);
+}`;
+
 /** The renderer's own shadow map, read from an env shader. Vertex: declare, then call with a world position and normal. */
 export const ENV_GLSL_SHADOW_VERTEX = /* glsl */ `
 #include <common>

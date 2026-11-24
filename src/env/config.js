@@ -894,6 +894,9 @@ export const ENV_WEATHER = {
 //   wood either side is not; the standards' trunks are what bands that light, on the ground and in the air.
 // grass.share (left out: 1): the share of the blades drawn, each widened to cover the same ground: a desert's few
 //   patches of sward are coarse tufts and most of its blades would stand on bare ground at no height.
+// ground.albedo (left out: ENV.air.bounce, grass and soil), ground.cast (left out: none): what the ground throws back
+//   of the light on it, to light the underside and the shaded side of what stands on it, and that light's colour
+//   over grey ([r, g, b] about 1).
 // ground.loose, ground.ripple (left out: 0): how loose the bare ground is, 0..1 (dry sand 1: it takes a print), and how
 //   steep the wind's ripples stand on it (a slope; 0 on gravel).
 // woods: 0..1 of the far hills wooded (drawn as colour on the land beyond the last tree), and its colour.
@@ -953,15 +956,18 @@ export const PLACE_ENV = {
     ...ENV_PLACE_PLAIN,
     own: true,
     weather: 'dust',
-    weatherHere: { visibility: 1100, hazeHeight: 26, wind: 0.25, gust: 0.05, sun: 1, cover: 0, shafts: 1.6, tint: 0xcabfae, fall: { kind: 'dust', share: 0.35 }, grade: { contrast: 1.6, white: 6, saturation: 1.0, warmth: -0.01, split: 0.12, ev: -0.3, bloom: 1.2, bloomFrom: 1.0 } },
+    weatherHere: { visibility: 1100, hazeHeight: 26, wind: 0.25, gust: 0.05, sun: 1, cover: 0, shafts: 1.6, tint: 0xcabfae, fall: { kind: 'dust', share: 0.35 }, grade: { contrast: 1.5, white: 6, saturation: 1.0, warmth: -0.01, split: 0.12, ev: -0.3, bloom: 1.2, bloomFrom: 1.0 } },
     sun: { azimuth: -2.6, elevation: 54 },
     air: { visibility: 20000, hazeHeight: 900 },
     clouds: { cover: 0.12 },
-    ground: { ...ENV_PLACE_PLAIN.ground, albedo: 0.4 },
+    // (The sand: it throws back two fifths of the light on it, a little warm, `cast`: display values over their
+    // mean, of the sand as it is painted, ground/painted.js sandRaked. That light from below is most of what the
+    // podium, the lower seats and a man's shaded side are lit by under a high sun.)
+    ground: { ...ENV_PLACE_PLAIN.ground, albedo: 0.4, cast: [1.07, 0.99, 0.9] },
     shadowBox: { half: 34, depth: 110, size: 2048 },
     shadowNear: { half: 8, size: 2048 },
     far: 400,
-    meter: { sky: 0.6, frame: 0.1, albedo: 0.4 },
+    meter: { sky: 0.7, frame: 0.1, albedo: 0.4 },
     litAt: [0, 45, 0],
     drift: [{ kind: 'motes', share: 1, colours: [0xf2dcae, 0xe6c890] }],
   },
