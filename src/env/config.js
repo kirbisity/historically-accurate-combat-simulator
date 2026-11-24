@@ -946,12 +946,21 @@ export const ENV_PLACE_PLAIN = {
 };
 
 export const PLACE_ENV = {
-  // The amphitheatre in the afternoon (it draws itself: props/arena.js): the sun over the far-left rim, so the cavea's
-  // shadow lies across part of the sand and the fight is seen against the light; the bowl holds the dust the fights
-  // and the crowd raise (no wind gets down into it), thick enough that the sun's light is seen in the air where the
-  // rim and the awning let it through and not where they shade it.
-  // (The dust: a haze of 170 m in a layer 16 m deep, about the cavea's height. By eye against stills of a dusty arena;
-  // a figure for the air of a real arena is not known to me.)
+  // The amphitheatre at noon (it draws itself: props/arena.js): a high clear sun over the far-left rim, so the awning's
+  // shadow lies in bars across part of the sand and the fight is seen a little against the light. The picture is a
+  // hard noon's as a camera holds it (the user's call, 2026-11-24, against frames of a sunlit sand yard): exposed
+  // for the pale sand, which sits bright and unclipped at about two thirds of full scale; one crisp dark shadow
+  // to a man; the balance neutral, the shade cool from the sky and filled a little from the sand; glare only on
+  // what is truly bright (steel, not the sand). Measured against those frames, sunlit sand there 177, 159, 144 of
+  // 255 and a man's shadow on it 30 to 36, a ratio of 20 to 40 in light: here 172, 161, 144 and 37, about 17 (the
+  // shade is left a little fuller than theirs: half this floor lies under the awning and is fought on).
+  // `weatherHere`: the bowl's dust is a thin veil (a visibility of 1100 m in a layer about the cavea's height: the
+  // far seats a little paler than the near, the sun's shafts faint), pale as the sand and not ochre; it was 340 m,
+  // which laid a yellow veil over everything past the podium and took the picture's contrast with it. `ev`: under
+  // the meter by a third of a stop (a meter fooled by pale ground is already told of it, `meter.albedo`).
+  // `contrast` 1.42 with `meter.sky` 0.75 (the seats in the sun stand in for some of the sky they hide) set that
+  // ratio of sun to shade. `bloom` from one white card up: sunlit sand is a third of one and throws none.
+  // All by eye and by those measurements; a figure for the air of a real arena is not known to me.
   colosseum: {
     ...ENV_PLACE_PLAIN,
     own: true,
@@ -1248,8 +1257,9 @@ export const PLACE_ENV = {
 // battle's: late in the afternoon a great wind got up and drove sand and gravel into the men's faces until neither
 // army could see the other (Shiji 111; the hour and the wind are the source's, their figures are not: by eye).
 // So the sun stands 22 degrees up ahead and to the left of a fight as it is first watched, through blown dust that
-// hides the ridges and takes the light as the arena's dust does (the colosseum's grade, a little less of each:
-// open ground under a low sun glares less than a bowl of pale sand at midday).
+// hides the ridges and takes the light as the arena's dust did before its noon was made a clear one (a warm,
+// glaring grade, a little less of each: open ground under a low sun glares less than a bowl of pale sand at
+// midday). Its own mood, a dust storm against a low sun: left as it is.
 PLACE_ENV.mobei = {
   weather: 'dust',
   weatherHere: { visibility: 1500, hazeHeight: 70, wind: 1.6, gust: 0.3, sun: 0.85, cover: 0.12, shafts: 1.3, fall: { kind: 'dust', share: 0.8 }, grade: { contrast: 1.5, white: 6, saturation: 0.95, warmth: 0.05, split: 0.16, ev: 0.35, bloom: 2.0, bloomFrom: 0.85 } },
@@ -1283,8 +1293,8 @@ PLACE_ENV.mobei = {
 // waterless, camelthorn in grey tufts, a few bare hills far off. The legions were brought to battle after noon in
 // the heat, and the Parthian horse raised dust until the Romans could neither see nor speak plainly (Plutarch,
 // Crassus 24 to 25; the hour is his, the figures here by eye): a high sun on pale ground, the arena's light and
-// sand in the open (the colosseum's grade nearly whole), the dust thinner than a bowl holds but a kilometre thick
-// toward the horizon, so the hills are a paler band and the sky near the ground is the ground's colour.
+// sand in the open (the colosseum's grade whole), the dust a veil a few kilometres thick toward the horizon, so
+// the hills are a paler band and the sky near the ground is the ground's colour.
 PLACE_ENV.carrhae = {
   weather: 'dust',
   // (The arena's noon in the open, PLACE_ENV.colosseum: the frame exposed for pale sand in a hard sun, its balance
