@@ -8,6 +8,7 @@
 import { drawnStyle, ridingInputs } from './loadout.js';
 import { BODY, buildBody, P, PARTICLES, SEGMENTS } from './body.js';
 import { idleMotion, lifePhases } from './life.js';
+import { armHold, fitStance, freshShare, kickCeiling, stanceAbility } from './stancefit.js';
 import { blowSide, DEFENCES, MOVES, STYLES, strikeTargets } from './moves.js';
 import { factionOf, FACTIONS, gearTraits, glovedFists, HEADGEAR, headgearOptions, helmetNameOf, outfitOf } from './outfits.js';
 import { ARMOUR_COVER, coverageKnown, coverageOf, coveredShare, piecesAt } from './coverage.js';
@@ -1413,6 +1414,8 @@ function weaponIntent(world, fighter, intent) {
   const oneHanded = atWaist || weapon.spec.hands === 'one' || (weapon.spec.hands === 'hybrid' && (fighter.net?.held || (punch?.spec.path === 'blade' && punch.spec.grip === 'one' && punch.t <= punch.spec.extendUntil)));
   intent.twoHanded = !oneHanded;
   if (!oneHanded) intent[`${weapon.off}Hand`] = vec.add(target.hand, vec.scale(target.dir, offHandAlong(weapon.spec)));
+  const alone = oneHanded && !off && !fighter.shield && !fighter.net?.held && !weapon.spec.ranged;
+  if (alone) heldOut(fighter, weapon, intent, style, stroke, blocker === weapon);
   // A lunge: the free arm flung back behind him as a counterweight, out and back with the stroke.
   const counter = punch?.spec.counterArm;
   if (counter && oneHanded && !off && !fighter.shield && !fighter.net?.held && punch.t < punch.spec.duration) {
@@ -1484,6 +1487,43 @@ function weaponIntent(world, fighter, intent) {
   // Swinging through, the arm goes as the stroke throws it (pose.js).
   intent.swinging = Boolean(stroke) && !intent.windingUp && stroke.t <= stroke.spec.extendUntil;
   if (off) offBladeIntent(world, fighter, intent, off, offStroke, blocker === off);
+}
+
+/**
+ * A one-handed blade held out alone (no shield, no second blade), as this body holds it. The sword arm held out at its guard is
+ * the shoulder holding the arm and the blade at the end of a long lever: what he cannot hold of it (stancefit.js armHold, his
+ * arm's force against the weight, tired or fresh) the hand comes back in and down towards his hip (WORLD.heldOut.rest), the
+ * point dropping. The free hand has its style's own guard (`offGuard.hand`, local in heights: the jian's sword-finger, jian zhi,
+ * raised behind the head), held as high as his arm can keep it; and as the sword hand goes out from its guard the free hand
+ * goes the other way, `offGuard.counter` of its distance (a counterweight, the arms turning against each other about the
+ * shoulders so the trunk need not), back to its guard as the blade returns.
+ */
+function heldOut(fighter, weapon, intent, style, stroke, blocking) {
+  const H = fighter.body.heightM;
+  const spec = WORLD.heldOut;
+  const main = `${weapon.main}Hand`;
+  const guard = guardTargets(style, fighter.body);
+  const steady = !stroke && !blocking && !fighter.runPose;
+  const swordHold = armHold(fighter.body, weapon.spec.mass, fighter.stamina);
+  if (steady && swordHold < 1) {
+    const sign = weapon.main === 'l' ? 1 : -1;
+    const rest = vec.scale([spec.rest[0], spec.rest[1], spec.rest[2] * sign], H);
+    intent[main] = vec.lerp(rest, intent[main], swordHold);
+    intent.bladeDir = vec.normalize(vec.lerp(spec.restDir, intent.bladeDir, swordHold));
+  }
+  const offGuard = style.offGuard;
+  if (!offGuard || fighter.runPose > 0.5) return;
+  const sign = weapon.off === 'l' ? 1 : -1;
+  const own = vec.scale([offGuard.hand[0], offGuard.hand[1], offGuard.hand[2] * sign], H);
+  const rest = vec.scale([spec.offRest[0], spec.offRest[1], spec.offRest[2] * sign], H);
+  const hold = armHold(fighter.body, 0, fighter.stamina);
+  let hand = vec.lerp(rest, own, hold);
+  // (The counterweight: against the sword hand's travel out from its guard, fore and aft and across.)
+  if (intent[main]) {
+    const out = vec.sub(intent[main], guard.hand);
+    hand = vec.add(hand, vec.scale([out[0], 0, out[2]], -(offGuard.counter ?? 0)));
+  }
+  intent[`${weapon.off}Hand`] = hand;
 }
 
 /** The hand and blade direction (local) a stroke wants now: along its path; a thrust's point steered at the mark from where the hand really is. */
@@ -2871,7 +2911,8 @@ function updateIntent(world, fighter, dt) {
   const walking = fighter.walking && !fighter.punch && !fighter.defence && !fighter.clinch;
   const runPose = easeRunPose(fighter, dt);
   const intent = {
-    stance: runPose > 0 ? blendStance(walking ? WORLD.walk.stance : style.stance, WORLD.runMode.stance, runPose) : walking ? WORLD.walk.stance : style.stance,
+    // (The style's stance as his body holds it, tired or fresh: stancefit.js.)
+    stance: runPose > 0 ? blendStance(walking ? WORLD.walk.stance : style.stance, WORLD.runMode.stance, runPose) : walking ? WORLD.walk.stance : fitStance(style.stance, fighter.body, fighter.stamina),
     twist: walking ? 0 : idle.twist, lean: walking ? 0 : idle.lean, dip: walking ? 0 : idle.dip, shift: walking ? 0 : idle.shift,
     headOffset: vec.scale(idle.headOffset, H), guardOffset: idle.guardOffset, guardTight: fighter.guardHigh > 0,
   };
@@ -3015,6 +3056,20 @@ function updateIntent(world, fighter, dt) {
     intent.dip += (spec.dip ?? 0) * shape;
     intent.lean += (spec.lean ?? 0.12) * shape;
     intent.shift += (spec.shift ?? 0) * shape;
+    // A stroke that carries the body in (its `shift`) ends in the style's lunging stance (`stance.lunge`: a bow stance, the
+    // weight onto the bent front leg, the rear leg driven straight), as deep as his legs hold it, and comes back out of it.
+    if (style.stance?.lunge && !walking && runPose === 0 && spec.shift > 0) {
+      const share = shape * Math.min(1, spec.shift / WORLD.lungeStance.fullShift);
+      intent.stance = fitStance(blendStance(style.stance, style.stance.lunge, share), fighter.body, fighter.stamina);
+      // (And the body carried out over the front foot no further than those legs hold it: a weak or stiff man's lunge is a
+      // step and a reach, not the long low one.)
+      const hold = Math.min(1, stanceAbility(fighter.body).legs * freshShare(fighter.stamina));
+      intent.shift -= spec.shift * shape * (1 - hold);
+      intent.lean -= (spec.lean ?? 0.12) * shape * (1 - hold) * WORLD.lungeStance.leanKept;
+    }
+    // A kicking style (its `kick`): the guard drawn in tight about the head while a leg is up (`tuck`), the leg chambered.
+    const kicking = spec.reach === 'leg';
+    if (kicking && style.kick?.tuck) intent.guardTight = true;
     if (punch.at) punch.aim = toLocal(fighter, punch.at);
     // A weapon art measured to its distance (`range`, physics/arts.js): through the wind-up the stroke is laid for where his man
     // stands now, in the frame squared to him (as it will be when the blow lands: the art's own turn away is undone by then),
@@ -3026,7 +3081,9 @@ function updateIntent(world, fighter, dt) {
       punch.aim = yawRotate([mark[0] - fighter.root[0], mark[1] - (fighter.lift ?? 0), mark[2] - fighter.root[1]], -square);
       punch.rangeOff = rangeOff(spec, punch.aim, fighter.body, bladeFor(fighter, spec).spec);
     }
-    if (punch.t < spec.extendUntil) Object.assign(intent, strikeTargets(spec, punch.t, punch.aim, fighter.body, WORLD.followThrough));
+    // (A kick no higher than his hips let it, chambered as his style kicks: stancefit.js kickCeiling, STYLES `kick`.)
+    const form = kicking ? { ceiling: kickCeiling(fighter.body), kneeCeiling: kickCeiling(fighter.body, fighter.body.lengths.thigh), chamber: style.kick?.chamber ?? 0 } : null;
+    if (punch.t < spec.extendUntil) Object.assign(intent, strikeTargets(spec, punch.t, punch.aim, fighter.body, WORLD.followThrough, form));
     else if (spec.limb.endsWith('Foot') || spec.limb.endsWith('Knee')) {
       // Recovering a kick: the leg comes back down under the hip.
       const s = spec.limb[0];

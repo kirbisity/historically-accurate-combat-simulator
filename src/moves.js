@@ -391,6 +391,23 @@ export const DEFENCES = {
  * how upright), `idle` the constant motion, `attacks` and `defences` the
  * AI's mix (relative weights), `rushChance` how often it charges (per s).
  */
+// The jian's stance, as the Ming manuals and the forms carry it. The sword arm held well out before him (`weaponGuard`), the
+// point up at the man's face and throat: the jian is a thrusting and slicing blade, and the hand out in front keeps his
+// wrist and point between them (Mao Yuanyi, Wubei zhi, 1621, the "Korean sword manual" (Chaoxian shifa) it preserves, and
+// Wu Shu's Shoubi lu, 1678: the guards are named for the point's line). The empty hand in the sword-finger (jian zhi: two
+// fingers straight, the others folded) held up behind and above the head (`offGuard.hand`), the counterweight of the forms
+// (Wudang and Sancai jian and the Chang quan sword routines of the 1950s textbooks keep it), which swings out against the
+// sword arm (`counter`) as the blade goes out and comes back to it with the blade. Waiting, the weight sits a little back on
+// the bent rear leg (`weight`, towards the empty or cat stance, xu bu: the front foot light, ready to step in; a fighting guard
+// keeps less of it than the forms' posture, which sits nearly all on the rear leg), the knees well bent; the
+// thrust is made in the bow stance (`lunge`, gong bu: the front knee bent over the foot, the rear leg driven straight, the
+// weight forward), its depth whatever his legs hold.
+const JIAN_STANCE = {
+  stance: { blade: 0.6, crouch: 0.075, width: 1.18, lean: 0.05, guardHeight: 0, weight: -0.15, lunge: { weight: 0.4, crouch: 0.1, lean: 0.1 } },
+  weaponGuard: { hand: [0.22, 0.67, -0.07], dir: [1, 0.2, 0.05] },
+  offGuard: { hand: [-0.11, 0.99, 0.1], counter: 0.55 },
+};
+
 // How a shooter fights: keeps away, steps back from a rush, presses nobody.
 const STAND_OFF = {
   defences: { stepBack: 0.7, guard: 0.3 },
@@ -1339,15 +1356,24 @@ export const STYLES = {
     pressure: 0,
     counter: 0.6,
   },
-  // Taekwondo: bouncing, side-on, hands low; kick after kick, turning and
+  // Taekwondo: bouncing, side-on; kick after kick, turning and
   // spinning ones among them, from out of range. Every big kick leaves him
   // open, and he defends little.
+  // The stance is the sparring guard (gyeorugi junbi seogi) of the Kukkiwon's textbook, and taekkyeon's before it: turned almost
+  // fully side-on (`blade`) so the lead hip and leg are already turned for the round kick, the feet a little wider than the
+  // shoulders, the weight a little back on the rear leg (`weight`: the lead foot light, free to lift and kick without a shift
+  // first, as the back stance, dwit kubi, and the tiger stance, beom seogi, carry it), upright, the knees soft. The fists up
+  // (`guard`): the lead one out at the height of the chin, the rear one tucked at the chin. He rides it on the balls of his
+  // feet, a quick, light rhythm in place (`idle.hz`, about 2 a second: taekkyeon's pumbalgi and gumsil, the knees springing,
+  // the stepping that never stops). His kicks are chambered (`kick.chamber`: the knee folded up and turned to the mark before
+  // the leg snaps out, so he can still change the kick) and while a leg is up the guard draws in tight about the head (`tuck`).
   taekwondo: {
     art: 'artRoundhouse',
     label: 'Taekwondo',
     cadence: { work: 1.3, move: 0.8, burst: 0.7, mobility: 0.7 },
-    stance: { blade: 0.7, crouch: 0.01, width: 1.05, lean: 0.02, guardHeight: -0.1 },
-    idle: { bounce: 1.1, sway: 0.6, rock: 0.4 },
+    stance: { blade: 0.85, crouch: 0.025, width: 1.12, lean: 0.01, guardHeight: 0, weight: -0.1, guard: { lead: [0.26, -0.14, 0.04], rear: [0.08, -0.13, -0.04] } },
+    idle: { bounce: 1.5, sway: 0.5, rock: 0.3, hz: 2.2 },
+    kick: { chamber: 0.85, tuck: true },
     attacks: { roundhouse: 0.38, spinKick: 0.22, teep: 0.2, jab: 0.12, cross: 0.08 },
     combos: { 'roundhouse spinKick': 0.4, 'teep roundhouse': 0.35, 'roundhouse roundhouse': 0.25 },
     comboChance: 0.45,
@@ -1594,11 +1620,13 @@ export const STYLES = {
   },
   // The jian as a soldier fights it (a Han crossbowman's sidearm, named by
   // this style in his kit): thrust and cut, the blade to parry.
+  // (His stance the jian's, plainer than the swordsman's of the forms: see JIAN_STANCE.)
   jian: {
     label: 'Jian', hidden: true, weapon: 'jian', fallback: 'mix',
     cadence: { work: 1.2, move: 0.85, burst: 0.6, mobility: 0.55 },
-    stance: { blade: 0.55, crouch: 0.05, width: 1.12, lean: 0.08, guardHeight: 0 },
-    weaponGuard: { hand: [0.16, 0.66, -0.08], dir: [1, 0.2, 0.05] },
+    stance: { blade: 0.55, crouch: 0.05, width: 1.12, lean: 0.08, guardHeight: 0, weight: -0.15, lunge: { weight: 0.4, crouch: 0.08, lean: 0.1 } },
+    weaponGuard: { hand: [0.19, 0.66, -0.08], dir: [1, 0.2, 0.05] },
+    offGuard: JIAN_STANCE.offGuard,
     idle: { bounce: 0.3, sway: 0.5, rock: 0.3 },
     attacks: { gladiusThrust: 0.55, gladiusCut: 0.35, forehand: 0.1 },
     combos: { 'gladiusThrust gladiusCut': 0.5, 'gladiusCut gladiusThrust': 0.5 },
@@ -1617,8 +1645,9 @@ export const STYLES = {
   wuxia: {
     label: 'Wuxia', weapon: 'jian', fallback: 'mix',
     cadence: { work: 1.4, move: 1.05, burst: 0.8, mobility: 0.8 },
-    stance: { blade: 0.58, crouch: 0.08, width: 1.16, lean: 0.07, guardHeight: 0 },
-    weaponGuard: { hand: [0.17, 0.68, -0.07], dir: [1, 0.18, 0.06] },
+    stance: JIAN_STANCE.stance,
+    weaponGuard: JIAN_STANCE.weaponGuard,
+    offGuard: JIAN_STANCE.offGuard,
     idle: { bounce: 0.4, sway: 0.6, rock: 0.35 },
     attacks: { flickCut: 0.32, swordLunge: 0.22, quickThrust: 0.22, gladiusCut: 0.16, forehand: 0.08 },
     combos: { 'flickCut quickThrust': 0.3, 'flickCut flickCut swordLunge': 0.3, 'quickThrust flickCut': 0.2, 'forehand swordLunge': 0.2 },
@@ -2259,14 +2288,20 @@ const add = (a, b) => [a[0] + b[0], a[1] + b[1], a[2] + b[2]];
 
 /**
  * Local targets for a strike at time t, aimed at `aim`.
+ * `form` (optional) is how this man kicks: `ceiling` and `kneeCeiling` the highest his foot and his knee go (stancefit.js
+ * kickCeiling: his hips' range and his legs' strength), and `chamber` (his style's `kick.chamber`, 0 to 1) how far the knee is
+ * folded up before the leg goes out (taekwondo's chambered kicks), against the open swing of the leg (a Muay Thai kick).
  * @returns {object} any of lHand, rHand, lElbow, rElbow, lFoot, rFoot, lKnee, rKnee
  */
-export function strikeTargets(move, t, aim, body, followThrough) {
+export function strikeTargets(move, t, aim, body, followThrough, form = null) {
   const side = move.limb[0] === 'l' ? 1 : -1;
   const s = move.limb[0];
   const H = body.heightM;
   const windingUp = t < move.windup;
   const hipY = body.lengths.ankle + body.lengths.shank + body.lengths.thigh;
+  // A kick goes no higher than his hips let it: aimed above that, it lands where it can.
+  if (form?.ceiling && move.reach === 'leg' && aim[1] > form.ceiling) aim = [aim[0], form.ceiling, aim[2]];
+  const chamber = form?.chamber ?? 0;
   switch (move.path) {
     case 'straight':
       return { [`${s}Hand`]: add(aim, [followThrough, 0, 0]) };
@@ -2297,7 +2332,16 @@ export function strikeTargets(move, t, aim, body, followThrough) {
     case 'roundhouse': {
       // Open out to the side, level with the target; then sweep the shin
       // across it and through.
-      if (windingUp) return { [`${s}Foot`]: add(aim, [-0.12, 0.04, 0.55 * side]) };
+      if (windingUp) {
+        const open = add(aim, [-0.12, 0.04, 0.55 * side]);
+        if (!chamber) return { [`${s}Foot`]: open };
+        // Chambered: the knee drawn up and turned towards the line first (as high as the mark, no higher than his hips let
+        // it), the foot folded in under it; the shin then snaps out round from the knee.
+        const kneeY = Math.min(Math.max(aim[1], hipY) - 0.05 * H, form?.kneeCeiling ?? Infinity);
+        const knee = [0.16 * H, kneeY, 0.12 * H * side];
+        const folded = add(knee, [-0.04 * H, -body.lengths.shank * 0.55, 0.14 * H * side]);
+        return { [`${s}Knee`]: knee, [`${s}Foot`]: [open[0] + (folded[0] - open[0]) * chamber, open[1] + (folded[1] - open[1]) * chamber, open[2] + (folded[2] - open[2]) * chamber] };
+      }
       return { [`${s}Foot`]: add(aim, [0.06, 0, -0.35 * side]) };
     }
     case 'pushBoth': {
@@ -2307,7 +2351,11 @@ export function strikeTargets(move, t, aim, body, followThrough) {
     }
     case 'teep': {
       // Knee up in front, then the sole drives straight out into the target.
-      if (windingUp) return { [`${s}Foot`]: [0.12 * H, hipY * 0.55, 0.05 * side], [`${s}Knee`]: [0.18 * H, hipY * 0.98, 0.05 * side] };
+      // (Chambered, the knee comes up higher, towards the mark, before the push: no higher than his hips let it.)
+      if (windingUp) {
+        const kneeY = Math.min(hipY * 0.98 + Math.max(0, aim[1] - hipY) * chamber * 0.6, form?.kneeCeiling ?? Infinity);
+        return { [`${s}Foot`]: [0.12 * H, kneeY * 0.56, 0.05 * side], [`${s}Knee`]: [0.18 * H, kneeY, 0.05 * side] };
+      }
       return { [`${s}Foot`]: add(aim, [followThrough * 0.8, 0, 0]) };
     }
     default:
