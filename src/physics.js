@@ -8573,9 +8573,10 @@ function jointAt(defender, capsule, t, contactPoint) {
  * a broken bone (fighter.fractured) only `fractured` of its own. `key`: the segment struck (its wounds); `boneWhole`, the
  * bone's share whole. The neck (no segment) is all one.
  */
-export function limbResistance(defender, { joint, side, along }, key = null) {
+export function limbResistance(defender, where, key = null) {
   // (The trunk: a section, not a joint. trunkResistance.)
-  if (along !== undefined) return trunkResistance(defender, arguments[1]);
+  if (where.along !== undefined) return trunkResistance(defender, where);
+  const { joint, side } = where;
   const [base, segment, typical] = BLADES.sever[joint];
   if (!segment) return { flesh: base * BODY.toughness, bone: 0, boneWhole: 0, notched: 0 };
   const spec = BLADES.limbCut;
