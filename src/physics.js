@@ -30,7 +30,7 @@ import { clearHeight, clearStep, planCrossing, STEPOVER } from './physics/stepov
 import { armourHardness, bluntEdge, driveShaft, dullEdge, hackShield, partHardness, shieldHardness, stopIn, strainBlade, strikeShaft } from './physics/wear.js';
 import { blockStep, carried, recordContact, setDrive, slopeFall, slopeHold, solvePress } from './physics/press.js';
 import { beginRise, restedToRise, riseMargins, riseTarget, standWobble, supportLimit, updateRise } from './physics/rising.js';
-import { bankOf, cornerPace, cornerShare, cornering, footworkQuickness, limpOf, pushOff, runChange, runLean, runSpeed, strideOf, turnRateMost } from './physics/gait.js';
+import { bankOf, cornerPace, cornerShare, cornering, footworkQuickness, gaitArm, gaitPose, halfTrack, limpOf, pushOff, runChange, runLean, runSpeed, stillHead, strideOf, turnRateMost, walkChange } from './physics/gait.js';
 import { awayFromEdges, ceilingAt, floorAt, pushOut, solidAt } from './physics/terrain.js';
 import { overdraftDepth, drawStamina, overdraws, takeWind, fatigueScale, recoveryShare } from './physics/overdraft.js';
 import { climateOf, freshHeat, heatMark, heatRecovery, heatStrength, stepHeat } from './physics/heat.js';
@@ -237,6 +237,11 @@ export function createFighter(inputs, { id, corner, x, facing, random }) {
     // speed along his way and its rate, for the lean). runMode is the player's sprint (control.js).
     // gaitCarry: running, or carried on from a run until braked to his footwork's pace.
     runMode: undefined, runPose: undefined, runSlope: undefined, turn: undefined, yawWas: undefined, gaitBody: undefined, gaitAlong: undefined, gaitAccel: undefined, gaitCarry: undefined,
+    // The walk (physics/gait.js): runPose is the gait's look at any pace, a walk's too. walkSpeed: the pace (m/s) the player has
+    // chosen for a free walk (control.js), carried as a run's pace is; gaitWanted, the pace his legs are set for. gaitRun: his legs running (a flight) or walking; gaitRunShare,
+    // the pose's share of the run's look; gaitSway and gaitList, the hips out over the stance foot and tipped; gaitHead, the head's
+    // spring; gaitLanded, when a foot last came down (a walk's double support is timed from it).
+    walkSpeed: undefined, gaitWanted: undefined, gaitRun: undefined, gaitRunShare: undefined, gaitSway: undefined, gaitList: undefined, gaitHead: undefined, gaitLanded: undefined,
     // guardHeld: his guard held up (the player's button, control.js; an AI's, ai.js keepGuard): it costs breath and he recovers
     // less (WORLD.guardHeld). guardUntil: when an AI's held guard comes down with no blow at him (WORLD.guardRead.linger).
     // blowRead: how his block reads the blow it is made against ({ punch, point, at, off }: blowRead, WORLD.guardRead).
@@ -1293,10 +1298,12 @@ function runHand(fighter, kind, side) {
   const speed = Math.hypot(fighter.rootVelocity[0], fighter.rootVelocity[1]);
   const amplitude = Math.min(arms.most, arms.swing + arms.swingPerSpeed * speed);
   const own = kind === 'weapon' ? carry.waist : kind === 'shield' ? carry.shield : null;
-  const forward = sign * runGait(fighter).swing * (own ? own.swing : 1);
-  const flex = (own ? own.flex : arms.centre) + amplitude * forward;
-  const elbow = own ? own.elbow : arms.elbow + arms.elbowSwing * forward;
-  const abduct = own ? own.abduct : arms.abduct;
+  // (A free arm swings with the opposite thigh, a walker's or a runner's arm by the gait's share: gait.js gaitArm.)
+  const free = own ? null : gaitArm(fighter, side, fighter.gaitRunShare ?? 1);
+  const forward = free ? free.forward : sign * runGait(fighter).swing * own.swing;
+  const flex = free ? free.flex : own.flex + amplitude * forward;
+  const elbow = free ? free.elbow : own.elbow;
+  const abduct = free ? free.abduct : own.abduct;
   const along = (angle) => vec.add(vec.scale(spine, -Math.cos(angle)), vec.scale(front, Math.sin(angle)));
   const upper = vec.normalize(vec.add(along(flex), vec.scale(out, Math.sin(abduct))));
   const elbowAt = vec.add(shoulder, vec.scale(upper, L.upperArm));
@@ -1312,13 +1319,31 @@ function runHand(fighter, kind, side) {
  * enemy within his guard's distance (WORLD.runCarry.guardFrom: near one, he runs with his guard up).
  */
 function easeRunPose(fighter, dt) {
-  const running = fighter.runMode || (fighter.running && !fighter.rush && fighter.move > 0.3 && (fighter.nearestFoe ?? Infinity) > WORLD.runCarry.guardFrom);
+  const running = fighter.runMode || (fighter.running && !fighter.rush && fighter.move > 0.3 && (fighter.nearestFoe ?? Infinity) > WORLD.runCarry.guardFrom) || walksFree(fighter) || brakesFromGait(fighter);
   if (!running && !fighter.runPose) return 0;
   const free = running && !fighter.punch && !fighter.defence && !fighter.clinch && !fighter.pin && !fighter.pickup && !fighter.crawling && !fighter.mount && fighter.state === 'up';
   const rate = Math.min(1, WORLD.runMode.ease * dt);
   const next = (fighter.runPose ?? 0) + ((free ? 1 : 0) - (fighter.runPose ?? 0)) * rate;
   fighter.runPose = next < 0.01 ? 0 : next;
   return fighter.runPose;
+}
+
+/**
+ * Walking where no enemy is near (beyond WORLD.runCarry.relaxFrom), forward, on his feet with nothing else to do: the walk's
+ * gait, not the guard's shuffle (the player's walk mode always). Faster than `walk.slowest` × `walkFrom` along his heading.
+ */
+function walksFree(fighter) {
+  if (fighter.rush || fighter.crawling || fighter.mount || fighter.state !== 'up' || fighter.strafe) return false;
+  const speed = Math.hypot(fighter.rootVelocity[0], fighter.rootVelocity[1]);
+  const along = fighter.rootVelocity[0] * Math.cos(fighter.yaw) - fighter.rootVelocity[1] * Math.sin(fighter.yaw);
+  const moving = along > WORLD.gait.walk.slowest * WORLD.runCarry.walkFrom && along > 0.85 * speed && fighter.move > 0;
+  return moving && (fighter.walking || (fighter.nearestFoe ?? Infinity) > WORLD.runCarry.relaxFrom);
+}
+
+/** Still carried by a walk's or a run's speed, his legs braking it (the stop's sit-back is the gait's, not the guard's). */
+function brakesFromGait(fighter) {
+  if (!fighter.runPose || !fighter.gaitCarry || fighter.rush || fighter.state !== 'up') return false;
+  return Math.hypot(fighter.rootVelocity[0], fighter.rootVelocity[1]) > WORLD.gait.walk.slowest * WORLD.runCarry.walkFrom;
 }
 
 /** Two stances blended: `share` of `to`. */
@@ -2828,12 +2853,14 @@ function turnOf(fighter, dt) {
 
 /**
  * The lean into a turn, `fighter.bank` (rad, positive to his left; pose.js bank): what the turn asks of the floor (gait.js bankOf:
- * atan(v × turn / g), no more than he can hold) reached by his own lag (`lag` s) as he leans in after the turn begins, and
- * lost the same way when it ends; none at a walk or standing still. A man not in a run's footwork has none to reach.
+ * atan(v × turn / g), no more than he can hold; walking, less what his track carries) reached by his own lag (`lag` s) as he leans
+ * in after the turn begins, and lost the same way when it ends; none standing still. A man not in the gait's footwork has none to reach.
  */
 function leanIntoTurn(fighter, dt, cornering) {
   const speed = Math.hypot(fighter.rootVelocity[0], fighter.rootVelocity[1]);
-  const wanted = cornering ? bankOf(fighter, speed, fighter.turn ?? 0) : 0;
+  // (Walking, by the walk's share, the stance foot out on his track carries some of it: gait.js bankOf.)
+  const walkShare = fighter.runPose > 0 ? 1 - (fighter.gaitRunShare ?? 1) : 0;
+  const wanted = cornering ? bankOf(fighter, speed, fighter.turn ?? 0, walkShare * halfTrack(fighter, 0)) : 0;
   const bank = fighter.bank ?? 0;
   const next = bank + (wanted - bank) * (1 - Math.exp(-dt / WORLD.runMode.turn.lag));
   fighter.bank = Math.abs(next) < 1e-4 && !wanted ? 0 : next;
@@ -2851,7 +2878,7 @@ function runTurnPose(fighter, intent) {
   return {
     // (A positive rate turns him to his right, local +z is his left: the leads are the other way.)
     twist: intent.twist + cap(fighter.turn * spec.lead, spec.leadMax) * share,
-    hipYaw: -cap(fighter.turn * spec.hipLag, spec.hipLagMax) * share,
+    hipYaw: (intent.hipYaw ?? 0) - cap(fighter.turn * spec.hipLag, spec.hipLagMax) * share,
   };
 }
 
@@ -2869,19 +2896,30 @@ function updateIntent(world, fighter, dt) {
   if (runPose > 0) {
     // Running: the guard's sway gives way to the run's lean into the stride (physics/gait.js: more the faster, forward
     // gathering speed, back braking, hunched when spent).
+    // Walking, the same pose by the walk's share (gait.js gaitPose): his track, the hips vaulting over the stance leg and out over
+    // the stance foot, the swinging hip dropping, the pelvis turning with the legs and the shoulders against it, the head on its spring.
     const spec = WORLD.runMode;
-    intent.twist *= 1 - runPose;
+    const gait = gaitPose(fighter, dt);
+    intent.stance = blendStance(walking ? WORLD.walk.stance : style.stance, { ...WORLD.runMode.stance, width: gait.width }, runPose);
+    intent.twist = intent.twist * (1 - runPose) + gait.twist * runPose;
     intent.lean = intent.lean * (1 - runPose) + runLean(fighter, dt) * runPose;
-    intent.dip = intent.dip * (1 - runPose) + spec.dip * runPose;
+    intent.dip = intent.dip * (1 - runPose) + gait.dip * runPose;
     intent.shift *= 1 - runPose;
-    // Knees straight fore and aft, elbows back by his sides (WORLD.runMode.kneeOut, POSE.runElbow).
+    intent.sway = gait.sway * runPose;
+    intent.hipRoll = gait.hipRoll * runPose;
+    // (The twist's own share of the hips, pose.js 0.3, taken back: the pelvis turns with the legs, the shoulders against it.)
+    intent.hipYaw = (gait.hipYaw - 0.3 * gait.twist) * runPose;
+    intent.headOffset = vec.add(intent.headOffset, vec.scale(gait.head, runPose));
+    // Knees straight fore and aft, elbows back by his sides running (WORLD.runMode.kneeOut, POSE.runElbow), hanging walking.
     intent.kneeOut = POSE.kneeOut + (spec.kneeOut - POSE.kneeOut) * runPose;
-    intent.runArms = runPose;
-    // The body rises as the feet part (the flight) and sinks as they pass.
-    intent.dip += spec.bob * (1 - runGait(fighter).spread) * runPose;
-  } else if (fighter.gaitAccel !== undefined) {
+    intent.runArms = runPose * (fighter.gaitRunShare ?? 1);
+  } else if (fighter.gaitAccel !== undefined || fighter.gaitHead) {
     fighter.gaitAlong = undefined;
     fighter.gaitAccel = 0;
+    fighter.gaitRunShare = undefined;
+    fighter.gaitSway = 0;
+    fighter.gaitList = 0;
+    stillHead(fighter);
   }
   // The turn of a run, and the lean into it (a man striding on a guard's pose leans too: the lean is the floor's, not the pose's).
   const cornering = !fighter.mount && (runPose > 0 || striding(fighter));
@@ -3583,7 +3621,9 @@ function updateFeet(world, fighter, dt) {
     foot.lifted = lifted;
     if (lifted) foot.step = null;
   }
-  const stepping = feet.some((foot) => (foot.step && !(run && foot.step.t >= run.overlap)) || foot.lifted);
+  // (A walk's next foot goes once both have been down `rest` s since the last landing: the double support. gait.js walkStride.)
+  const resting = run?.rest !== undefined && world.time - (fighter.gaitLanded ?? -Infinity) < run.rest;
+  const stepping = resting || feet.some((foot) => (foot.step && !(run && foot.step.t >= run.overlap)) || foot.lifted);
   let worst = null;
   let worstDrift = spec.threshold;
   for (const foot of feet) {
@@ -3597,7 +3637,7 @@ function updateFeet(world, fighter, dt) {
   }
   // Running, a foot left as far behind his hips as his leg reaches (gait.js pushOff) goes now, the other in the air or not:
   // it is off the toe, not dragged on behind him (the flight is longer by the moment).
-  const overReach = worst && run && !stair && !worst.lifted && runBehind(fighter, worst) > pushOff(fighter);
+  const overReach = worst && run && !run.walk && !stair && !worst.lifted && runBehind(fighter, worst) > pushOff(fighter);
   if (worst && (!stepping || overReach)) {
     // Step to where the stance will be, not where it is: lead the motion. (On a hurt leg he hobbles: limpOf.)
     const own = run && !stair ? limped(fighter, worst, spec) : spec;
@@ -3624,6 +3664,7 @@ function updateFeet(world, fighter, dt) {
       if (world.ear) soundStep(world, fighter, foot.index === P.lFoot ? 'l' : 'r', [foot.step.to[0], fighter.x[foot.index * 3 + 1], foot.step.to[2]], Math.hypot(fighter.rootVelocity[0], fighter.rootVelocity[1]));
       foot.planted = foot.step.to;
       foot.step = null;
+      fighter.gaitLanded = world.time;
       footDown(world, fighter, foot);
     }
   }
@@ -4853,7 +4894,13 @@ function moveRoot(world, fighter, dt) {
     runPace = Math.min(runPace, cornerPace(fighter, toTurn, room));
     // Running to a place (an AI man's goTo; the player's is only a way, a little ahead of him): no faster than he can stop there.
     if (fighter.goTo && !fighter.runMode) runPace = Math.min(runPace, arrivalSpeed(fighter, Math.hypot(fighter.goTo[0] - fighter.root[0], fighter.goTo[2] - fighter.root[1])));
+  } else if (fighter.walkSpeed > 0 && !fighter.rush && !fighter.crawling && !fighter.punch && !fighter.defence) {
+    // A walk at the pace the player chose (control.js walkPace): gathered and eased off as a walk is (gait.js walkChange), round a turn
+    // no faster than the floor carries him.
+    runPace = Math.min(fighter.walkSpeed, cornerPace(fighter, toTurn));
   }
+  // (The pace his legs are set for, a run's or a walk's: gait.js gaitKind.)
+  fighter.gaitWanted = runPace ?? 0;
   // On his knees: slow, and no faster for trying.
   if (fighter.crawling) drive = Math.max(-0.3, Math.min(1, fighter.move)) * WORLD.crawl.speed;
   // In the net: short steps, stumbling.
@@ -5035,7 +5082,7 @@ function runTowards(fighter, wanted, speed, dt) {
   if (speed < 0.1) {
     const change = [wanted[0] - velocity[0], wanted[1] - velocity[1]];
     const size = Math.hypot(change[0], change[1]);
-    const limit = runChange(fighter, speed, wantedSpeed, dt);
+    const limit = (fighter.walkSpeed > 0 ? walkChange : runChange)(fighter, speed, wantedSpeed, dt);
     const scale = size > limit ? limit / size : 1;
     velocity[0] += change[0] * scale;
     velocity[1] += change[1] * scale;
@@ -5052,7 +5099,7 @@ function runTowards(fighter, wanted, speed, dt) {
   const acrossSize = Math.hypot(across[0], across[1]);
   const acrossScale = acrossSize > acrossMost ? acrossMost / acrossSize : 1;
   // (The turn it is on, not this step's correction: a runner's velocity is nudged a little every step, and that is not a corner.)
-  const alongMost = runChange(fighter, speed, speed + along, dt) * (along > 0 ? cornerShare(fighter, speed * (fighter.turn ?? 0)) : 1);
+  const alongMost = (fighter.walkSpeed > 0 ? walkChange : runChange)(fighter, speed, speed + along, dt) * (along > 0 ? cornerShare(fighter, speed * (fighter.turn ?? 0)) : 1);
   const alongDone = Math.max(-alongMost, Math.min(alongMost, along));
   velocity[0] += alongDone * ux + across[0] * acrossScale;
   velocity[1] += alongDone * uz + across[1] * acrossScale;
@@ -5471,9 +5518,10 @@ function measureNearestFoes(world) {
   for (let index = 0; index < fighters.length; index += 1) {
     const fighter = fighters[index];
     let nearest = Infinity;
-    // Only a running man's arms ask (see runCarry).
+    // Only a running or walking man's arms ask (see runCarry, walksFree).
     const rootVelocity = fighter.rootVelocity;
-    if (!fighter.running && (rootVelocity ? Math.hypot(rootVelocity[0], rootVelocity[1]) : 0) <= WORLD.runCarry.runningSpeed) {
+    // (And a walking man's: his walk is the gait's with nobody near, gait.js. A man standing or shuffling asks nothing.)
+    if (!fighter.running && (rootVelocity ? Math.hypot(rootVelocity[0], rootVelocity[1]) : 0) <= WORLD.gait.walk.slowest * WORLD.runCarry.walkFrom) {
       fighter.nearestFoe = Infinity;
       continue;
     }

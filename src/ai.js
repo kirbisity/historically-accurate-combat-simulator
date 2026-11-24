@@ -3772,6 +3772,8 @@ function groundFight(world, fighter, dt) {
 }
 
 export function think(world, fighter, dt) {
+  // (A pace the player chose for a walk is the player's: a man the AI steers goes by his own `move`.)
+  fighter.walkSpeed = null;
   decide(world, fighter, dt);
   roundFallen(world, fighter);
   // Come back from a rout and not yet over it: he goes in at a hesitant walk, never a run (AI.rout rally).

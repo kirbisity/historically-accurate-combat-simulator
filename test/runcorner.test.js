@@ -55,7 +55,7 @@ function trunkRoll(fighter) {
   return Math.atan2(lateral(fighter, P.neck), fighter.x[P.neck * 3 + 1] - fighter.x[P.pelvis * 3 + 1]);
 }
 
-test('a straight run has no lean, and nor has a walk, standing, or a walking turn', () => {
+test('a straight run has no lean, nor standing; a walking turn leans less than the turn asks, its track carrying the rest', () => {
   const run = field();
   run.runUp(1);
   assert.equal(run.me.runMode, true);
@@ -65,8 +65,10 @@ test('a straight run has no lean, and nor has a walk, standing, or a walking tur
   walk.runUp(0.4);
   assert.equal(walk.me.runMode, false);
   walk.curve(2, 0.4, -3);
-  assert.ok(Math.abs(walk.me.bank ?? 0) < 1e-6, `a walking turn does not lean (${(walk.me.bank * DEG).toFixed(2)} deg)`);
-  assert.ok(Math.abs(trunkRoll(walk.me)) < 0.08, `the walker's trunk upright (${(trunkRoll(walk.me) * DEG).toFixed(1)} deg)`);
+  // (The walk is the gait's, physics/gait.js: the stance foot already out on his track carries part of the turn, bankOf.)
+  const asked = Math.atan((speedOf(walk.me) * Math.abs(walk.me.turn)) / G);
+  assert.ok(Math.abs(walk.me.bank ?? 0) < asked - 0.02, `a walking turn leans less than the turn asks (${(walk.me.bank * DEG).toFixed(2)} of ${(asked * DEG).toFixed(1)} deg)`);
+  assert.ok(Math.abs(trunkRoll(walk.me)) < Math.abs(walk.me.bank ?? 0) + 0.08, `the walker's trunk leaned no more than his bank (${(trunkRoll(walk.me) * DEG).toFixed(1)} deg)`);
   const still = field();
   still.step(1);
   assert.ok(!still.me.bank, 'standing: none');

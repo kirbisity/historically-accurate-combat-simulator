@@ -909,7 +909,8 @@ export const WORLD = {
   // - stance (its feet): `even` 1 sets the feet side by side, the same distance either side of his line (the guard's lead foot is nearer
   //   the middle than the rear one); at `width` 0.4 each foot is 0.0675 × 0.4 of his height off the middle (~4.7 cm at 1.75 m):
   //   a step width of ~9 cm, as a runner's feet land nearly under his line (real: 5-10 cm at a jog, less sprinting). It was
-  //   width 0.55 with the guard's uneven feet (5 and 8 cm out, 13 cm apart).
+  //   width 0.55 with the guard's uneven feet (5 and 8 cm out, 13 cm apart). The width is now his own, walking or running
+  //   (WORLD.gait.pose.track: his hips and thighs), in place of this one.
   // - kneeOut: which way a knee bends in the run: forward, and this much out to his side (the guard's is 0.35: a fighter's
   //   knees turned out over his toes). At 0.35 a run's deeply folded swing leg threw the knee 20-40 cm out from the hips (the
   //   thigh 50-60 degrees out from the body: a bow-legged, splayed run); a runner's knee travels nearly straight fore and aft.
@@ -1004,7 +1005,10 @@ export const WORLD = {
   //   height follows sin(pi t^heelUp) of its share t: the foot leaves the floor rising (the heel kicked up towards the
   //   seat), highest a third of the way through, not trailing low behind him.
   // - The lean (rad): lean + leanPerSpeed × speed, accelLean of his acceleration's angle to gravity (smoothed over
-  //   accelSmooth s: forward gathering speed, back braking), tiredLean more when spent; within leanMost.
+  //   accelSmooth s: forward gathering speed, back braking), tiredLean more when spent; within leanMost (back to -0.5, ~29
+  //   degrees: a sprinter's hard stop sits well back, the trunk behind the feet; it was -0.3, which cut the lean of any hard brake).
+  //   `lean` itself is the run's: walking only its acceleration's share and the speed's (gait.js runLean). accelLean 0.8 (was 0.6):
+  //   the trunk carries most of the angle the floor's push makes (a sprint start ~40 degrees forward, a hard stop well back).
   // - corner: a turn at a run is a sideways force on the runner (v × his rate of turning, m/s²), which the stance foot gives him
   //   through the floor, leaning him in by atan(that over g) (so the force goes through his centre of mass). What he can give
   //   is the least of two things. The floor: `grip`, the friction coefficient of a shoe on dry ground (~1: leaning 45 degrees
@@ -1029,13 +1033,72 @@ export const WORLD = {
     accel: 1.15, brake: 0.75, least: 0.12, runFrom: 2.2, arrive: 0.6,
     rate: 2.2, ratePerSpeed: 0.22, contact: 0.95, mostContact: 0.9, leastPower: 0.35, powerContact: 0.5, slowest: 2.5,
     land: 0.25, landPerSpeed: 0.012, lift: 0.14, liftPerSpeed: 0.035, liftMost: 0.42, tiredLift: 0.35, threshold: 0.2, heelUp: 0.6,
-    lean: 0.06, leanPerSpeed: 0.02, accelLean: 0.6, accelSmooth: 0.15, tiredLean: 0.15, leanMost: [-0.3, 0.75],
+    lean: 0.06, leanPerSpeed: 0.02, accelLean: 0.8, accelSmooth: 0.15, tiredLean: 0.15, leanMost: [-0.5, 0.75],
     limp: { seconds: 0.5, length: 0.4 },
     corner: { grip: 1, legs: 0.7, room: 2, roomLeast: 0.6 },
     walkRun: 0.5,
+    // - switchBand: the walk-run switch (walkRun's speed on his own leg) holds a share either side of it, so that a man at that very
+    //   pace does not flick between the two gaits each step (people go into a run a little faster than they drop back to a walk).
+    // - blend: the time (s) the pose takes to go over from the walk's look to the run's and back (about one step).
+    // - walkBrakeLean: the stop's sit-back. To brake at a (m/s²) the floor's push must come up through his centre of mass from a foot
+    //   planted ahead of it, so the foot is put h × a / g ahead of his hips (h his hip height: `brakeReach` of that) and his hips sink
+    //   `brakeDip` of his height for each g (the knees bent under him, sitting back). As hard as his legs brake (gait.js brake), no
+    //   harder: a man without the power cannot sit back into a stop, he slows over more steps.
+    switchBand: 0.08, blend: 0.22, brakeReach: 1, brakeDip: 0.05,
+    // The walk (gait.js walkStride, preferredWalk), one gait with the run, by speed: under the walk-run switch the legs vault over a
+    // stiff stance leg with both feet down for a moment each step and no flight; over it they bounce, with a flight.
+    // - preferred: the Froude number (v² / g × hip height) of a man's own easy walk (~0.25 for people: 1.45 m/s on a 0.95 m hip),
+    //   times his power (gaitBody) to `ability` (an old or heavy man walks slower: ~1.0-1.1 m/s), times his kit's footwork; slowest:
+    //   the stick's lightest walk (m/s).
+    // - step: the step's length, `step` × hip height × Froude^`stepExp` (Alexander's walking law: stride / h = 2.3 Fr^0.3; 1.25 here,
+    //   a step of ~0.75 m at 1.4 m/s for a man, ~1.85 steps a second as people walk), shorter by his power to `stepPower` (a weak or
+    //   heavy body takes shorter, more careful steps), and never more than `stepMost` of his leg.
+    // - duty: the share of each stride a foot is down (`duty` less `dutyPerFroude` × Fr: ~0.62 at an easy walk, ~0.56 near the switch),
+    //   more by `careful` × his want of power (an old man keeps both feet down longer); both feet are down for (2 duty - 1) of a step.
+    // - land: the heel lands this share of a step ahead of his hips (they are midway between the feet as it lands). lift: the swing's
+    //   ankle rises lift + liftPerFroude × Fr of his leg (the heel up off the toe behind him, the foot low as it passes).
+    // - accel: the start and the stop of a walk, chosen (a man does not throw himself into a walk): no more than this share of g, and
+    //   no more than his legs give (runChange).
+    walk: {
+      preferred: 0.25, ability: 0.3, slowest: 0.35,
+      step: 1.25, stepExp: 0.3, stepPower: 0.25, stepMost: 1.05,
+      duty: 0.66, dutyPerFroude: 0.2, careful: 0.12,
+      land: 0.5, lift: 0.1, liftPerFroude: 0.15, threshold: 0.04,
+      accel: 0.3,
+    },
+    // The body over the legs (gait.js gaitPose), walking and running, all of it from his build:
+    // - track: each foot lands off his line by the more of `hip` × half his hip joints' span and `thigh` × his thigh's girth (skin
+    //   radius: fat thighs must pass each other, so a heavy man's feet go wider, ~15 cm apart, a slight woman's ~10, a man's 12),
+    //   narrower by `run` running (a runner's feet land nearly on one line).
+    // - vault: walking, his hips rise over the stance leg and sink as the feet part: as far as a straight leg (`reach` of its length)
+    //   from the hips to the foot ahead lets them, `vault` of it (the knee and ankle take out the rest: ~4 cm at an easy walk).
+    // - sway: on one foot his hips go `sway` of the way out over it (more for a wide track: a heavy man waddles), less by `runSway`
+    //   running, settling there as an inverted pendulum does (in sqrt(h / g) × `swayTime` s).
+    // - list: the hip of the swinging leg drops `list` rad for hip muscles of a typical strength for his weight (`listRef`, hip
+    //   force over weight), more as they are weaker for it (to `listMost`): the stance hip's abductors hold the pelvis up.
+    // - pelvis: the pelvis turns with the legs, the hip of the forward leg forward, `pelvis` rad per leg length the feet are apart
+    //   fore and aft (~4 degrees walking, ~8 running), at most `pelvisMost`; the shoulders turn `thorax` of it the other way.
+    // - head: the head on the neck is a mass on a spring (gait.js headToss): it lags his trunk's speeding up and slowing, and drops
+    //   and rebounds at each footfall, `hz` for a typical neck (neck muscle force over head mass, `neckRef`), damped `damping` (a
+    //   neck steadies it in a nod or two), never more than `most` of his height; the hips' acceleration is smoothed over `smooth` s.
+    // - arms: each arm swings with the opposite leg's thigh, `walk` × its angle walking and `run` × running, more as his legs are
+    //   heavy for his arms (the turn of the legs about the spine the arms must answer: legs × leg length² over arms × arm length²,
+    //   against `inertiaRef`, the root of it, within `inertiaRange`); the elbow is bent `walkElbow` rad at a slow walk to
+    //   + `walkElbowFroude` × Fr, bending more as the hand comes forward (`walkElbowSwing`), and a runner's elbows as WORLD.runMode.arms;
+    //   the arms hang off the trunk as his girth makes them (pose.js restArmAngle), no closer than WORLD.runMode.arms.abduct.
+    pose: {
+      track: { hip: 0.55, thigh: 0.8, run: 0.5 },
+      vault: 0.45, reach: 0.98,
+      sway: 0.5, runSway: 0.7, swayTime: 0.5,
+      list: 0.05, listRef: 4.2, listMost: 0.12,
+      pelvis: 0.08, pelvisMost: 0.18, thorax: 0.8,
+      head: { hz: 2, neckRef: 50, damping: 0.35, most: 0.025, smooth: 0.03 },
+      arms: { walk: 0.9, run: 1.05, inertiaRef: 5, inertiaRange: [0.8, 1.25], walkElbow: 0.2, walkElbowFroude: 0.7, walkElbowSwing: 0.15 },
+    },
   },
   // Walking about (the player's walk mode): upright and square, feet under
-  // the hips, no guard; the arms swing with the stride, more the faster he goes.
+  // the hips, no guard. Walking, it is the gait's walk (WORLD.gait.walk, gait.js), the arms with the legs; `strideHz` and
+  // `runStrideHz` swing the carried hands only of a man running in his guard's pose.
   walk: { stance: { blade: 0, crouch: 0, width: 0.5, lean: 0.03, guardHeight: 0 }, strideHz: 0.9, runStrideHz: 1.5 },
   // Level mode, tending a wound (a bandage going on): the pose, as shares of a full dip and lean (the stoop over the hands at his side).
   tend: { dip: 0.04, lean: 0.12 },
@@ -1119,8 +1182,9 @@ export const WORLD = {
   recoil: { seconds: 0.015, longGunSeconds: 0.03, reference: 250, steadiest: 0.75, shakiest: 1.7, snapOver: 3.5, snapRise: 2, rockedOver: 0.24, rocked: 0.9 },
   // Running, nobody within `relaxFrom` m: the hands come down from the
   // guard and swing (`swing`, heights), back up within `guardFrom` m. Running:
-  // flagged so by the AI, or faster than `runningSpeed` m/s.
-  runCarry: { relaxFrom: 4, guardFrom: 2.6, swing: 0.07, ease: 4, runningSpeed: 2.5 },
+  // flagged so by the AI, or faster than `runningSpeed` m/s. Walking forward faster than `walkFrom` of the slowest walk
+  // (WORLD.gait.walk.slowest: ~0.3 m/s) with nobody within `relaxFrom`, he walks the gait's walk (physics.js walksFree), not the guard's.
+  runCarry: { relaxFrom: 4, guardFrom: 2.6, swing: 0.07, ease: 4, runningSpeed: 2.5, walkFrom: 0.85 },
   // Detail by the size of the fight (fighters in all): up to `full`, every
   // fighter exactly as in a one-on-one; up to `grid`, the same physics, near
   // pairs found through a spatial grid; up to `coarse`, a fighter with no

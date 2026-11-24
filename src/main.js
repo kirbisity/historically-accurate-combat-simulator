@@ -21,7 +21,8 @@ import { builderCharacters, WEAPON_KINDS, weaponCategoryOf } from './pickgroups.
 import { installMenus } from './menu.js';
 import { LEVEL_PRESETS, levelPreset } from './levelmode/presets.js';
 import { introPlaying, playIntro, skipIntro, stepIntro } from './intro.js';
-import { breakRun, contextAction, directFighter, keyStick, MOVE_KEYS, moveName, newOrders, playerCrawl, swingAt } from './control.js';
+import { breakRun, contextAction, directFighter, keyStick, keyThrottle, MOVE_KEYS, moveName, newOrders, playerCrawl, swingAt } from './control.js';
+import { preferredWalk } from './physics/gait.js';
 import { installFightControls, TOUCH } from './touch.js';
 import { canCommand, chooseGroup, chosenGroup, clearOrders, COMMAND_ORDERS, FIRE_ORDER_KEY, giveFireOrder, giveOrder, hasShot, holdingFire } from './command.js';
 import { createFightUiMarks } from './fightui/marker.js';
@@ -723,10 +724,15 @@ function thinkForBout(world, dt) {
   // At a bandage, a change of harness, a stoop for a weapon: he stands where he is.
   if (world.stage?.level && levelBusy(world)) {
     player().runMode = false;
+    player().walkSpeed = null;
     holdPlayer(player());
   }
   // A story scene: he is the scene's (src/story/scenes/stage.js poses him), not the player's.
-  else if (state.game === 'story' && story.holding()) story.think(world);
+  else if (state.game === 'story' && story.holding()) {
+    // (The player's chosen walk is not the scene's.)
+    player().walkSpeed = null;
+    story.think(world);
+  }
   // Walking about (V), the keys steer him; otherwise he does as the orders say.
   else if (player().walking) {
     walkAbout(player());
@@ -738,7 +744,8 @@ function thinkForBout(world, dt) {
   }
   else {
     // The movement keys: a stick, the way the camera looks.
-    state.orders.keyStick = keyStick(fightKeys, floorAxes(), state.walkRunning);
+    // (Shift is a pedal: the run's throttle grows as it is held, control.js keyThrottle.)
+    state.orders.keyStick = keyStick(fightKeys, floorAxes(), state.walkRunning, keyThrottle(realSeconds() - (state.runHeldSince ?? realSeconds())));
     if (state.orders.keyStick) tutorial.signal('move', 1);
     directFighter(world, player(), state.orders, dt);
   }
@@ -790,6 +797,7 @@ function walkAbout(fighter) {
     // Standing: keep the way he faces.
     if (atEase) fighter.ease = easeFor(fighter, { time: state.world.time });
     fighter.move = 0;
+    fighter.walkSpeed = null;
     fighter.goTo = [pelvis[0] + Math.cos(fighter.yaw) * 3, 0, pelvis[1] - Math.sin(fighter.yaw) * 3];
     return;
   }
@@ -805,6 +813,8 @@ function walkAbout(fighter) {
   fighter.move = 1;
   fighter.running = state.walkRunning && !fighter.crawling;
   fighter.runMode = fighter.running;
+  // (Walking, his own easy walk: physics/gait.js preferredWalk.)
+  fighter.walkSpeed = fighter.running || fighter.crawling ? null : preferredWalk(fighter);
 }
 
 /** Into walk mode, or back into the fight (the guard up, the footwork the style's). */
@@ -819,6 +829,7 @@ function setWalking(on) {
     fighter.move = 0;
     fighter.running = false;
     fighter.runMode = false;
+    fighter.walkSpeed = null;
     walkHeld.clear();
   }
 }
@@ -2244,14 +2255,14 @@ window.addEventListener('keydown', (press) => {
     return;
   }
   if (player().walking) {
-    if (key === 'shift') state.walkRunning = true;
+    if (key === 'shift' && !state.walkRunning) { state.walkRunning = true; state.runHeldSince = realSeconds(); }
     if (WALK_KEYS[key]) {
       press.preventDefault();
       walkHeld.add(key);
       return;
     }
   }
-  if (key === 'shift') state.walkRunning = true;
+  if (key === 'shift' && !state.walkRunning) { state.walkRunning = true; state.runHeldSince = realSeconds(); }
   if (MOVE_KEYS[key]) {
     press.preventDefault();
     fightKeys.add(key);

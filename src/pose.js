@@ -202,7 +202,8 @@ export function lockedHead(body, neck, up, forward, restLean) {
 /**
  * Desired particle positions in the local frame.
  * @param body   built body (lengths)
- * @param intent { stance, twist, hipYaw (the hips' own yaw, rad, besides the twist's share), lean, dip, shift, headOffset, guardTight,
+ * @param intent { stance, twist, hipYaw (the hips' own yaw, rad, besides the twist's share), hipRoll (the pelvis tipped, rad, left hip
+ *   up), lean, dip, shift, sway (m to his left, all above the feet), headOffset, guardTight,
  *   bank (a run's lean into a turn, rad, positive to his left: see below),
  *   guardOffset, and per-limb overrides lHand, rHand, lElbow, rElbow,
  *   lFoot, rFoot, lKnee, rKnee (local points), check (lead shin up) }
@@ -286,6 +287,12 @@ export function desiredPose(body, intent = {}) {
   const hipAxis = across(stance.blade * POSE.hipBladeShare + twist * 0.3 + (intent.hipYaw ?? 0));
   out[P.lHip] = vec.add(pelvis, vec.scale(hipAxis, L.hipSpan / 2));
   out[P.rHip] = vec.add(pelvis, vec.scale(hipAxis, -L.hipSpan / 2));
+  // (`hipRoll`, rad: the pelvis tipped about its middle, the left hip up for positive: in a walk the swinging leg's hip drops.)
+  if (intent.hipRoll) {
+    const rise = Math.sin(intent.hipRoll) * L.hipSpan / 2;
+    out[P.lHip] = vec.add(out[P.lHip], [0, rise, 0]);
+    out[P.rHip] = vec.add(out[P.rHip], [0, -rise, 0]);
+  }
 
   const lean = stance.lean + (intent.lean ?? 0);
   const neck = vec.add(pelvis, [Math.sin(lean) * L.trunk, Math.cos(lean) * L.trunk, intent.roll ? Math.sin(intent.roll) * L.trunk : 0]);
@@ -316,8 +323,10 @@ export function desiredPose(body, intent = {}) {
   // Weight shifts onto the front foot to extend a punch: everything above
   // the feet moves forward; the knees go half as far.
   const shift = (intent.shift ?? 0) * H;
+  // (`sway`, m to his left: walking, the body over the stance foot, the feet where they are.)
+  const sway = intent.sway ?? 0;
   for (let index = 0; index < out.length; index += 1) {
-    if (out[index] && index !== P.lFoot && index !== P.rFoot) out[index] = vec.add(out[index], [shift, -Math.abs(shift) * 0.3, 0]);
+    if (out[index] && index !== P.lFoot && index !== P.rFoot) out[index] = vec.add(out[index], [shift, -Math.abs(shift) * 0.3, sway]);
   }
 
   // Elbows and knees swivel to where the shoulders and hips can turn them,
