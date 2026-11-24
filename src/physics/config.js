@@ -573,6 +573,65 @@ export const WORLD = {
     hop: { crouch: 0.07, up: 0.7, back: 3.2, aside: 1.2 },
     step: { dip: 0.1, lower: 0.07, lean: 0.2 },
   },
+  // The forward roll (physics/diveroll.js): a dive onto the hands, the tuck, the roll over a shoulder and the back, up onto
+  // the feet, all from a small rigid-body model of his own body (mass, limb lengths, muscle, joints, bone, kit). Calibrated on
+  // two references (2026-11-24): a roll from a walk (a short dive, near straight over the back of the shoulder, up in ~1.5 s)
+  // and one from a run (a dive of about a body length, diagonally over one shoulder, up at once).
+  diveRoll: {
+    // Who rolls: his step out with the stick forward (`move` past `pushing`), going within `cone` (rad) of where he faces,
+    // faster than a step can catch: the capture point (speed × √(centre height / g)) past `catch` of his leg length (a quick
+    // step reaches about a third of it in time); under a blow coming at him, `under` of that (he goes down under it).
+    pushing: 0.3, cone: 0.8, catch: 0.33, under: 0.6,
+    // What it costs: `costJumps` of his own jump's (the legs throw his body and gear, and the arms catch it), above the step out's 2.5.
+    costJumps: 3,
+    // The gather: this share of the jump's own crouch time (WORLD.jump.crouch, shorter at speed).
+    gather: 1,
+    // How tightly he folds (diveroll.js tuckFold): `fold` of a full fold × his joints (aging) × his armour's footwork share; less
+    // by `fat` per unit of body fat past `fatFrom` (the belly between the thighs and the chest: at 40% fat a third of the fold gone).
+    tuck: { fold: 0.95, fatFrom: 0.2, fat: 1.6 },
+    // The roll's line across him (rad from straight over the head): `walk` from `from` m/s, to `most` at `run` m/s and over
+    // (a slow roll goes over the back of the shoulder, a fast one diagonally across it, from shoulder to opposite hip).
+    diagonal: { from: 1, run: 4, walk: 0.35, most: 0.75 },
+    // The shapes (diveroll.js): the crouch's trunk `lean` (rad), its legs folded to `legs` of their length, the feet `footAhead`
+    // of a thigh forward of his centre of mass; the dive's `arch` (rad, the back), the arms reaching ahead at `hands` (rise over level, in his frame), the legs
+    // `legsBack` behind; the tuck's back `curl` (forward share), the head bowed `chin` rad (to the chest), turned `headAside` rad from the rolling
+    // shoulder, the hips flexed `hip` rad and the knees `knee` rad from straight at a full fold.
+    shape: {
+      crouch: { lean: 0.75, legs: 0.62, footAhead: 0 },
+      dive: { arch: -0.05, hands: -0.15, legsBack: 0.25 },
+      tuck: { curl: 0.6, chin: 1.1, headAside: 0.9, hip: 2.3, knee: 2.4 },
+    },
+    // The dive: `legs` of the jump's takeoff speed (one leg's push forward, not two straight up), at `angle` (rad) over the level;
+    // its forward part less as he already goes towards `legTop` of the speed his feet extend at (jump.js shortening); he pitches
+    // forward through `reach` rad (the hands reaching the floor ahead) over the flight, `leastFlight` s at least.
+    dive: { legs: 0.5, angle: 0.35, legTop: 0.6, reach: 0.9, leastFlight: 0.14 },
+    // The hands: the share of him (`share`) whose fall they take, at `eccentric` × their pushing force (a muscle lengthening
+    // holds ~1.5× what it lifts, as the jump's landing), over `give` of the arm's length bent (`jointShare` of it however old
+    // he is, the rest as his joints still fold); they stop the fall and lower `take` of the drop onto the shoulder (the rest
+    // rolls him on); `keep` of his way on goes through; he pivots over them through `turn` rad
+    // (at his way on over the reach, and `least` rad/s however slow) onto the shoulder, the head tucked `headFirst` × as fast as the rest.
+    hands: { share: 0.6, eccentric: 1.5, give: 0.45, jointShare: 0.5, take: 0.5, keep: 0.85, turn: 0.9, least: 1.5, headFirst: 3 },
+    // The slam: what the arms did not take reaches the floor through the shoulder (m/s). Past `harmFrom` × his bone density it
+    // bruises the trunk (`harm` m/s of damage per m/s past), past `fallFrom` × it the roll is lost (he goes down); it brakes his
+    // way on by `brake` of its share of the fall.
+    slam: { harmFrom: 1.6, fallFrom: 3.2, harm: 1, brake: 0.5 },
+    // The roll: rolling resistance `loss` (body weights of drag; a man rolling on grass covers ~1.5 m from 3 m/s), more by
+    // `unround` for a back that will not round (the fold short of full) and `plate` for a rigid shell (1 - its footwork share);
+    // `knock` of the spin's v² / radius lost to the shoulder, back and hips meeting the floor in turn (a fast roll loses most);
+    // the tuck's hump (its centre riding highest as the hips come over the shoulders) spread over `humpWidth` rad;
+    // his legs' surplus over his weight rocks him up into the crouch at up to `rock` m/s; a radius of `leastRadius` m at least; the tuck opens to the crouch over the last `open` rad of the turn, and once within
+    // `feet` rad of a full turn his feet are under him (stopped there he stands from the crouch); under `stall` m/s the tuck no longer holds its line (it topples off the shoulder): stopped.
+    roll: { loss: 0.2, unround: 0.6, plate: 0.8, knock: 0.05, rock: 0.5, humpWidth: 2, leastRadius: 0.18, open: 1.4, feet: 1.0, stall: 0.3 },
+    // Up from it: he settles into the crouch (his feet braking what way on is left at `brake` m/s², the hips up to `settled` of
+    // the crouch's height, `settleMost` s at most), then the stand (rising.js) starts `carry` of the way through per m/s he came
+    // round with, `carryMost` at most.
+    rise: { carry: 0.25, carryMost: 0.6, brake: 6, settled: 0.8, settleMost: 0.35 },
+    // Lost: his body's centre `breakGap` of his height off the roll's (struck, or stopped by a man or a wall), or still at it after `most` s.
+    breakGap: 0.18,
+    // A knock across his roll's way past this (m/s of the whole body) throws him out of it (a roll has no feet to catch it).
+    knockBreak: 0.8,
+    most: 4,
+  },
   // A thrust on foot is driven by the body as well as the arms: the step (the rear leg pushing off and bracing),
   // the hips and shoulders turning in behind the shaft. Along the weapon's line that share of the body's mass
   // pushes with the point (physics.js bladeStrike), as a move's own `mass.body` does: the larger of the two.
