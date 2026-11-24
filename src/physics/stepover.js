@@ -297,10 +297,12 @@ export function planCrossing(world, fighter, dt, tools) {
       else if (way.pace >= spec.leapFrom && ahead.height > ahead.low && ahead.from > 0 && !ahead.failed) ahead.how = 'leap';
       else if (ahead.height > reachNow.rise) ahead.how = 'onto';
       else ahead.how = width <= reachNow.span ? 'step' : 'pick';
+      // (The man he is in the air over is being leapt.)
+      if (fighter.jump && fighter.jump.over === ahead.id) ahead.how = 'leap';
     }
   }
   const crossing = fighter.crossing;
-  if (crossing?.seen && crossing.how === 'leap') tryLeap(world, fighter, crossing, tools);
+  if (crossing?.seen && crossing.how === 'leap' && !fighter.jump) tryLeap(world, fighter, crossing, tools);
 }
 
 /** How far along the line his crossing was measured on he has come since (m). */
@@ -321,8 +323,9 @@ function tryLeap(world, fighter, crossing, tools) {
   // (Blocked for a moment, as just down from the last leap, he may yet be ready in time.)
   if (model.blocked && model.blocked !== 'recovering' && model.blocked !== 'spent' && model.blocked !== 'air') return fail(model.blocked);
   const leap = leapOver(fighter, model, crossing, pace);
-  if (!leap) return fail('too high or too wide for his jump');
   const gone = alongCrossing(fighter, crossing);
+  // (Not at the pace he has now: still gathering speed, he may yet have it; a stride short of it he takes it as he can.)
+  if (!leap) return crossing.from - gone < pace * STEPOVER.react ? fail('too high or too wide for his jump') : undefined;
   const middle = (crossing.from + crossing.to) / 2 - gone;
   if (middle > leap.runUp) return;
   // Too near when he saw it, or not ready when he came to it: past where the flight would be centred by more than half the room it has to spare.
