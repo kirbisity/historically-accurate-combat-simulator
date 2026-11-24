@@ -200,6 +200,13 @@ export const WORLD = {
   drop: { footing: 0.12, outBelow: -0.45 },
   joint: {
     hipCone: 2.4, // rad from straight down: room for a head kick, not the splits
+    // How far the upper arm can point behind the trunk's coronal plane (rad), by its elevation (joints.js
+    // shoulderBehindLimit): hanging, the shoulder's extension (~50-60 degrees in a man, clinical goniometry); out at the
+    // side, horizontal abduction behind the back (~30-45 degrees); raised overhead, little (the arm is near the end of
+    // its flexion there). Every standing body is held to it (physics.js holdShoulder), so no grip, blow or swing carries
+    // an arm round behind the back further than the joint goes. A build with other shoulders (an ape's) gives its own
+    // (`inputs.build.shoulder`, joints.js shoulderRangeOf).
+    shoulder: { hanging: 1.0, level: 0.7, overhead: 0.26 },
     // Forced this far past its range in an instant, a joint breaks.
     breakAngle: 0.8, // rad past the limit
     // The neck is braced by the whole shoulder girdle: it takes far more.
