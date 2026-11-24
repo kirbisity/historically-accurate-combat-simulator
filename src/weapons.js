@@ -1380,9 +1380,13 @@ export const SHIELDS = {
   chimalli: { label: 'Chimalli', radius: 0.33, mass: 1.6, offset: 0.07, armHarm: 0.2, hold: 1.3, look: 'feather', material: 'wicker' },
   // A small round iron parry shield, held out to meet a blow.
   buckler: { label: 'Iron buckler', radius: 0.2, mass: 1.4, offset: 0.06, armHarm: 0.12, hold: 0.6, look: 'steel', material: 'steelPlate' },
-  // The kalkan: the Turkish and steppe round shield of wicker bound in
-  // coloured thread round an iron boss; light and springy.
-  kalkan: { label: 'Kalkan', radius: 0.3, mass: 1.7, offset: 0.07, armHarm: 0.17, hold: 1.1, look: 'ming', material: 'wicker' },
+  // The kalkan: the Turkish round shield of wicker bound in coloured thread round an iron boss; light and springy. It was
+  // drawn as a red lacquered board (a Ming look); now as the Ottoman kalkans that survive (weaponview.js KALKAN, the user's
+  // call, 2026-11-24). Carried by men of other peoples, it is their own shield (`makes`, by the wearer's kit, else his faction):
+  // the steppe's plainer wicker, a Templar's heater, Saladin's turs.
+  kalkan: { label: 'Kalkan', radius: 0.3, mass: 1.7, offset: 0.07, armHarm: 0.17, hold: 1.1, look: 'kalkan', material: 'wicker', makes: { steppe: 'steppeShield', knights: 'heater', saladin: 'turs' } },
+  // The steppe's wicker shield (weaponview.js STEPPE_SHIELD): the kalkan's work, undyed and bound in thong; met as the kalkan.
+  steppeShield: { label: 'Wicker shield', radius: 0.3, mass: 1.7, offset: 0.07, armHarm: 0.17, hold: 1.1, look: 'steppe', material: 'wicker' },
   // The Ayyubid horseman's round shield (turs): boards faced with dark
   // leather, ~0.65 m across, a rawhide rim and an iron boss; heavier than
   // the wicker kalkan of later centuries, and stiffer under a blow.
