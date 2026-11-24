@@ -279,7 +279,7 @@ const finish = (group) => {
 const HAND_GEOMETRY = new Map();
 const HAND_POSES = new Map();
 const HAND_BUILT_FOR = 1.8;
-const HAND_CACHE = { most: 600, steps: 3 };
+const HAND_CACHE = { most: 400, steps: 3 };
 // A hand's thickness against the reference man's, from the frame's bone (body.js FRAMES) and the fat over it, a woman's the
 // finer (ANSUR II: her hand's breadth 0.42 of its length to his 0.44); and how far the tendons, veins and folds stand out of
 // the back of it: more on an older hand and a leaner one (the sheet's relief times this).
@@ -338,8 +338,9 @@ export function buildHand(body, side, kind, skinColor, steel, glove = null, { fi
   const scale = body.heightM / HAND_BUILT_FOR;
   // The wrist behind the hand point (body.js ARM_LENGTHS `wristToFist`, the fist's middle) and the knuckles' face ahead of
   // it, as far as a bare fist strikes with (physics/config.js WORLD.fists.bare.radius), at the builder's size.
-  const heel = Math.round(((body.lengths?.wristToFist ?? ARM_LENGTHS.male.wristToFist * body.heightM) / scale) * 1000) / 1000;
-  const face = Math.round((WORLD.fists.bare.radius / scale) * 1000) / 1000;
+  // (Each to 2 mm, so men of near the same height share their hands' geometry.)
+  const heel = Math.round(((body.lengths?.wristToFist ?? ARM_LENGTHS.male.wristToFist * body.heightM) / scale) * 500) / 500;
+  const face = Math.round((WORLD.fists.bare.radius / scale) * 500) / 500;
   const { girth, relief } = handBuild(body);
   const { cover, wear } = handWear(kind, glove, dress);
   // (To 4 mm: hands of near the same wrist share their geometry.)
@@ -428,7 +429,7 @@ function handWear(kind, glove, dress) {
 }
 
 // A hand's leathers and cloths where the design names none: a gauntlet's buff glove, a tekkō's indigo cloth, a tactical glove's black.
-const HAND_STUFF = { leather: 0x6b4a30, cloth: 0x1b2233, tactical: 0x18191d, guard: 0x242528, lacquer: 0x121214 };
+const HAND_STUFF = { leather: 0x6b4a30, cloth: 0x1b2233, tactical: 0x18191d, guard: 0x242528, lacquer: 0x1d1512 };
 // From this much polish up a hand's material is given a highlight and the sky's reflection (as a shoe's: FOOT_SHINE).
 const HAND_SHINE = { from: 0.15, sky: 1.0 };
 

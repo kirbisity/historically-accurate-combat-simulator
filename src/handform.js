@@ -26,13 +26,13 @@ const HAND_LONG = HAND.length * HAND_STATURE;
 // shares of hand length, as remembered and unverified against the paper; they give the middle finger 0.44 of the hand
 // past the web and segments near 5:3:2. The knuckles lie on an arc, the middle one furthest out and highest.
 const HAND_FINGERS = [
-  { root: [0.455, 0.016, 0.142], bones: [0.245, 0.143, 0.097], half: 0.05, splay: 0.07 },
-  { root: [0.446, 0.022, 0.038], bones: [0.266, 0.17, 0.108], half: 0.051, splay: 0.015 },
-  { root: [0.418, 0.017, -0.066], bones: [0.244, 0.165, 0.107], half: 0.047, splay: -0.045 },
-  { root: [0.38, 0.006, -0.164], bones: [0.204, 0.117, 0.093], half: 0.042, splay: -0.11 },
+  { root: [0.455, 0.016, 0.142], bones: [0.245, 0.143, 0.097], half: 0.055, splay: 0.07 },
+  { root: [0.446, 0.022, 0.038], bones: [0.266, 0.17, 0.108], half: 0.056, splay: 0.015 },
+  { root: [0.418, 0.017, -0.066], bones: [0.244, 0.165, 0.107], half: 0.052, splay: -0.045 },
+  { root: [0.38, 0.006, -0.164], bones: [0.204, 0.117, 0.093], half: 0.046, splay: -0.11 },
 ];
 // The thumb: its saddle joint at the heel of the hand on the thumb's side, a metacarpal and two segments.
-const HAND_THUMB = { root: [0.105, -0.045, 0.118], bones: [0.251, 0.196, 0.158], half: 0.058 };
+const HAND_THUMB = { root: [0.105, -0.045, 0.118], bones: [0.251, 0.196, 0.158], half: 0.066 };
 // A finger's section against its half breadth: out of the back, into the pad, and how deep under the middle the crease it bends about lies.
 const HAND_SECTION = { back: 0.84, pad: 0.92, crease: 0.12 };
 // How far each joint bends (rad): the knuckle, the middle and the end joints of a finger; the thumb's two.
@@ -42,7 +42,7 @@ const HAND_GRIP_WRIST = 0.004;
 const HAND_SLANT_MOST = 0.4;
 // The palm (hand lengths): at the knuckles its back over the joints' line and its face under it, half its thickness at the
 // wrist, the wrist's half breadth, and how far the webs run past the knuckle line.
-const HAND_PALM = { backKnuckle: 0.05, faceKnuckle: 0.07, thickWrist: 0.092, wristHalf: 0.148, web: 0.055 };
+const HAND_PALM = { backKnuckle: 0.05, faceKnuckle: 0.07, thickWrist: 0.092, wristHalf: 0.148, web: 0.085 };
 
 const handClamp = (x, low = 0, high = 1) => Math.min(high, Math.max(low, x));
 const handLerp = (a, b, t) => a + (b - a) * t;
@@ -286,7 +286,7 @@ export function handBlend(a, b, t) {
  * crease: on the back the skin runs round the knuckle, which stands out as it bends; on the inner side the rings meet in
  * the crease. `thumb`: a metacarpal first, thick with the ball of the thumb. `grow`: a covering's thickness over the skin.
  */
-function handDigitRings(digit, frame, bends, { around = 10, fans = 3, thumb = false, grow = 0, bury = 0.3 } = {}) {
+function handDigitRings(digit, frame, bends, { around = 10, fans = 3, thumb = false, grow = 0, bury = 0.3, coarse = false } = {}) {
   const half = digit.half;
   const segments = handChain(digit.root, frame, digit.bones, thumb ? [0, ...bends] : bends, half);
   const rings = [];
@@ -330,14 +330,15 @@ function handDigitRings(digit, frame, bends, { around = 10, fans = 3, thumb = fa
       }
     }
     const last = index === count - 1;
+    if (!last && coarse && !(thumb && index === 0)) return;
     if (!last) ring(handAdd(segment.from, segment.fwd, segment.length * 0.5), segment.up, side, index + 0.5, thumb && index === 0 ? { pinch: -0.35, shrink: 1.3 } : { pinch: -0.06 - 0.1 * Math.sin(Math.min(Math.PI / 2, segments[index + 1].turn)), swell: -0.06 });
     else {
       // The end segment: the pad, the nail's flat, the rounded tip.
       const tip = half * taper(count) * 0.95;
-      ring(handAdd(segment.from, segment.fwd, segment.length * 0.42), segment.up, side, index + 0.42, { pinch: -0.1, swell: -0.08 });
+      if (!coarse) ring(handAdd(segment.from, segment.fwd, segment.length * 0.42), segment.up, side, index + 0.42, { pinch: -0.1, swell: -0.08 });
       ring(handAdd(segment.from, segment.fwd, segment.length - tip * 0.95), segment.up, side, index + 0.74, { pinch: -0.04, squash: 0.82 });
       ring(handAdd(segment.from, segment.fwd, segment.length - tip * 0.4), segment.up, side, index + 0.9, { shrink: 0.8, squash: 0.72, lift: -0.06 * half });
-      ring(handAdd(segment.from, segment.fwd, segment.length - tip * 0.08), segment.up, side, index + 0.98, { shrink: 0.42, squash: 0.7, lift: -0.1 * half });
+      if (!coarse) ring(handAdd(segment.from, segment.fwd, segment.length - tip * 0.08), segment.up, side, index + 0.98, { shrink: 0.42, squash: 0.7, lift: -0.1 * half });
       rings.push({ apex: handAdd(handAdd(segment.from, segment.fwd, segment.length + grow), segment.up, -0.12 * half), along: 1 });
     }
   });
@@ -363,6 +364,10 @@ function handSkin(mesh, rows) {
   for (let row = 0; row + 1 < rows.length; row += 1) {
     const a = rows[row];
     const b = rows[row + 1];
+    if (a.length === 1) {
+      for (let k = 0; k + 1 < b.length; k += 1) mesh.indices.push(a[0], b[k + 1], b[k]);
+      continue;
+    }
     if (b.length === 1) {
       for (let k = 0; k + 1 < a.length; k += 1) mesh.indices.push(a[k], a[k + 1], b[0]);
       continue;
@@ -484,19 +489,19 @@ export function handParts(pose, { side = 'r', fit = null, detail = 'full', girth
   const meshes = {};
   const mesh = (role) => (meshes[role] ??= handMesh());
   const skin = mesh(spec.role);
-  const around = low ? 5 : 10;
+  const around = low ? 4 : 10;
   const fans = low ? 1 : 3;
   // The fingers and the thumb.
   const digits = [];
   // (A mitten's four fingers are one: they bend as the middle one does.)
   const fingerAngles = spec.mitten ? pose.fingers.map((angles) => [angles[0], ...pose.fingers[1].slice(1)]) : pose.fingers;
   sizes.fingers.forEach((finger, index) => {
-    const rings = handDigitRings(finger, handFingerFrame(finger, fingerAngles[index][0]), fingerAngles[index].slice(1), { around, fans, grow });
+    const rings = handDigitRings(finger, handFingerFrame(finger, fingerAngles[index][0]), fingerAngles[index].slice(1), { around, fans, grow, coarse: low });
     digits.push(rings);
     handDigitSkin(skin, rings);
   });
   const [out, fore, roll, ...thumbBends] = pose.thumb;
-  const thumbRings = handDigitRings(sizes.thumb, handThumbFrame(out, fore, roll), thumbBends, { around, fans, thumb: true, grow });
+  const thumbRings = handDigitRings(sizes.thumb, handThumbFrame(out, fore, roll), thumbBends, { around, fans, thumb: true, grow, coarse: low });
   digits.push(thumbRings);
   handDigitSkin(skin, thumbRings);
   // The palm, back and face as two skins meeting along its edges (each has its own place on the sheet).
@@ -522,50 +527,33 @@ export function handParts(pose, { side = 'r', fit = null, detail = 'full', girth
     handSkin(skin, palmRows[name]);
   }
   const palmEnd = skin.positions.length / 3;
-  // The web between the thumb and the first finger: two skins from the palm's edge to the thumb's inner side, its free edge drawn in.
+  // The web between the thumb and the first finger: a flat band of flesh from the thumb's first bone to the palm's edge,
+  // its near side sunk in the ball of the thumb, its far side the web's free edge, drawn in a little between its ends.
   {
-    const thumbSegments = thumbRings.segments;
-    const along = low ? [0, 0.5, 1] : [0, 0.25, 0.5, 0.75, 1];
-    const rows = { back: [], palm: [] };
-    for (const share of along) {
-      const edge = handPalmPoint(sizes, pose, handLerp(0.3, 0.9, share), Math.PI / 2, grow);
-      // (Along the thumb from the middle of its first bone to a little past its knuckle.)
-      const reach = handLerp(0.35, 1.22, share);
-      const segment = thumbSegments[reach <= 1 ? 0 : 1];
-      const onThumb = reach <= 1 ? handAdd(segment.from, segment.fwd, segment.length * reach) : handAdd(segment.from, segment.fwd, segment.length * (reach - 1) * 1.6);
-      const span = handSub(edge, onThumb);
-      const across = handUnit(span);
-      const normal = handUnit(handCross(across, segment.fwd));
-      // (The skin's back to the back of the hand.)
-      const out = normal[1] >= 0 ? normal : normal.map((x) => -x);
-      const thick = sizes.thumb.half * 0.8 + grow;
-      const sag = 0.3 * Math.sin(share * Math.PI * 0.5) ** 2;
-      for (const [name, sign, [x0, x1]] of [['back', 1, HAND_SHEET.back], ['palm', -1, HAND_SHEET.palm]]) {
-        const row = [0.1, 0.5, 0.9].map((part, column) => {
-          const lean = column === 1 ? 0.8 : 1;
-          const base = handAdd(onThumb, span, part);
-          // (The free edge hangs back towards the wrist between its two ends.)
-          const hung = handAdd(base, segment.fwd, -sag * Math.sin(part * Math.PI) * Math.hypot(...span));
-          return handPoint(skin, handAdd(hung, out, sign * thick * lean), [handLerp(x0, x1, name === 'back' ? 0.9 : 0.1), handSheetAlong(handLerp(0.3, 0.7, share))]);
-        });
-        rows[name].push(row);
+    const bone = thumbRings.segments[0];
+    const onThumb = handAdd(bone.from, bone.fwd, bone.length * 0.82);
+    const edge = handPalmPoint(sizes, pose, 0.74, Math.PI / 2, grow);
+    const onPalm = [edge[0], edge[1] - 0.25 * sizes.palmHalf, edge[2] - 0.006];
+    const axis = handUnit(handSub(onPalm, onThumb));
+    const back = handSub(sizes.thumb.root, onThumb);
+    const near = handUnit(handSub(back, axis.map((x) => x * handDot(back, axis))));
+    const flat = handCross(axis, near);
+    const wide = 0.012 + grow;
+    const around = low ? 6 : 8;
+    const [x0, x1] = HAND_SHEET.palm;
+    const rows = (low ? [0, 0.5, 1] : [0, 0.33, 0.67, 1]).map((share) => {
+      const middle = handAdd(handAdd(onThumb, handSub(onPalm, onThumb), share), near, wide * (1.1 + 0.25 * Math.sin(share * Math.PI)));
+      const thick = sizes.thumb.half * handLerp(0.75, 0.55, share) + grow;
+      const row = [];
+      for (let k = 0; k <= around; k += 1) {
+        const angle = (k / around) * 2 * Math.PI;
+        row.push(handPoint(skin, handAdd(handAdd(middle, near, wide * Math.cos(angle)), flat, thick * Math.sin(angle)), [handLerp(x0, x1, 0.08), handSheetAlong(0.5)]));
       }
-    }
-    // (Each skin wound to face out of the hand: the back's to the back.)
-    const facing = (name, sign) => {
-      const start = skin.indices.length;
-      handSkin(skin, rows[name]);
-      const corner = (k) => [0, 1, 2].map((axis) => skin.positions[skin.indices[start + k] * 3 + axis]);
-      const normal = handCross(handSub(corner(1), corner(0)), handSub(corner(2), corner(0)));
-      if (normal[1] * sign < 0) for (let index = start; index < skin.indices.length; index += 3) [skin.indices[index + 1], skin.indices[index + 2]] = [skin.indices[index + 2], skin.indices[index + 1]];
-    };
-    facing('back', 1);
-    facing('palm', -1);
-    // (Closed along the free edge.)
-    const edge = skin.indices.length;
-    handSkin(skin, [rows.back[along.length - 1], rows.palm[along.length - 1]]);
-    const corner = (k) => [0, 1, 2].map((axis) => skin.positions[skin.indices[edge + k] * 3 + axis]);
-    if (handCross(handSub(corner(1), corner(0)), handSub(corner(2), corner(0)))[0] < 0) for (let index = edge; index < skin.indices.length; index += 3) [skin.indices[index + 1], skin.indices[index + 2]] = [skin.indices[index + 2], skin.indices[index + 1]];
+      return row;
+    });
+    // (Closed at both ends, inside the thumb and inside the palm.)
+    const end = (point) => [handPoint(skin, point, [handLerp(x0, x1, 0.08), handSheetAlong(0.5)])];
+    handSkin(skin, [end(onThumb), ...rows, end(onPalm)]);
   }
   // What is worn over it: plates, a cuff.
   const placed = {};
@@ -742,7 +730,7 @@ const HAND_PIECES = {
    */
   backPlate({ sizes, pose, mesh, low, grow }, { role = 'metal', from = 0.12, to = 1.02, arc = 1.75, lift = 0.0015, lames = 1, lap = 0.0015, lobes = 0, ridge = 0 }) {
     const out = mesh(role);
-    const across = low ? 4 : lobes ? 16 : 10;
+    const across = low ? 4 : lobes ? 24 : 10;
     const rows = low ? 2 : 4;
     for (let lame = 0; lame < lames; lame += 1) {
       const start = handLerp(from, to, lame / lames);
@@ -754,7 +742,7 @@ const HAND_PIECES = {
         for (let k = 0; k <= across; k += 1) {
           const angle = -arc + (k / across) * 2 * arc;
           // (A scalloped edge: longest over each knuckle.)
-          const scallop = lobes && lame === lames - 1 ? lobes * share * Math.abs(Math.sin((k / across) * 4 * Math.PI)) ** 0.5 : 0;
+          const scallop = lobes && lame === lames - 1 ? lobes * share * (0.3 + 0.7 * Math.abs(Math.sin((k / across) * 4 * Math.PI)) ** 0.8) : 0;
           const s = handLerp(start, end, share) + scallop;
           const raised = ridge * handBump((s - 0.99) / 0.07) * (Math.abs(angle) < 1.3 ? 1 : 0.4);
           points.push(handPoint(out, handPalmPoint(sizes, pose, s, angle, grow + lift + lap * (lames > 1 ? share : 0) + raised), HAND_PLAIN));
@@ -823,7 +811,7 @@ export const HAND_WEAR = {
     role: 'skin', finish: { lacquer: 0.85, cloth: 0 },
     pieces: [
       { kind: 'backPlate', role: 'cloth', from: 0.0, to: 0.97, arc: 1.95, lift: 0.0012 },
-      { kind: 'backPlate', role: 'lacquer', from: 0.1, to: 0.97, arc: 1.5, lift: 0.0028, lobes: 0.1 },
+      { kind: 'backPlate', role: 'lacquer', from: 0.1, to: 0.99, arc: 1.5, lift: 0.0028, lobes: 0.15, ridge: 0.0015 },
       { kind: 'lames', role: 'lacquer', which: [4], spans: [[0.45, 0.991]], arc: 1.5, lift: 0.0026, lap: 0 },
       { kind: 'cuff', role: 'cloth', profile: [[-0.004, 0.0015], [0.02, 0.002], [0.05, 0.003]] },
     ],
@@ -842,7 +830,7 @@ export const HAND_WEAR = {
     role: 'leather', thick: 0.0015, finish: { leather: 0.15 },
     pieces: [
       { kind: 'cuff', profile: [[-0.034, 0.012], [-0.012, 0.006], [0.01, 0.0035], [0.03, 0.009], [0.055, 0.021], [0.072, 0.031]] },
-      { kind: 'backPlate', from: 0.26, to: 1.05, arc: 1.7, lift: 0.003, ridge: 0.003 },
+      { kind: 'backPlate', from: 0.26, to: 1.1, arc: 1.7, lift: 0.003, ridge: 0.003 },
       { kind: 'lames', spans: HAND_FINGER_SPANS, thumbSpans: HAND_THUMB_SPANS, arc: 1.7 },
     ],
   },
@@ -852,7 +840,7 @@ export const HAND_WEAR = {
     role: 'leather', thick: 0.0015, finish: { leather: 0.15 },
     pieces: [
       { kind: 'cuff', profile: [[-0.032, 0.009], [0.0, 0.005], [0.04, 0.01], [0.08, 0.017], [0.11, 0.023]], point: 0.055, flutes: 12 },
-      { kind: 'backPlate', from: 0.26, to: 1.04, arc: 1.7, lift: 0.003, lames: 3, ridge: 0.002 },
+      { kind: 'backPlate', from: 0.26, to: 1.1, arc: 1.7, lift: 0.003, lames: 3, ridge: 0.002 },
       { kind: 'lames', spans: HAND_FINGER_SPANS, thumbSpans: HAND_THUMB_SPANS, arc: 1.7, swell: [0, 0.0035] },
     ],
   },
@@ -862,7 +850,7 @@ export const HAND_WEAR = {
     role: 'leather', thick: 0.0015, mitten: true, finish: { leather: 0.15 },
     pieces: [
       { kind: 'cuff', profile: [[-0.032, 0.009], [0.0, 0.005], [0.04, 0.012], [0.07, 0.019], [0.095, 0.023]] },
-      { kind: 'backPlate', from: 0.26, to: 1.0, arc: 1.7, lift: 0.003, lames: 4, ridge: 0.0025 },
+      { kind: 'backPlate', from: 0.26, to: 1.08, arc: 1.7, lift: 0.003, lames: 4, ridge: 0.0025 },
       { kind: 'mittenLames', spans: [[-0.02, 0.5], [0.5, 1.011], [0.989, 1.5], [1.5, 2.011], [1.989, 2.9]] },
       { kind: 'lames', which: [4], spans: HAND_THUMB_SPANS, arc: 1.7 },
     ],

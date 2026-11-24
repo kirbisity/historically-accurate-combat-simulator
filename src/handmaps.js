@@ -16,7 +16,7 @@ export const HAND_MAPS = {
   // The tint's "no change", under white so a place can be paler than the tone (a palm, a nail): made up in the material's colour.
   neutral: 0.8,
   // How steep the relief is drawn (the height's slope to the normal's lean).
-  relief: { skin: 2.2, glove: 1.8 },
+  relief: { skin: 1.7, glove: 1.8 },
   // The skin's roughness, the palm's and the nail's.
   rough: { skin: 0.64, palm: 0.58, nail: 0.3, glove: 0.7 },
 };
@@ -146,7 +146,7 @@ function drawSkinSheet(size) {
     const from = handSheetAt('back', 0.12, w * 0.3 - 0.01);
     const middle = handSheetAt('back', 0.55, w * 0.74);
     const to = handSheetAt('back', 0.93, w);
-    handStroke(h, handCurve([from, middle, to]), 11, 0.3, size);
+    handStroke(h, handCurve([from, middle, to]), 12, 0.2, size);
     // The knuckle: a few wrinkles across it, the skin a little redder and darker there.
     const [kx, ky] = handSheetAt('back', 1.0, w);
     handSpot(t, [kx, ky], [0.03, 0.05], 'rgba(176,128,122,0.4)', size);
@@ -157,9 +157,9 @@ function drawSkinSheet(size) {
   });
   for (const run of [[[0.18, -0.13], [0.36, -0.1], [0.58, -0.03], [0.78, -0.012]], [[0.5, -0.09], [0.66, -0.115], [0.84, -0.115]], [[0.2, 0.05], [0.4, 0.085], [0.62, 0.09], [0.8, 0.095]], [[0.4, 0.085], [0.5, 0.02], [0.58, -0.03]]]) {
     const path = handCurve(run.map(([s, w]) => handSheetAt('back', s, w)));
-    handStroke(h, path, 7, 0.2, size);
+    handStroke(h, path, 8, 0.12, size);
     t.globalCompositeOperation = 'multiply';
-    t.strokeStyle = 'rgba(214,222,232,0.35)';
+    t.strokeStyle = 'rgba(214,222,232,0.22)';
     t.lineWidth = 5;
     t.beginPath();
     path.forEach(([x, y], index) => (index ? t.lineTo(x * W, (1 - y) * H) : t.moveTo(x * W, (1 - y) * H)));
