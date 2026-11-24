@@ -5872,7 +5872,13 @@ export function* buildLoftBodySteps(body, { faceted = false, lowDetail = false, 
     const feet = (female && look.femaleFeet) || look.feet || {};
     // Shafts up the shin: an ankle boot just over the ankle bone.
     // A rider's boot (`over`) is pulled on over the trousers: its shaft as straight and full as they are, a little outside them.
-    const shaft = { boxingBoot: [feet.high ? 0.45 : 0.62, 1.2], hikingBoot: [0.74, 1.36], compactBoot: [0.76, 1.3], tacticalBoot: [0.66, 1.36], heelAnkleBoot: [0.74, 1.2], jinBoot: [0.3, 1.28], ridingBoot: [0.04, 1.3, 'over'] }[feet.kind];
+    // (The Chinese cloth boot and its armoured kin, the steppe's felt boot and the Ottoman's soft one take the trousers tucked
+    // into a wide leg; a lady's laced boot (`high`) and the gothic lug boot stand to mid-calf. A turnshoe and a tabi end in
+    // collars of their own at the ankle: footwear.js.)
+    const shaft = {
+      boxingBoot: [feet.high ? 0.45 : 0.62, 1.2], hikingBoot: [0.74, 1.36], compactBoot: [0.76, 1.3], tacticalBoot: [0.66, 1.36], heelAnkleBoot: [feet.high ? 0.5 : 0.74, 1.2], jinBoot: [0.3, 1.28], ridingBoot: [0.04, 1.3, 'over'],
+      clothBoot: [0.38, 1.26, 'over'], lamellarBoot: [0.38, 1.26, 'over'], feltBoot: [0.3, 1.34, 'over'], ottomanBoot: [0.08, 1.24, 'over'], lugBoot: [0.5, 1.3],
+    }[feet.kind];
     const shaftRings = shaft?.[2] === 'over' ? along(knee, foot, frames[BONE[`${side}Shin`]].x, count(4), shaft[0], 0.98, (t) => shankR * (1.14 - 0.03 * t), (t) => shankR * (1.12 - 0.03 * t)) : shaft && shinRings(shaft[0], 0.98, count(3));
     if (shaft && !plate) loft(mesh, shaftRings, sides, { color: 'boot', inflate: shaft[1], capStart: false, capEnd: false });
     if (feet.socks) loft(mesh, shinRings(0.66, 0.75, 1), sides, { color: 'sock', inflate: 1.28, capStart: false, capEnd: false });

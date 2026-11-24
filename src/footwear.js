@@ -18,43 +18,45 @@ const FOOT_STATURE = 1.8;
 // ground (body.js LENGTH.ankle, the same table) and `ankleAt` of the length ahead of the heel's back.
 export const FOOT = { length: 0.15, ballBreadth: 0.38, ankle: 0.039, ankleAt: 0.24 };
 
-const FL = FOOT.length * FOOT_STATURE;
-const A0 = FOOT.ankle * FOOT_STATURE;
-const U_HEEL = -FOOT.ankleAt * FL;
-const U_TOE = U_HEEL + FL;
+const FOOT_LONG = FOOT.length * FOOT_STATURE;
+const FOOT_RISE = FOOT.ankle * FOOT_STATURE;
+const FOOT_HEEL_U = -FOOT.ankleAt * FOOT_LONG;
+const FOOT_TOE_U = FOOT_HEEL_U + FOOT_LONG;
 // The ball: the widest section (before the toes' slant: the inner side's joint lies ahead of the outer's).
-const U_BALL = U_HEEL + 0.68 * FL;
-const HALF_BALL = (FOOT.ballBreadth * FL) / 2;
+const FOOT_BALL_U = FOOT_HEEL_U + 0.68 * FOOT_LONG;
+const FOOT_HALF_BALL = (FOOT.ballBreadth * FOOT_LONG) / 2;
 // The instep's bend into the shin: an arc of this radius, from the instep's own slope (rad off level) up to the shin's.
-const CREASE = 0.024;
-const INSTEP_SLOPE = 0.35;
+const FOOT_CREASE = 0.02;
+const FOOT_INSTEP_SLOPE = 0.5;
+// The top of the foot at the ball: its height over the insole, and its slope there (rising towards the ankle).
+const FOOT_BALL_TOP = [0.04, 0.14];
 // How far the forefoot's sections lean (m along per m across): the line of the toes' roots, from the big toe back to the little one.
-const SLANT = 0.22;
+const FOOT_SLANT = 0.22;
 // The heel's rounding in plan.
-const HEEL_ROUND = 0.034;
+const FOOT_HEEL_ROUND = 0.034;
 // The shank's end where no body was measured (ankleFit): the rim's height over the joint, its front and back, its half breadths.
 const ANKLE_FIT = { v: 0.012, front: 0.031, back: -0.041, inner: 0.03, outer: 0.03 };
 // How a foot's breadth follows its ankle's (the ankle's half breadth over that one's, to this power, within these bounds).
 const FOOT_BREADTH = { power: 0.6, least: 0.92, most: 1.3 };
 
-const clamp01 = (x) => Math.min(1, Math.max(0, x));
-const lerp = (a, b, t) => a + (b - a) * t;
-const smooth = (a, b, x) => {
-  const t = clamp01((x - a) / (b - a));
+const footClamp = (x) => Math.min(1, Math.max(0, x));
+const footLerp = (a, b, t) => a + (b - a) * t;
+const footEase = (a, b, x) => {
+  const t = footClamp((x - a) / (b - a));
   return t * t * (3 - 2 * t);
 };
-const spow = (x, e) => Math.sign(x) * Math.abs(x) ** e;
+const footPow = (x, e) => Math.sign(x) * Math.abs(x) ** e;
 /** A curve through `keys` ([x, y] rising in x), eased between them. */
-function keyed(keys, x) {
+function footKeyed(keys, x) {
   if (x <= keys[0][0]) return keys[0][1];
   for (let index = 1; index < keys.length; index += 1) {
-    if (x <= keys[index][0]) return lerp(keys[index - 1][1], keys[index][1], smooth(keys[index - 1][0], keys[index][0], x));
+    if (x <= keys[index][0]) return footLerp(keys[index - 1][1], keys[index][1], footEase(keys[index - 1][0], keys[index][0], x));
   }
   return keys[keys.length - 1][1];
 }
 /** A point on the Catmull-Rom curve through `points`, t from 0 to 1 over its whole run. */
-function spline(points, t) {
-  const at = clamp01(t) * (points.length - 1);
+function footSpline(points, t) {
+  const at = footClamp(t) * (points.length - 1);
   const index = Math.min(points.length - 2, Math.floor(at));
   const f = at - index;
   const p = (k) => points[Math.min(points.length - 1, Math.max(0, k))];
@@ -64,7 +66,7 @@ function spline(points, t) {
 
 // Toe shapes, in plan and in profile: the outline from the ball to the tip is (1 - x^n)^(1/m) of the ball's half breadth
 // (`plan`), the toe box's height falls to the tip the same way (`dome`); `offset` puts the tip towards the big toe.
-const TOES = {
+const TOE_SHAPES = {
   round: { plan: [2.6, 2.0], dome: [2.6, 1.8], offset: 0.008 },
   almond: { plan: [1.9, 1.45], dome: [2.0, 1.5], offset: 0.01 },
   pointed: { plan: [1.3, 1.12], dome: [1.5, 1.2], offset: 0.008 },
@@ -77,15 +79,15 @@ const TOES = {
 const TOES_FIVE = [[0.033, 0.031, 0.025, 0.058], [0.0085, 0.0205, 0.021, 0.053], [-0.0105, 0.0195, 0.019, 0.047], [-0.0275, 0.0185, 0.018, 0.04], [-0.043, 0.018, 0.017, 0.033]];
 const TOES_SPLIT = [[0.033, 0.03, 0.027, 0.059], [-0.0165, 0.064, 0.024, 0.052]];
 // Where the toes root (before the slant), and where the last of a foot with toes of its own ends, a little past it.
-const TOE_ROOT = U_BALL + 0.02;
+const FOOT_TOE_ROOT = FOOT_BALL_U + 0.02;
 
-const LEATHER_SOLE = 0x2a1d14;
-const RUBBER = 0x111113;
+const SOLE_LEATHER = 0x2a1d14;
+const SOLE_RUBBER = 0x111113;
 
 /**
  * The kinds. Of each:
  * - `role`: what the last is made of ('skin', 'upper': the cloth atlas's tile in the boot's colour, 'metal', 'foil');
- * - `thick`: the leather over the foot; `toe`: { shape (TOES), ext: m past the toes, up: the tip turned up by this much,
+ * - `thick`: the leather over the foot; `toe`: { shape (TOE_SHAPES), ext: m past the toes, up: the tip turned up by this much,
  *   box: the toe box's height, tip: its height at the very end }; `toes`: 'five' or 'split', toes of its own;
  * - `arch`: the hollow under the inner waist; `bones`: how far the ankle bones stand out (1: a bare foot);
  * - `sole`: { th: under the ball, heel: under the heel (the foot pitched to it), wedge: its underside flat on the ground
@@ -96,11 +98,12 @@ const RUBBER = 0x111113;
  * - `cut`: where the upper ends: 'low' under the ankle bones (the ankle shows: `ankle` 'skin' or 'sock'), 'ankle' in a
  *   collar of its own over them (`collar`: m over the joint, `flare`), 'shaft' up into the boot's leg (loftbody.js), 'leg'
  *   up into the shank (skin);
+ * - `finish`: how polished each of its materials is, by role (0 matt, 1 mirror-bright; none: matt cloth, dull leather);
  * - `paint`: the colour of each part of the upper, (s, a, across) => a palette name;
- * - `pieces`: what is laid on it (see PIECES).
+ * - `pieces`: what is laid on it: 'band' (a strap round it), 'laces', 'rope', 'studs', 'lames' (plates across it).
  * Colours are palette names ('upper': the design's own colour, 'accent', 'skin', 'gold') or hex.
  */
-const WARAJI = [
+const WARAJI_TIES = [
   // The thong up between the toes to the instep, the side loops, the heel loop, and the ties crossed over the instep and round the ankle (the Met's 36.120.674; ukiyo-e travellers).
   { kind: 'rope', colour: 0xc9b47c, r: 0.0028, role: 'straw', paths: [
     [['toe'], [0.42, 0, 0.004], [0.62, 0, 0.004]],
@@ -111,9 +114,9 @@ const WARAJI = [
     [[1.92, 0, 0.004], [1.92, 60, 0.004], [1.92, 120, 0.004], [1.92, 180, 0.004], [1.92, 240, 0.004], [1.92, 300, 0.004], [1.92, 360, 0.004]],
   ] },
 ];
-const STRAW_SOLE = { th: 0.012, margin: 0.005, wall: 0xc8b27a, under: 0xa8935e, stuff: 'straw', rough: 0.002 };
-const LACE = 0x18181b;
-const laces = (from, to, count, colour = LACE, extra = {}) => ({ kind: 'laces', from, to, count, colour, ...extra });
+const WARAJI_SOLE = { th: 0.012, margin: 0.005, wall: 0xc8b27a, under: 0xa8935e, stuff: 'straw', rough: 0.002 };
+const LACE_BLACK = 0x18181b;
+const footLaces = (from, to, count, colour = LACE_BLACK, extra = {}) => ({ kind: 'laces', from, to, count, colour, ...extra });
 
 export const FOOTWEAR = {
   bare: { role: 'skin', toes: 'five', arch: 0.02, bones: 1, cut: 'leg' },
@@ -131,7 +134,7 @@ export const FOOTWEAR = {
     ],
   },
   // Straw sandals on a bare foot (waraji: a ronin's, a monk's; plaited fibre for the Mexica's cactli), tied as a tabi's are.
-  strawSandal: { role: 'skin', toes: 'five', arch: 0.01, bones: 1, cut: 'leg', sole: STRAW_SOLE, pieces: WARAJI },
+  strawSandal: { role: 'skin', toes: 'five', arch: 0.01, bones: 1, cut: 'leg', sole: WARAJI_SOLE, pieces: WARAJI_TIES },
   // A bare foot bound in strips of rag (a starving rebel's): wound round the middle of the foot and the ankle, the toes bare.
   footRags: {
     role: 'skin', toes: 'five', arch: 0.012, bones: 0.6, cut: 'leg',
@@ -143,32 +146,32 @@ export const FOOTWEAR = {
     ],
   },
   // Tabi: a cotton sock with the big toe apart, closed up the inner ankle, in straw waraji.
-  tabi: { role: 'upper', thick: 0.0015, toes: 'split', arch: 0.006, bones: 0.5, cut: 'ankle', collar: 0.05, flare: 0.001, sole: STRAW_SOLE, pieces: WARAJI },
+  tabi: { role: 'upper', thick: 0.0015, toes: 'split', arch: 0.006, bones: 0.5, cut: 'ankle', collar: 0.05, flare: 0.001, sole: WARAJI_SOLE, pieces: WARAJI_TIES },
   // Kōgake: the armoured tabi: lacquered iron plates over the toes and the foot, joined by mail, on a cloth ankle (the
   // Met's 14.100.121 suit's; Bottomley & Hopson, Arms and Armour of the Samurai, 1988), worn in waraji like any tabi.
   kogake: {
-    role: 'upper', thick: 0.002, toes: 'split', toePlates: true, arch: 0.004, bones: 0.3, cut: 'ankle', collar: 0.05, flare: 0.003, sole: STRAW_SOLE,
+    role: 'upper', thick: 0.002, toes: 'split', toePlates: true, arch: 0.004, bones: 0.3, cut: 'ankle', collar: 0.05, flare: 0.003, sole: WARAJI_SOLE, finish: { lacquer: 0.92, trim: 0.5 },
     paint: (s) => (s < 1.02 ? 0x2b2b2e : 'upper'),
     pieces: [
       { kind: 'lames', role: 'lacquer', from: 0.02, to: 0.3, count: 1, arc: 118, lift: [0.0035, 0.0035], edge: 'gold' },
       { kind: 'lames', role: 'lacquer', from: 0.36, to: 0.98, count: 2, arc: 112, lift: [0.0035, 0.0035], gap: 0.12, edge: 'gold', ridge: true },
-      ...WARAJI,
+      ...WARAJI_TIES,
     ],
   },
   // The medieval turnshoe: an ankle shoe sewn inside out and turned, a single thin sole, no heel, the toe a little pointed, closed by a thong through the side (the London finds: Grew & de Neergaard, Shoes and Pattens, 1988).
   turnshoe: {
-    role: 'upper', thick: 0.003, toe: { shape: 'almond', ext: 0.014, box: 0.03, tip: 0.012 }, arch: 0.004, bones: 0.25, cut: 'ankle', collar: 0.042, flare: 0.006,
-    sole: { th: 0.004, margin: 0.0015, wall: LEATHER_SOLE, under: LEATHER_SOLE, stuff: 'leather' },
-    pieces: [laces(0.72, 1.0, 3, 'upperLight', { wide: 62, bar: true, bow: true }), { kind: 'rope', colour: 'upperDark', r: 0.0012, role: 'trim', paths: [[[0.6, 20, 0.0012], [0.8, 60, 0.0012], [1.0, 100, 0.0012], [1.2, 128, 0.0012]]] }],
+    role: 'upper', thick: 0.003, toe: { shape: 'almond', ext: 0.014, box: 0.03, tip: 0.012 }, arch: 0.004, bones: 0.25, cut: 'ankle', collar: 0.042, flare: 0.006, finish: { upper: 0.3 },
+    sole: { th: 0.004, margin: 0.0015, wall: SOLE_LEATHER, under: SOLE_LEATHER, stuff: 'leather' },
+    pieces: [footLaces(0.6, 1.0, 4, 'upperLight', { wide: 30, bar: true, bow: true }), { kind: 'rope', colour: 'upperDark', r: 0.0012, role: 'trim', paths: [[[0.56, 0, 0.0005], [0.8, 0, 0.0005], [1.0, 0, 0.0005]]] }],
   },
   // The Chinese cloth boot (靴): black cloth on a thick white sole of layered cloth, sewn through (千层底), curving up at the toe; the leg wide.
   clothBoot: {
-    role: 'upper', thick: 0.004, toe: { shape: 'round', ext: 0.008, box: 0.036, tip: 0.02 }, bones: 0, cut: 'shaft', stuff: 'cotton',
+    role: 'upper', thick: 0.004, toe: { shape: 'round', ext: 0.008, box: 0.034, tip: 0.012 }, bones: 0, cut: 'shaft',
     sole: { th: 0.02, margin: 0.002, wall: 0xe9e6dc, under: 0xcfc9b8, spring: 0.02, stuff: 'canvas' },
   },
   // The Chinese armoured boot: the same boot in leather, curved steel lames over the instep set in a leather frame, piped and riveted (战靴: the Ming court's Departure Herald scrolls' guards; the Wubei Zhi's 铁网靴 kin).
   lamellarBoot: {
-    role: 'upper', thick: 0.005, toe: { shape: 'round', ext: 0.012, up: 0.012, box: 0.036, tip: 0.02 }, bones: 0, cut: 'shaft',
+    role: 'upper', thick: 0.005, toe: { shape: 'round', ext: 0.012, up: 0.012, box: 0.036, tip: 0.02 }, bones: 0, cut: 'shaft', finish: { upper: 0.12, trim: 0.2 },
     sole: { th: 0.016, margin: 0.003, wall: 0x1c1512, under: 0x1c1512, spring: 0.014, stuff: 'leather' },
     pieces: [
       { kind: 'lames', role: 'metal', from: 0.2, to: 1.0, count: 6, arc: 62, lift: [0.0015, 0.006], rivets: 'brass', inset: 12 },
@@ -178,88 +181,94 @@ export const FOOTWEAR = {
   },
   // The Mongol felt boot (гутал's forebear): a thick felt leg and foot, the toe turned up, a leather sole wrapping up round the foot, leather trim (the Yuan finds from Inner Mongolia; Rubruck's felt boots and overshoes, 1253-55).
   feltBoot: {
-    role: 'upper', thick: 0.007, toe: { shape: 'almond', ext: 0.016, up: 0.03, box: 0.04, tip: 0.02 }, bones: 0, cut: 'shaft', stuff: 'felt',
+    role: 'upper', thick: 0.007, toe: { shape: 'almond', ext: 0.016, up: 0.03, box: 0.04, tip: 0.02 }, bones: 0, cut: 'shaft', finish: { upper: 0, trim: 0.3 },
     sole: { th: 0.006, margin: 0.001, wall: 'trimLeather', under: 'trimLeather', stuff: 'leather' },
     paint: (s, a, down) => (down > 0.78 && s < 1.9 ? 'trimLeather' : 'upper'),
-    pieces: [{ kind: 'rope', colour: 'trimLeather', r: 0.003, role: 'trim', paths: [[[0.05, 0, 0.002], [0.4, 0, 0.002], [0.8, 0, 0.002], [1.0, 0, 0.002]]] }],
+    pieces: [{ kind: 'rope', colour: 'trimLeather', r: 0.003, role: 'trim', paths: [[[0.14, 0, 0.001], [0.3, 0, 0.001], [0.5, 0, 0.001], [0.75, 0, 0.001], [1.0, 0, 0.001]]] }],
   },
   // The Ottoman boot (çizme): soft leather, a slipper-like foot with a small turned-up tip, a thin sole and a low heel, the leg soft to the knee (yellow for a janissary's, red for his officers': Nicolle, Armies of the Ottoman Turks 1300-1774).
   ottomanBoot: {
-    role: 'upper', thick: 0.003, toe: { shape: 'pointed', ext: 0.016, up: 0.014, box: 0.03, tip: 0.012 }, arch: 0.003, bones: 0.1, cut: 'shaft',
-    sole: { th: 0.004, heel: 0.012, margin: 0.001, wall: LEATHER_SOLE, under: LEATHER_SOLE, stuff: 'leather' }, heel: 'stacked',
+    role: 'upper', thick: 0.003, toe: { shape: 'pointed', ext: 0.016, up: 0.014, box: 0.03, tip: 0.012 }, arch: 0.003, bones: 0.1, cut: 'shaft', finish: { upper: 0.05 },
+    sole: { th: 0.004, heel: 0.012, margin: 0.001, wall: SOLE_LEATHER, under: SOLE_LEATHER, stuff: 'leather' }, heel: 'stacked',
   },
   // A Song and Jin rider's leather boot: soft, its toe turned up.
   jinBoot: {
-    role: 'upper', thick: 0.004, toe: { shape: 'almond', ext: 0.014, up: 0.026, box: 0.036, tip: 0.018 }, bones: 0, cut: 'shaft',
-    sole: { th: 0.007, margin: 0.002, wall: LEATHER_SOLE, under: LEATHER_SOLE, stuff: 'leather' },
+    role: 'upper', thick: 0.004, toe: { shape: 'almond', ext: 0.014, up: 0.026, box: 0.036, tip: 0.018 }, bones: 0, cut: 'shaft', finish: { upper: 0.25 },
+    sole: { th: 0.007, margin: 0.002, wall: SOLE_LEATHER, under: SOLE_LEATHER, stuff: 'leather' },
   },
   // A rider's soft leather boot (khuff) to the knee, its toe a little pointed, a low heel for the stirrup.
   ridingBoot: {
-    role: 'upper', thick: 0.0035, toe: { shape: 'almond', ext: 0.012, up: 0.004, box: 0.03, tip: 0.013 }, bones: 0.1, cut: 'shaft',
-    sole: { th: 0.005, heel: 0.016, margin: 0.0015, wall: LEATHER_SOLE, under: LEATHER_SOLE, stuff: 'leather' }, heel: 'stacked',
+    role: 'upper', thick: 0.0035, toe: { shape: 'almond', ext: 0.012, up: 0.004, box: 0.03, tip: 0.013 }, bones: 0.1, cut: 'shaft', finish: { upper: 0.25 },
+    sole: { th: 0.005, heel: 0.016, margin: 0.0015, wall: SOLE_LEATHER, under: SOLE_LEATHER, stuff: 'leather' }, heel: 'stacked',
   },
   // A plain leather ankle boot (where nothing more is known of a man's shoe): a round toe, a flat leather sole.
   compactBoot: {
-    role: 'upper', thick: 0.004, toe: { shape: 'round', ext: 0.008, box: 0.034, tip: 0.016 }, bones: 0, cut: 'shaft',
+    role: 'upper', thick: 0.004, toe: { shape: 'round', ext: 0.008, box: 0.034, tip: 0.016 }, bones: 0, cut: 'shaft', finish: { upper: 0.22 },
     sole: { th: 0.007, heel: 0.012, margin: 0.002, wall: 0x17120f, under: 0x17120f, stuff: 'leather' }, heel: 'stacked',
   },
   // A boxing boot: thin and close, a flat thin sole, laced up the leg.
   boxingBoot: {
-    role: 'upper', thick: 0.0025, toe: { shape: 'round', ext: 0.006, box: 0.03, tip: 0.014 }, bones: 0.15, cut: 'shaft',
+    role: 'upper', thick: 0.0025, toe: { shape: 'round', ext: 0.006, box: 0.03, tip: 0.014 }, bones: 0.15, cut: 'shaft', finish: { upper: 0.35 },
     sole: { th: 0.005, margin: 0.001, wall: 0x17171c, under: 0x17171c, spring: 0.004 },
-    pieces: [laces(0.42, 1.0, 5, 0xe8e8ea)],
+    pieces: [footLaces(0.42, 1.0, 5, 0xe8e8ea)],
   },
   // A running shoe: a thick sculpted midsole with a rocker, a mesh upper with overlays, a heel counter, laces, a sock at the ankle.
   trainer: {
-    role: 'upper', thick: 0.0045, toe: { shape: 'round', ext: 0.01, box: 0.036, tip: 0.018 }, bones: 0, cut: 'low', ankle: 'sock',
-    sole: { th: 0.02, heel: 0.032, wedge: true, margin: 0.004, flare: 0.004, wall: 0xf2f2f4, under: 0x26262b, out: 0.22, spring: 0.014, bevel: 0.01, waist: 0.3 },
-    paint: (s, a, down) => (s < 0.2 || (s > 1.45 && Math.abs(a - 180) < 75) ? 'upperDark' : down > 0.45 && down < 0.85 && s > 0.45 && s < 1.25 && Math.sin((s * 9) % Math.PI) > 0.55 ? 'accent' : 'upper'),
-    pieces: [laces(0.42, 0.95, 5, 0xf4f4f6, { wide: 26, bar: true }), { kind: 'band', colour: 'upperDark', at: [0.9, 1.06], arc: [-22, 22], lift: 0.006, role: 'upper' }],
+    role: 'upper', thick: 0.0045, toe: { shape: 'round', ext: 0.01, box: 0.036, tip: 0.018 }, bones: 0, cut: 'low', ankle: 'sock', finish: { upper: 0, sole: 0.4, overlay: 0.55 },
+    sole: { th: 0.02, heel: 0.032, wedge: true, margin: 0.004, flare: 0.004, wall: 0xf2f2f4, under: 0x26262b, out: 0.3, spring: 0.014, bevel: 0.01, waist: 0.3 },
+    pieces: [
+      footLaces(0.42, 0.95, 5, 0xf4f4f6, { wide: 26, bar: true }),
+      // The tongue's top, the toe's bumper and the heel's counter, and the overlays swept back along each side.
+      { kind: 'band', colour: 'upperDark', at: [0.9, 1.06], arc: [-22, 22], lift: 0.006, role: 'upper' },
+      { kind: 'band', colour: 'upperDark', at: [0.03, 0.17], arc: [-128, 128], lift: 0.0012, role: 'overlay' },
+      { kind: 'band', colour: 'upperDark', at: [1.38, 1.86], arc: [104, 256], lift: 0.0015, role: 'overlay' },
+      ...[[0.46, 0.55], [0.64, 0.73]].flatMap(([from, to]) => [[34, 124], [-124, -34]].map((arc) => ({ kind: 'band', colour: 'accent', at: [from, to], arc, lift: 0.0012, role: 'overlay', sweep: 0.42 }))),
+    ],
   },
   hikingBoot: {
-    role: 'upper', thick: 0.005, toe: { shape: 'round', ext: 0.012, box: 0.04, tip: 0.022 }, bones: 0, cut: 'shaft',
+    role: 'upper', thick: 0.005, toe: { shape: 'round', ext: 0.012, box: 0.04, tip: 0.022 }, bones: 0, cut: 'shaft', finish: { upper: 0.2 },
     sole: { th: 0.018, heel: 0.03, wedge: true, margin: 0.004, wall: 0x2a2420, under: 0x17120f, spring: 0.008, lugs: 0.006, waist: 0.4 },
     paint: (s, a, down) => (down > 0.8 || s < 0.16 ? 'upperDark' : 'upper'),
-    pieces: [laces(0.4, 1.0, 5, 0xb5482a, { wide: 24 })],
+    pieces: [footLaces(0.4, 1.0, 5, 0xb5482a, { wide: 24 })],
   },
   tacticalBoot: {
     role: 'upper', thick: 0.005, toe: { shape: 'round', ext: 0.012, box: 0.04, tip: 0.022 }, bones: 0, cut: 'shaft',
-    sole: { th: 0.016, heel: 0.03, wedge: true, margin: 0.004, wall: RUBBER, under: RUBBER, spring: 0.006, lugs: 0.006, waist: 0.5 },
-    pieces: [laces(0.42, 1.0, 5, LACE, { wide: 22, bar: true })],
+    sole: { th: 0.016, heel: 0.03, wedge: true, margin: 0.004, wall: SOLE_RUBBER, under: SOLE_RUBBER, spring: 0.006, lugs: 0.006, waist: 0.5 },
+    pieces: [footLaces(0.42, 1.0, 5, LACE_BLACK, { wide: 22, bar: true })],
   },
   // A proximity suit's boot: rubber, under an aluminized cover.
   proximityBoot: {
     role: 'foil', thick: 0.008, toe: { shape: 'round', ext: 0.014, box: 0.046, tip: 0.026 }, bones: 0, cut: 'shaft',
-    sole: { th: 0.018, heel: 0.028, wedge: true, margin: 0.004, wall: RUBBER, under: RUBBER, lugs: 0.005, spring: 0.004 },
+    sole: { th: 0.018, heel: 0.028, wedge: true, margin: 0.004, wall: SOLE_RUBBER, under: SOLE_RUBBER, lugs: 0.005, spring: 0.004 },
   },
   // A man's laced dress shoe: a close almond toe with a cap, a welted leather sole, a low stacked heel.
   dressShoe: {
-    role: 'upper', thick: 0.003, toe: { shape: 'almond', ext: 0.016, box: 0.029, tip: 0.012 }, bones: 0, cut: 'low', ankle: 'sock', gloss: 0.3,
+    role: 'upper', thick: 0.003, toe: { shape: 'almond', ext: 0.016, box: 0.029, tip: 0.012 }, bones: 0, cut: 'low', ankle: 'sock', finish: { upper: 0.6, sole: 0.3 },
     sole: { th: 0.006, heel: 0.024, margin: 0.003, wall: 0x2a1d14, under: 0x2a1d14, stuff: 'leather' }, heel: 'stacked',
-    pieces: [laces(0.62, 0.96, 4, LACE, { wide: 20, bar: true }), { kind: 'rope', colour: 'upperDark', r: 0.001, role: 'trim', paths: [[[0.3, -120, 0.001], [0.3, -60, 0.001], [0.3, 0, 0.001], [0.3, 60, 0.001], [0.3, 120, 0.001]]] }],
+    pieces: [footLaces(0.62, 0.96, 4, LACE_BLACK, { wide: 20, bar: true }), { kind: 'rope', colour: 'upperDark', r: 0.001, role: 'trim', paths: [[[0.3, -120, 0.0016], [0.3, -90, 0.0016], [0.3, -60, 0.0016], [0.3, -30, 0.0016], [0.3, 0, 0.0016], [0.3, 30, 0.0016], [0.3, 60, 0.0016], [0.3, 90, 0.0016], [0.3, 120, 0.0016]]] }],
   },
   // A lady's laced boot: a pointed toe with a cap, a waisted Louis heel, close to the foot (the 1890s' walking boot); the business woman's ankle boot is the same boot plain.
   heelAnkleBoot: {
-    role: 'upper', thick: 0.003, toe: { shape: 'pointed', ext: 0.02, box: 0.028, tip: 0.01 }, bones: 0, cut: 'shaft', gloss: 0.3,
+    role: 'upper', thick: 0.003, toe: { shape: 'pointed', ext: 0.02, box: 0.028, tip: 0.01 }, bones: 0, cut: 'shaft', finish: { upper: 0.85, sole: 0.5 },
     sole: { th: 0.005, margin: 0.001, wall: 0x0b0b0d, under: 0x2a1d14, stuff: 'leather' }, heel: 'louis',
     paint: (s) => (s < 0.27 ? 'upperDark' : 'upper'),
   },
   // A patent platform shoe (a Mary Jane): a round toe on a platform, a block heel, straps over the instep and round the ankle, each buckled.
   platformShoe: {
-    role: 'upper', thick: 0.003, toe: { shape: 'round', ext: 0.01, box: 0.036, tip: 0.02 }, bones: 0, cut: 'low', ankle: 'skin', gloss: 0.12,
+    role: 'upper', thick: 0.003, toe: { shape: 'round', ext: 0.01, box: 0.036, tip: 0.02 }, bones: 0, cut: 'low', ankle: 'skin', finish: { upper: 0.95, sole: 0.8 },
     sole: { th: 0.006, margin: 0.002, wall: 'upper', under: 0x0b0b0d }, heel: 'block',
   },
   // The gothic lug boot: black leather laced up the front, a round toe with a seam round it, on a thick cleated sole with a block heel.
   lugBoot: {
-    role: 'upper', thick: 0.005, toe: { shape: 'round', ext: 0.012, box: 0.042, tip: 0.024 }, bones: 0, cut: 'shaft', gloss: 0.3,
+    role: 'upper', thick: 0.005, toe: { shape: 'round', ext: 0.012, box: 0.042, tip: 0.024 }, bones: 0, cut: 'shaft', bend: 0.55, finish: { upper: 0.62, sole: 0.05 },
     sole: { th: 0.03, heel: 0.045, wedge: true, margin: 0.005, wall: 0x0b0b0d, under: 0x0b0b0d, lugs: 0.012, spring: 0.004, waist: 0.75 },
-    pieces: [laces(0.45, 1.0, 5, 0x0d0d10, { wide: 22, eyelets: 0x9a9da3 }), { kind: 'rope', colour: 'upperDark', r: 0.0014, role: 'trim', paths: [[[0.5, -52, 0.001], [0.28, -64, 0.001], [0.14, -40, 0.001], [0.1, 0, 0.001], [0.14, 40, 0.001], [0.28, 64, 0.001], [0.5, 52, 0.001]]] }],
+    pieces: [footLaces(0.45, 1.0, 5, 0x0d0d10, { wide: 22, eyelets: 0x9a9da3 }), { kind: 'rope', colour: 'upperDark', r: 0.0014, role: 'trim', paths: [[[0.5, -52, 0.001], [0.28, -64, 0.001], [0.14, -40, 0.001], [0.1, 0, 0.001], [0.14, 40, 0.001], [0.28, 64, 0.001], [0.5, 52, 0.001]]] }],
   },
   // Sabatons: steel lames across the foot, overlapping, riveted at each side; the toe drawn out past the foot to a point
   // (`feet.point`), and a heel plate hinged to the lames at each side (the Gothic harness's: the Met's 29.150.9; Wallace A 21).
   sabaton: {
     role: 'metal', thick: 0.004, toe: { shape: 'pointed', ext: 0.06, box: 0.03, tip: 0.008, droop: 0.004 }, bones: 0, cut: 'shaft',
-    sole: { th: 0.004, margin: 0, wall: LEATHER_SOLE, under: LEATHER_SOLE, stuff: 'leather' },
+    sole: { th: 0.004, margin: 0, wall: SOLE_LEATHER, under: SOLE_LEATHER, stuff: 'leather' },
   },
 };
 
@@ -281,24 +290,25 @@ function footwearSpec(kind, feet, heels, stuff) {
     // A heeled shoe's own toe (`point`: the old measure, the toe's length as a share of the foot's; 0.28 a round one), its platform and its heel.
     out.toe.ext = Math.max(out.toe.ext ?? 0, (heels.point - 0.28) * 0.16);
     if (heels.round) out.toe.shape = 'round';
-    out.sole.th = (out.sole.th ?? 0.005) + (heels.platform ?? 0);
+    out.sole.th = Math.max(out.sole.th ?? 0.005, (heels.platform ?? 0) + 0.005);
     if (!out.sole.wedge) out.heel = heels.block ? 'block' : out.heel ?? 'spike';
-    out.pitch = Math.min(HEEL_BEND.most, heels.pitch * HEEL_BEND.share);
+    out.pitch = Math.min(HEEL_BEND.most, heels.pitch * (spec.bend ?? HEEL_BEND.share));
     for (let strap = 0; strap < (heels.straps ?? 0) && kind === 'platformShoe'; strap += 1) {
       const at = [0.86, 1.5, 1.98][strap] ?? 0.86;
       out.pieces.push({ kind: 'band', colour: 'upper', at: [at - 0.05, at + 0.05], arc: at > 1.9 ? [0, 360] : [-110, 110], lift: at > 1 ? 0.005 : 0.002, role: 'upper', buckle: true });
     }
   }
-  if (feet.laced && kind === 'heelAnkleBoot') out.pieces.push(laces(0.5, 1.0, 6, LACE, { wide: 15 }));
+  if (feet.laced && kind === 'heelAnkleBoot') out.pieces.push(footLaces(0.46, 1.0, 6, 0x26262b, { wide: 14, eyelets: 0x3a3a40 }), { kind: 'rope', colour: 0x26262b, r: 0.0011, role: 'trim', paths: [[[0.27, -110, 0.0008], [0.25, -55, 0.0008], [0.24, 0, 0.0008], [0.25, 55, 0.0008], [0.27, 110, 0.0008]]] });
   return out;
 }
 
 // A heeled foot bends at the ball: the hind foot pitched `share` of the design's `pitch` (which was the whole shoe's, tipped
-// about its toe), at most `most` (a foot bends no further). What height is still wanting is the boot's ankle, standing
-// lower in the frame than the joint with its leg drawn longer to reach it (see `rise`).
+// about its toe; a kind's own `bend` where its sole takes up more of the height), at most `most` (a foot bends no further).
+// What height is still wanting is the boot's ankle, standing lower in the frame than the joint with its leg drawn longer to
+// reach it (see `rise`).
 const HEEL_BEND = { share: 1.5, most: 0.6 };
 
-function hexRgb(hex) {
+function footRgb(hex) {
   return [((hex >> 16) & 255) / 255, ((hex >> 8) & 255) / 255, (hex & 255) / 255];
 }
 
@@ -308,59 +318,66 @@ function hexRgb(hex) {
  * 0 the top, 90 the inner side, 180 the sole or the back), `lift` off the surface; both before the foot is placed (warp).
  */
 function footLast(spec, fit, thick, legTop) {
-  const toe = TOES[spec.toes ? 'roots' : spec.toe?.shape ?? 'round'];
+  const toe = TOE_SHAPES[spec.toes ? 'roots' : spec.toe?.shape ?? 'round'];
   const ext = spec.toes ? 0 : spec.toe?.ext ?? 0.008;
-  const tipU = spec.toes ? TOE_ROOT + 0.012 : U_TOE - 0.006 + ext;
+  const tipU = spec.toes ? FOOT_TOE_ROOT + 0.012 : FOOT_TOE_U - 0.006 + ext;
   const box = spec.toes ? 0.027 : spec.toe?.box ?? 0.034;
   const tipH = spec.toes ? 0.02 : spec.toe?.tip ?? 0.014;
-  const creaseU = fit.front + CREASE * (1 - Math.sin(INSTEP_SLOPE));
-  const instep = A0 + fit.v - CREASE * Math.cos(INSTEP_SLOPE);
+  const creaseU = fit.front + FOOT_CREASE * (1 - Math.sin(FOOT_INSTEP_SLOPE));
+  const instep = FOOT_RISE + fit.v - FOOT_CREASE * Math.cos(FOOT_INSTEP_SLOPE);
   // The foot's outline in plan (half breadths, inner and outer) and its height over the insole, along it.
   const waist = spec.toes ? 1 : 1.04;
-  const inner = (u) => (u < U_HEEL + HEEL_ROUND ? 0.0335 * Math.sqrt(Math.max(0, 1 - ((U_HEEL + HEEL_ROUND - u) / HEEL_ROUND) ** 2)) : keyed([[U_HEEL + HEEL_ROUND, 0.0335], [0.02, 0.033 * waist], [0.075, 0.041], [U_BALL, HALF_BALL * 0.975]], u));
-  const outer = (u) => (u < U_HEEL + HEEL_ROUND ? 0.0335 * Math.sqrt(Math.max(0, 1 - ((U_HEEL + HEEL_ROUND - u) / HEEL_ROUND) ** 2)) : keyed([[U_HEEL + HEEL_ROUND, 0.0335], [0.02, 0.039], [0.075, 0.049], [U_BALL, HALF_BALL * 1.025]], u));
-  const taper = (x, [n, m]) => Math.max(0, 1 - clamp01(x) ** n) ** (1 / m);
-  const toeX = (u) => (u - U_BALL) / (tipU - U_BALL);
+  const inner = (u) => (u < FOOT_HEEL_U + FOOT_HEEL_ROUND ? 0.0335 * Math.sqrt(Math.max(0, 1 - ((FOOT_HEEL_U + FOOT_HEEL_ROUND - u) / FOOT_HEEL_ROUND) ** 2)) : footKeyed([[FOOT_HEEL_U + FOOT_HEEL_ROUND, 0.0335], [0.02, 0.033 * waist], [0.075, 0.041], [FOOT_BALL_U, FOOT_HALF_BALL * 0.975]], u));
+  const outer = (u) => (u < FOOT_HEEL_U + FOOT_HEEL_ROUND ? 0.0335 * Math.sqrt(Math.max(0, 1 - ((FOOT_HEEL_U + FOOT_HEEL_ROUND - u) / FOOT_HEEL_ROUND) ** 2)) : footKeyed([[FOOT_HEEL_U + FOOT_HEEL_ROUND, 0.0335], [0.02, 0.039], [0.075, 0.049], [FOOT_BALL_U, FOOT_HALF_BALL * 1.025]], u));
+  const taper = (x, [n, m]) => Math.max(0, 1 - footClamp(x) ** n) ** (1 / m);
+  const toeX = (u) => (u - FOOT_BALL_U) / (tipU - FOOT_BALL_U);
   const plan = (u) => {
     const x = toeX(u);
     if (x <= 0) return [inner(u) + thick, outer(u) + thick, 0];
     // (The outer side turns in sooner than the inner: the little toe lies well back of the big one.)
-    return [(inner(U_BALL) + thick) * taper(x, toe.plan), (outer(U_BALL) + thick) * taper(x * 1.04, [Math.max(1.1, toe.plan[0] - 0.35), toe.plan[1]]), toe.offset * smooth(0, 1, x)];
+    return [(inner(FOOT_BALL_U) + thick) * taper(x, toe.plan), (outer(FOOT_BALL_U) + thick) * taper(x * 1.04, [Math.max(1.1, toe.plan[0] - 0.35), toe.plan[1]]), toe.offset * footEase(0, 1, x)];
   };
+  // The top line: one curve from the shin's front down over the instep to the toes, steepest at the ankle and easing all
+  // the way (no ledge: its slope runs on from the bend's into the ball's).
   const dorsal = (u) => {
     const x = toeX(u);
-    const body = keyed([[U_BALL, 0.04], [0.085, 0.05], [creaseU, instep]].sort((p, q) => p[0] - q[0]), Math.min(u, creaseU));
-    if (x <= 0) return body + thick;
-    const high = lerp(0.041, box, smooth(0, 0.45, x));
+    if (x <= 0) {
+      const run = FOOT_BALL_U - creaseU;
+      const t = footClamp((FOOT_BALL_U - u) / run);
+      const [h0, m0] = FOOT_BALL_TOP;
+      const m1 = Math.tan(FOOT_INSTEP_SLOPE);
+      return (2 * t ** 3 - 3 * t * t + 1) * h0 + (t ** 3 - 2 * t * t + t) * run * m0 + (-2 * t ** 3 + 3 * t * t) * instep + (t ** 3 - t * t) * run * m1 + thick;
+    }
+    const high = footLerp(FOOT_BALL_TOP[0], box, footClamp(x / 0.5));
     return tipH + (high - tipH) * taper(x, toe.dome) + thick;
   };
   // The heel's outline from the side, from under the instep back along the sole, round the heel and up the tendon to the shank's end.
-  const heelLine = [[creaseU, -A0], [U_HEEL + 0.05, -A0], [U_HEEL + 0.02, -A0 + 0.0005], [U_HEEL + 0.003, -A0 + 0.01], [U_HEEL, -A0 + 0.026], [U_HEEL + 0.008, -A0 + 0.046], [fit.back, fit.v]];
+  const heelLine = [[creaseU, -FOOT_RISE], [FOOT_HEEL_U + 0.05, -FOOT_RISE], ...(thick ? [[FOOT_HEEL_U + 0.01, -FOOT_RISE + 0.0005], [FOOT_HEEL_U + 0.001, -FOOT_RISE + 0.008]] : [[FOOT_HEEL_U + 0.02, -FOOT_RISE + 0.0005], [FOOT_HEEL_U + 0.003, -FOOT_RISE + 0.01]]), [FOOT_HEEL_U, -FOOT_RISE + 0.024], [FOOT_HEEL_U + 0.012, -FOOT_RISE + 0.048], [Math.max(fit.back, FOOT_HEEL_U + 0.02), fit.v]];
   const ring = (s) => {
     if (s <= 1) {
-      const u = lerp(tipU, creaseU, s);
+      const u = footLerp(tipU, creaseU, s);
       const [inn, out, mid] = plan(u);
-      const x = clamp01(toeX(u));
+      const x = footClamp(toeX(u));
       // (The ridge of the instep lies towards the inner side; the section flat underneath, round on top.)
-      return { top: [u, -A0 + dorsal(u)], bottom: [u, -A0], inn, out, mid, ridge: 0.011 * smooth(U_BALL + 0.03, 0.06, u), eTop: lerp(0.95, 0.8, x), eBottom: 0.5, eSide: 0.8, belly: 0.62, tail: 0, u };
+      return { top: [u, -FOOT_RISE + dorsal(u)], bottom: [u, -FOOT_RISE], inn, out, mid, ridge: 0.011 * footEase(FOOT_BALL_U + 0.03, 0.06, u), eTop: footLerp(0.95, 0.8, x), eBottom: 0.5, eSide: 0.8, belly: 0.62, tail: 0, u };
     }
     if (s <= 2) {
       const t = s - 1;
-      const angle = lerp(INSTEP_SLOPE, Math.PI / 2, t);
-      const top = [fit.front + CREASE - (CREASE - thick) * Math.sin(angle), fit.v - (CREASE - thick) * Math.cos(angle)];
-      const raw = spline(heelLine, t);
+      const angle = footLerp(FOOT_INSTEP_SLOPE, Math.PI / 2, t);
+      const top = [fit.front + FOOT_CREASE - (FOOT_CREASE - thick) * Math.sin(angle), fit.v - (FOOT_CREASE - thick) * Math.cos(angle)];
+      const raw = footSpline(heelLine, t);
       const away = Math.hypot(raw[0] - top[0], raw[1] - top[1]) || 1;
-      const bottom = [raw[0] + ((raw[0] - top[0]) / away) * thick * smooth(0, 0.3, t), raw[1] + ((raw[1] - top[1]) / away) * thick * smooth(0, 0.3, t)];
-      const mid = lerp(top[0], bottom[0], 0.6);
-      const heelIn = keyed([[0, plan(creaseU)[0] - thick], [0.35, 0.0335], [0.7, 0.0295], [1, fit.inner]], t) + thick;
-      const heelOut = keyed([[0, plan(creaseU)[1] - thick], [0.35, 0.0345], [0.7, 0.0295], [1, fit.outer]], t) + thick;
-      return { top, bottom, inn: heelIn, out: heelOut, mid: 0, ridge: 0.011 * (1 - smooth(0, 0.5, t)) * smooth(U_BALL + 0.03, 0.06, creaseU), eTop: 0.95, eBottom: lerp(0.5, 0.9, smooth(0.2, 0.8, t)), eSide: lerp(0.8, 1, t), belly: lerp(0.62, 1, smooth(0.2, 1, t)), tail: 0.3 * smooth(0.45, 1, t), u: mid };
+      const bottom = [raw[0] + ((raw[0] - top[0]) / away) * thick * footEase(0, 0.3, t), raw[1] + ((raw[1] - top[1]) / away) * thick * footEase(0, 0.3, t)];
+      const mid = footLerp(top[0], bottom[0], 0.6);
+      const heelIn = footKeyed([[0, plan(creaseU)[0] - thick], [0.35, 0.0335], [0.7, 0.0295], [1, fit.inner]], t) + thick;
+      const heelOut = footKeyed([[0, plan(creaseU)[1] - thick], [0.35, 0.0345], [0.7, 0.0295], [1, fit.outer]], t) + thick;
+      return { top, bottom, inn: heelIn, out: heelOut, mid: 0, ridge: 0.011 * (1 - footEase(0, 0.5, t)) * footEase(FOOT_BALL_U + 0.03, 0.06, creaseU), eTop: 0.95, eBottom: footLerp(0.5, 0.9, footEase(0.2, 0.8, t)), eSide: footLerp(0.8, 1, t), belly: footLerp(0.62, 1, footEase(0.2, 1, t)), tail: 0.5 * footEase(0.4, 1, t), u: mid };
     }
     // Up inside the leg: level sections, drawn in a little as they go.
     const t = s - 2;
-    const tuck = 0.004 * smooth(0.3, 1, t);
+    const tuck = 0.004 * footEase(0.3, 1, t);
     const v = fit.v + t * legTop;
-    return { top: [fit.front + thick - tuck, v], bottom: [fit.back - thick + tuck, v], inn: fit.inner + thick - tuck, out: fit.outer + thick - tuck, mid: 0, ridge: 0, eTop: 0.95, eBottom: 0.9, eSide: 1, belly: 1, tail: 0.3, u: 0 };
+    return { top: [fit.front + thick - tuck, v], bottom: [fit.back - thick + tuck, v], inn: fit.inner + thick - tuck, out: fit.outer + thick - tuck, mid: 0, ridge: 0, eTop: 0.95, eBottom: 0.9, eSide: 1, belly: 1, tail: 0.5, u: 0 };
   };
   const bones = spec.bones ?? 0;
   const arch = spec.arch ?? 0;
@@ -368,14 +385,14 @@ function footLast(spec, fit, thick, legTop) {
     const angle = (a * Math.PI) / 180;
     const c = Math.cos(angle);
     const sn = Math.sin(angle);
-    const down = (0.5 - 0.5 * spow(c, c > 0 ? section.eTop : section.eBottom)) ** section.belly;
-    const half = (sn > 0 ? section.inn : section.out) * (1 - section.tail * smooth(0.55, 1, down));
-    let u = lerp(section.top[0], section.bottom[0], down);
-    let v = lerp(section.top[1], section.bottom[1], down);
-    let w = section.mid + section.ridge * (1 - smooth(0, 0.6, down)) + half * spow(sn, section.eSide);
+    const down = (0.5 - 0.5 * footPow(c, c > 0 ? section.eTop : section.eBottom)) ** section.belly;
+    const half = (sn > 0 ? section.inn : section.out) * (1 - section.tail * footEase(0.55, 1, down));
+    let u = footLerp(section.top[0], section.bottom[0], down);
+    let v = footLerp(section.top[1], section.bottom[1], down);
+    let w = section.mid + section.ridge * (1 - footEase(0, 0.6, down)) + half * footPow(sn, section.eSide);
     if (lift) {
       // Off the surface: away from the section's middle, in its plane.
-      const centre = [lerp(section.top[0], section.bottom[0], 0.5), lerp(section.top[1], section.bottom[1], 0.5), section.mid];
+      const centre = [footLerp(section.top[0], section.bottom[0], 0.5), footLerp(section.top[1], section.bottom[1], 0.5), section.mid];
       const away = [u - centre[0], v - centre[1], (w - centre[2]) * 1.4];
       const far = Math.hypot(...away) || 1;
       u += (away[0] / far) * lift;
@@ -383,20 +400,20 @@ function footLast(spec, fit, thick, legTop) {
       w += (away[2] / far) * lift;
     }
     // The arch: the inner waist lifted off the ground between the heel's pad and the ball's.
-    if (arch) v += arch * Math.sin(Math.PI * clamp01((u - (U_HEEL + 0.045)) / (U_BALL - 0.012 - (U_HEEL + 0.045)))) ** 1.5 * smooth(-0.016, 0.026, w) * (1 - smooth(-A0, -A0 + 0.034, v));
+    if (arch) v += arch * Math.sin(Math.PI * footClamp((u - (FOOT_HEEL_U + 0.045)) / (FOOT_BALL_U - 0.012 - (FOOT_HEEL_U + 0.045)))) ** 1.5 * footEase(-0.016, 0.026, w) * (1 - footEase(-FOOT_RISE, -FOOT_RISE + 0.034, v));
     // The ankle bones: the inner higher and further forward than the outer, both fading into the shank's end.
     if (bones) {
       const bump = (bu, bv, r) => Math.exp(-(((u - bu) / r) ** 2) - ((v - bv) / (r * 1.25)) ** 2);
-      if (w > 0.012) w += bones * 0.0085 * bump(-0.006, 0.0, 0.017) * smooth(fit.v + 0.006, fit.v - 0.01, v);
-      else if (w < -0.012) w -= bones * 0.0095 * bump(-0.02, -0.012, 0.016) * smooth(fit.v + 0.006, fit.v - 0.01, v);
+      if (w > 0.012) w += bones * 0.011 * bump(-0.006, 0.002, 0.016) * footEase(fit.v + 0.006, fit.v - 0.01, v);
+      else if (w < -0.012) w -= bones * 0.012 * bump(-0.02, -0.01, 0.015) * footEase(fit.v + 0.006, fit.v - 0.01, v);
     }
-    return [u + SLANT * w * smooth(0, 0.1, u), v, w, down];
+    return [u + FOOT_SLANT * w * footEase(0, 0.1, u), v, w, down];
   };
   return { ring, at, tipU, creaseU, plan, toeX };
 }
 
 /** Parts to draw, each { positions, indices, colors } (flat arrays; normals are the caller's to compute from them). */
-function newPart() {
+function footPart() {
   return { positions: [], colors: [], indices: [] };
 }
 
@@ -409,7 +426,7 @@ function newPart() {
  * - `fit`: the shank's end to meet (ankleFit), `detail`: 'full' or 'low' (a crowd's: fewer sections, no laces or studs);
  * - `palette`: { upper, accent, skin, gold, sock } as hex; `stuff`: the upper's cloth (a straw sandal's sole is its `stuff`).
  */
-export function footwearParts(kind, { feet = {}, heels = null, side = 'l', ground = A0, fit: shank = ANKLE_FIT, detail = 'full', palette = {}, stuff = null } = {}) {
+export function footwearParts(kind, { feet = {}, heels = null, side = 'l', ground = FOOT_RISE, fit: shank = ANKLE_FIT, detail = 'full', palette = {}, stuff = null } = {}) {
   // The foot stands under the leg as it was built (a body's shank may end a little off the joint), and a broad ankle carries
   // a broad foot: the last is made about its own middle, `breadth` wide, and set `offset` from the joint.
   const half = (shank.inner + shank.outer) / 2;
@@ -424,19 +441,19 @@ export function footwearParts(kind, { feet = {}, heels = null, side = 'l', groun
   const th = sole?.th ?? 0;
   const mirror = side === 'l' ? 1 : -1;
   const parts = {};
-  const part = (role) => (parts[role] ??= newPart());
+  const part = (role) => (parts[role] ??= footPart());
   const upperHex = palette.upper ?? 0x3a2a20;
   const shade = (hex, by) => {
-    const [r, g, b] = hexRgb(hex);
-    return by < 1 ? [r * by, g * by, b * by] : [lerp(r, 1, by - 1), lerp(g, 1, by - 1), lerp(b, 1, by - 1)];
+    const [r, g, b] = footRgb(hex);
+    return by < 1 ? [r * by, g * by, b * by] : [footLerp(r, 1, by - 1), footLerp(g, 1, by - 1), footLerp(b, 1, by - 1)];
   };
-  const named = { upper: hexRgb(upperHex), upperDark: shade(upperHex, 0.62), upperLight: shade(upperHex, 1.25), accent: hexRgb(palette.accent ?? upperHex), skin: hexRgb(palette.skin ?? 0xd9a07a), gold: hexRgb(palette.gold ?? 0xd6a743), sock: hexRgb(palette.sock ?? 0xe9e9ec), trimLeather: shade(palette.trim ?? 0x5a3a22, 1), white: [1, 1, 1] };
-  const colour = (value) => (typeof value === 'number' ? hexRgb(value) : named[value] ?? named.upper);
+  const named = { upper: footRgb(upperHex), upperDark: shade(upperHex, 0.62), upperLight: shade(upperHex, 1.25), accent: footRgb(palette.accent ?? upperHex), skin: footRgb(palette.skin ?? 0xd9a07a), gold: footRgb(palette.gold ?? 0xd6a743), sock: footRgb(palette.sock ?? 0xe9e9ec), trimLeather: shade(palette.trim ?? 0x5a3a22, 1), white: [1, 1, 1] };
+  const colour = (value) => (typeof value === 'number' ? footRgb(value) : named[value] ?? named.upper);
 
   // How the foot stands: flat, or its hind part pitched up about the ball on a heel. The last is made flat with its
-  // insole A0 under the joint; `warp` bends it, turns up its toe and sets it down with its sole on the ground.
-  const pitch = spec.pitch ?? (sole?.heel && sole.heel > th ? Math.asin(Math.min(0.6, (sole.heel - th) / (U_BALL - U_HEEL))) : 0);
-  const ballAt = [U_BALL, -A0];
+  // insole FOOT_RISE under the joint; `warp` bends it, turns up its toe and sets it down with its sole on the ground.
+  const pitch = spec.pitch ?? (sole?.heel && sole.heel > th ? Math.asin(Math.min(0.6, (sole.heel - th) / (FOOT_BALL_U - FOOT_HEEL_U))) : 0);
+  const ballAt = [FOOT_BALL_U, -FOOT_RISE];
   const turn = (u, v, angle) => {
     const du = u - ballAt[0];
     const dv = v - ballAt[1];
@@ -444,25 +461,25 @@ export function footwearParts(kind, { feet = {}, heels = null, side = 'l', groun
   };
   const joint = turn(0, 0, pitch);
   // `rise`: how far the drawn foot's ankle stands over the joint (on a thick sole; under it on a high heel, see HEEL_BEND).
-  const rise = joint[1] + A0 + th - ground;
+  const rise = joint[1] + FOOT_RISE + th - ground;
   const spring = sole?.spring ?? 0;
   const toeUp = spec.toe?.up ?? 0;
   const droop = spec.toe?.droop ?? 0;
-  let tipU = U_TOE;
+  let tipU = FOOT_TOE_U;
   const warp = ([u, v, w]) => {
     let pu = u;
     let pv = v;
     if (pitch) {
-      const hind = 1 - smooth(U_BALL - 0.04, U_BALL + 0.015, u);
+      const hind = 1 - footEase(FOOT_BALL_U - 0.04, FOOT_BALL_U + 0.015, u);
       const [tu, tv] = turn(u, v, pitch * hind);
-      const leg = smooth(-0.022, 0.014, v);
-      pu = lerp(tu, u + joint[0], leg) - joint[0];
-      pv = lerp(tv, v + joint[1], leg);
+      const leg = footEase(fit.v - 0.004, fit.v + 0.02, v);
+      pu = footLerp(tu, u + joint[0], leg) - joint[0];
+      pv = footLerp(tv, v + joint[1], leg);
     }
-    const x = clamp01((u - U_BALL) / (tipU - U_BALL));
+    const x = footClamp((u - FOOT_BALL_U) / (tipU - FOOT_BALL_U));
     // The toe's spring off the ground, and a toe turned up (the last third of it) or drawn down to a point.
-    pv += spring * x * x + toeUp * smooth(0.45, 1, x) ** 1.6 - droop * x;
-    return [pv + A0 + th - ground, pu + offset[0], (w * breadth + offset[1]) * mirror];
+    pv += spring * x * x + toeUp * footEase(0.45, 1, x) ** 1.6 - droop * x;
+    return [pv + FOOT_RISE + th - ground, pu + offset[0], (w * breadth + offset[1]) * mirror];
   };
 
   const legTop = Math.max(0.03, 0.03 - rise);
@@ -539,7 +556,7 @@ export function footwearParts(kind, { feet = {}, heels = null, side = 'l', groun
   // The toe's end: closed to its tip.
   {
     const tip = last.at(0, 0);
-    const tipPoint = warp([tip[0], lerp(last.ring(0).bottom[1], tip[1], 0.45), tip[2]]);
+    const tipPoint = warp([tip[0], footLerp(last.ring(0).bottom[1], tip[1], 0.45), tip[2]]);
     const centre = push(lastPart, tipPoint, lastColour(0, 0, 0.5));
     for (let j = 0; j < around; j += 1) tri(lastPart, centre, lastIndex[0][(j + 1) % around], lastIndex[0][j]);
   }
@@ -573,14 +590,14 @@ export function footwearParts(kind, { feet = {}, heels = null, side = 'l', groun
         const angle = (j * 2 * Math.PI) / sides;
         const c = Math.cos(angle);
         const sn = Math.sin(angle);
-        const w = mid * (1 + 0.06 * t) + (wide / 2 + grown) * breadth * spow(sn, 0.85);
-        const v = -A0 + raise + (high + grown) * height * (0.5 + 0.5 * spow(c, c > 0 ? 0.9 : 0.55));
-        const u = TOE_ROOT - 0.006 + long * t;
-        return [...warp([u + SLANT * w, v, w]), tint];
+        const w = mid * (1 + 0.06 * t) + (wide / 2 + grown) * breadth * footPow(sn, 0.85);
+        const v = -FOOT_RISE + raise + (high + grown) * height * (0.5 + 0.5 * footPow(c, c > 0 ? 0.9 : 0.55));
+        const u = FOOT_TOE_ROOT - 0.006 + long * t;
+        return [...warp([u + FOOT_SLANT * w, v, w]), tint];
       });
       const lobeRows = [lobeRow(0, 1, 1.12, 0), lobeRow(0.4, 0.96, 1, 0.0005), lobeRow(0.74, 1.04, 0.92, 0), lobeRow(0.93, 0.86, 0.74, 0.0015)];
       const index = sheet(target, lobeRows, true, true);
-      const end = push(target, warp([TOE_ROOT - 0.006 + long + SLANT * mid * 1.06, -A0 + (high + grown) * 0.42, mid * 1.06]), tint);
+      const end = push(target, warp([FOOT_TOE_ROOT - 0.006 + long + FOOT_SLANT * mid * 1.06, -FOOT_RISE + (high + grown) * 0.42, mid * 1.06]), tint);
       const lastRow = index[index.length - 1];
       for (let j = 0; j < sides; j += 1) tri(target, end, lastRow[(j + 1) % sides], lastRow[j]);
     });
@@ -598,27 +615,27 @@ export function footwearParts(kind, { feet = {}, heels = null, side = 'l', groun
     const us = Array.from({ length: stations }, (_, k) => {
       const t = k / (stations - 1);
       // (Closer together round the heel and the toe, where the outline turns.)
-      return lerp(U_HEEL - thick + 0.0015, last.tipU - 0.002, 0.5 - 0.5 * Math.cos(Math.PI * t) * (0.86 + 0.14 * Math.abs(Math.cos(Math.PI * t))));
+      return footLerp(FOOT_HEEL_U - thick + 0.006, last.tipU - 0.002, 0.5 - 0.5 * Math.cos(Math.PI * t) * (0.86 + 0.14 * Math.abs(Math.cos(Math.PI * t))));
     });
     const waist = sole.waist ?? 1;
     const edge = us.map((u, k) => {
       const [inn, out, mid] = last.plan(u);
-      const flare = (sole.flare ?? 0) * (1 - smooth(U_HEEL, U_HEEL + 0.09, u));
+      const flare = (sole.flare ?? 0) * (1 - footEase(FOOT_HEEL_U, FOOT_HEEL_U + 0.09, u));
       const rough = sole.rough ? sole.rough * Math.sin(k * 2.4) : 0;
       // (A sole cut straighter than the foot through the waist: `waist` of the foot's own narrowing kept.)
-      const fill = (1 - waist) * Math.sin(Math.PI * clamp01((u - U_HEEL - 0.03) / (U_BALL - U_HEEL - 0.03))) * 0.007;
+      const fill = (1 - waist) * Math.sin(Math.PI * footClamp((u - FOOT_HEEL_U - 0.03) / (FOOT_BALL_U - FOOT_HEEL_U - 0.03))) * 0.007;
       const end = k === 0 || k === stations - 1 ? 0.35 : 1;
       return { u, inn: (inn + margin + flare + rough + fill) * end, out: (out + margin + flare - rough + fill * 0.4) * end, mid };
     });
     // Round the outline: up the inner side from the heel to the toe, back down the outer.
-    const loop = [...edge.map(({ u, inn, mid }) => [u + SLANT * (mid + inn) * smooth(0, 0.1, u), mid + inn]), ...edge.slice().reverse().map(({ u, out, mid }) => [u - SLANT * (out - mid) * smooth(0, 0.1, u), mid - out])];
+    const loop = [...edge.map(({ u, inn, mid }) => [u + FOOT_SLANT * (mid + inn) * footEase(0, 0.1, u), mid + inn]), ...edge.slice().reverse().map(({ u, out, mid }) => [u - FOOT_SLANT * (out - mid) * footEase(0, 0.1, u), mid - out])];
     const bevel = sole.bevel ?? 0;
-    const topOf = ([u, w]) => warp([u, -A0, w]);
+    const topOf = ([u, w]) => warp([u, -FOOT_RISE, w]);
     const bottomOf = ([u, w]) => {
-      if (!sole.wedge) return warp([u, -A0 - th, w]);
-      const flat = floorOf(warp([u, -A0 - th, w]));
-      const x = clamp01((u - U_BALL) / (tipU - U_BALL));
-      return [flat[0] + spring * x * x + bevel * clamp01((U_HEEL + 0.035 - u) / 0.035) ** 2, flat[1], flat[2]];
+      if (!sole.wedge) return warp([u, -FOOT_RISE - th, w]);
+      const flat = floorOf(warp([u, -FOOT_RISE - th, w]));
+      const x = footClamp((u - FOOT_BALL_U) / (tipU - FOOT_BALL_U));
+      return [flat[0] + spring * x * x + bevel * footClamp((FOOT_HEEL_U + 0.035 - u) / 0.035) ** 2, flat[1], flat[2]];
     };
     const lugs = low ? 0 : sole.lugs ?? 0;
     const topRow = loop.map((p) => [...topOf(p), wall]);
@@ -630,7 +647,7 @@ export function footwearParts(kind, { feet = {}, heels = null, side = 'l', groun
       const midRow = loop.map((p, k) => {
         const t = topRow[k];
         const b = bottomRow[k];
-        return [lerp(b[0], t[0], sole.out), lerp(b[1], t[1], sole.out), lerp(b[2], t[2], sole.out)];
+        return [footLerp(b[0], t[0], sole.out), footLerp(b[1], t[1], sole.out), footLerp(b[2], t[2], sole.out)];
       });
       sheet(target, [topRow, midRow.map((p) => [...p, wall])], true);
       sheet(target, [midRow.map((p) => [...p, under]), bottomRow], true);
@@ -659,7 +676,7 @@ export function footwearParts(kind, { feet = {}, heels = null, side = 'l', groun
         const span = Math.hypot(b[0] - a[0], b[1] - a[1]);
         const blocks = Math.max(1, Math.round(span / 0.021));
         for (let n = 0; n < blocks; n += 1) {
-          const at = (f) => [lerp(a[0], b[0], (n + f) / blocks), lerp(a[1], b[1], (n + f) / blocks)];
+          const at = (f) => [footLerp(a[0], b[0], (n + f) / blocks), footLerp(a[1], b[1], (n + f) / blocks)];
           const [p, q] = [at(0.14), at(0.86)];
           const inward = (point) => {
             const [inn, out, mid] = last.plan(point[0]);
@@ -683,16 +700,16 @@ export function footwearParts(kind, { feet = {}, heels = null, side = 'l', groun
     // curved under the arch, a block, a spike).
     const heelDrop = -ground;
     if (spec.heel && !sole.wedge) {
-      const breast = U_HEEL + (spec.heel === 'block' ? 0.07 : spec.heel === 'spike' ? 0.04 : 0.062);
+      const breast = FOOT_HEEL_U + (spec.heel === 'block' ? 0.07 : spec.heel === 'spike' ? 0.04 : 0.062);
       const seat = [];
       const steps = low ? 3 : 5;
       for (let k = 0; k <= steps; k += 1) {
-        const u = lerp(breast, U_HEEL - thick + 0.002, Math.sin((k / steps) * Math.PI / 2));
-        const [inn] = last.plan(Math.max(u, U_HEEL - thick + 0.004));
+        const u = footLerp(breast, FOOT_HEEL_U - thick + 0.002, Math.sin((k / steps) * Math.PI / 2));
+        const [inn] = last.plan(Math.max(u, FOOT_HEEL_U - thick + 0.004));
         seat.push([u, (inn + margin) * (k === steps ? 0.45 : 1)]);
       }
       const ringPlan = [...seat, ...seat.slice().reverse().map(([u, w]) => [u, -w * 1.02])];
-      const topRing = ringPlan.map(([u, w]) => warp([u, -A0 - th, w]));
+      const topRing = ringPlan.map(([u, w]) => warp([u, -FOOT_RISE - th, w]));
       const middle = topRing.reduce((sum, p) => [sum[0] + p[0] / topRing.length, sum[1] + p[1] / topRing.length, sum[2] + p[2] / topRing.length], [0, 0, 0]);
       const height = middle[0] - heelDrop;
       if (height > 0.004) {
@@ -702,8 +719,8 @@ export function footwearParts(kind, { feet = {}, heels = null, side = 'l', groun
         const backMost = Math.min(...topRing.map((p) => p[1]));
         const heelRows = shape.map(([t, size, forward]) => topRing.map((p) => {
           // (Straight down from the seat's own outline, drawn in about its back.)
-          const anchorY = lerp(backMost, middle[1], 0.5);
-          return [lerp(p[0], heelDrop, t), anchorY + (p[1] - anchorY) * size + forward * (height / 0.06), middle[2] + (p[2] - middle[2]) * size, tint];
+          const anchorY = footLerp(backMost, middle[1], 0.5);
+          return [footLerp(p[0], heelDrop, t), anchorY + (p[1] - anchorY) * size + forward * (height / 0.06), middle[2] + (p[2] - middle[2]) * size, tint];
         }));
         const index = sheet(part('sole'), heelRows, true);
         const foot = index[index.length - 1];
@@ -735,7 +752,7 @@ export function footwearParts(kind, { feet = {}, heels = null, side = 'l', groun
       const across = unit(cross(normalAt(...places[k]), along));
       return [[p[0] + across[0] * wide / 2, p[1] + across[1] * wide / 2, p[2] + across[2] * wide / 2, tint], [p[0] - across[0] * wide / 2, p[1] - across[1] * wide / 2, p[2] - across[2] * wide / 2, tint]];
     });
-    sheet(target, rowsOf, false, mirror > 0);
+    sheet(target, rowsOf, false, mirror < 0);
   };
   /** A cord `r` thick through points, three-sided. */
   const cord = (target, points, r, tint) => {
@@ -771,7 +788,8 @@ export function footwearParts(kind, { feet = {}, heels = null, side = 'l', groun
       const [from, to] = piece.arc;
       const whole = to - from >= 360;
       const steps = Math.max(2, Math.round(((to - from) / 360) * around * (low ? 0.75 : 1)));
-      const bandRow = (s, lift) => Array.from({ length: whole ? steps : steps + 1 }, (_, j) => [...surface(s, from + ((to - from) * j) / steps, lift), tint]);
+      // (`sweep`: the strap leaning back towards the ankle as it runs down to the sole.)
+      const bandRow = (s, lift) => Array.from({ length: whole ? steps : steps + 1 }, (_, j) => [...surface(s + (piece.sweep ?? 0) * (j / steps) * (from < 0 ? -1 : 1) + (from < 0 ? piece.sweep ?? 0 : 0), from + ((to - from) * j) / steps, lift), tint]);
       const [s0, s1] = piece.at;
       const wide = s1 - s0 > 0.3 && !low;
       sheet(target, [bandRow(s0, 0), bandRow(s0, piece.lift), ...(wide ? [bandRow((s0 + s1) / 2, piece.lift)] : []), bandRow(s1, piece.lift), bandRow(s1, 0)], whole);
@@ -783,8 +801,8 @@ export function footwearParts(kind, { feet = {}, heels = null, side = 'l', groun
       const wide = piece.wide ?? 20;
       const lift = thick * 0.2 + 0.0015;
       for (let k = 0; k < piece.count; k += 1) {
-        const s0 = lerp(piece.from, piece.to, k / piece.count);
-        const s1 = lerp(piece.from, piece.to, (k + 1) / piece.count);
+        const s0 = footLerp(piece.from, piece.to, k / piece.count);
+        const s1 = footLerp(piece.from, piece.to, (k + 1) / piece.count);
         if (piece.bar) ribbon(target, [[s0, -wide, lift], [s0, 0, lift + 0.001], [s0, wide, lift]], 0.0035, tint);
         else {
           ribbon(target, [[s0, -wide, lift], [(s0 + s1) / 2, 0, lift + 0.0012], [s1, wide, lift]], 0.003, tint);
@@ -804,7 +822,7 @@ export function footwearParts(kind, { feet = {}, heels = null, side = 'l', groun
       for (const path of piece.paths) {
         const points = path.map((place) => {
           // ('toe': down between the big toe and the next, at the sole.)
-          if (place[0] === 'toe') return warp([TOE_ROOT + 0.012 + SLANT * 0.0185, -A0 + 0.004, 0.0185]);
+          if (place[0] === 'toe') return warp([FOOT_TOE_ROOT + 0.012 + FOOT_SLANT * 0.0185, -FOOT_RISE + 0.004, 0.0185]);
           return surface(place[0], place[1], place[2] + (piece.r ?? 0.002));
         });
         cord(target, points, piece.r ?? 0.002, tint);
@@ -824,21 +842,23 @@ export function footwearParts(kind, { feet = {}, heels = null, side = 'l', groun
         const toeward = piece.from + span * k + (gap * span) / 2;
         const ankleward = piece.from + span * (k + 1) - (gap * span) / 2 + (gap ? 0 : span * 0.12);
         const lameRow = (s, lift) => Array.from({ length: steps + 1 }, (_, j) => {
-          const a = lerp(arc[0], arc[1], j / steps);
+          const a = footLerp(arc[0], arc[1], j / steps);
           // (A ridge down the middle of a kōgake's plate.)
           const ridged = piece.ridge ? 0.0015 * Math.max(0, 1 - Math.abs(a) / 30) : 0;
           return [...surface(s, a, lift + ridged), named.white];
         });
-        const rowsOf = [lameRow(toeward, 0), lameRow(toeward, highLift), ...(piece.count === 1 && !low ? [lameRow((toeward + ankleward) / 2, lerp(highLift, lowLift, 0.5))] : []), lameRow(ankleward, lowLift), ...(piece.wall || gap ? [lameRow(ankleward, 0)] : [])];
+        // (A long plate follows the last through sections of its own between its edges.)
+        const between = low ? 0 : Math.ceil((ankleward - toeward) / 0.22) - 1;
+        const rowsOf = [lameRow(toeward, 0), lameRow(toeward, highLift), ...Array.from({ length: between }, (_, n) => lameRow(footLerp(toeward, ankleward, (n + 1) / (between + 1)), footLerp(highLift, lowLift, (n + 1) / (between + 1)))), lameRow(ankleward, lowLift), ...(piece.wall || gap ? [lameRow(ankleward, 0)] : [])];
         sheet(target, rowsOf, false);
         if (piece.edge && !low) {
           const tint = colour(piece.edge);
-          for (const s of [toeward, ankleward]) cord(part('trim'), Array.from({ length: steps + 1 }, (_, j) => surface(s, lerp(arc[0], arc[1], j / steps), (s === toeward ? highLift : lowLift) + 0.0012)), 0.0011, tint);
+          for (const s of [toeward, ankleward]) cord(part('trim'), Array.from({ length: steps + 1 }, (_, j) => surface(s, footLerp(arc[0], arc[1], j / steps), (s === toeward ? highLift : lowLift) + 0.0012)), 0.0011, tint);
         }
         if (piece.rivets && !low) {
           const inset = piece.inset ?? 12;
-          const s = lerp(toeward, ankleward, piece.count === 1 ? 0.5 : 0.3);
-          const lift = lerp(highLift, lowLift, 0.3);
+          const s = footLerp(toeward, ankleward, piece.count === 1 ? 0.5 : 0.3);
+          const lift = footLerp(highLift, lowLift, 0.3);
           for (const a of [arc[0] + inset, arc[1] - inset]) stud(part(piece.rivets), s, a, 0.003, named.white, lift);
         }
       }

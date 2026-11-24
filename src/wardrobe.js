@@ -315,6 +315,9 @@ export function buildHand(body, side, kind, skinColor, steel, glove = null) {
 // wearer's own size is the group's scale).
 const FOOT_GEOMETRY = new Map();
 const FOOT_BUILT_FOR = 1.8;
+// A shoe's finish: from this much polish up it is given a highlight and the sky's reflection, `sky` the reflection map's
+// intensity at finish 1.
+const FOOT_SHINE = { from: 0.15, sky: 1.0 };
 
 /**
  * Footwear in the foot's frame (x up from the sole, y along the foot, toes forward): the foot or the shoe of this kind
@@ -348,7 +351,19 @@ export function buildFootwear(body, kind, colors, skinColor, steel, heels, feet 
     FOOT_GEOMETRY.set(key, made);
   }
   const { spec } = made;
-  const tinted = (roughness, tile) => clothPropMaterial(surface(0xffffff, { vertexColors: true, roughness }), tile);
+  // Each material's finish (footwear.js FOOTWEAR `finish`, 0 matt to 1 mirror-bright): how smooth it is (its tile's roughness
+  // polished down, its grain kept) and how much of the sky it shows (the steel's reflection map).
+  const finishes = spec.finish ?? {};
+  const tinted = (role, tile, matt = 0) => {
+    const gloss = finishes[role] ?? matt;
+    // (A look's own cloth may have no highlight at all, as the official look's has none: what shines is made as the steel is,
+    // a standard material under the same reflection map, not a metal.)
+    const shines = gloss > FOOT_SHINE.from;
+    const material = shines
+      ? new THREE.MeshStandardMaterial({ color: 0xffffff, vertexColors: true, metalness: 0, roughness: 0.95 - 0.85 * gloss, envMap: steel?.envMap ?? null, envMapIntensity: gloss * FOOT_SHINE.sky })
+      : surface(0xffffff, { vertexColors: true, roughness: 0.95 - 0.85 * gloss });
+    return clothPropMaterial(material, tile, { polish: 1 - 0.85 * gloss });
+  };
   const materials = {
     // (A bare foot is skin, for the water on it: wetview.js.)
     skin: () => {
@@ -356,16 +371,18 @@ export function buildFootwear(body, kind, colors, skinColor, steel, heels, feet 
       material.userData.wetKind = 'skin';
       return material;
     },
-    upper: () => tinted(spec.gloss ?? 0.5, spec.stuff ?? stuff),
+    upper: () => tinted('upper', stuff),
     foil: () => foilMaterial(steel?.envMap ?? null, palette.upper, stuff),
     // A tabi's waraji and a sandal's sole are plaited straw or leather (the people's: a Mexica's of fibre).
-    sole: () => tinted(0.6, spec.sole?.stuff ?? 'none'),
-    straw: () => tinted(0.9, 'straw'),
-    trim: () => surface(0xffffff, { vertexColors: true, roughness: 0.6 }),
+    sole: () => tinted('sole', spec.sole?.stuff ?? 'none'),
+    straw: () => tinted('straw', 'straw', 0),
+    trim: () => tinted('trim', 'none'),
+    // A synthetic overlay (a trainer's): smooth, a little metallic.
+    overlay: () => Object.assign(tinted('overlay', 'none', 0.5), { metalness: 0.25 }),
     metal: () => steel,
     brass: () => metal(steel, palette.gold),
-    // A kōgake's plates: iron under black lacquer.
-    lacquer: () => Object.assign(metal(steel, 0x17171a), { metalness: 0.45, roughness: 0.3 }),
+    // A kōgake's plates: iron under black lacquer, glossy, the sky in it.
+    lacquer: () => Object.assign(metal(steel, 0x121214), { metalness: 0.35, roughness: 0.95 - 0.85 * (finishes.lacquer ?? 0.9), envMapIntensity: 1.5 }),
   };
   const shoe = new THREE.Group();
   const sized = new THREE.Group();

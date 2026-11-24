@@ -251,7 +251,7 @@ function tournamentDesign(label, { steel, under, leather, colour, colour2, plume
  * hat, c the German sallet and bevor).
  */
 function footmanDesign(label, kind, cloth, quilt, hat) {
-  return { label, top: { kind: 'longsleeve', color: quilt }, bottom: { kind: 'tights', color: '#3a3326' }, armor: { kind, color: '#9aa0a8', cloth, gold: '#c9a85a', mail: '#8d9097' }, head: { kind: 'kettleHat', color: '#9aa0a8', ...hat }, feet: { kind: 'compactBoot', color: '#3a2a1c' } };
+  return { label, top: { kind: 'longsleeve', color: quilt }, bottom: { kind: 'tights', color: '#3a3326' }, armor: { kind, color: '#9aa0a8', cloth, gold: '#c9a85a', mail: '#8d9097' }, head: { kind: 'kettleHat', color: '#9aa0a8', ...hat }, feet: { kind: 'turnshoe', color: '#3a2a1c' } };
 }
 
 /** Tōsei gusoku in a finish, with its crest and war mask. */
@@ -286,7 +286,7 @@ function templarDesign(label, cloth, cloth2, heraldry) {
     bottom: { kind: 'tights', color: '#3a342c' },
     armor: { kind: 'templar', color: '#8d9097', mail: '#8d9097', cloth, cloth2, heraldry, charge: { kind: 'pattee', color: '#b0181a' }, leather: '#5a3a22' },
     head: { kind: 'greatHelm', color: '#b8bec6', breaths: true, crossCut: true, coif: '#4e5157' },
-    feet: { kind: 'compactBoot', color: '#4a2e1a' },
+    feet: { kind: 'turnshoe', color: '#4a2e1a' },
     // The mantle in the surcoat's cloth (white for a knight, black for a sergeant), the red cross on its left shoulder.
     extras: [
       { kind: 'mantle', color: cloth, cross: '#b0181a', length: 1.32 },
@@ -328,7 +328,7 @@ function toseiBowlDesign(label, bowl, steel, lace, crest, under, more = {}) {
 }
 
 function toseiDesign(label, steel, lace, crest, mask, under) {
-  return { label, top: { kind: 'longsleeve', color: under }, bottom: { kind: 'pants', color: under }, armor: { kind: 'toseiDo', color: steel, lace, gold: '#d6a743' }, head: { kind: 'kabuto', color: steel, crest, mask, lace, gold: '#d6a743' }, feet: { kind: 'tabi', color: '#1a1b22' } };
+  return { label, top: { kind: 'longsleeve', color: under }, bottom: { kind: 'pants', color: under }, armor: { kind: 'toseiDo', color: steel, lace, gold: '#d6a743' }, head: { kind: 'kabuto', color: steel, crest, mask, lace, gold: '#d6a743' }, feet: { kind: 'kogake', color: '#1a1b22' } };
 }
 
 /** An ashigaru's lacquered do and jingasa, the mon in gold or white. */
@@ -339,7 +339,7 @@ function ashigaruDesign(label, lacquer, lace, mon, cloth) {
 // Ming soldiers. Garrison: the weisuo levy as he was, unpaid and unarmoured: a sleeveless hemp vest over bare arms, a cloth sash,
 // loose dark trousers, a cloth wound round the head under the hair cap's knob.
 function mingGarrisonDesign(label, vest, sash, wrap) {
-  return { label, top: { kind: 'tank', color: vest }, bottom: { kind: 'pants', color: '#1c1b1d' }, armor: { kind: 'mingVest', color: vest, cloth: vest, cloth2: sash, leather: shade(vest, 0.7) }, head: { kind: 'clothWrap', color: wrap, topknot: '#cdb894' }, feet: { kind: 'compactBoot', color: '#17171c' } };
+  return { label, top: { kind: 'tank', color: vest }, bottom: { kind: 'pants', color: '#1c1b1d' }, armor: { kind: 'mingVest', color: vest, cloth: vest, cloth2: sash, leather: shade(vest, 0.7) }, head: { kind: 'clothWrap', color: wrap, topknot: '#cdb894' }, feet: { kind: 'clothBoot', color: '#17171c' } };
 }
 // Brigandine: the coat's cloth, gilt rivets, the iron hat.
 // `look`: the same protection drawn as lamellar (`kind: 'mingLamellar'`, its `lace`).
@@ -347,13 +347,13 @@ function mingGarrisonDesign(label, vest, sash, wrap) {
 // The vest's (no `look.kind`) arms in the quilted cotton sleeves of the coat under it, undyed; the lamellar's and the scale's under their arm guards in the coat's cloth.
 // The vest's man wears a head cloth of the same undyed cotton under the iron hat, round the head and the neck (wardrobe.js mingHat `hood`).
 function mingBrigandineDesign(label, cloth, iron, look = {}, helm = {}, extra = {}) {
-  return { label, ...extra, top: { kind: 'longsleeve', color: look.kind ? shade(cloth, 0.7) : '#d6cbb2' }, bottom: { kind: 'pants', color: '#22201e' }, armor: { kind: 'mingBrigandine', color: iron, cloth, cloth2: shade(cloth, 0.35), gold: '#c9a24a', leather: '#2a1d14', ...look }, head: { kind: 'mingHat', color: iron, tassel: '#b3161b', ...(look.kind ? null : { hood: '#d6cbb2' }), ...helm }, feet: { kind: 'compactBoot', color: '#17171c' } };
+  return { label, ...extra, top: { kind: 'longsleeve', color: look.kind ? shade(cloth, 0.7) : '#d6cbb2' }, bottom: { kind: 'pants', color: '#22201e' }, armor: { kind: 'mingBrigandine', color: iron, cloth, cloth2: shade(cloth, 0.35), gold: '#c9a24a', leather: '#2a1d14', ...look }, head: { kind: 'mingHat', color: iron, tassel: '#b3161b', ...(look.kind ? null : { hood: '#d6cbb2' }), ...helm }, feet: { kind: 'clothBoot', color: '#17171c' } };
 }
 // Qi Jiguang's elite infantry: the coat's cloth (its binding a shade of it, or `bind`), brass studs, the bright riveted kettle
 // hat over a cream cloth hood (chinahelms.js MING_HELMS rivetedTube; wardrobe.js mingHat `hood`). The sleeves are the coat's
 // (loftbody.js ARMOR_KINDS.mingEliteInfantry), so the padded coat under it shows only at the neck and the joints: the coat's cloth, darker.
 function mingEliteInfantryDesign(label, cloth, bind = shade(cloth, 0.35), extra = {}) {
-  return { label, ...extra, top: { kind: 'longsleeve', color: shade(cloth, 0.7) }, bottom: { kind: 'pants', color: '#22201e' }, armor: { kind: 'mingEliteInfantry', color: '#b9bec5', cloth, cloth2: bind, gold: '#c9a24a', leather: '#2a1d14' }, head: { kind: 'mingHat', color: '#8f949b', tassel: '#b3161b', design: 'rivetedTube', finish: 'steel', hood: '#a3977a' }, feet: { kind: 'compactBoot', color: '#17171c' } };
+  return { label, ...extra, top: { kind: 'longsleeve', color: shade(cloth, 0.7) }, bottom: { kind: 'pants', color: '#22201e' }, armor: { kind: 'mingEliteInfantry', color: '#b9bec5', cloth, cloth2: bind, gold: '#c9a24a', leather: '#2a1d14' }, head: { kind: 'mingHat', color: '#8f949b', tassel: '#b3161b', design: 'rivetedTube', finish: 'steel', hood: '#a3977a' }, feet: { kind: 'clothBoot', color: '#17171c' } };
 }
 // Elite: the coat, the coif's cloth, the steel.
 // `helm`: a steel neck guard (`neck: 'steel'`) in place of the padded coif, and a steel face mask.
@@ -371,13 +371,13 @@ function ironManDesign(label, steel, cloth, lace) {
     label, top: { kind: 'longsleeve', color: shade(cloth, 0.6) }, bottom: { kind: 'pants', color: '#1c1a18' },
     armor: { kind: 'ironManScale', color: steel, cloth, cloth2: shade(cloth, 0.35), gold: '#c9a24a', leather: '#2a1d14', lace },
     head: { kind: 'mingHelm', color: steel, gold: '#c9a24a', coif: steel, aventail: 'lamellar', lace, tassel: '#b3161b', mask: true, maskDesign: 'somen' },
-    feet: { kind: 'compactBoot', color: '#141416' },
+    feet: { kind: 'clothBoot', color: '#141416' },
   };
 }
 
 function mingEliteDesign(label, cloth, coif, steel, helm = {}, look = {}) {
   const aventail = helm.aventail ?? (look.kind === 'mingScale' || look.kind === 'mingEliteLamellar' ? 'lamellar' : 'brigandine');
-  return { label, top: { kind: 'longsleeve', color: shade(cloth, 0.6) }, bottom: { kind: 'pants', color: '#1c1a18' }, armor: { kind: 'mingElite', color: steel, cloth, cloth2: shade(cloth, 0.35), gold: '#c9a24a', leather: '#2a1d14', ...look }, head: { kind: 'mingHelm', color: steel, gold: '#c9a24a', coif: aventail === 'brigandine' ? cloth : steel, aventail, lace: look.lace ?? '#3a2016', tassel: '#b3161b', ...helm }, feet: { kind: 'compactBoot', color: '#141416' } };
+  return { label, top: { kind: 'longsleeve', color: shade(cloth, 0.6) }, bottom: { kind: 'pants', color: '#1c1a18' }, armor: { kind: 'mingElite', color: steel, cloth, cloth2: shade(cloth, 0.35), gold: '#c9a24a', leather: '#2a1d14', ...look }, head: { kind: 'mingHelm', color: steel, gold: '#c9a24a', coif: aventail === 'brigandine' ? cloth : steel, aventail, lace: look.lace ?? '#3a2016', tassel: '#b3161b', ...helm }, feet: { kind: 'clothBoot', color: '#141416' } };
 }
 // The Eight Banners (the Later Jin's, 1615 on; the Qing's): the banner's coat in its colour (`cloth`), bound in its
 // border (`trim`: red, or white on the red banner; a plain banner's bound in its own colour, a shade darker), the
@@ -389,7 +389,7 @@ function bannerDesign(label, cloth, trim = null) {
     label, top: { kind: 'longsleeve', color: shade(cloth, 0.85) }, bottom: { kind: 'pants', color: '#4a1418' },
     armor: { kind: 'bannerCoat', color: '#8f949b', cloth, cloth2: trim ?? shade(cloth, 0.82), gold: '#a88a3c', leather: '#2a1d14' },
     head: { kind: 'qingHelm', design: 'bannerBowl', color: '#17171b', gold: '#a88a3c', coif: cloth, hoodStuff: 'cotton', ...(trim ? { trim } : {}) },
-    feet: { kind: 'compactBoot', color: '#141416' },
+    feet: { kind: 'clothBoot', color: '#141416' },
   };
 }
 // The Bayara's: the same coat in a banner's brocade (`cloth`), bound in a darker silk (`trim`), gilt rivets, the steel
@@ -400,13 +400,13 @@ function bayaraDesign(label, cloth, trim, helm = {}) {
     label, top: { kind: 'longsleeve', color: shade(cloth, 0.8) }, bottom: { kind: 'pants', color: '#4a1418' },
     armor: { kind: 'bayaraCoat', color: '#b4bac3', cloth, cloth2: trim, gold: '#d2aa4c', leather: '#2a1d14' },
     head: { kind: 'qingHelm', design: 'bayaraBowl', color: '#c3c8cf', gold: '#d2aa4c', coif: cloth, hoodStuff: 'cloudSilk', trim, ...helm },
-    feet: { kind: 'compactBoot', color: '#141416' },
+    feet: { kind: 'clothBoot', color: '#141416' },
   };
 }
 // The steppe man's kit: his deel (the robe over all) and the robe under it
-// at the hem (`trim`), his hat or helmet, the tall black boots (gutal).
+// at the hem (`trim`), his hat or helmet, the tall black felt boots (gutal).
 function steppeDesign(label, armor, deel, trim, head, feet = '#141210') {
-  return { label, top: { kind: 'longsleeve', color: deel }, bottom: { kind: 'pants', color: '#2a2622' }, armor: { cloth: deel, cloth2: trim, leather: '#4a2e1a', ...armor }, head, feet: { kind: 'jinBoot', color: feet } };
+  return { label, top: { kind: 'longsleeve', color: deel }, bottom: { kind: 'pants', color: '#2a2622' }, armor: { cloth: deel, cloth2: trim, leather: '#4a2e1a', ...armor }, head, feet: { kind: 'feltBoot', color: feet } };
 }
 // The Cuman's kit (OUTFITS.cumanHeavy): his coat under the mail showing at the elbow (`coat`), the mail shirt with its
 // plates in rows (loftbody.js cumanMail) in his `steel`, the sash (`sash`) under the leather belt (`belt`, drawn in the
@@ -542,6 +542,28 @@ function gladiatorDesign(kind, look, helmet, { barefoot = false } = {}) {
   };
 }
 
+// Who wears what on his feet (`feet.kind`: footwear.js FOOTWEAR draws each), where the plain ankle boot (`compactBoot`)
+// once stood for all of them. Where the record is thin the plain boot stays (the Romans' closed boots, the Goths, the
+// Parthians, the Han, the conquistadors' welted shoes).
+// - `turnshoe`: medieval Europe's soldiers and commoners (footmen, archers, the levy, the Order's brothers): the ankle shoe
+//   sewn inside out and turned, one thin sole, no heel (Grew & de Neergaard, Shoes and Pattens, Museum of London 1988;
+//   Goubitz, Stepping through Time, 2001).
+// - `clothBoot`: the Ming's and the Qing's men, and the kung fu, monk and wuxia designs: black cloth boots (皂靴) on white
+//   soles of layered cloth, the trousers tucked in (the Ming court's Departure Herald and Return Clearing scrolls, 出警入跸图;
+//   the Qing's 大阅图 for the bannermen's black satin boots).
+// - `lamellarBoot`: the Jin Iron Pagoda alone: Song writers have the 铁浮屠 armoured whole, man and horse (重铠全装; Yue Ke's
+//   Jintuo cuibian); lames over the instep are drawn on Song and Jin armoured figures. No Ming or Qing unit wears it: their
+//   armour stopped at the skirt, over an ordinary boot.
+// - `kogake`: armoured samurai of the tōsei age and after (the `samurai` and `samuraiTosei` kits): the armoured tabi worn
+//   under the suneate (Bottomley & Hopson, Arms and Armour of the Samurai, 1988). The ō-yoroi's age knew fur boots and plain
+//   tabi, and the ashigaru, ronin and monks go in tabi or bare feet with waraji: all keep theirs.
+// - `feltBoot`: the steppe's (Mongols, Xiongnu, Huns: steppeDesign): felt boots with leather soles and turned-up toes
+//   (William of Rubruck, 1253-55, on the Mongols' felt boots and stockings; the Noin-Ula felt and leather boots for the
+//   Xiongnu). The Cumans keep the leather boot (`jinBoot`: their stone figures show tall leather ones).
+// - `ottomanBoot`: janissaries, azaps, sipahis and the gazi alps: the soft boot (çizme), yellow for a janissary and red for
+//   his officers (Nicolle, Armies of the Ottoman Turks 1300-1774, 1983).
+// - `lugBoot`: the gothic designs' laced boot on a thick cleated sole, in place of their platform Mary Janes (the user's
+//   call, 2026-11-24); it stands on the same PLATFORM_HEELS, so her height and footing are as they were.
 // Heels: how far the boot is pitched up (radians, toe on the floor) and how
 // long its pointed toe is (a share of the foot). Footing is lost with the
 // pitch: the weight rides on the ball of the foot and a stiletto's tip, and
@@ -553,16 +575,17 @@ const LADY_HEELS = { pitch: 0.36, point: 0.56 };
 // Gothic platforms: a thick sole under the whole foot (`platform`, m) and a
 // chunky block heel, so the foot is pitched far less for the height it
 // gains: steadier than the Louis heel. A round toe and Mary Jane straps
-// with buckles (`round`, `block`, `straps`: how they are drawn).
+// with buckles (`round`, `block`, `straps`: how a `platformShoe` is drawn; the
+// gothic lug boot stands on the same sole and heel, laced, without the straps).
 const PLATFORM_HEELS = { pitch: 0.24, point: 0.28, platform: 0.045, round: true, block: true, straps: 3 };
 export const HEEL_FOOTING_PER_RADIAN = 1.1;
 
-// What the gothic designs share: the corset, the platforms, the face.
+// What the gothic designs share: the corset, the platform boots, the face.
 const GOTHIC = {
   // A small dark-red flower on one side of the head, over whatever her hair is.
   head: { kind: 'flower', color: '#5c0b16', lace: '#0d0c0f', side: 1 },
   armor: { kind: 'overbust', color: '#0f0f12', cloth: '#1b1b20', cloth2: '#26262d', lace: '#34343c', gold: '#c9ccd2' },
-  feet: { kind: 'platformShoe', color: '#0b0b0d', heels: PLATFORM_HEELS },
+  feet: { kind: 'lugBoot', color: '#0b0b0d', heels: PLATFORM_HEELS },
   face: { skinTone: 'porcelain', makeup: { eyes: 'smoky', liner: 'winged', lowerLash: 'heavy', lips: '#0b090b' } },
 };
 const GOTHIC_CHOKER = { kind: 'choker', color: '#111114', beads: '#24242b' };
@@ -1206,11 +1229,11 @@ export const OUTFITS = {
     // Samurai, Warfare and the State, 2004): less afraid everywhere (ai.js: fear × 1 − courage; nerve + courage). The user's call, 2026-11-08.
     courage: 0.85,
     designs: [
-      { label: 'Crescent', top: { kind: 'longsleeve', color: '#1c1d26' }, bottom: { kind: 'pants', color: '#23202b' }, armor: { kind: 'lamellar', color: '#b3161b', lace: '#1d2a4f', gold: '#d6a743', panel: true, leather: '#5a3a22', trim: true }, head: { kind: 'kabuto', flare: 0.07, tiers: 5, fukigaeshi: 1.5, color: '#b3161b', crest: 'crescent', lace: '#1d2a4f', gold: '#d6a743' }, feet: { kind: 'tabi', color: '#1a1b22' } },
-      { label: 'Golden horns', top: { kind: 'longsleeve', color: '#141416' }, bottom: { kind: 'pants', color: '#1a1a1d' }, armor: { kind: 'lamellar', color: '#b3161b', lace: '#121214', gold: '#d6a743', sode: 1.25, panel: true, leather: '#3a2a3a', trim: true }, head: { kind: 'kabuto', flare: 0.07, tiers: 5, fukigaeshi: 1.5, color: '#b3161b', crest: 'kuwagata', mask: 'iron', lace: '#121214', gold: '#d6a743' }, feet: { kind: 'tabi', color: '#141416' } },
-      { label: 'Sun disc', top: { kind: 'longsleeve', color: '#2a2a30' }, bottom: { kind: 'pants', color: '#2a2a30' }, armor: { kind: 'lamellar', color: '#b3161b', lace: '#e8e4da', gold: '#d6a743', panel: true, leather: '#6a4a2a', trim: true }, head: { kind: 'kabuto', flare: 0.07, tiers: 5, fukigaeshi: 1.5, color: '#17171a', crest: 'sun', lace: '#e8e4da', gold: '#d6a743' }, feet: { kind: 'tabi', color: '#e8e4da' } },
-      { label: 'Daimyo', top: { kind: 'longsleeve', color: '#3a1012' }, bottom: { kind: 'pants', color: '#2a0c0e' }, armor: { kind: 'lamellar', color: '#b3161b', lace: '#d6a743', gold: '#d6a743', sode: 1.3, panel: true, leather: '#2a3a5a', trim: true }, head: { kind: 'kabuto', flare: 0.07, tiers: 5, fukigaeshi: 1.5, color: '#b3161b', crest: 'tall', mask: 'vermilion', maskHair: '#e6dfcf', lace: '#d6a743', gold: '#d6a743' }, feet: { kind: 'tabi', color: '#1a1b22' } },
-      { label: 'Antlers', top: { kind: 'longsleeve', color: '#16201a' }, bottom: { kind: 'pants', color: '#1a221c' }, armor: { kind: 'lamellar', color: '#b3161b', lace: '#2f5a3a', gold: '#d6a743', panel: true, leather: '#4a3a1a', trim: true }, head: { kind: 'kabuto', flare: 0.07, tiers: 5, fukigaeshi: 1.5, color: '#b3161b', crest: 'antlers', mask: 'black', lace: '#2f5a3a', gold: '#d6a743' }, feet: { kind: 'tabi', color: '#16201a' } },
+      { label: 'Crescent', top: { kind: 'longsleeve', color: '#1c1d26' }, bottom: { kind: 'pants', color: '#23202b' }, armor: { kind: 'lamellar', color: '#b3161b', lace: '#1d2a4f', gold: '#d6a743', panel: true, leather: '#5a3a22', trim: true }, head: { kind: 'kabuto', flare: 0.07, tiers: 5, fukigaeshi: 1.5, color: '#b3161b', crest: 'crescent', lace: '#1d2a4f', gold: '#d6a743' }, feet: { kind: 'kogake', color: '#1a1b22' } },
+      { label: 'Golden horns', top: { kind: 'longsleeve', color: '#141416' }, bottom: { kind: 'pants', color: '#1a1a1d' }, armor: { kind: 'lamellar', color: '#b3161b', lace: '#121214', gold: '#d6a743', sode: 1.25, panel: true, leather: '#3a2a3a', trim: true }, head: { kind: 'kabuto', flare: 0.07, tiers: 5, fukigaeshi: 1.5, color: '#b3161b', crest: 'kuwagata', mask: 'iron', lace: '#121214', gold: '#d6a743' }, feet: { kind: 'kogake', color: '#141416' } },
+      { label: 'Sun disc', top: { kind: 'longsleeve', color: '#2a2a30' }, bottom: { kind: 'pants', color: '#2a2a30' }, armor: { kind: 'lamellar', color: '#b3161b', lace: '#e8e4da', gold: '#d6a743', panel: true, leather: '#6a4a2a', trim: true }, head: { kind: 'kabuto', flare: 0.07, tiers: 5, fukigaeshi: 1.5, color: '#17171a', crest: 'sun', lace: '#e8e4da', gold: '#d6a743' }, feet: { kind: 'kogake', color: '#e8e4da' } },
+      { label: 'Daimyo', top: { kind: 'longsleeve', color: '#3a1012' }, bottom: { kind: 'pants', color: '#2a0c0e' }, armor: { kind: 'lamellar', color: '#b3161b', lace: '#d6a743', gold: '#d6a743', sode: 1.3, panel: true, leather: '#2a3a5a', trim: true }, head: { kind: 'kabuto', flare: 0.07, tiers: 5, fukigaeshi: 1.5, color: '#b3161b', crest: 'tall', mask: 'vermilion', maskHair: '#e6dfcf', lace: '#d6a743', gold: '#d6a743' }, feet: { kind: 'kogake', color: '#1a1b22' } },
+      { label: 'Antlers', top: { kind: 'longsleeve', color: '#16201a' }, bottom: { kind: 'pants', color: '#1a221c' }, armor: { kind: 'lamellar', color: '#b3161b', lace: '#2f5a3a', gold: '#d6a743', panel: true, leather: '#4a3a1a', trim: true }, head: { kind: 'kabuto', flare: 0.07, tiers: 5, fukigaeshi: 1.5, color: '#b3161b', crest: 'antlers', mask: 'black', lace: '#2f5a3a', gold: '#d6a743' }, feet: { kind: 'kogake', color: '#16201a' } },
     ],
   },
   // Ō-yoroi, the great armour of the Heian and Kamakura mounted archer: a
@@ -1829,9 +1852,9 @@ export const OUTFITS = {
     courage: 0.4,
     designs: [
       // Lamellar of dotted iron plates over a red robe, brown riding boots; the helmet a tall bowl with a plume or a horsehair tassel.
-      { label: 'Polished steel, black plume', top: { kind: 'longsleeve', color: '#6a1418' }, bottom: { kind: 'pants', color: '#2a1a14' }, armor: { kind: 'ironPagoda', color: '#c3c8d0', lace: '#121214', leather: '#5a3a22', cloth: '#6a1418', cloth2: '#d8c89a', gold: '#9ea4ad' }, head: { kind: 'pagodaHelm', color: '#c3c8d0', gold: '#9ea4ad', plume: 'feathers', plumeColor: '#16161a', lace: '#111114' }, feet: { kind: 'jinBoot', color: '#4a2e1c' } },
-      { label: 'Blued steel, brass edging', top: { kind: 'longsleeve', color: '#5a1014' }, bottom: { kind: 'pants', color: '#1c1a18' }, armor: { kind: 'ironPagoda', color: '#2f3846', lace: '#0e0e12', leather: '#3a2416', cloth: '#5a1014', cloth2: '#c9b27a', gold: '#c9a23a' }, head: { kind: 'pagodaHelm', color: '#2f3846', gold: '#c9a23a', plume: 'feathers', plumeColor: '#141416', lace: '#0e0e12' }, feet: { kind: 'jinBoot', color: '#3a2416' } },
-      { label: 'Red horsehair tassel', top: { kind: 'longsleeve', color: '#7a1418' }, bottom: { kind: 'pants', color: '#2a1a14' }, armor: { kind: 'ironPagoda', color: '#b4bac3', lace: '#141416', leather: '#4a2e1c', cloth: '#7a1418', cloth2: '#d8c89a', gold: '#c9a23a' }, head: { kind: 'pagodaHelm', color: '#b4bac3', gold: '#c9a23a', plume: 'tassel', plumeColor: '#b3161b', lace: '#141416' }, feet: { kind: 'jinBoot', color: '#4a2e1c' } },
+      { label: 'Polished steel, black plume', top: { kind: 'longsleeve', color: '#6a1418' }, bottom: { kind: 'pants', color: '#2a1a14' }, armor: { kind: 'ironPagoda', color: '#c3c8d0', lace: '#121214', leather: '#5a3a22', cloth: '#6a1418', cloth2: '#d8c89a', gold: '#9ea4ad' }, head: { kind: 'pagodaHelm', color: '#c3c8d0', gold: '#9ea4ad', plume: 'feathers', plumeColor: '#16161a', lace: '#111114' }, feet: { kind: 'lamellarBoot', color: '#4a2e1c' } },
+      { label: 'Blued steel, brass edging', top: { kind: 'longsleeve', color: '#5a1014' }, bottom: { kind: 'pants', color: '#1c1a18' }, armor: { kind: 'ironPagoda', color: '#2f3846', lace: '#0e0e12', leather: '#3a2416', cloth: '#5a1014', cloth2: '#c9b27a', gold: '#c9a23a' }, head: { kind: 'pagodaHelm', color: '#2f3846', gold: '#c9a23a', plume: 'feathers', plumeColor: '#141416', lace: '#0e0e12' }, feet: { kind: 'lamellarBoot', color: '#3a2416' } },
+      { label: 'Red horsehair tassel', top: { kind: 'longsleeve', color: '#7a1418' }, bottom: { kind: 'pants', color: '#2a1a14' }, armor: { kind: 'ironPagoda', color: '#b4bac3', lace: '#141416', leather: '#4a2e1c', cloth: '#7a1418', cloth2: '#d8c89a', gold: '#c9a23a' }, head: { kind: 'pagodaHelm', color: '#b4bac3', gold: '#c9a23a', plume: 'tassel', plumeColor: '#b3161b', lace: '#141416' }, feet: { kind: 'lamellarBoot', color: '#4a2e1c' } },
     ],
   },
   // Guan Yu, as the temples and the opera show him: the green robe
@@ -1854,7 +1877,7 @@ export const OUTFITS = {
     protection: { blunt: 0.62, cut: 0.92, pierce: 0.85, bullet: { head: 0.05, torso: 0.4, limb: 0.15 }, regions: { head: { blunt: 0.08, cut: 0.15, pierce: 0.05 } } },
     courage: 0.6,
     designs: [
-      { label: 'Green robe, gilt scale', special: true, top: { kind: 'longsleeve', color: '#2a5636' }, bottom: { kind: 'pants', color: '#1c1a18' }, armor: { kind: 'guanYu', color: '#a8853e', cloth: '#2f6a3e', cloth2: '#1f4a2c', lace: '#4a3418', gold: '#d6a743' }, head: { kind: 'guanYuCap', color: '#2f6a3e', gold: '#d6a743' }, feet: { kind: 'compactBoot', color: '#141416' } },
+      { label: 'Green robe, gilt scale', special: true, top: { kind: 'longsleeve', color: '#2a5636' }, bottom: { kind: 'pants', color: '#1c1a18' }, armor: { kind: 'guanYu', color: '#a8853e', cloth: '#2f6a3e', cloth2: '#1f4a2c', lace: '#4a3418', gold: '#d6a743' }, head: { kind: 'guanYuCap', color: '#2f6a3e', gold: '#d6a743' }, feet: { kind: 'clothBoot', color: '#141416' } },
     ],
   },
   // A Han soldier (2nd–1st century BC), as the Yangjiawan figures and the
@@ -1914,7 +1937,7 @@ export const OUTFITS = {
     protection: { blunt: 0, cut: 0.05, pierce: 0, bullet: { head: 0, torso: 0, limb: 0 } },
     courage: 0.6,
     designs: [
-      { label: 'White robe, blue sash', special: true, top: { kind: 'longsleeve', color: '#e9e4d8' }, bottom: { kind: 'pants', color: '#d9d3c4' }, armor: { kind: 'wuxiaRobe', color: '#e9e4d8', cloth: '#ebe6da', cloth2: '#3f5f82' }, feet: { kind: 'compactBoot', color: '#1a1614' } },
+      { label: 'White robe, blue sash', special: true, top: { kind: 'longsleeve', color: '#e9e4d8' }, bottom: { kind: 'pants', color: '#d9d3c4' }, armor: { kind: 'wuxiaRobe', color: '#e9e4d8', cloth: '#ebe6da', cloth2: '#3f5f82' }, feet: { kind: 'clothBoot', color: '#1a1614' } },
     ],
   },
   // The sword saint's dress (Miyamoto Musashi's, as his self-portrait and the Edo prints show a duellist): a kosode and the
@@ -2377,12 +2400,12 @@ export const OUTFITS = {
     picked: [0, 1, 2],
     designs: [
       // The plain iron chichak of the infantry (no gilt): a pointed bowl, the nasal, a short mail aventail.
-      { label: 'Red tunic, iron chichak', top: { kind: 'tunic', color: '#8a2a22' }, bottom: { kind: 'pants', color: '#3a2a22' }, head: { kind: 'chichak', color: '#7d8188', gold: '#7d8188', mail: '#7a7d84' }, feet: { kind: 'compactBoot', color: '#5a3a22' } },
-      { label: 'Green tunic, iron chichak', top: { kind: 'tunic', color: '#3a5a32' }, bottom: { kind: 'pants', color: '#2a2622' }, head: { kind: 'chichak', color: '#7d8188', gold: '#a08a52', mail: '#7a7d84' }, feet: { kind: 'compactBoot', color: '#5a3a22' } },
-      { label: 'Undyed tunic, iron chichak and turban', top: { kind: 'tunic', color: '#c8bc9e' }, bottom: { kind: 'pants', color: '#3a2a22' }, head: { kind: 'chichak', color: '#7d8188', gold: '#7d8188', mail: '#7a7d84', turban: '#ece4d0' }, feet: { kind: 'compactBoot', color: '#3a2416' } },
-      { label: 'Red tunic, white turban', top: { kind: 'tunic', color: '#8a2a22' }, bottom: { kind: 'pants', color: '#3a2a22' }, head: { kind: 'turban', color: '#ece4d0', cap: '#8a2a22' }, feet: { kind: 'compactBoot', color: '#5a3a22' } },
-      { label: 'Green tunic', top: { kind: 'tunic', color: '#3a5a32' }, bottom: { kind: 'pants', color: '#2a2622' }, head: { kind: 'turban', color: '#ece4d0', cap: '#3a5a32' }, feet: { kind: 'compactBoot', color: '#5a3a22' } },
-      { label: 'Undyed tunic, red cap', top: { kind: 'tunic', color: '#c8bc9e' }, bottom: { kind: 'pants', color: '#3a2a22' }, head: { kind: 'turban', color: '#b3161b', cap: '#b3161b' }, feet: { kind: 'compactBoot', color: '#3a2416' } },
+      { label: 'Red tunic, iron chichak', top: { kind: 'tunic', color: '#8a2a22' }, bottom: { kind: 'pants', color: '#3a2a22' }, head: { kind: 'chichak', color: '#7d8188', gold: '#7d8188', mail: '#7a7d84' }, feet: { kind: 'ottomanBoot', color: '#5a3a22' } },
+      { label: 'Green tunic, iron chichak', top: { kind: 'tunic', color: '#3a5a32' }, bottom: { kind: 'pants', color: '#2a2622' }, head: { kind: 'chichak', color: '#7d8188', gold: '#a08a52', mail: '#7a7d84' }, feet: { kind: 'ottomanBoot', color: '#5a3a22' } },
+      { label: 'Undyed tunic, iron chichak and turban', top: { kind: 'tunic', color: '#c8bc9e' }, bottom: { kind: 'pants', color: '#3a2a22' }, head: { kind: 'chichak', color: '#7d8188', gold: '#7d8188', mail: '#7a7d84', turban: '#ece4d0' }, feet: { kind: 'ottomanBoot', color: '#3a2416' } },
+      { label: 'Red tunic, white turban', top: { kind: 'tunic', color: '#8a2a22' }, bottom: { kind: 'pants', color: '#3a2a22' }, head: { kind: 'turban', color: '#ece4d0', cap: '#8a2a22' }, feet: { kind: 'ottomanBoot', color: '#5a3a22' } },
+      { label: 'Green tunic', top: { kind: 'tunic', color: '#3a5a32' }, bottom: { kind: 'pants', color: '#2a2622' }, head: { kind: 'turban', color: '#ece4d0', cap: '#3a5a32' }, feet: { kind: 'ottomanBoot', color: '#5a3a22' } },
+      { label: 'Undyed tunic, red cap', top: { kind: 'tunic', color: '#c8bc9e' }, bottom: { kind: 'pants', color: '#3a2a22' }, head: { kind: 'turban', color: '#b3161b', cap: '#b3161b' }, feet: { kind: 'ottomanBoot', color: '#3a2416' } },
     ],
   },
   janissary: {
@@ -2398,12 +2421,12 @@ export const OUTFITS = {
     designs: [
       // The pointed chichak over the dolama: its gilt band and finial, the nasal and a mail aventail (issued from the
       // regiments' armouries for a siege or a field battle).
-      { label: 'Blue dolama, chichak', top: { kind: 'longsleeve', color: '#2a3a6a' }, bottom: { kind: 'pants', color: '#8a1418' }, armor: { kind: 'dolama', color: '#2a3a6a', cloth: '#2a3a6a', cloth2: '#1c2850', lace: '#b3161b' }, head: { kind: 'chichak', color: '#9aa0a8', gold: '#d6a743' }, feet: { kind: 'compactBoot', color: '#b08a2a' } },
-      { label: 'Red dolama, chichak', top: { kind: 'longsleeve', color: '#8a1418' }, bottom: { kind: 'pants', color: '#2a3a6a' }, armor: { kind: 'dolama', color: '#8a1418', cloth: '#8a1418', cloth2: '#5a0e10', lace: '#2a3a6a' }, head: { kind: 'chichak', color: '#9aa0a8', gold: '#d6a743' }, feet: { kind: 'compactBoot', color: '#b08a2a' } },
-      { label: 'Green dolama, chichak', top: { kind: 'longsleeve', color: '#2f5a3a' }, bottom: { kind: 'pants', color: '#e4dcc8' }, armor: { kind: 'dolama', color: '#2f5a3a', cloth: '#2f5a3a', cloth2: '#1c3a24', lace: '#8a1418' }, head: { kind: 'chichak', color: '#9aa0a8', gold: '#d6a743' }, feet: { kind: 'compactBoot', color: '#8a1418' } },
-      { label: 'Blue dolama', top: { kind: 'longsleeve', color: '#2a3a6a' }, bottom: { kind: 'pants', color: '#8a1418' }, armor: { kind: 'dolama', color: '#2a3a6a', cloth: '#2a3a6a', cloth2: '#1c2850', lace: '#b3161b' }, head: { kind: 'bork', color: '#f0ece4', gold: '#d6a743' }, feet: { kind: 'compactBoot', color: '#b08a2a' } },
-      { label: 'Red dolama', top: { kind: 'longsleeve', color: '#8a1418' }, bottom: { kind: 'pants', color: '#2a3a6a' }, armor: { kind: 'dolama', color: '#8a1418', cloth: '#8a1418', cloth2: '#5a0e10', lace: '#2a3a6a' }, head: { kind: 'bork', color: '#f0ece4', gold: '#d6a743' }, feet: { kind: 'compactBoot', color: '#b08a2a' } },
-      { label: 'Green dolama', top: { kind: 'longsleeve', color: '#2f5a3a' }, bottom: { kind: 'pants', color: '#e4dcc8' }, armor: { kind: 'dolama', color: '#2f5a3a', cloth: '#2f5a3a', cloth2: '#1c3a24', lace: '#8a1418' }, head: { kind: 'bork', color: '#f0ece4', gold: '#d6a743' }, feet: { kind: 'compactBoot', color: '#8a1418' } },
+      { label: 'Blue dolama, chichak', top: { kind: 'longsleeve', color: '#2a3a6a' }, bottom: { kind: 'pants', color: '#8a1418' }, armor: { kind: 'dolama', color: '#2a3a6a', cloth: '#2a3a6a', cloth2: '#1c2850', lace: '#b3161b' }, head: { kind: 'chichak', color: '#9aa0a8', gold: '#d6a743' }, feet: { kind: 'ottomanBoot', color: '#b08a2a' } },
+      { label: 'Red dolama, chichak', top: { kind: 'longsleeve', color: '#8a1418' }, bottom: { kind: 'pants', color: '#2a3a6a' }, armor: { kind: 'dolama', color: '#8a1418', cloth: '#8a1418', cloth2: '#5a0e10', lace: '#2a3a6a' }, head: { kind: 'chichak', color: '#9aa0a8', gold: '#d6a743' }, feet: { kind: 'ottomanBoot', color: '#b08a2a' } },
+      { label: 'Green dolama, chichak', top: { kind: 'longsleeve', color: '#2f5a3a' }, bottom: { kind: 'pants', color: '#e4dcc8' }, armor: { kind: 'dolama', color: '#2f5a3a', cloth: '#2f5a3a', cloth2: '#1c3a24', lace: '#8a1418' }, head: { kind: 'chichak', color: '#9aa0a8', gold: '#d6a743' }, feet: { kind: 'ottomanBoot', color: '#8a1418' } },
+      { label: 'Blue dolama', top: { kind: 'longsleeve', color: '#2a3a6a' }, bottom: { kind: 'pants', color: '#8a1418' }, armor: { kind: 'dolama', color: '#2a3a6a', cloth: '#2a3a6a', cloth2: '#1c2850', lace: '#b3161b' }, head: { kind: 'bork', color: '#f0ece4', gold: '#d6a743' }, feet: { kind: 'ottomanBoot', color: '#b08a2a' } },
+      { label: 'Red dolama', top: { kind: 'longsleeve', color: '#8a1418' }, bottom: { kind: 'pants', color: '#2a3a6a' }, armor: { kind: 'dolama', color: '#8a1418', cloth: '#8a1418', cloth2: '#5a0e10', lace: '#2a3a6a' }, head: { kind: 'bork', color: '#f0ece4', gold: '#d6a743' }, feet: { kind: 'ottomanBoot', color: '#b08a2a' } },
+      { label: 'Green dolama', top: { kind: 'longsleeve', color: '#2f5a3a' }, bottom: { kind: 'pants', color: '#e4dcc8' }, armor: { kind: 'dolama', color: '#2f5a3a', cloth: '#2f5a3a', cloth2: '#1c3a24', lace: '#8a1418' }, head: { kind: 'bork', color: '#f0ece4', gold: '#d6a743' }, feet: { kind: 'ottomanBoot', color: '#8a1418' } },
     ],
   },
   // Mail-and-plate (krug): rows of small plates riveted into a mail shirt,
@@ -2430,16 +2453,16 @@ export const OUTFITS = {
     gaps: { mail: 'all' },
     courage: 0.3,
     designs: [
-      { label: 'Steel, red kaftan', top: { kind: 'longsleeve', color: '#8a1418' }, bottom: { kind: 'pants', color: '#3a1012' }, armor: { kind: 'krug', color: '#a7adb6' }, head: { kind: 'chichak', design: 'turban', color: '#a7adb6', gold: '#d6a743' }, feet: { kind: 'compactBoot', color: '#b08a2a' } },
-      { label: 'Gilt, blue kaftan', top: { kind: 'longsleeve', color: '#2a3a6a' }, bottom: { kind: 'pants', color: '#1c2238' }, armor: { kind: 'krug', color: '#b8a066' }, head: { kind: 'chichak', color: '#b8a066', gold: '#d6a743' }, feet: { kind: 'compactBoot', color: '#5a3a22' } },
-      { label: 'Dark steel, green kaftan', top: { kind: 'longsleeve', color: '#2f5a3a' }, bottom: { kind: 'pants', color: '#1c2a20' }, armor: { kind: 'krug', color: '#6a6d73' }, head: { kind: 'chichak', color: '#6a6d73', gold: '#b8a066', design: 'turban' }, feet: { kind: 'compactBoot', color: '#3a2416' } },
+      { label: 'Steel, red kaftan', top: { kind: 'longsleeve', color: '#8a1418' }, bottom: { kind: 'pants', color: '#3a1012' }, armor: { kind: 'krug', color: '#a7adb6' }, head: { kind: 'chichak', design: 'turban', color: '#a7adb6', gold: '#d6a743' }, feet: { kind: 'ottomanBoot', color: '#b08a2a' } },
+      { label: 'Gilt, blue kaftan', top: { kind: 'longsleeve', color: '#2a3a6a' }, bottom: { kind: 'pants', color: '#1c2238' }, armor: { kind: 'krug', color: '#b8a066' }, head: { kind: 'chichak', color: '#b8a066', gold: '#d6a743' }, feet: { kind: 'ottomanBoot', color: '#5a3a22' } },
+      { label: 'Dark steel, green kaftan', top: { kind: 'longsleeve', color: '#2f5a3a' }, bottom: { kind: 'pants', color: '#1c2a20' }, armor: { kind: 'krug', color: '#6a6d73' }, head: { kind: 'chichak', color: '#6a6d73', gold: '#b8a066', design: 'turban' }, feet: { kind: 'ottomanBoot', color: '#3a2416' } },
       // The krug of great plates (Askeri Müze; the Met's 'Shirt of Mail and Plate' of the 16th century): the round domed
       // plate over the belly with its boss, plates at the breast, back and sides, all joined by bands of heavy rings; a
       // long mail skirt, plate shoulder pieces; gilt inscriptions (`gold`) round the plates' borders.
-      { label: 'Krug: round plate in mail, crimson kaftan', top: { kind: 'longsleeve', color: '#7a1418' }, bottom: { kind: 'pants', color: '#2a1012' }, armor: { kind: 'krugDisc', color: '#9a9ea6', mail: '#55585e', gold: '#c9a23a' }, head: { kind: 'chichak', color: '#9a9ea6', gold: '#c9a23a', mail: '#55585e' }, feet: { kind: 'compactBoot', color: '#b08a2a' } },
+      { label: 'Krug: round plate in mail, crimson kaftan', top: { kind: 'longsleeve', color: '#7a1418' }, bottom: { kind: 'pants', color: '#2a1012' }, armor: { kind: 'krugDisc', color: '#9a9ea6', mail: '#55585e', gold: '#c9a23a' }, head: { kind: 'chichak', color: '#9a9ea6', gold: '#c9a23a', mail: '#55585e' }, feet: { kind: 'ottomanBoot', color: '#b08a2a' } },
       // The bekhter (the Ottoman and Persian kind): rows of narrow plates down the chest and back, inscribed in gilt, joined
       // by mail and buckled shut down the front with leather straps; laminated shoulder plates; a round boss on the belt.
-      { label: 'Bekhter: plates in rows, blue kaftan', top: { kind: 'longsleeve', color: '#1c2a4a' }, bottom: { kind: 'pants', color: '#1a1a22' }, armor: { kind: 'bekhter', color: '#a4a9b2', mail: '#5a5d63', gold: '#c9a23a', leather: '#2a1c14' }, head: { kind: 'chichak', color: '#a4a9b2', gold: '#c9a23a', mail: '#5a5d63' }, feet: { kind: 'compactBoot', color: '#2a1c14' } },
+      { label: 'Bekhter: plates in rows, blue kaftan', top: { kind: 'longsleeve', color: '#1c2a4a' }, bottom: { kind: 'pants', color: '#1a1a22' }, armor: { kind: 'bekhter', color: '#a4a9b2', mail: '#5a5d63', gold: '#c9a23a', leather: '#2a1c14' }, head: { kind: 'chichak', color: '#a4a9b2', gold: '#c9a23a', mail: '#5a5d63' }, feet: { kind: 'ottomanBoot', color: '#2a1c14' } },
     ],
   },
   // An alp of Osman's gazi band, c. 1300, a legend of an earlier age (not in
@@ -2468,8 +2491,8 @@ export const OUTFITS = {
     gaps: { mail: 'all' },
     courage: 0.35,
     designs: [
-      { label: 'Mail, green coat', top: { kind: 'longsleeve', color: '#2f5a3a' }, bottom: { kind: 'pants', color: '#3a2a22' }, armor: { kind: 'mailMirror', color: '#8d9097', mail: '#6a6d73', gold: '#b8a066' }, head: { kind: 'chichak', color: '#8d9097', gold: '#b8a066', turban: '#ece4d0', mail: '#6a6d73' }, feet: { kind: 'compactBoot', color: '#5a3a22' } },
-      { label: 'Mail, red coat', top: { kind: 'longsleeve', color: '#7a1418' }, bottom: { kind: 'pants', color: '#2a2622' }, armor: { kind: 'mailMirror', color: '#8d9097', mail: '#6a6d73', gold: '#b8a066' }, head: { kind: 'chichak', color: '#8d9097', gold: '#b8a066', turban: '#e8dcc0', mail: '#6a6d73' }, feet: { kind: 'compactBoot', color: '#3a2416' } },
+      { label: 'Mail, green coat', top: { kind: 'longsleeve', color: '#2f5a3a' }, bottom: { kind: 'pants', color: '#3a2a22' }, armor: { kind: 'mailMirror', color: '#8d9097', mail: '#6a6d73', gold: '#b8a066' }, head: { kind: 'chichak', color: '#8d9097', gold: '#b8a066', turban: '#ece4d0', mail: '#6a6d73' }, feet: { kind: 'ottomanBoot', color: '#5a3a22' } },
+      { label: 'Mail, red coat', top: { kind: 'longsleeve', color: '#7a1418' }, bottom: { kind: 'pants', color: '#2a2622' }, armor: { kind: 'mailMirror', color: '#8d9097', mail: '#6a6d73', gold: '#b8a066' }, head: { kind: 'chichak', color: '#8d9097', gold: '#b8a066', turban: '#e8dcc0', mail: '#6a6d73' }, feet: { kind: 'ottomanBoot', color: '#3a2416' } },
     ],
   },
   // Salah ad-Din Yusuf ibn Ayyub (1137–1193), as the Ayyubid and Syrian
@@ -2531,7 +2554,7 @@ export const OUTFITS = {
     label: 'Kung fu suit', movement: 'excellent', fists: 'bare',
     palette: [['white', 'white'], ['black', 'black'], ['navy', 'black'], ['wine', 'black']],
     designs: [
-      { label: 'Silk suit', top: { kind: 'flannel', color: '#e8e4d8' }, bottom: { kind: 'pants', color: '#e8e4d8' }, feet: { kind: 'compactBoot', color: '#161616' } },
+      { label: 'Silk suit', top: { kind: 'flannel', color: '#e8e4d8' }, bottom: { kind: 'pants', color: '#e8e4d8' }, feet: { kind: 'clothBoot', color: '#161616' } },
     ],
   },
   // A Shaolin monk: the robe, leggings bound at the shin, the head shaven.
@@ -2540,7 +2563,7 @@ export const OUTFITS = {
     label: 'Shaolin monk', movement: 'excellent', fists: 'bare',
     palette: [['ochre', 'brown'], ['grey', 'grey'], ['rust', 'brown']],
     designs: [
-      { label: 'Robe', top: { kind: 'tunic', color: '#c47a1e' }, bottom: { kind: 'pants', color: '#6a4428' }, feet: { kind: 'compactBoot', color: '#2a2622' }, hair: 'bald' },
+      { label: 'Robe', top: { kind: 'tunic', color: '#c47a1e' }, bottom: { kind: 'pants', color: '#6a4428' }, feet: { kind: 'clothBoot', color: '#2a2622' }, hair: 'bald' },
     ],
   },
   // A taekwondo dobok: the white uniform, a black belt, bare feet.
@@ -2642,10 +2665,10 @@ export const OUTFITS = {
     protection: { blunt: 0.2, cut: 0.45, pierce: 0.3, bullet: { head: 0.1, torso: 0.08, limb: 0 } },
     courage: 0.3,
     designs: [
-      { label: 'White jack, kettle hat', top: { kind: 'longsleeve', color: '#d8d0bc' }, bottom: { kind: 'tights', color: '#5a2a22' }, armor: { kind: 'escaupil', color: '#d2c8b0', cloth: '#d2c8b0', cloth2: '#b8ad94' }, head: { kind: 'kettleHat', design: 'a', color: '#8a8e95', brim: 1.7 }, feet: { kind: 'compactBoot', color: '#2a1d14' } },
-      { label: 'Russet jack, bare head', top: { kind: 'longsleeve', color: '#7a4a2a' }, bottom: { kind: 'tights', color: '#3a3326' }, armor: { kind: 'escaupil', color: '#8a5a36', cloth: '#8a5a36', cloth2: '#6e4628' }, head: null, feet: { kind: 'compactBoot', color: '#2a1d14' } },
-      { label: 'Green-and-white livery', top: { kind: 'longsleeve', color: '#2f5a32' }, bottom: { kind: 'tights', color: '#d8d0bc' }, armor: { kind: 'escaupil', color: '#d2c8b0', cloth: '#d2c8b0', cloth2: '#2f5a32' }, head: { kind: 'kettleHat', design: 'a', color: '#7d8087', brim: 1.85 }, feet: { kind: 'compactBoot', color: '#2a1d14' } },
-      { label: 'Red jack, sallet', top: { kind: 'longsleeve', color: '#8a2a22' }, bottom: { kind: 'tights', color: '#2a2622' }, armor: { kind: 'escaupil', color: '#9a3a2c', cloth: '#9a3a2c', cloth2: '#7a2a20' }, head: { kind: 'kettleHat', design: 'c', bevor: false, color: '#9aa0a8', brim: 1.55, tall: true }, feet: { kind: 'compactBoot', color: '#2a1d14' } },
+      { label: 'White jack, kettle hat', top: { kind: 'longsleeve', color: '#d8d0bc' }, bottom: { kind: 'tights', color: '#5a2a22' }, armor: { kind: 'escaupil', color: '#d2c8b0', cloth: '#d2c8b0', cloth2: '#b8ad94' }, head: { kind: 'kettleHat', design: 'a', color: '#8a8e95', brim: 1.7 }, feet: { kind: 'turnshoe', color: '#2a1d14' } },
+      { label: 'Russet jack, bare head', top: { kind: 'longsleeve', color: '#7a4a2a' }, bottom: { kind: 'tights', color: '#3a3326' }, armor: { kind: 'escaupil', color: '#8a5a36', cloth: '#8a5a36', cloth2: '#6e4628' }, head: null, feet: { kind: 'turnshoe', color: '#2a1d14' } },
+      { label: 'Green-and-white livery', top: { kind: 'longsleeve', color: '#2f5a32' }, bottom: { kind: 'tights', color: '#d8d0bc' }, armor: { kind: 'escaupil', color: '#d2c8b0', cloth: '#d2c8b0', cloth2: '#2f5a32' }, head: { kind: 'kettleHat', design: 'a', color: '#7d8087', brim: 1.85 }, feet: { kind: 'turnshoe', color: '#2a1d14' } },
+      { label: 'Red jack, sallet', top: { kind: 'longsleeve', color: '#8a2a22' }, bottom: { kind: 'tights', color: '#2a2622' }, armor: { kind: 'escaupil', color: '#9a3a2c', cloth: '#9a3a2c', cloth2: '#7a2a20' }, head: { kind: 'kettleHat', design: 'c', bevor: false, color: '#9aa0a8', brim: 1.55, tall: true }, feet: { kind: 'turnshoe', color: '#2a1d14' } },
     ],
   },
   // ---- Level Mode (Dunnottar): kits no random deal and no picker offers (`levelOnly`) ----
@@ -2662,7 +2685,7 @@ export const OUTFITS = {
     protection: { blunt: 0.2, cut: 0.4, pierce: 0.3, bullet: { head: 0, torso: 0.05, limb: 0 } },
     courage: 0.4,
     designs: [
-      { label: 'Storm-grey gambeson', top: { kind: 'longsleeve', color: '#2f3438' }, bottom: { kind: 'pants', color: '#26282a' }, armor: { kind: 'escaupil', color: '#6a6446', cloth: '#6a6446', cloth2: '#4a452f' }, head: null, feet: { kind: 'compactBoot', color: '#2a1d14' } },
+      { label: 'Storm-grey gambeson', top: { kind: 'longsleeve', color: '#2f3438' }, bottom: { kind: 'pants', color: '#26282a' }, armor: { kind: 'escaupil', color: '#6a6446', cloth: '#6a6446', cloth2: '#4a452f' }, head: null, feet: { kind: 'turnshoe', color: '#2a1d14' } },
     ],
   },
   // The garrison's levy: a quilted jack and a kettle hat, the cheapest kit a lord could issue.
@@ -2680,8 +2703,8 @@ export const OUTFITS = {
     protection: { blunt: 0.16, cut: 0.22, pierce: 0.1, bullet: { head: 0.1, torso: 0.05, limb: 0 }, regions: { head: { blunt: 0.45, cut: 0.85, pierce: 0.55 } } },
     courage: 0.05,
     designs: [
-      { label: 'Faded jack', top: { kind: 'longsleeve', color: '#6a5a46' }, bottom: { kind: 'pants', color: '#3a3326' }, armor: { kind: 'escaupil', color: '#8a7b62', cloth: '#8a7b62', cloth2: '#6b5e49' }, head: { kind: 'kettleHat', design: 'a', color: '#7d8087', brim: 1.7 }, feet: { kind: 'compactBoot', color: '#2a1d14' } },
-      { label: 'Wool-stained jack', top: { kind: 'longsleeve', color: '#4a4a52' }, bottom: { kind: 'pants', color: '#2a2622' }, armor: { kind: 'escaupil', color: '#6e6a5a', cloth: '#6e6a5a', cloth2: '#524f43' }, head: { kind: 'kettleHat', design: 'b', color: '#6a6d74', brim: 1.8 }, feet: { kind: 'compactBoot', color: '#2a1d14' } },
+      { label: 'Faded jack', top: { kind: 'longsleeve', color: '#6a5a46' }, bottom: { kind: 'pants', color: '#3a3326' }, armor: { kind: 'escaupil', color: '#8a7b62', cloth: '#8a7b62', cloth2: '#6b5e49' }, head: { kind: 'kettleHat', design: 'a', color: '#7d8087', brim: 1.7 }, feet: { kind: 'turnshoe', color: '#2a1d14' } },
+      { label: 'Wool-stained jack', top: { kind: 'longsleeve', color: '#4a4a52' }, bottom: { kind: 'pants', color: '#2a2622' }, armor: { kind: 'escaupil', color: '#6e6a5a', cloth: '#6e6a5a', cloth2: '#524f43' }, head: { kind: 'kettleHat', design: 'b', color: '#6a6d74', brim: 1.8 }, feet: { kind: 'turnshoe', color: '#2a1d14' } },
     ],
   },
   // A Mexica warrior: the ichcahuipilli (quilted cotton armour, soaked in
@@ -2887,14 +2910,14 @@ export const OUTFITS = {
     // Dealt: the three silhouettes of the reign, and the gothic high-low (design 4, chosen 2026-10-08).
     picked: [0, 1, 2, 4],
     designs: [
-      { label: 'Ball gown (1860s)', top: { kind: 'bodice', color: '#e6eef2', trim: '#f4f1e8' }, bottom: { kind: 'gown', shape: 'ball', color: '#9ab8d0', trim: '#f4f1e8' }, armor: { kind: 'corset', color: '#5a7ea6', cloth: '#5a7ea6', cloth2: '#e6eef2', lace: '#e6eef2', gold: '#c9ccd2' }, feet: { kind: 'heelAnkleBoot', color: '#e6e0d4', heels: LADY_HEELS } },
-      { label: 'Bustle dress (1880s)', top: { kind: 'basque', color: '#5a1a2a', trim: '#d6c7a3' }, bottom: { kind: 'gown', shape: 'bustle', color: '#6a2234', trim: '#4a1420' }, armor: { kind: 'corset', color: '#16161a', cloth: '#16161a', cloth2: '#6a2234', lace: '#d6c7a3', gold: '#c9ccd2' }, head: { kind: 'tiltHat', color: '#2a0a12', plume: '#e8e0cc' }, feet: { kind: 'heelAnkleBoot', color: '#141416', heels: LADY_HEELS } },
+      { label: 'Ball gown (1860s)', top: { kind: 'bodice', color: '#e6eef2', trim: '#f4f1e8' }, bottom: { kind: 'gown', shape: 'ball', color: '#9ab8d0', trim: '#f4f1e8' }, armor: { kind: 'corset', color: '#5a7ea6', cloth: '#5a7ea6', cloth2: '#e6eef2', lace: '#e6eef2', gold: '#c9ccd2' }, feet: { kind: 'heelAnkleBoot', high: true, laced: true, color: '#e6e0d4', heels: LADY_HEELS } },
+      { label: 'Bustle dress (1880s)', top: { kind: 'basque', color: '#5a1a2a', trim: '#d6c7a3' }, bottom: { kind: 'gown', shape: 'bustle', color: '#6a2234', trim: '#4a1420' }, armor: { kind: 'corset', color: '#16161a', cloth: '#16161a', cloth2: '#6a2234', lace: '#d6c7a3', gold: '#c9ccd2' }, head: { kind: 'tiltHat', color: '#2a0a12', plume: '#e8e0cc' }, feet: { kind: 'heelAnkleBoot', high: true, laced: true, color: '#141416', heels: LADY_HEELS } },
       // The 1890s walking dress, all in black (was the widow's mourning black; the user's call, 2026-11-21): leg-of-mutton
       // sleeves, a high lace collar and jabot, the bodice hard to the corseted waist, a draped overskirt edged with lace,
       // kid gloves, a hat with ostrich plumes.
-      { label: 'Walking dress (1890s)', top: { kind: 'gigot', color: '#1d1d22', trim: '#2c2c33' }, bottom: { kind: 'gown', shape: 'walking', color: '#1a1a1f', trim: '#2c2c33', stuff: 'satin' }, armor: { kind: 'corset', color: '#1b1b20', cloth: '#1b1b20', cloth2: '#141418', lace: '#34343c', gold: '#c9ccd2' }, head: { kind: 'plumeHat', color: '#151518', plume: '#1b1b20' }, feet: { kind: 'heelAnkleBoot', color: '#141416', heels: LADY_HEELS }, gloves: '#121215' },
+      { label: 'Walking dress (1890s)', top: { kind: 'gigot', color: '#1d1d22', trim: '#2c2c33' }, bottom: { kind: 'gown', shape: 'walking', color: '#1a1a1f', trim: '#2c2c33', stuff: 'satin' }, armor: { kind: 'corset', color: '#1b1b20', cloth: '#1b1b20', cloth2: '#141418', lace: '#34343c', gold: '#c9ccd2' }, head: { kind: 'plumeHat', color: '#151518', plume: '#1b1b20' }, feet: { kind: 'heelAnkleBoot', high: true, laced: true, color: '#141416', heels: LADY_HEELS }, gloves: '#121215' },
       // Victorian Gothic, all in black: a strapless overbust corset (brocade,
-      // a steel busk's clasps, laced behind), platform Mary Janes, a beaded
+      // a steel busk's clasps, laced behind), laced platform boots, a beaded
       // lace choker; porcelain powder, smoky eyes, black lips (`face`, laid
       // over her own look: her hair stays her own), a small dark-red flower in
       // the hair. Three takes were drawn; B (the high-low) was chosen and is dealt, A and C are kept.
