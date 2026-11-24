@@ -725,6 +725,51 @@ const HAND_PIECES = {
     }
   },
   /**
+   * Small scales down the back of each digit, each its own `[from, to]` stretch of the digit (stations as `lames`'s, any
+   * place along it: the point is found between the digit's own sections), so a scale over a bone stays flat on it and
+   * one over a joint is domed round the knuckle as it bends, and the hand curls with them. Each is a shell over the back
+   * and sides (`arc`), `lift` m off the glove at its near end and `lap` more at its far end, so it lies over the next one
+   * out; `cusp`: its far edge drawn out to a point over the middle of the back by this much (stations, a cusped edge).
+   * `spans` for the fingers, `thumbSpans` and `thumbArc` for the thumb; `which` as `lames`'s.
+   */
+  scales({ digits, mesh, low }, { role = 'metal', spans, thumbSpans = null, arc: fingerArc = 1.5, thumbArc = null, lift = 0.0011, lap = 0.0013, cusp = 0, which = [0, 1, 2, 3, 4] }) {
+    const out = mesh(role);
+    const steps = low ? 2 : 6;
+    for (const index of which) {
+      const rings = digits[index].filter((ring) => !ring.apex);
+      const arc = index === 4 ? thumbArc ?? fingerArc : fingerArc;
+      /** The digit's surface at a station, a turn round it and a height over it: between the two sections either side. */
+      const at = (station, angle, over) => {
+        let next = rings.findIndex((ring) => ring.station >= station);
+        if (next <= 0) return rings[next === 0 ? 0 : rings.length - 1].at(angle, over);
+        const [a, b] = [rings[next - 1], rings[next]];
+        const t = (station - a.station) / (b.station - a.station || 1);
+        const p = a.at(angle, over);
+        const q = b.at(angle, over);
+        return [handLerp(p[0], q[0], t), handLerp(p[1], q[1], t), handLerp(p[2], q[2], t)];
+      };
+      for (const [from, to] of index === 4 ? thumbSpans ?? spans : spans) {
+        // (Its rows at its ends and at each of the digit's sections inside it, so it follows a joint's bend.)
+        const stations = [from, ...rings.map((ring) => ring.station).filter((station) => station > from + 0.02 && station < to - 0.02), to];
+        const rows = stations.map((station, row) => {
+          const share = (station - from) / (to - from);
+          const points = [];
+          for (let k = 0; k <= steps; k += 1) {
+            const angle = -arc + (k / steps) * 2 * arc;
+            const over = lift + lap * share;
+            const point = at(station, angle, over);
+            // (The point runs straight on from the scale's own end, a rigid tongue: not round the next joint.)
+            const pointed = row === stations.length - 1 ? cusp * (1 - Math.abs(angle) / arc) : 0;
+            const before = pointed ? at(station - 0.04, angle, over) : point;
+            points.push(handPoint(out, handAdd(point, handSub(point, before), pointed / 0.04), HAND_PLAIN));
+          }
+          return points;
+        });
+        handSkin(out, rows);
+      }
+    }
+  },
+  /**
    * Plates across the four fingers together (a mitten gauntlet's): each spans from the little finger's outer side over the
    * fingers' backs to the first finger's outer side, `spans` along the fingers as `lames`.
    */
@@ -758,11 +803,16 @@ const HAND_PIECES = {
    * round from the middle of the back, `lift` m off the glove; `lames`: in that many overlapping strips across (a
    * gauntlet's metacarpal lames), each lapping the next one out by `lap`; `lobes`: its far edge scalloped over the four
    * knuckles by this share of the web (a tekkō's); `ridge`: m raised along the knuckle line (a gauntlet's knuckle plate).
+   * Set by the knuckles themselves: `gadlings`: m each knuckle's place raised into a boss; `cusps`: the far edge drawn out
+   * to a point over each knuckle by this much (stations). `flutes`: [count, m] ridges running along the plate.
    */
-  backPlate({ sizes, pose, mesh, low, grow }, { role = 'metal', from = 0.12, to = 1.02, arc = 1.75, lift = 0.0015, lames = 1, lap = 0.0015, lobes = 0, ridge = 0 }) {
+  backPlate({ sizes, pose, mesh, low, grow }, { role = 'metal', from = 0.12, to = 1.02, arc = 1.75, lift = 0.0015, lames = 1, lap = 0.0015, lobes = 0, ridge = 0, gadlings = 0, cusps = 0, flutes = null }) {
     const out = mesh(role);
-    const across = low ? 4 : lobes ? 24 : 10;
+    const across = low ? 4 : lobes || cusps || gadlings ? 24 : flutes ? 20 : 10;
     const rows = low ? 2 : 4;
+    // (How near a place across the hand is to a knuckle: 1 over it, falling off between.)
+    const knuckles = HAND_KNUCKLES.map((w) => w * sizes.L);
+    const nearKnuckle = (w, width) => Math.max(...knuckles.map((k) => handBump((w - k) / width)));
     for (let lame = 0; lame < lames; lame += 1) {
       const start = handLerp(from, to, lame / lames);
       const end = handLerp(from, to, (lame + 1) / lames) + (lame + 1 < lames ? 0.02 : 0);
@@ -774,9 +824,12 @@ const HAND_PIECES = {
           const angle = -arc + (k / across) * 2 * arc;
           // (A scalloped edge: longest over each knuckle.)
           const scallop = lobes && lame === lames - 1 ? lobes * share * (0.3 + 0.7 * Math.abs(Math.sin((k / across) * 4 * Math.PI)) ** 0.8) : 0;
-          const s = handLerp(start, end, share) + scallop;
-          const raised = ridge * handBump((s - 0.99) / 0.07) * (Math.abs(angle) < 1.3 ? 1 : 0.4);
-          points.push(handPoint(out, handPalmPoint(sizes, pose, s, angle, grow + lift + lap * (lames > 1 ? share : 0) + raised), HAND_PLAIN));
+          const w = cusps || gadlings ? handPalmPoint(sizes, pose, 1, angle, grow)[2] : 0;
+          const pointed = cusps && lame === lames - 1 ? cusps * share * nearKnuckle(w, 0.006) : 0;
+          const s = Math.min(handLerp(start, end, share) + scallop + pointed, Math.max(end, 1.12));
+          const raised = ridge * handBump((s - 0.99) / 0.07) * (Math.abs(angle) < 1.3 ? 1 : 0.4) + gadlings * handBump((s - 0.99) / 0.06) * nearKnuckle(w, 0.0038);
+          const fluted = flutes ? flutes[1] * Math.max(0, Math.cos(angle * flutes[0])) ** 2 * Math.sin(share * Math.PI) : 0;
+          points.push(handPoint(out, handPalmPoint(sizes, pose, s, angle, grow + lift + lap * (lames > 1 ? share : 0) + raised + fluted), HAND_PLAIN));
         }
         made.push(points);
       }
@@ -877,19 +930,31 @@ export const HAND_WEAR = {
       { kind: 'lames', spans: HAND_FINGER_SPANS, thumbSpans: HAND_THUMB_SPANS, arc: 1.7, swell: [0, 0.002] },
     ],
   },
-  // The Gothic gauntlet of the later 15th century, after the Met's 14.25.909 (South German or Austrian, c. 1480), Maximilian
-  // I's by Lorenz Helmschmied (Vienna, A 56, c. 1485) and the Cleveland Museum's 1916.2081 (Innsbruck, c. 1490): a long cuff
-  // drawn out to a point and fluted, narrow lames at the wrist and over the back of the hand, a knuckle plate raised into
-  // a point on each knuckle, and lames across the four fingers together (a mitten, fluted to look fingered), each lying over
-  // the next towards the fingertips; the thumb in its own on a hinge. (The flutes and the cusped edges of its lames are
-  // not drawn; a fingered Gothic gauntlet, which the brief for this asked for, is in none of the pieces looked at.)
+  // The Gothic gauntlet of the later 15th century, fingered (the user's call, 2026-11-24), after Maximilian I's fingered
+  // pair by Lorenz Helmschmied (Vienna, Hofjagd- und Rüstkammer A 58a, Augsburg, c. 1485), with the cuff and hand of its
+  // mitten companion (A 56) and of the Met's 14.25.909 (South German or Austrian, c. 1480): a long cuff drawn out to a
+  // point, fluted, with a turned (roped) edge; a fluted metacarpal plate and narrow lames below it, each lying over the
+  // next towards the fingers; a knuckle plate embossed into a boss on each knuckle, its edge drawn out to a point over
+  // each; then each finger on its own, covered by small scales riding its own segments, a short domed one over each joint
+  // and one or two along each bone, each lying over the next towards the tip and cusped at its edge, a pointed one over
+  // the tip; the thumb in its own scales; the glove's leather at the palm, between the fingers and under the scales. The
+  // scales follow the finger as the bare hand's joints bend it, so every posture of the bare hand is the gauntlet's.
+  // (Not drawn: the cuff's chevron fluting, only flutes round it; the brass of the knuckle band and the joint scales, all
+  // in the one steel; the pierced edges; the rivets.)
   gothic: {
-    role: 'leather', thick: 0.0015, mitten: true, finish: { leather: 0.15 },
+    role: 'leather', thick: 0.0015, finish: { leather: 0.15 },
     pieces: [
-      { kind: 'cuff', profile: [[-0.032, 0.009], [0.0, 0.005], [0.04, 0.01], [0.08, 0.017], [0.11, 0.023]], point: 0.055, flutes: 12 },
-      { kind: 'backPlate', from: 0.26, to: 1.1, arc: 1.7, lift: 0.003, lames: 3, ridge: 0.004 },
-      { kind: 'mittenLames', spans: [[-0.02, 0.5], [0.5, 1.011], [0.989, 1.5], [1.5, 2.011], [1.989, 2.9]] },
-      { kind: 'lames', which: [4], spans: HAND_THUMB_SPANS, arc: 1.7 },
+      { kind: 'cuff', profile: [[-0.032, 0.009], [-0.012, 0.0055], [0.004, 0.0045], [0.04, 0.01], [0.08, 0.017], [0.106, 0.022], [0.11, 0.0255], [0.114, 0.022]], point: 0.06, flutes: 12 },
+      { kind: 'backPlate', from: 0.06, to: 0.6, arc: 1.7, lift: 0.0032, flutes: [5, 0.0014] },
+      { kind: 'backPlate', from: 0.56, to: 0.9, arc: 1.68, lift: 0.0026, lames: 3, lap: 0.0012 },
+      { kind: 'backPlate', from: 0.86, to: 1.05, arc: 1.62, lift: 0.0036, ridge: 0.0015, gadlings: 0.0032, cusps: 0.08 },
+      {
+        kind: 'scales', arc: 1.45, cusp: 0.07,
+        spans: [[-0.2, 0.12], [0.06, 0.38], [0.32, 0.66], [0.6, 0.96], [0.88, 1.14], [1.08, 1.56], [1.5, 1.96], [1.88, 2.13], [2.07, 2.5], [2.44, 2.98]],
+        // (The thumb's from just past its root knuckle: its ball lies against what the hand holds, under the glove only,
+        // as on the left gauntlet of the pair; its scales kept to the back, clear of a hilt.)
+        thumbSpans: [[1.1, 1.34], [1.28, 1.58], [1.5, 1.96], [1.88, 2.13], [2.07, 2.5], [2.44, 2.98]], thumbArc: 0.85,
+      },
     ],
   },
   // The mitten gauntlet of the Milanese and the 16th-century harnesses, after the Cleveland Museum's 1916.1645 (Italy, c.
