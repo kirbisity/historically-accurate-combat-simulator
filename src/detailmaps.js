@@ -469,6 +469,8 @@ export const CLOTH_GARMENTS = {
     bare: 'none', boxingBoot: 'leather', compactBoot: 'leather', dressShoe: 'leather', footRags: 'hemp', heelAnkleBoot: 'leather',
     hikingBoot: 'leather', jinBoot: 'leather', platformShoe: 'leather', ridingBoot: 'leather', sabaton: 'none', sandal: 'leather',
     tabi: 'cotton', tacticalBoot: 'cordura', trainer: 'jersey', proximityBoot: 'aluminized',
+    // (The turnshoe, the Ottoman's boot and the armoured ones are leather; the Chinese boot black cloth, the steppe's felt.)
+    turnshoe: 'leather', clothBoot: 'cotton', lamellarBoot: 'leather', kogake: 'cotton', feltBoot: 'felt', ottomanBoot: 'leather', lugBoot: 'leather',
   },
   armor: {
     // Japan: lacquered iron and kozane are metal (the armour tiles), laced in silk braid; the ō-yoroi's brocade sleeve.

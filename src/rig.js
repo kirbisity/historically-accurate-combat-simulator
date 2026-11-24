@@ -170,7 +170,10 @@ function footFrame(shin, relation, foot, body) {
   const standing = Math.min(1, Math.max(0, (Math.abs(shin.y[1]) - 0.5) / 0.35));
   const flattened = vec.sub(rigid.y, vec.scale([0, 1, 0], rigid.y[1] * standing));
   const toes = vec.length(flattened) > 1e-6 ? vec.normalize(flattened) : rigid.y;
-  return { ...frameFrom(foot, toes, rigid.x, true), end: vec.add(foot, vec.scale(toes, 0.16 * body.heightM / 1.8)) };
+  // Its sole too: a shin leaning out to the side of a wide stance does not roll the foot onto its edge (a flat sole, drawn,
+  // would stand with one side in the ground).
+  const up = vec.normalize(vec.add(vec.scale(rigid.x, 1 - standing), vec.scale([0, 1, 0], standing)));
+  return { ...frameFrom(foot, toes, up, true), end: vec.add(foot, vec.scale(toes, 0.16 * body.heightM / 1.8)) };
 }
 
 /** The original rule, a fixed reference per bone: used once, on the bind pose, where it is well defined. */

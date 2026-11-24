@@ -348,10 +348,11 @@ export function clothDetailMaterial(material) {
  * A rigid piece worn (a hat, a shoe: wardrobe.js) wearing a material's tile of the cloth atlas without texture coordinates of
  * its own: projected three ways over the piece in its own metres (its mesh's scale taken in, so a stretched sphere of a shoe
  * reads in true size), the three blended by the surface's facing; the relief as normals, the shade and the roughness as on a
- * body's cloth (clothDetailMaterial). `material`: a CLOTH_MATERIALS key; none, or the maps off: the material as it was. A
+ * body's cloth (clothDetailMaterial). `material`: a CLOTH_MATERIALS key; none, or the maps off: the material as it was.
+ * `polish`: the tile's roughness times this (a polished or patent leather keeps its grain's relief and shines). A
  * material is fitted once (it may be shared by several meshes of the piece).
  */
-export function clothPropMaterial(target, material) {
+export function clothPropMaterial(target, material, { polish = 1 } = {}) {
   const spec = clothFamilyOf(material);
   const atlas = spec ? clothAtlasTexture() : null;
   // (A piece already wearing a tile, a metal one or this, is left as it is.)
@@ -364,6 +365,7 @@ export function clothPropMaterial(target, material) {
     uClothCell: { value: new THREE.Vector2(spec.cell % grid, Math.floor(spec.cell / grid)) },
     uClothMean: { value: new THREE.Vector2(...(means[spec.cell] ?? [0.9, 0.6])) },
     uClothTile: { value: spec.metres * spec.scale },
+    uClothPolish: { value: polish },
   };
   target.userData.clothProp = material;
   if (target.isMeshStandardMaterial) target.roughness = 1;
@@ -381,6 +383,7 @@ export function clothPropMaterial(target, material) {
   vClothAx2 = normalize(mat3(modelViewMatrix) * vec3(0.0, 0.0, 1.0));`,
     );
     shader.fragmentShader = `uniform sampler2D uClothAtlas;
+uniform float uClothPolish;
 uniform vec2 uClothCell;
 uniform vec2 uClothMean;
 varying vec3 vClothP;
@@ -410,7 +413,7 @@ ${shader.fragmentShader}`
   vec4 clothTexel = clothX * clothW.x + clothY * clothW.y + clothZ * clothW.z;
   diffuseColor.rgb *= mix(1.0, clothTexel.b / max(uClothMean.x, 0.05), clothNear);`,
       )
-      .replace('#include <roughnessmap_fragment>', 'float roughnessFactor = mix(uClothMean.y, clothTexel.a, clothNear);')
+      .replace('#include <roughnessmap_fragment>', 'float roughnessFactor = mix(uClothMean.y, clothTexel.a, clothNear) * uClothPolish;')
       .replace(
         '#include <normal_fragment_maps>',
         normals
