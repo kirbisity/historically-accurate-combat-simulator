@@ -19,7 +19,7 @@ const LOG_PHRASES_ZH = {
   'its leg broken': '腿断了', 'jumps': '跃起', 'knocked flat': '被打翻在地', 'knocked him flat': '把他打翻在地', 'lands in the cesspool': '掉进粪池',
   'leg struck': '腿被击中', 'legs jarred by the landing': '落地震伤双腿', 'missed': '落空', 'on fire: runs': '着火：狂奔', 'puts on the helmet': '戴上头盔',
   'rests': '歇息', 'rib fracture': '肋骨骨折', 'rises out of the filth': '从污秽中爬起', 'rocked back by the kick': '被踢得后仰', 'runs onto a stake': '撞上木桩',
-  'shield hooked': '盾被钩开', 'shield knocked aside': '盾被打偏', 'spine jarred': '脊椎受震', 'stabbed through the chest': '胸口被刺穿',
+  'shield hooked': '盾被钩开', 'shield knocked aside': '盾被打偏', 'spine jarred': '脊椎受震', 'stabbed through the chest': '胸口被刺穿', 'cut in two at the waist': '被拦腰斩断', 'cut in two through the chest': '被拦胸斩为两段', 'cut in two at the waist: dead': '被拦腰斩断，当场毙命', 'cut in two through the chest: dead': '被拦胸斩为两段，当场毙命', 'cut from the saddle': '被斩落马下',
   'stopped by the shield': '被盾挡住', 'stumbles': '踉跄', 'stunned': '眩晕', 'swings the empty gun as a club': '抡起空枪当棍子',
   'swings up into the saddle': '翻身上马', 'taken on the shield': '用盾接住', 'the artery clamps': '动脉收紧', 'the bleeding is stopped': '止住了血',
   'the bone cut into': '砍进骨头', 'the bone shattered': '骨头碎裂', 'the charge smoulders and does not go': '火药闷燃，没有发射', 'the general has fallen': '主将阵亡',

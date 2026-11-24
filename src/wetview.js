@@ -35,6 +35,7 @@ import { tkWeatherNow } from './townkit/weather.js';
 import { bloodDyeWaterAt } from './blooddye.js';
 import { ENV } from './env/config.js';
 import { MUD_VIEW } from './mudview.js';
+import { MARKS, markShader, marksPose, markUniforms } from './markview.js';
 import { WET, WET_CHANNEL, WET_COUNT, WET_POINTS, WET_SEGMENTS, createWetness, setWetness, stepWetness, wetHeights, wetSummary } from './wetness.js';
 
 export const WET_VIEW = {
@@ -381,6 +382,8 @@ function wetMaterial(material, wet, { skin = false, hair = false, mask = false }
       .replace('#include <common>', WET_FRAGMENT_PARS)
       .replace('#include <emissivemap_fragment>', wetSurface())
       .replace('#include <tonemapping_fragment>', wetLight());
+    // The marks of blows (markview.js): laid in with the wetness, on the same uniforms.
+    markShader(shader);
   };
   patched.previous = previous;
   patched.wets = true;
@@ -391,7 +394,7 @@ function wetMaterial(material, wet, { skin = false, hair = false, mask = false }
 
 /** A body's uniforms: whether anything on it is wet, its segments (from, with its thickness; to) and its points' numbers. */
 function wetUniforms(values = new Float32Array(WET_COUNT * 4)) {
-  return { uWetOn: { value: 0 }, uWetFrom: { value: new Float32Array(SEGMENTS_N * 4) }, uWetTo: { value: new Float32Array(SEGMENTS_N * 3) }, uWet: { value: values } };
+  return { uWetOn: { value: 0 }, uWetFrom: { value: new Float32Array(SEGMENTS_N * 4) }, uWetTo: { value: new Float32Array(SEGMENTS_N * 3) }, uWet: { value: values }, ...markUniforms() };
 }
 
 // (What is drawn dry for good: the warmers' zero-area triangles, whose programs a fighter's materials then share.)
@@ -573,6 +576,8 @@ export function wetUpdate(view, world, fighterViews, dt) {
         state.held.fresh = false;
       }
     }
+    // The marks blows left on him (markview.js), where his bones are now; none drawn far from the camera.
+    marksPose(fighter, fighterView.frames, wet.uniforms, world.time, fighterView.group.visible && (fighter.x[24] - view.camera.position.x) ** 2 + (fighter.x[26] - view.camera.position.z) ** 2 < MARKS.far ** 2);
     wet.uniforms.uWetOn.value = state.any ? 1 : 0;
     const swing = fighterView.bones?.swing;
     if (swing) swing.wet.value = state.cloth;

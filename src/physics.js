@@ -45,7 +45,7 @@ import { envLieOf } from './env/lie.js';
 import { crowdNearest, withCrowdGrid } from './crowdgrid.js';
 import { TABLE_DUEL, tableOn } from './tableduel.js';
 import { collideWorks, faceBetween, faceOutside, FIELDWORKS, floorFor, footSink, keepRootOff, looseFloor, mireStep, reliefAt, slogCost, spentPace, stepOnWorks, worksOf } from './physics/fieldworks.js';
-import { chooseHorseDetail, collideHorses, createHorse, mountFootprint, goalFromFootwork, horseTimers, keepSeat, loseHorse, mountedBehind, riderFacing, ridingLean, saddleReach, mountJump, mountJumpBlocked, mountJumpOf, seatMass, seatRider, SEATED_PARTICLES, stepHorse, stepTurret, strikeHorses, turnCarried } from './physics/mounted.js';
+import { chooseHorseDetail, collideHorses, createHorse, mountFootprint, goalFromFootwork, horseTimers, keepSeat, unhorse, loseHorse, mountedBehind, riderFacing, ridingLean, saddleReach, mountJump, mountJumpBlocked, mountJumpOf, seatMass, seatRider, SEATED_PARTICLES, stepHorse, stepTurret, strikeHorses, turnCarried } from './physics/mounted.js';
 import { cutSeverity, limbStriker, particleAt, shieldCovering, soundDown, soundEvent, soundHit, soundStep, soundVoice, soundWound, trackPunchSwing, trackSwing, weaponPart, weaponStriker } from './audio/log.js';
 export { WORLD } from './physics/config.js';
 export { pinnedBy } from './physics/grappling.js';
@@ -179,7 +179,7 @@ export function createFighter(inputs, { id, corner, x, facing, random }) {
     sidearmDrawn: undefined, saddleDrawn: undefined, bladeMet: undefined, severed: undefined, severedCapsules: undefined, stumbleUntil: undefined, pendingArm: undefined,
     // A limb lost (maiming.js): the great vessels opened, the shock of it and when, the parts an edge has cut (a limb they
     // ruin bleeds as torn open), whether he fights on from the ground with a leg gone, and when he died of the blood lost.
-    vessels: undefined, maimShock: undefined, maimShockAt: undefined, maimFeltAt: undefined, cutParts: undefined, limbCuts: undefined, fractured: undefined, groundFight: undefined, diedAt: undefined,
+    vessels: undefined, maimShock: undefined, maimShockAt: undefined, maimFeltAt: undefined, cutParts: undefined, limbCuts: undefined, trunkCut: undefined, halves: undefined, fractured: undefined, groundFight: undefined, diedAt: undefined,
     mixFor: undefined, slipSide: undefined, crawling: undefined, crawlPhase: undefined, crawlTurn: undefined, wornStandard: undefined,
     panicked: undefined, panics: undefined, goneAt: undefined, calmFor: undefined, shakyUntil: undefined, steadyUntil: undefined, paired: undefined, couched: undefined, net: undefined, netted: undefined, caught: undefined, holding: undefined, fellIn: undefined,
     aiOwed: undefined, aiEventCursor: undefined, aiPickupFor: undefined, aiConfidence: undefined, adrenaline: undefined, fear: undefined, artEventCursor: undefined,
@@ -4461,7 +4461,8 @@ function stepWorld(world, dt) {
       if (horse.stepped) stepHorse(world, horse, horse.detail === 'coarse' ? stride * h : h);
     }
     moving.length = 0;
-    for (const fighter of world.fighters) if (!asleep(fighter) && steppingNow(fighter, substep, stride)) moving.push(fighter);
+    // (A man cut through the trunk is two limp bodies, stepped below: stepHalves.)
+    for (const fighter of world.fighters) if (!fighter.halves && !asleep(fighter) && steppingNow(fighter, substep, stride)) moving.push(fighter);
     for (const fighter of moving) {
       const own = spanOf(fighter, h, stride);
       if (isLimp(fighter)) relaxedTone(fighter, own);
@@ -4484,6 +4485,10 @@ function stepWorld(world, dt) {
     }
     stepWhips(world, h);
     for (const fighter of world.fighters) {
+      if (fighter.halves) {
+        if (!fighter.dormant) stepHalves(world, fighter, h, time);
+        continue;
+      }
       if (fighter.detail === 'proxy') continue;
       if (asleep(fighter)) {
         fighter.prev.set(fighter.x);
@@ -4507,7 +4512,7 @@ function stepWorld(world, dt) {
     }
   }
   for (const fighter of world.fighters) {
-    if (fighter.detail !== 'proxy' || fighter.dormant) continue;
+    if (fighter.detail !== 'proxy' || fighter.dormant || fighter.halves) continue;
     if (fighter.mount) carryProxyRider(world, fighter, dt);
     else if (proxyBeat(world, fighter)) {
       // The pose he is leaving, and when: drawn between it and the new one until the next beat (main.js smoothProxies), so on
@@ -8551,6 +8556,10 @@ export const SEVER_PARTS = {
   knee: { base: 'Knee', particles: ['Foot'], bones: ['Shin', 'Foot'], capsules: ['Shank'], attach: 'foot', label: 'leg cut off at the knee' },
   ankle: { base: 'Foot', particles: [], bones: ['Foot'], capsules: [], attach: 'foot', label: 'foot cut off' },
   neck: { base: 'neck', particles: ['head'], bones: ['head'], capsules: ['head'], attach: 'head', label: 'beheaded' },
+  // The trunk cut through (`trunk`: severTrunk): what goes with each part is told by the cut's own plane (fighter.trunkCut,
+  // fighter.halves), not by a list; both parts stay his, each a limp body. `waist`: below the ribs; `chest`: through them.
+  waist: { trunk: true, base: 'pelvis', particles: [], bones: [], capsules: [], attach: null, label: 'cut in two at the waist' },
+  chest: { trunk: true, base: 'pelvis', particles: [], bones: [], capsules: [], attach: null, label: 'cut in two through the chest' },
 };
 const JOINT_AT_START = { UpperArm: 'shoulder', Forearm: 'elbow', Thigh: 'hip', Shank: 'knee' };
 const JOINT_AT_END = { UpperArm: 'elbow', Forearm: 'wrist', Thigh: 'knee', Shank: 'ankle' };
@@ -8574,7 +8583,10 @@ function jointAt(defender, capsule, t, contactPoint) {
  * a broken bone (fighter.fractured) only `fractured` of its own. `key`: the segment struck (its wounds); `boneWhole`, the
  * bone's share whole. The neck (no segment) is all one.
  */
-export function limbResistance(defender, { joint, side }, key = null) {
+export function limbResistance(defender, where, key = null) {
+  // (The trunk: a section, not a joint. trunkResistance.)
+  if (where.along !== undefined) return trunkResistance(defender, where);
+  const { joint, side } = where;
   const [base, segment, typical] = BLADES.sever[joint];
   if (!segment) return { flesh: base * BODY.toughness, bone: 0, boneWhole: 0, notched: 0 };
   const spec = BLADES.limbCut;
@@ -8622,6 +8634,265 @@ export function cutIntoLimb(world, defender, capsule, t, cleaving, square, event
   if (defender.broken.has(joint)) (defender.fractured ??= new Set()).add(key);
   else breakJoint(world, defender, joint, key);
   return true;
+}
+
+/** The trunk's own frame from a body's particles (`x`): up its pelvis-to-neck line, left by its shoulders, forward square to both. */
+export function trunkFrameOf(x) {
+  const pelvis = point(x, P.pelvis);
+  const span = vec.sub(point(x, P.neck), pelvis);
+  const length = vec.length(span) || 1e-9;
+  const up = vec.scale(span, 1 / length);
+  const across = vec.sub(point(x, P.lShoulder), point(x, P.rShoulder));
+  const flat = vec.sub(across, vec.scale(up, vec.dot(across, up)));
+  const left = vec.length(flat) > 1e-6 ? vec.normalize(flat) : vec.normalize(vec.cross(Math.abs(up[1]) < 0.9 ? [0, 1, 0] : [1, 0, 0], up));
+  return { pelvis, up, left, forward: vec.cross(up, left), length };
+}
+
+/**
+ * The section an edge takes through the trunk (BLADES.trunkCut): the plane the blade sweeps (its line `bladeDir` and its
+ * travel `travel`, against him) through where it met him. `along`: where that plane meets the pelvis-to-neck line (0..1);
+ * `cos`: of its lean from square across the trunk; `lo`..`hi`: the heights it spans on him; `normal`: the plane's normal in
+ * the trunk's frame ([forward, up, left], pointing to the upper part); `joint`: 'waist' below the ribs, 'chest' through
+ * them. Null when it is no cut across him: a thrust (the blade travelling along its own line), a cut down the body, one
+ * off either end, a blade too short for the section (`edge`), or a trunk already cut through.
+ */
+export function trunkSection(defender, contactPoint, bladeDir, travel, edgeLength = Infinity) {
+  if (defender.trunkCut) return null;
+  const spec = BLADES.trunkCut;
+  const frame = trunkFrameOf(defender.x);
+  let normal = vec.cross(bladeDir, travel);
+  const size = vec.length(normal);
+  if (size < 0.5 * vec.length(travel) * vec.length(bladeDir) || size < 1e-9) return null;
+  normal = vec.scale(normal, 1 / size);
+  let lean = vec.dot(normal, frame.up);
+  if (lean < 0) {
+    normal = vec.scale(normal, -1);
+    lean = -lean;
+  }
+  if (lean < spec.steepest) return null;
+  const along = vec.dot(vec.sub(contactPoint, frame.pelvis), normal) / (lean * frame.length);
+  if (along < spec.from || along > spec.to) return null;
+  const radius = defender.body.segments.trunk.skinRadius;
+  if (edgeLength < spec.edge * 2 * radius / lean) return null;
+  const reach = (radius * Math.sqrt(1 - lean * lean)) / lean / frame.length;
+  return {
+    joint: along < spec.cage[0] ? 'waist' : 'chest', side: '', along, cos: lean, lo: along - reach, hi: along + reach,
+    normal: [vec.dot(normal, frame.forward), lean, vec.dot(normal, frame.left)],
+  };
+}
+
+/** Which half of the trunk a section's wounds are kept by (fighter.limbCuts): below the ribs or through them. */
+const trunkCutKey = (section) => (section.along < BLADES.trunkCut.cage[0] ? 'trunkLow' : 'trunkHigh');
+
+/**
+ * What is left of the trunk to cut through at a section (trunkSection), in J, as limbResistance tells a limb's: the
+ * `flesh` (the muscle of the section, and `soft` of its viscera and fat, from the body's own tissue and girth) and the
+ * `bone` it meets (the spine; the ribs, by the height of cage it crosses; a shoulder's girdle; the pelvis), each over the
+ * cosine of its lean, less what earlier cuts there parted and notched. BLADES.trunkCut holds the figures and their sources.
+ */
+export function trunkResistance(defender, section) {
+  const spec = BLADES.trunkCut;
+  const trunk = defender.body.segments.trunk;
+  const boneArea = Math.PI * trunk.boneRadius ** 2;
+  const lean = Math.PI * (trunk.muscleRadius ** 2 - trunk.boneRadius ** 2);
+  const fat = Math.PI * (trunk.skinRadius ** 2 - trunk.muscleRadius ** 2);
+  const muscle = trunk.tissue.muscle / Math.max(1e-9, trunk.tissue.muscle + trunk.tissue.other);
+  const fleshWhole = (spec.fleshJ * (lean * muscle + spec.soft * (lean * (1 - muscle) + fat)) / section.cos) * BODY.toughness;
+  const [cageFrom, cageTo] = spec.cage;
+  const crossed = Math.max(0, Math.min(section.hi, cageTo) - Math.max(section.lo, cageFrom));
+  const inCage = section.along >= cageFrom && section.along <= cageTo ? 1 : 0;
+  const share = spec.spine / section.cos
+    + (inCage || crossed > 0 ? spec.ribs * (inCage + crossed / spec.ribsPer) : 0)
+    + spec.girdle * ((section.hi > spec.girdleFrom ? 1 : 0) + (section.lo > spec.girdleFrom ? 1 : 0))
+    + spec.pelvis * ((section.lo < spec.pelvisTo ? 1 : 0) + (section.hi < spec.pelvisTo ? 1 : 0));
+  const boneWhole = spec.boneJ * boneArea * share * BODY.toughness;
+  const done = defender.limbCuts?.[trunkCutKey(section)];
+  const notched = Math.min(1, BLADES.limbCut.reopen * (done?.bone ?? 0));
+  return { flesh: Math.max(0, fleshWhole - BLADES.limbCut.reopen * (done?.flesh ?? 0)), bone: boneWhole * (1 - notched), boneWhole, notched, broken: false };
+}
+
+/** An edge `cleaving` J into the trunk that did not part it: the flesh it went through and the bone it notched stay (fighter.limbCuts), as a limb's do. */
+function cutIntoTrunk(defender, section, cleaving) {
+  const left = trunkResistance(defender, section);
+  const done = ((defender.limbCuts ??= {})[trunkCutKey(section)] ??= { flesh: 0, bone: 0 });
+  done.flesh += Math.min(cleaving, left.flesh);
+  if (left.boneWhole > 0) done.bone = Math.max(done.bone, Math.min(1, (done.bone ?? 0) + Math.max(0, cleaving - left.flesh) / left.boneWhole));
+}
+
+// The particles that go with the neck's end of the trunk and with the pelvis's, and each one's root on the trunk.
+const TRUNK_ROOT = {
+  head: 'neck', neck: 'neck', lShoulder: 'lShoulder', rShoulder: 'rShoulder', lElbow: 'lShoulder', rElbow: 'rShoulder', lHand: 'lShoulder', rHand: 'rShoulder',
+  pelvis: 'pelvis', lHip: 'lHip', rHip: 'rHip', lKnee: 'lHip', rKnee: 'rHip', lFoot: 'lHip', rFoot: 'rHip',
+};
+const NECK_END = new Set(['head', 'neck', 'lShoulder', 'rShoulder', 'lElbow', 'rElbow', 'lHand', 'rHand'].map((name) => P[name]));
+const TRUNK_PARTICLES_ALL = ['pelvis', 'neck', 'lShoulder', 'rShoulder', 'lHip', 'rHip'].map((name) => P[name]);
+// A part's missing end, kept only so that its joints and its drawn bones have their whole frame: `phantom` of its mass
+// (nothing to the part), and no floor under it (a radius far below any floor). The cut end itself (`stub`: the pelvis of
+// the upper part, the neck of the lower, brought to where the cut crossed the spine) is real: it bears on the floor with
+// `stubRadius` of the trunk's girth and carries `stubMass` of the part's trunk.
+const TRUNK_HALF = { phantom: 0.004, stubMass: 0.25, stubRadius: 0.6, noFloor: -1e3 };
+
+/**
+ * Which side of a trunk cut's plane each particle is on: true for the upper part. The pelvis is the lower's and the
+ * neck the upper's; a shoulder or a hip by where it is across the plane now; a limb and the head with their root.
+ */
+export function trunkSides(x, section) {
+  const frame = trunkFrameOf(x);
+  const origin = vec.add(frame.pelvis, vec.scale(frame.up, section.along * frame.length));
+  const [f, u, l] = section.normal;
+  const normal = vec.add(vec.add(vec.scale(frame.forward, f), vec.scale(frame.up, u)), vec.scale(frame.left, l));
+  const above = (name) => (name === 'pelvis' ? false : name === 'neck' ? true : vec.dot(vec.sub(point(x, P[name]), origin), normal) > 0);
+  return { upper: PARTICLES.map((name) => above(TRUNK_ROOT[name])), origin, normal, frame };
+}
+
+/**
+ * One part of a man cut through the trunk, as a limp body of its own: his whole skeleton again (so every joint's limit and
+ * every drawn bone keeps its frame), with the particles of the other part made phantoms (TRUNK_HALF) and the cut end's
+ * particle (`stub`) brought to the cut. Its own particles are his (`real`: read from him and written back each substep,
+ * stepHalves); `rebuild` says how the trunk's whole line is told again from the stub for drawing (halfPoints).
+ */
+function trunkHalf(defender, sides, upper) {
+  const half = Object.create(defender);
+  half.x = defender.x.slice();
+  half.v = defender.v.slice();
+  half.prev = defender.prev.slice();
+  half.invMass = defender.invMass.slice();
+  half.radius = defender.radius.slice();
+  half.limp = new Set(PARTICLES.map((_, index) => index));
+  half.motorScale = 0;
+  half.stillFor = 0;
+  half.atLimits = [];
+  half.strain = {};
+  half.limbCache = undefined;
+  half.upper = upper;
+  half.real = PARTICLES.map((_, index) => index).filter((index) => sides.upper[index] === upper);
+  const mine = new Set(half.real);
+  const stub = upper ? P.pelvis : P.neck;
+  const anchor = upper ? P.neck : P.pelvis;
+  // The other end's phantoms go with the stub to the cut; a phantom at this part's own end (the other shoulder of a
+  // shoulder-to-hip cut) stays where it is.
+  const shift = vec.sub(sides.origin, point(defender.x, stub));
+  const moved = PARTICLES.map((_, index) => index).filter((index) => !mine.has(index) && NECK_END.has(index) === NECK_END.has(stub));
+  const before = defender.x;
+  for (const index of moved) for (let axis = 0; axis < 3; axis += 1) {
+    half.x[index * 3 + axis] += shift[axis];
+    half.prev[index * 3 + axis] += shift[axis];
+  }
+  // The bones and braces as they were, those between a moved particle and one that stayed as long as they are now.
+  const gap = (x, i, j) => Math.hypot(x[i * 3] - x[j * 3], x[i * 3 + 1] - x[j * 3 + 1], x[i * 3 + 2] - x[j * 3 + 2]);
+  const isMoved = new Set(moved);
+  half.constraints = defender.constraints.map((constraint) => {
+    if (isMoved.has(constraint.i) === isMoved.has(constraint.j)) return constraint;
+    const was = gap(before, constraint.i, constraint.j);
+    return { ...constraint, rest: was > 1e-6 ? (constraint.rest * gap(half.x, constraint.i, constraint.j)) / was : constraint.rest };
+  });
+  let trunkMass = 0;
+  for (const index of TRUNK_PARTICLES_ALL) if (mine.has(index)) trunkMass += 1 / defender.invMass[index];
+  for (let index = 0; index < PARTICLES.length; index += 1) {
+    if (mine.has(index)) {
+      if (TRUNK_PARTICLES_ALL.includes(index)) half.invMass[index] /= 1 - TRUNK_HALF.stubMass;
+      continue;
+    }
+    half.invMass[index] /= TRUNK_HALF.phantom;
+    half.radius[index] = TRUNK_HALF.noFloor;
+  }
+  half.invMass[stub] = 1 / Math.max(1e-3, TRUNK_HALF.stubMass * trunkMass);
+  half.radius[stub] = defender.body.segments.trunk.skinRadius * TRUNK_HALF.stubRadius;
+  const whole = upper ? 1 - defender.trunkCut.along : defender.trunkCut.along;
+  half.rebuild = { stub, anchor, scale: 1 / whole, moved };
+  return half;
+}
+
+/**
+ * A cut man's part (fighter.halves) as a whole body's points again, for the bones drawn on it (rig.js boneFrames): the
+ * trunk's line told on from the cut end to its whole length, the phantoms that came to the cut with it set back as far.
+ */
+export function halfPoints(half) {
+  const { stub, anchor, scale, moved } = half.rebuild;
+  const points = PARTICLES.map((_, index) => point(half.x, index));
+  const out = vec.scale(vec.sub(points[stub], points[anchor]), scale - 1);
+  for (const index of moved) points[index] = vec.add(points[index], out);
+  return points;
+}
+
+/**
+ * Cut through the trunk (BLADES.trunkCut; `section`: trunkSection): he is dead at once, and what is above the cut (with the
+ * arms and head on that side, and all they wear) and what is below become two limp bodies that fall as bodies fall
+ * (fighter.halves: trunkHalf, stepHalves), still his own particles. Nothing of him is struck or stood against after
+ * (as a part cut off is not); the great vessels of the trunk empty him in `bleedSeconds`.
+ */
+function severTrunk(world, defender, section, event, bladeVelocity) {
+  const part = SEVER_PARTS[section.joint];
+  (defender.severed ??= []).push({ joint: section.joint, side: '', trunk: true });
+  // Out of the saddle first: a part of him is no rider (physics/mounted.js).
+  if (defender.mount) unhorse(world, defender, 'cut from the saddle', false);
+  const sides = trunkSides(defender.x, section);
+  defender.trunkCut = { joint: section.joint, along: section.along, cos: section.cos, normal: section.normal, upper: sides.upper, time: world.time };
+  defender.severedCapsules ??= new Set();
+  for (const capsule of buildCapsules(defender)) defender.severedCapsules.add(capsule.key);
+  const attacker = world.fighters[event.attacker] ?? defender;
+  event.severed = section.joint;
+  const severed = { time: world.time, kind: 'severed', fighter: defender.id, attacker: event.attacker, joint: section.joint, side: '', trunk: true, along: section.along, normal: sides.normal, travel: vec.normalize(bladeVelocity), point: sides.origin, effects: [part.label] };
+  world.events.push(severed);
+  if (world.ear) soundWound(world, defender, 'cut', 1, sides.origin);
+  defender.diedAt ??= world.time;
+  defender.damage.trunk = 1;
+  defender.damageVersion += 1;
+  // A machine (gear.machine) has no blood.
+  if (!defender.body.gear.machine) openVessel(defender, BLADES.trunkCut.bleedSeconds, attacker);
+  knockOut(world, defender, event, `${part.label}: dead`, 'killed');
+  defender.clinch = null;
+  defender.climbing = null;
+  defender.halves = [trunkHalf(defender, sides, false), trunkHalf(defender, sides, true)];
+  // The blade's push goes on into the part it drove before it: the upper, with what of the blade's motion its mass takes.
+  const upper = defender.halves[1];
+  let mass = 0;
+  for (const index of upper.real) mass += 1 / upper.invMass[index];
+  const push = vec.scale(bladeVelocity, Math.min(0.2, (BLADES.trunkCut.carry * (event.strikeMass ?? 1)) / Math.max(1, mass)));
+  for (const index of upper.real) for (let axis = 0; axis < 3; axis += 1) defender.v[index * 3 + axis] += push[axis];
+}
+
+/**
+ * The two parts of a man cut through the trunk (fighter.halves), each stepped as any limp body is (its muscles let go, its
+ * bones and joint limits, the floor), on its own skeleton; what is really his in each is read from him first (so a push on
+ * him is felt) and written back after, and a part lying still is left so.
+ */
+function stepHalves(world, fighter, h, time) {
+  for (const half of fighter.halves) {
+    let pushed = false;
+    for (const index of half.real) {
+      for (let axis = 0; axis < 3; axis += 1) {
+        const at = index * 3 + axis;
+        if (half.v[at] !== fighter.v[at]) pushed = true;
+        half.v[at] = fighter.v[at];
+      }
+    }
+    if (pushed) half.stillFor = 0;
+    if ((half.stillFor ?? 0) > WORLD.ragdoll.sleepSeconds) {
+      for (const index of half.real) for (let axis = 0; axis < 3; axis += 1) fighter.v[index * 3 + axis] = half.v[index * 3 + axis] = 0;
+      half.prev.set(half.x);
+      continue;
+    }
+    relaxedTone(half, h);
+    integrate(half, h, time);
+    solveConstraints(half, h);
+    solveJointLimits(world, half, h);
+    collideGround(world, half, h, world.arena);
+    for (let index = 0; index < half.v.length; index += 1) half.v[index] = (half.x[index] - half.prev[index]) / h;
+    stopAtLimits(half);
+    // (Still by its own parts: a phantom swinging under the floor does not keep it awake.)
+    let fastest = 0;
+    for (const index of half.real) fastest = Math.max(fastest, Math.hypot(half.v[index * 3], half.v[index * 3 + 1], half.v[index * 3 + 2]));
+    half.stillFor = fastest < WORLD.ragdoll.sleepSpeed ? (half.stillFor ?? 0) + h : 0;
+    for (const index of half.real) {
+      for (let axis = 0; axis < 3; axis += 1) {
+        const at = index * 3 + axis;
+        fighter.x[at] = half.x[at];
+        fighter.v[at] = half.v[at];
+        fighter.prev[at] = half.prev[at];
+      }
+    }
+  }
 }
 
 /** Into the chest or the head: where a deep stab kills. */
@@ -8700,7 +8971,9 @@ function sever(world, defender, where, event, bladeVelocity) {
   if (world.ear) soundWound(world, defender, 'cut', 1, base);
   if (where.joint === 'neck') {
     defender.diedAt ??= world.time;
-    openVessel(defender, BLADES.bleed.artery.seconds, attacker);
+    // (Both carotids and the jugulars cut across: he empties as fast as a trunk cut through does, BLADES.trunkCut.bleedSeconds.
+    // It was the limb artery's 90 s: a dead man's blood only, nothing in the fight reads it.)
+    openVessel(defender, BLADES.trunkCut.bleedSeconds, attacker);
     knockOut(world, defender, event, `${part.label}: cannot go on`, 'out');
     return;
   }
@@ -8721,6 +8994,16 @@ function sever(world, defender, where, event, bladeVelocity) {
  */
 export function cutOff(world, fighter, where, attacker, joules = 0) {
   const event = { time: world.time, kind: 'landed', attacker: attacker.id, defender: fighter.id, effects: [] };
+  // (The trunk: `where.along` up the pelvis-to-neck line, by a plane of `where.normal` in the trunk's frame, level unless
+  // given; the blade's travel `where.travel`.)
+  if (SEVER_PARTS[where.joint].trunk) {
+    if (fighter.trunkCut) return null;
+    const normal = vec.normalize(where.normal ?? [0, 1, 0]);
+    const along = where.along ?? (where.joint === 'waist' ? 0.3 : 0.6);
+    const reach = (fighter.body.segments.trunk.skinRadius * Math.sqrt(1 - normal[1] ** 2)) / normal[1] / fighter.body.lengths.trunk;
+    severTrunk(world, fighter, { joint: where.joint, side: '', along, cos: normal[1], lo: along - reach, hi: along + reach, normal }, event, where.travel ?? [0, -1, -3]);
+    return world.events.findLast((found) => found.kind === 'severed');
+  }
   if (joules > 0) wound(fighter, 'cut', joules, where.joint === 'neck' ? 'head' : 'limb', attacker);
   sever(world, fighter, where, event, [0, -1, -3]);
   return world.events.at(-1);
@@ -9035,7 +9318,7 @@ function registerWeaponImpact(world, attacker, defender, striker, closest, capsu
     time: world.time, kind: blocked ? 'blocked' : 'landed', attacker: attacker.id, defender: defender.id, weapon: weapon.kind, mode: spec.mode,
     off: weapon === attacker.offWeapon || undefined, riposte: attacker.punch?.riposte || undefined,
     punch: punch.type, target: capsule.key, speed: closing, impulse, force: peakForce, headDeltaV: 0, effects: [],
-    point: contactPoint, normal, harm: bluntShare, cut, pierce, pointJoules, pointGoes, energy, along, at: closest.s, strikeMass, bluntMix: mix.blunt, slice: slice === 1 ? undefined : slice,
+    point: contactPoint, normal, edge: [weapon.dir[0], weapon.dir[1], weapon.dir[2]], travel: relative, harm: bluntShare, cut, pierce, pointJoules, pointGoes, energy, along, at: closest.s, strikeMass, bluntMix: mix.blunt, slice: slice === 1 ? undefined : slice,
     edgeShare: (mix.cut + mix.pierce) / Math.max(1e-6, mix.blunt + mix.cut + mix.pierce), haft: haft || undefined,
     gapZone: gapZone ?? undefined,
   };
@@ -9088,7 +9371,8 @@ function registerWeaponImpact(world, attacker, defender, striker, closest, capsu
   }
   let through = false;
   const wasOut = defender.state === 'out';
-  const joint = !wasOut && cut > 0 ? jointAt(defender, capsule, closest.t, contactPoint) : null;
+  // (The trunk: the section the blade's sweep takes through it, trunkSection; a limb or the neck: the joint it is at.)
+  const joint = !wasOut && cut > 0 ? (capsule.key === 'trunk' ? trunkSection(defender, contactPoint, weapon.dir, relative, wspec.length) : jointAt(defender, capsule, closest.t, contactPoint)) : null;
   const severs = Boolean(joint && cleaving > severThreshold(defender, joint, limb ? capsule.key : null) && !defender.severed?.some((done) => done.side === joint.side && done.joint === joint.joint));
   // (A limb cut off opens its vessel as the stump: sever, maiming.js.)
   const artery = BLADES.bleed.artery;
@@ -9102,8 +9386,11 @@ function registerWeaponImpact(world, attacker, defender, striker, closest, capsu
   if (!wasOut) {
     // An edge in a limb that does not take it off: into the flesh, and the bone as far as it reaches (cutIntoLimb).
     if (!severs && limb && cleaving > 0.5 && !defender.severedCapsules?.has(capsule.key)) cutIntoLimb(world, defender, capsule, closest.t, cleaving, square, event);
+    // (And in the trunk: what it parted of the section stays, cutIntoTrunk.)
+    if (!severs && joint?.along !== undefined && cleaving > 0.5) cutIntoTrunk(defender, joint, cleaving);
     if (severs) {
-      sever(world, defender, joint, event, bladeVelocity);
+      if (joint.along !== undefined) severTrunk(world, defender, joint, event, bladeVelocity);
+      else sever(world, defender, joint, event, bladeVelocity);
       through = true;
     } else if (pierce > BLADES.lethalPierce * BODY.toughness && vital(defender, capsule, contactPoint)) {
       if (capsule.key === 'head') {

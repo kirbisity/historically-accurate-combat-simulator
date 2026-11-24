@@ -1826,6 +1826,47 @@ export const BLADES = {
   // it breaks, past the whole limb takes it off; and a broken or cut-into limb comes off to a blow that would only
   // have cut a whole one — what is left of the limb resists, not a rule for a second blow.
   limbCut: { bone: 0.6, splits: 0.45, fractured: 0.2, reopen: 0.5 },
+  // The trunk cut through (physics.js trunkSection, trunkResistance, severTrunk): the same rule as a limb's, from what is
+  // in the section the blade's plane takes through the body. The plane is the one the edge sweeps (the blade's line and its
+  // travel); it meets the pelvis-to-neck line at `along` of the way up and leans `tilt` from square across it, so its
+  // section is the trunk's own (its girth from the body's tissue: body.js segments.trunk) over cos(tilt), and it spans the
+  // heights `along` -/+ radius x tan(tilt): a level cut at the waist stays below the ribs, one from the shoulder to the
+  // opposite hip crosses the whole cage.
+  //  - `fleshJ` (J per m2 of muscle cut across): a limb's own figure, the hip's flesh share over a typical thigh's section
+  //    (172 x 0.4 / (pi x 0.08^2)). `soft`: what a m2 of the rest (viscera, lungs, fat) takes beside muscle: bowel and
+  //    lung part far more easily than muscle and fascia, but there is a great deal of it and it drags on the blade.
+  //  - `boneJ` (J per m2 of bone section): the hip's bone share over a typical femur's section (172 x 0.6 over ~11 cm2,
+  //    the thigh's bone volume over its length). The trunk's bone lies unevenly up its height, so each level's bone is a
+  //    share of the trunk's mean bone section (its bone volume over its length): `spine` everywhere (a lumbar body is
+  //    ~13 cm2 of cancellous bone in a cortical shell, with the arch and processes behind it), over cos(tilt);
+  //    `ribs` for a level cut inside the cage (`cage`: from the costal margin up; ribs slope, so a level cut meets about
+  //    three a side, and the sternum), more by the height of cage a leaning cut crosses (`ribsPer`: its share again for
+  //    each that much of the trunk's length: a shoulder-to-hip cut meets most of the ribs twice); `girdle` for each
+  //    shoulder (clavicle and scapula) the section reaches above `girdleFrom`; `pelvis` for each iliac wing below
+  //    `pelvisTo` (through both and the sacrum: the hardest cut there is).
+  //  - Graded so by the Edo sword testers (tameshigiri on the bodies of the executed, the Yamada Asaemon line; the chart
+  //    of cuts in the Kaiho Kenjaku, 1797, and in Sato Kanzan, The Japanese Sword): ryo-kuruma, across the hips through
+  //    the pelvis, the hardest; tai-tai and karigane, across the chest at the armpits and shoulders, next; the do cuts
+  //    across the belly (ichi-, ni-, san-no-do) the standard test of a blade, done on one body by any sound sword and on
+  //    two or three stacked by a famous one; o-kesa, shoulder to hip, among the hard ones. (From memory, unverified: the
+  //    order, not the names.) Those were bound, still bodies on a sand mound, cut with the whole swing of a specialist:
+  //    the ceiling of what a two-handed long blade does, which is where the figures put a level waist cut for a man of
+  //    middling build (about the best tenth of a katana's cuts as they land in this simulation), and a chest or
+  //    shoulder-to-hip cut beyond all but the great blades (odachi, zhanmadao, guandao).
+  //  - `steepest`: the least cos(tilt) that is still a cut across him (steeper, the blade runs down the body and its
+  //    section is the trunk's length: it never parts him). `from`/`to`: where on the pelvis-to-neck line a section still
+  //    leaves two parts. `edge`: the blade must be this share of the section's width long, or it is buried before it
+  //    is through (a knife does not cut a man in two).
+  //  - What a cut short of it leaves is kept as a limb's is (limbCut `reopen`, the bone notched), by half of the trunk.
+  trunkCut: {
+    fleshJ: 3430, soft: 0.6, boneJ: 94000,
+    spine: 0.45, ribs: 0.35, ribsPer: 0.3, cage: [0.4, 0.95], girdle: 0.35, girdleFrom: 0.82, pelvis: 0.7, pelvisTo: 0.22,
+    steepest: 0.45, from: 0.1, to: 0.92, edge: 1,
+    // `carry`: the share of the blade's own momentum that goes on into the part it cut free. `bleedSeconds`: the aorta and
+    // the vena cava cut across empty a man past collapse in a few heartbeats (a cardiac output of ~5 l a minute at rest,
+    // several times that fighting, straight out of the largest vessels there are).
+    carry: 0.5, bleedSeconds: 4,
+  },
   // A cut or a stab in a limb breaks the bone only if it reaches it: the
   // flesh takes the first `fleshJ` of it, all past `fullJ` gets to the bone;
   // and a blow that only grazes the side of the limb (its line passing far

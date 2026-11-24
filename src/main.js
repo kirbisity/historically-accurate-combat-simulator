@@ -5,12 +5,12 @@ import { greyedHair } from './aging.js';
 import { getLang, LANG_NAMES, onLangChange, SEP, t, tname, toggleLang, translatePage } from './i18n.js';
 import { uiIconHtml } from './uiicons.js';
 import { logPart, logWords } from './i18n/names-log.js';
-import { buildBody, fighterFile, FRAMES, normaliseInputs, P, PRESETS } from './body.js';
+import { buildBody, fighterFile, FRAMES, normaliseInputs, P, PRESETS, SEGMENTS } from './body.js';
 import { calorieRange, caloriesForWeight, deriveStats, exerciseHours } from './physiology.js';
 import { paintHealth, thinkAll } from './ai.js';
 import { withTanks } from './physics/flame.js';
 import { CUSTOM_STYLE_KEYS, MOVES, STRATEGIES, STYLE_KEYS, STYLES } from './moves.js';
-import { advance, opponentFor, collapseAt, dropWeapon, concussionCapacity, createWorld, perform, placeFighter, placeOnFloor, point, reviveFighter, startCrawl, startJump, throwPunch, WORLD } from './physics.js';
+import { advance, opponentFor, collapseAt, cutOff, dropWeapon, concussionCapacity, createWorld, perform, placeFighter, placeOnFloor, point, reviveFighter, startCrawl, startJump, throwPunch, WORLD } from './physics.js';
 import { bleedingFast } from './maiming.js';
 import { DEFAULT_LOOK, LOOK_OPTIONS } from './face.js';
 import { activateLook, activateLookNow, activeLook, DEFAULT_LOOK_ID, OFFICIAL_LOOK_ID, flattenView, loadLook, lookById, lookIdFromSearch, lookList, LOOKS, rememberedLookId, rememberLook } from './looks.js';
@@ -100,10 +100,11 @@ import { hasOrigin, originOf, REGION_ORIGINS, regionName, regionTone, setShade, 
 import { shadeGradient, shadeTone, toneShade } from './skintones.js';
 import { deflectCue } from './deflectlook.js';
 import { deflectsWith } from './physics/deflect.js';
-import { clearGore, machineEvent, severView, spawnBlood, spawnShot, spawnSparks, updateArms, updateArrows, updateBlood, updateDebris, updateShots, updateStumps, updateWhips, woundBlood } from './weaponview.js';
+import { bloodyBlade, clearGore, goreInfo, goreTier, machineEvent, severView, spawnBlood, spawnShot, spawnSparks, updateArms, updateArrows, updateBlood, updateDebris, updateShots, updateStumps, updateWhips, woundBlood } from './weaponview.js';
 import { placeFlameTanks, updateFlames } from './flameview.js';
 import { updateClothWind } from './clothwind.js';
 import { wetHold, wetInfo, wetnessOf, wetTier, wetUpdate } from './wetview.js';
+import { markOfBlow, marksOf, markTier } from './markview.js';
 import { envAdapt, envInfo, envSetEnabled, envSetWeather, envUpdate } from './env/index.js';
 import { envDress } from './env/air.js';
 import { updateGroundDust } from './grounddust.js';
@@ -855,6 +856,9 @@ function frame(now) {
     setSkinQuality(state.views, state.world?.stage ? resolution.tier ?? 'high' : 'high');
     // The water on the fighters by the same tier (wetview.js): no beads on 'low', no runs on 'medium'.
     wetTier(state.world?.stage ? resolution.tier ?? 'high' : qualityMode === 'low' ? 'low' : 'high');
+    // The blood's budgets by the tier (bloodview.js): fewer drops, stains and pools on 'medium' and 'low'.
+    goreTier(scene, combatFxTier());
+    markTier(combatFxTier());
     // A big moment slows the simulation, not the drawing.
     buildQueuedViews();
     // While an army is still being drawn, the fight waits for it.
@@ -1544,6 +1548,16 @@ function consumeEvents() {
     const machine = Boolean(state.world.fighters[event.defender]?.body.gear.machine);
     const wound = machine ? (view, at) => spawnSparks(view, at.point, 10) : woundBlood;
     if (event.weapon && (event.kind === 'landed' || event.kind === 'blocked') && (!machine || (event.cut ?? 0) + (event.pierce ?? 0) >= 1)) wound(scene, event);
+    // The mark it leaves on him where it landed (markview.js): a wound, a bruise or a dent, a score on what stopped an edge.
+    if (event.kind === 'landed' && !machine && event.point && event.target) {
+      const struck = state.views.find((entry) => entry.fighter.id === event.defender);
+      if (struck?.frames) markOfBlow(struck.fighter, struck.frames, event, state.world.time);
+      // And the blood on the blade that drew it (weaponview.js).
+      if (event.weapon && (event.cut ?? 0) + (event.pierce ?? 0) > 4) {
+        const striker = state.views.find((entry) => entry.fighter.id === event.attacker);
+        if (striker) bloodyBlade(striker, event);
+      }
+    }
     // A man in a powered frame (gear.assist) bleeds, and a weapon's blow on him strikes the frame's steel too: a few sparks.
     if (event.weapon && event.kind === 'landed' && state.world.fighters[event.defender]?.body.gear.assist) spawnSparks(scene, event.point, 6);
     // (A robot dog struck, robotdogs.js `machine`: sparks off its shell, not blood.)
@@ -4621,6 +4635,29 @@ const boxer = window.boxer = {
   perilMarks: () => perilMarks.sprites.map((sprite) => ({ visible: sprite.visible, at: sprite.position.toArray() })),
   // The red dots of executions to be had (executemark.js): each sprite's state, for tests and shots.
   executeMarks: () => executeMarks.sprites.map((sprite) => ({ visible: sprite.visible, at: sprite.position.toArray(), opacity: sprite.material.opacity })),
+  // A blow's mark put on a man as a landed blow leaves it (markview.js markOfBlow), for shots: on the part `target`, `t` of the
+  // way along it, on the side facing `toward` (a point; default the other man of a duel), the edge lying `turn` rad round from
+  // across the part, made `age` s ago; `blow`: what the blow did ({ cut, pierce, energy, harm, edgeShare, weapon, bleeds }).
+  markBlow: (id, target, blow = {}, { t = 0.5, toward = null, turn = 0, age = 0 } = {}) => {
+    const fighter = state.world.fighters[id];
+    const view = state.views.find((entry) => entry.fighter.id === id);
+    const [a, b] = target === 'head' ? [point(fighter.x, P.head), point(fighter.x, P.neck)] : [point(fighter.x, P[SEGMENTS[target].from]), point(fighter.x, P[SEGMENTS[target].to])];
+    const at = target === 'head' ? a : a.map((value, axis) => value + (b[axis] - value) * t);
+    const axis = new THREE.Vector3(b[0] - a[0], b[1] - a[1], b[2] - a[2]).normalize();
+    const to = new THREE.Vector3(...(toward ?? point(state.world.fighters[id === 0 ? 1 : 0].x, P.neck))).sub(new THREE.Vector3(...at));
+    const out = to.addScaledVector(axis, -to.dot(axis)).normalize();
+    const radius = target === 'head' ? fighter.body.lengths.headRadius : fighter.body.segments[target].skinRadius * (target === 'trunk' ? 0.78 : 1);
+    const edge = new THREE.Vector3().crossVectors(axis, out).applyAxisAngle(out, turn);
+    const event = { kind: 'landed', defender: id, target, point: [at[0] + out.x * radius, at[1] + out.y * radius, at[2] + out.z * radius], normal: out.toArray(), edge: edge.toArray(), ...blow };
+    return markOfBlow(fighter, view.frames, event, state.world.time - age);
+  },
+  // The marks blows have left on a man (markview.js): how many.
+  marks: (id = 1) => marksOf(state.world.fighters[id])?.count ?? 0,
+  // The blood on the ground and in the air, in numbers (bloodview.js bloodInfo).
+  gore: () => goreInfo(scene),
+  // A part cut off a man as a blade does it (physics.js cutOff), by the other of a duel: `where` { joint, side } for a limb or
+  // the neck, { joint: 'waist' | 'chest', along, normal, travel } for the trunk (tests, shots of the cut and its blood).
+  cut: (id = 1, where = { joint: 'waist' }, joules = 0) => cutOff(state.world, state.world.fighters[id], where, state.world.fighters[id === 0 ? 1 : 0], joules)?.effects,
   // One against one, played (the man played red): `hero` and `foe` presets, at `place` (tests, shots: the deflect, its button and marks).
   duelDemo: (hero = 'samurai', foe = 'kanabo', place = 'meadow', seed = 1, distance = 2.4) => {
     skipIntro();

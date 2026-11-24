@@ -15,8 +15,10 @@ import { outfitOf } from './outfits.js';
 import { featherDevice, steelMaterial } from './wardrobe.js';
 import { buildArenaShield, buildArenaWeapon } from './arenaview.js';
 import { crowdBatch } from './crowdview.js';
-import { bloodDyeClear, bloodDyeCreate, bloodDyeLand, bloodDyeUpload } from './blooddye.js';
+import { BLOOD_VIEW, bloodClear, bloodCreate, bloodDrop, bloodInfo, bloodSite, bloodSpray, bloodTier, bloodUpdate } from './bloodview.js';
 import { BATTLE_FX, BLACK_POWDER, battleFxAddGlint, battleFxArc, battleFxClear, battleFxElectricFlash, battleFxGlint, battleFxPrimary, battleFxShot, battleFxSpark, battleFxUpdate } from './battlefx.js';
+import { roundWoundFace, splitBody } from './woundview.js';
+import { gashHalf, MARK_KIND, markAdd } from './markview.js';
 import { machineFxBusy, machineFxClear, machineFxCreate, machineFxHear, machineFxStep } from './machinefx.js';
 import { flutterCloth } from './clothwind.js';
 
@@ -2251,6 +2253,53 @@ function drawMounted(view, fighterView, arms, weapon, showing) {
   }
 }
 
+// ---- Blood on the blade ------------------------------------------------------------
+
+const bladePoint = new THREE.Vector3();
+
+/**
+ * Blood left on the blade that drew it (a landed blow's event, its edge or point through the armour): on the steel from
+ * where it met him towards the point, more with each wound, there for the rest of the fight. A man drawn in full only:
+ * a crowd's weapons are one mesh for all of a kind.
+ */
+export function bloodyBlade(fighterView, event) {
+  const weapon = fighterView.arms?.weapon;
+  const amount = Math.min(1, ((event.cut ?? 0) + (event.pierce ?? 0)) / 90);
+  if (!weapon || fighterView.baked || amount < 0.04 || !event.point) return;
+  weapon.traverse((object) => {
+    if (!object.userData.blade || !object.isMesh || Array.isArray(object.material)) return;
+    let blood = object.userData.bladeBlood;
+    if (!blood) {
+      blood = object.userData.bladeBlood = { value: new THREE.Vector4(0, 0, 0.1, 0) };
+      const material = object.material.clone();
+      const previous = material.onBeforeCompile;
+      const baseKey = material.customProgramCacheKey?.() ?? '';
+      material.onBeforeCompile = (shader, renderer) => {
+        previous?.call(material, shader, renderer);
+        shader.uniforms.uBladeBlood = blood;
+        shader.vertexShader = shader.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vBladeAt;').replace('#include <begin_vertex>', '#include <begin_vertex>\nvBladeAt = position;');
+        // (x: where along the blade it met him; y: how much; z: how far it reaches along the steel.)
+        shader.fragmentShader = shader.fragmentShader.replace('#include <common>', '#include <common>\nvarying vec3 vBladeAt;\nuniform vec4 uBladeBlood;')
+          .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
+	float bladeRun = sin( vBladeAt.y * 190.0 + sin( vBladeAt.x * 900.0 + vBladeAt.z * 700.0 ) * 2.0 ) * 0.5 + 0.5;
+	float bladeWet = uBladeBlood.y * ( 1.0 - smoothstep( uBladeBlood.z * ( 0.45 + 0.4 * bladeRun ), uBladeBlood.z * ( 0.8 + 0.5 * bladeRun ), abs( vBladeAt.y - uBladeBlood.x ) ) ) * ( 0.55 + 0.45 * bladeRun );
+	diffuseColor.rgb = mix( diffuseColor.rgb, vec3( 0.3, 0.012, 0.02 ), bladeWet * 0.9 );
+	#ifdef STANDARD
+		metalnessFactor *= 1.0 - 0.9 * bladeWet;
+		roughnessFactor = mix( roughnessFactor, 0.3, bladeWet );
+	#endif`);
+      };
+      material.customProgramCacheKey = () => `${baseKey}|bladeblood`;
+      object.material = material;
+    }
+    object.worldToLocal(bladePoint.set(event.point[0], event.point[1], event.point[2]));
+    // (Blood on blood: it lies where most of it was put, and reaches further.)
+    blood.value.x = blood.value.y > 0 ? blood.value.x + (bladePoint.y - blood.value.x) * 0.5 : bladePoint.y;
+    blood.value.y = Math.min(1, blood.value.y + 0.35 + amount);
+    blood.value.z = Math.min(0.6, blood.value.z + 0.08 + 0.25 * amount);
+  });
+}
+
 // ---- Cut off --------------------------------------------------------------------
 
 /**
@@ -2260,6 +2309,7 @@ function drawMounted(view, fighterView, arms, weapon, showing) {
  */
 export function severView(view, fighterView, event, debris) {
   const part = SEVER_PARTS[event.joint];
+  if (part.trunk) return severTrunkView(view, fighterView, event);
   const name = (piece) => (event.joint === 'neck' ? piece : `${event.side}${piece}`);
   const boneIndices = new Set(part.bones.map((bone) => BONE[name(bone)]));
   const origin = new THREE.Vector3(...debris.origin);
@@ -2301,9 +2351,13 @@ export function severView(view, fighterView, event, debris) {
     fighterView.headDetached = true;
   }
   // The cut face of the piece.
-  const face = new THREE.Mesh(new THREE.SphereGeometry(debris.radius * (event.joint === 'neck' ? 0.5 : 0.9), 12, 8), surface(0x7e1016, { roughness: 0.4 }));
-  face.position.set(debris.cut[0], debris.cut[1], debris.cut[2]);
-  face.add(new THREE.Mesh(new THREE.SphereGeometry(debris.radius * 0.3, 8, 6), surface(0xe8dcc4)));
+  // (A machine's has no flesh: the old dark ball. A man's: the section of the limb or the neck, woundview.js.)
+  const machinePart = Boolean(fighterView.fighter.body.gear.machine);
+  const cutWay = new THREE.Vector3(debris.cut[0], debris.cut[1], debris.cut[2]);
+  const face = machinePart ? new THREE.Mesh(new THREE.SphereGeometry(debris.radius * 0.9, 12, 8), surface(GORE.machineStump, { roughness: 0.5, metalness: 0.7 }))
+    : roundWoundFace([0, 0, 0], [0, 1, 0], debris.radius * (event.joint === 'neck' ? 0.55 : 0.95));
+  face.position.copy(cutWay);
+  if (!machinePart && cutWay.lengthSq() > 1e-8) face.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), cutWay.clone().normalize());
   piece.add(face);
   piece.userData.debris = debris.id;
   view.scene.add(piece);
@@ -2316,18 +2370,53 @@ export function severView(view, fighterView, event, debris) {
   const radius = debris.radius * (event.joint === 'neck' ? 0.55 : 1.12);
   // A machine (gear.machine) has no flesh and no blood: the stump is dark metal round a bright actuator, and it throws sparks, not blood.
   const machine = Boolean(fighterView.fighter.body.gear.machine);
-  const stump = new THREE.Mesh(new THREE.SphereGeometry(radius, 12, 8), machine ? surface(GORE.machineStump, { roughness: 0.5, metalness: 0.7 }) : surface(0x7e1016, { roughness: 0.4 }));
-  stump.add(new THREE.Mesh(new THREE.SphereGeometry(radius * 0.35, 8, 6), surface(machine ? GORE.machineCore : 0xe8dcc4)));
+  const stump = machine ? new THREE.Mesh(new THREE.SphereGeometry(radius, 12, 8), surface(GORE.machineStump, { roughness: 0.5, metalness: 0.7 })) : roundWoundFace([0, 0, 0], [0, 1, 0], radius * 0.92);
+  if (machine) stump.add(new THREE.Mesh(new THREE.SphereGeometry(radius * 0.35, 8, 6), surface(GORE.machineCore)));
+  stump.userData.faces = !machine;
   fighterView.group.add(stump);
   (fighterView.stumps ??= []).push({ mesh: stump, ...ends });
   // (A machine's stump sputters sparks and arcs instead, for a while: machineFxHear, from the same event.)
   if (machine) return;
   // Blood: from the stump in beats, and from the piece's cut face.
   const blood = bloodOf(view);
-  blood.emitters.push({ kind: 'stump', fighterView, ...ends, start: view.clock ?? 0, seconds: GORE.stumpSeconds });
+  // From the stump as the vessel cut there gives it (maiming.js: in beats while the artery is open, bloodview.js), from the
+  // piece's cut face for a moment, and what the cut itself threw.
+  bloodSite(blood, fighterView.fighter.id, ends.base, ends.from);
+  // The stump's blood on what is left of the limb (markview.js): all round its end.
+  const stays = BONE[`${event.side}${STUMP_BONE[event.joint]}`] ?? (event.joint === 'hip' ? BONE.pelvis : BONE.chest);
+  if (fighterView.frames?.[stays]) markAdd(fighterView.fighter, stays, fighterView.frames[stays], event.point, null, null, { kind: MARK_KIND.wound, width: 0, reach: Math.min(0.07, debris.radius * 0.7 + 0.015), strength: 0 }, event.time);
   blood.emitters.push({ kind: 'piece', debris, start: view.clock ?? 0, seconds: GORE.pieceSeconds });
   spawnBlood(view, event.point, [0, 1, 0], 40, 3.2);
 }
+
+/**
+ * The trunk cut through (physics.js severTrunk): his skin and all he wears parted along the cut, each part on its own limp
+ * body from here on, the two faces closed with the trunk's section (woundview.js splitBody).
+ */
+function severTrunkView(view, fighterView, event) {
+  const fighter = fighterView.fighter;
+  if (!fighter.trunkCut || fighterView.trunkSplit || !fighterView.bones || !fighterView.built?.bindFrames) return;
+  const split = splitBody(fighterView.layers.skin, fighterView.bones, fighterView.built.bindFrames, fighter.trunkCut, { skinMesh: fighterView.skinMesh });
+  if (!split) return;
+  fighterView.trunkSplit = split;
+  // (The flesh's own give and sway were counted on the whole skin.)
+  fighterView.shells = [];
+  fighterView.slosh = null;
+  if (fighter.body.gear.machine) return;
+  // Both parts' clothes and skin soak with it round the cut (markview.js): a mark all round each end.
+  for (const [bone, frames] of [[BONE.pelvis, split.lowerFrames ?? fighterView.frames], [BONE.chest, fighterView.frames]]) {
+    if (frames?.[bone]) markAdd(fighter, bone, frames[bone], event.point, null, null, { kind: MARK_KIND.wound, width: 0, reach: fighter.body.segments.trunk.skinRadius * 0.75, strength: 0 }, fighter.trunkCut.time);
+  }
+  // What the blade threw as it went through: a sheet of drops along its way, from the width of the cut.
+  const across = new THREE.Vector3(...event.normal).cross(new THREE.Vector3(...event.travel));
+  if (across.lengthSq() < 1e-6) across.set(1, 0, 0);
+  across.normalize();
+  const speed = BLOOD_VIEW.cutSpeed;
+  bloodSpray(bloodOf(view), event.point, event.travel.map((value) => value * speed), [0, 0.4, 0], across.toArray(), fighter.body.segments.trunk.skinRadius, 170, 220);
+}
+
+// The bone a stump is the end of, by the joint the part came off at (the shoulder's and the hip's are the trunk's).
+const STUMP_BONE = { elbow: 'UpperArm', wrist: 'Forearm', knee: 'Thigh', ankle: 'Shin' };
 
 /** A severed part's stump (an event's `joint` and `side`): the particle it ends at (`base`), the one before (`from`), how far out along (`along`). */
 function stumpEnds(event) {
@@ -2378,12 +2467,21 @@ function liftTriangles(mesh, boneIndices, origin) {
   return result;
 }
 
+const stumpWay = new THREE.Vector3();
+const stumpUp = new THREE.Vector3(0, 1, 0);
+
 /** After the body is posed: stumps sit at the joint they were cut at. */
 export function updateStumps(fighterView) {
   const fighter = fighterView.fighter;
   for (const stump of fighterView.stumps ?? []) {
     const at = stumpPoint(fighter, stump);
     stump.mesh.position.set(at[0], at[1], at[2]);
+    // (A cut face looks out along the limb it ended.)
+    if (stump.mesh.userData.faces) {
+      const from = point(fighter.x, stump.from);
+      stumpWay.set(at[0] - from[0], at[1] - from[1], at[2] - from[2]);
+      if (stumpWay.lengthSq() > 1e-8) stump.mesh.quaternion.setFromUnitVectors(stumpUp, stumpWay.normalize());
+    }
     stump.mesh.visible = fighterView.layers.skin.visible;
   }
 }
@@ -2493,17 +2591,10 @@ export function clearGore(view, { keepBlood = false } = {}) {
   }
   view.pieces = new Map();
   if (view.blood) {
-    view.blood.drops = [];
     view.blood.emitters = [];
-    view.blood.dropMesh.count = 0;
     view.blood.spare.push(...view.blood.sparks);
     view.blood.sparks = [];
-    if (!keepBlood) {
-      view.blood.stainCount = 0;
-      view.blood.stains.count = 0;
-      bloodDyeClear(view.blood.dye);
-      bloodDyeUpload(view.blood.dye, view.clock ?? 0);
-    }
+    bloodClear(view.blood, view, { keepGround: keepBlood });
   }
 }
 
@@ -2511,29 +2602,29 @@ export function clearGore(view, { keepBlood = false } = {}) {
 
 function bloodOf(view) {
   if (view.blood) return view.blood;
-  const dropMesh = new THREE.InstancedMesh(new THREE.SphereGeometry(1, 6, 4), new THREE.MeshBasicMaterial({ color: GORE.colour }), GORE.maxDrops);
-  dropMesh.count = 0;
-  dropMesh.frustumCulled = false;
-  const stainGeometry = new THREE.CircleGeometry(1, 14);
-  stainGeometry.rotateX(-Math.PI / 2);
-  const stains = new THREE.InstancedMesh(stainGeometry, new THREE.MeshStandardMaterial({ color: GORE.stainColour, roughness: 0.25, metalness: 0.1, polygonOffset: true, polygonOffsetFactor: -2 }), GORE.maxStains);
-  stains.count = 0;
-  stains.frustumCulled = false;
-  stains.receiveShadow = true;
-  view.scene.add(dropMesh, stains);
-  // The sparks are drawn with the other glowing things (battlefx.js); only their flight is kept here.
-  view.blood = { drops: [], sparks: [], spare: [], emitters: [], dropMesh, stains, stainCount: 0, dye: bloodDyeCreate() };
+  // The drops, stains and pools are bloodview.js's; the sparks are drawn with the other glowing things (battlefx.js), only
+  // their flight is kept here.
+  view.blood = Object.assign(bloodCreate(view.scene), { sparks: [], spare: [], emitters: [] });
   return view.blood;
 }
 
-/** Throw `count` drops from a point, roughly along `direction`. */
-export function spawnBlood(view, at, direction, count, speed = 2.2) {
+/** The blood's budgets by quality tier (bloodview.js BLOOD_VIEW.budgets), and what there is of it now. */
+export function goreTier(view, tier) {
+  bloodTier(bloodOf(view), tier);
+}
+export function goreInfo(view) {
+  return bloodInfo(bloodOf(view));
+}
+
+/** Throw `count` drops from a point, roughly along `direction` (`ml` each). */
+export function spawnBlood(view, at, direction, count, speed = 2.2, ml = 0.8) {
   const blood = bloodOf(view);
-  const along = toVector(direction).normalize();
-  for (let index = 0; index < count && blood.drops.length < GORE.maxDrops; index += 1) {
-    const scatter = new THREE.Vector3(Math.random() - 0.5, Math.random() - 0.3, Math.random() - 0.5).multiplyScalar(0.9);
-    const velocity = along.clone().add(scatter).normalize().multiplyScalar(speed * (0.4 + Math.random() * 0.8));
-    blood.drops.push({ position: toVector(at), velocity, size: GORE.dropRadius * (0.5 + Math.random()) });
+  const length = Math.hypot(direction[0], direction[1], direction[2]) || 1;
+  for (let index = 0; index < count; index += 1) {
+    let [x, y, z] = [direction[0] / length + (Math.random() - 0.5) * 0.9, direction[1] / length + (Math.random() - 0.3) * 0.9, direction[2] / length + (Math.random() - 0.5) * 0.9];
+    const pace = (speed * (0.4 + Math.random() * 0.8)) / (Math.hypot(x, y, z) || 1);
+    [x, y, z] = [x * pace, y * pace, z * pace];
+    if (!bloodDrop(blood, at[0], at[1], at[2], x, y, z, ml * (0.5 + Math.random()))) return;
   }
 }
 
@@ -2850,8 +2941,23 @@ const machineEmit = {
 export function woundBlood(view, event) {
   const amount = (event.cut ?? 0) + (event.pierce ?? 0);
   if (amount < 1) return;
+  const blood = bloodOf(view);
+  // Where his blood leaves him from now on, if this opened a wound that bleeds (and no part of him is off: that bleeds more).
+  const stump = event.defender < blood.inward.length && blood.inward[event.defender] >= 0;
+  if (event.bleeds && event.defender !== undefined && !event.severed && !stump) bloodSite(blood, event.defender, WOUND_SITE[event.target?.slice(1)] ? P[`${event.target[0]}${WOUND_SITE[event.target.slice(1)]}`] : event.target === 'head' ? P.head : -1);
+  // An edge's cut throws blood off along the blade's way, from the length of the wound (bloodview.js bloodSpray); a point's
+  // or a missile's only out of the hole.
+  if (event.travel && event.edge && (event.cut ?? 0) > 1) {
+    const deep = event.bleeds ? 1 : 0.3;
+    bloodSpray(blood, event.point, event.travel, event.normal, event.edge, gashHalf(event.cut), Math.round(Math.min(90, 5 + event.cut / 2.2) * deep), Math.min(60, 0.25 * event.cut) * deep);
+    return;
+  }
   spawnBlood(view, event.point, event.normal, Math.min(30, 4 + Math.round(amount / 4)), 1.4 + Math.min(2.5, amount / 40));
 }
+
+// The far end of the part a wound is in: where its blood runs to and leaves him.
+const WOUND_SITE = { UpperArm: 'Elbow', Forearm: 'Hand', Thigh: 'Knee', Shank: 'Foot' };
+
 
 const placer = new THREE.Object3D();
 
@@ -2864,60 +2970,23 @@ export function updateBlood(view, world, dt) {
     machineEmit.world = world;
     machineFxStep(view.machineFx, view.clock, machineEmit);
   }
-  const blood = view.blood;
-  if (!blood) return;
+  // (Made with the scene's first frame: a bleeding body's blood is laid down from here, bloodview.js.)
+  const blood = bloodOf(view);
   const now = view.clock;
   blood.emitters = blood.emitters.filter((emitter) => {
     const age = now - emitter.start;
     if (age > emitter.seconds) return false;
     // In beats: strong at first, weaker each.
     const beat = Math.max(0, Math.sin(age * GORE.stumpBeatsPerSecond * Math.PI * 2)) * (1 - age / emitter.seconds);
-    const count = Math.round(beat * 60 * dt * (emitter.kind === 'stump' ? 3 : 1.5));
+    const count = Math.round(beat * 60 * dt * 1.5);
     if (count < 1) return true;
-    if (emitter.kind === 'stump') {
-      const fighter = emitter.fighterView.fighter;
-      const at = stumpPoint(fighter, emitter);
-      const from = point(fighter.x, emitter.from);
-      spawnBlood(view, at, [at[0] - from[0], at[1] - from[1] + 0.3, at[2] - from[2]], count, 2.6 * (0.5 + beat));
-    } else {
-      const debris = emitter.debris;
-      const cut = quatRotate(debris.q, debris.cut);
-      spawnBlood(view, [debris.x[0] + cut[0], debris.x[1] + cut[1], debris.x[2] + cut[2]], cut, count, 1.2);
-    }
+    const debris = emitter.debris;
+    const cut = quatRotate(debris.q, debris.cut);
+    spawnBlood(view, [debris.x[0] + cut[0], debris.x[1] + cut[1], debris.x[2] + cut[2]], cut, count, 1.2);
     return true;
   });
   const floor = 0.003;
-  blood.drops = blood.drops.filter((drop) => {
-    drop.velocity.y -= 9.81 * dt;
-    drop.position.addScaledVector(drop.velocity, dt);
-    // Past a drop edge (the subway's platform) it falls on to the track bed.
-    const ground = floorUnder(world?.arena, drop.position.z, drop.position.x, drop.position.y);
-    if (drop.position.y > ground + floor) return true;
-    // Into standing water: it sinks and spreads, no stain.
-    if (bloodDyeLand(view, blood.dye, drop.position.x, drop.position.z, (drop.size / GORE.dropRadius) ** 3, now)) return false;
-    // A stain where it lands; drops landing together run into one pool.
-    const slot = blood.stainCount % GORE.maxStains;
-    const size = drop.size * (2.5 + Math.random() * 3);
-    placer.position.set(drop.position.x, ground + 0.0015 + (slot % 7) * 0.0002, drop.position.z);
-    placer.rotation.set(0, Math.random() * Math.PI, 0);
-    placer.scale.set(size * (0.8 + Math.random() * 0.6), 1, size);
-    placer.updateMatrix();
-    blood.stains.setMatrixAt(slot, placer.matrix);
-    blood.stainCount += 1;
-    blood.stains.count = Math.min(GORE.maxStains, blood.stainCount);
-    blood.stains.instanceMatrix.needsUpdate = true;
-    return false;
-  });
-  blood.drops.forEach((drop, index) => {
-    placer.position.copy(drop.position);
-    placer.rotation.set(0, 0, 0);
-    placer.scale.setScalar(drop.size);
-    placer.updateMatrix();
-    blood.dropMesh.setMatrixAt(index, placer.matrix);
-  });
-  blood.dropMesh.count = blood.drops.length;
-  blood.dropMesh.instanceMatrix.needsUpdate = true;
-  bloodDyeUpload(blood.dye, now, view.place);
+  bloodUpdate(blood, view, world, dt);
   blood.sparks = blood.sparks.filter((spark) => {
     spark.life -= dt;
     // Light flecks: the air slows them a little as gravity takes them.

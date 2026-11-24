@@ -86,7 +86,7 @@ const ICONS = {
 export function momentFor(event) {
   if (event.kind === 'knockout') return { kind: 'knockout', fighter: event.fighter, particle: P.head };
   if (event.kind === 'broken') return { kind: 'broken', fighter: event.fighter, particle: P[event.joint] ?? P.neck, label: event.joint };
-  if (event.kind === 'severed') return { kind: 'severed', fighter: event.fighter, particle: event.joint === 'neck' ? P.neck : P[`${event.side}${{ shoulder: 'Shoulder', elbow: 'Elbow', wrist: 'Hand', hip: 'Hip', knee: 'Knee', ankle: 'Foot' }[event.joint]}`] };
+  if (event.kind === 'severed') return { kind: 'severed', fighter: event.fighter, particle: event.joint === 'neck' ? P.neck : event.trunk ? P.pelvis : P[`${event.side}${{ shoulder: 'Shoulder', elbow: 'Elbow', wrist: 'Hand', hip: 'Hip', knee: 'Knee', ankle: 'Foot' }[event.joint]}`] };
   if (event.kind === 'held' || event.kind === 'pinned') return { kind: event.kind, fighter: event.fighter, particle: P.neck };
   if (event.kind === 'panic' || event.kind === 'rally' || event.kind === 'rage') return { kind: event.kind, fighter: event.fighter, particle: P.head };
   // (Played whoever else is about: `always`, a stage's crowd notwithstanding.)
