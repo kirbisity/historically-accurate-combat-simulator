@@ -89,7 +89,8 @@ export function jumpLanding(fighter, speed, { legs = { l: 1, r: 1 }, strength = 
   const over = Math.max(0, ratio - spec.buckle);
   // The bones: past `fracture` × his bone density (T-score) a leg may break, surely by `fractureSpan` more of it; under it,
   // a bruise that heals (each leg `bruise` × the ratio past `bruiseFrom`, at most `bruiseMost`).
-  const bone = Math.max(0.35, fighter.body.boneDensity ?? 1);
+  // (His bones' breaking load under a blow, body.js boneStrength: the frame, the height, the years, as well as the mineral.)
+  const bone = Math.max(0.35, fighter.body.bone?.impact ?? fighter.body.boneDensity ?? 1);
   const fractureFrom = spec.fracture * bone;
   const fracture = Math.max(0, Math.min(1, (ratio - fractureFrom) / (spec.fractureSpan * fractureFrom)));
   const bruise = ratio > spec.bruiseFrom ? Math.min(spec.bruiseMost, spec.bruise * (ratio - spec.bruiseFrom)) : 0;
