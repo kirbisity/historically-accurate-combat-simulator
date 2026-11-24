@@ -23,6 +23,7 @@ import { afoot, knockOut, bladeFor, bladeStrike, breakWeapon, closestBetween, cr
 import { WORLD } from './config.js';
 import { crowdNear } from '../crowdgrid.js';
 import { footingOn, partUnder, treadOn } from './footing.js';
+import { STEPOVER } from './stepover.js';
 import { horseBalks, horseFounders, horseMire, horseOnWorks } from './fieldworks.js';
 
 /**
@@ -1915,6 +1916,22 @@ function rideDown(world, horse) {
 }
 
 /**
+ * Whether a horse about to set a hoof on a man lying still sets it down clear of him instead (STEPOVER.horse): it sees where
+ * it goes (going forward, not knocked off its line: little shock, little shove), and there is ground with nobody on it
+ * within a short shift of the hoof, before or behind where it was coming down. Bodies lying too thick for that are trodden.
+ */
+function hoofClear(horse, near, leg, sole, legLength) {
+  const spec = STEPOVER.horse;
+  if (!(horse.speed > 0) || horse.shock > spec.shock * WORLD.mount.crash.fall || Math.hypot(horse.shove[0], horse.shove[1]) > spec.shove) return false;
+  const reach = spec.shift * horse.withers;
+  const ahead = [Math.cos(horse.yaw), -Math.sin(horse.yaw)];
+  for (const way of [reach, -reach]) {
+    if (!partUnder(near, null, leg.hoof[0] + ahead[0] * way, leg.hoof[2] + ahead[1] * way, sole, (fighter) => fighter.corner === horse.corner, legLength)) return true;
+  }
+  return false;
+}
+
+/**
  * The hooves that came down this substep (stepHorse `landed`) on a man on the floor of the other side (its own it
  * steps over): physics/footing.js. The hoof brings its stance's share of the laden horse (all of it over the hooves on
  * the ground: 1 / (legs x the gait's duty)) down at the speed its swing ends (hoofSpeed): a crawler is pressed flat
@@ -1940,6 +1957,9 @@ function trodOn(world, horse) {
     const under = partUnder(near, null, leg.hoof[0], leg.hoof[2], sole, (fighter) => fighter.corner === horse.corner, legLength);
     if (!under) continue;
     const man = under.fighter;
+    // A man lying out of the fight, seen: the hoof is set down clear of him where there is clear ground to set it on
+    // (physics/stepover.js STEPOVER.horse), as it is for its own side's men.
+    if (man.state === 'out' && hoofClear(horse, near, leg, sole, legLength)) continue;
     const crawling = man.crawling && man.state === 'up';
     const tread = treadOn(world, under, { mass: share * laden, speed, weight: share * laden * WORLD.gravity, source: rider?.mount === horse ? rider : null, reason: 'knocked flat by a hoof' });
     // (Heard: a hoof on a man lying there.)

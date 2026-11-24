@@ -16,6 +16,7 @@ import { vec, yawRotate } from './pose.js';
 import { BLADES, GUN, WEAPONS } from './weapons.js';
 import { FACTIONS, factionOf } from './outfits.js';
 import { castNet } from './physics/net.js';
+import { STEPOVER } from './physics/stepover.js';
 import { startThrow, throwChoice } from './physics/throwable.js';
 import { BRUSH, brushScreens, heldOffAt } from './physics/brush.js';
 import { letGoLodged, lodgeEta } from './physics/lodge.js';
@@ -3810,10 +3811,35 @@ function groundFight(world, fighter, dt) {
 
 export function think(world, fighter, dt) {
   decide(world, fighter, dt);
+  roundFallen(world, fighter);
   // Come back from a rout and not yet over it: he goes in at a hesitant walk, never a run (AI.rout rally).
   if (world.time < (fighter.shakyUntil ?? -Infinity) && !fighter.panicked && !fighter.crawling && fighter.move > 0) {
     fighter.move *= AI.rout.rally.pace;
     fighter.running = false;
+  }
+}
+
+/**
+ * A man he has seen lying in his way (physics/stepover.js: `fighter.crossing`, kept by the physics from what he can see): where
+ * a sidestep or so takes him clear of it (STEPOVER.round), his feet bend his way round it, to the side it reaches less far,
+ * whatever his decision was (it is his feet's, after it, as his elbow room is). What is wider he steps or leaps over
+ * (the physics). A man in the ranks goes round by less (his place is his order's); not a man at grips, mounted or crawling.
+ */
+function roundFallen(world, fighter) {
+  const crossing = fighter.crossing;
+  if (!crossing?.seen || !crossing.round || crossing.from <= 0 || crossing.moving) return;
+  if (fighter.state !== 'up' || fighter.mount || fighter.clinch || fighter.pin || fighter.crawling) return;
+  const ranked = fighter.slot && world.formations?.[fighter.formation];
+  if (crossing.round.need > STEPOVER.round * (ranked ? STEPOVER.roundInRank : 1)) return;
+  // His feet's frame (physics.js footwork): the strafe is to the left of his facing; the way round, to one side of his way.
+  const left = [Math.sin(fighter.yaw), Math.cos(fighter.yaw)];
+  const across = crossing.round.side * (-crossing.dz * left[0] + crossing.dx * left[1]);
+  fighter.strafe = Math.max(-1, Math.min(1, (fighter.strafe ?? 0) + across));
+  // (Counted once a body, for the tools: world.crossings.)
+  if (fighter.roundedLast !== crossing.id) {
+    fighter.roundedLast = crossing.id;
+    const tally = (world.crossings ??= { step: 0, leap: 0 });
+    tally.round = (tally.round ?? 0) + 1;
   }
 }
 
@@ -4232,7 +4258,8 @@ function decide(world, fighter, dt) {
   // (Seen a reaction's time after it turns back, as any blow is seen: AI.reactionSeconds, less for the trained.)
   const seenBack = AI.reactionSeconds - AI.reactionTrained * fighter.body.inputs.exercise;
   const whiff = opponent.punch && !opponent.punch.landed && opponent.punch.t > opponent.punch.spec.extendUntil + seenBack ? opponent.punch : null;
-  const opened = whiff ?? (opponent.committed > 0 ? opponent.punch : null);
+  // (And his man in the air over a body on the floor, physics/stepover.js: he can neither strike nor guard until he is down.)
+  const opened = whiff ?? (opponent.committed > 0 ? opponent.punch : null) ?? (opponent.jump?.over !== undefined ? opponent.jump : null);
   if (pressing && spacing.kickRoom && opened && fighter.aiPunished !== opened) {
     fighter.aiPunished = opened;
     fighter.cooldown = Math.min(fighter.cooldown, AI.press.punish);
