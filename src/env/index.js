@@ -394,6 +394,8 @@ export function envLeave(view) {
   }
   FIGURE_SHADE.value[0] = 0;
   FIGURE_SHADE.value[1] = 1;
+  FIGURE_SHADE.value[3] = 0;
+  if (view.envSunFiner) view.envSunFiner.visible = false;
   envPressForget();
   envUniforms().uEnvOn.value = 0;
   envUniforms().uEnvExposure.value = 1;
@@ -666,6 +668,67 @@ function envCarryShadow(view, state, box) {
   sun.target.updateMatrixWorld();
 }
 
+/**
+ * The finer map of the sun's shadow (a description's `shadowNear`: { half, size }; terrain.js envInstallFinerShadow):
+ * a light of no colour standing where the sun stands, its box `half` m each way round what the camera looks at
+ * (the fight; the ground ahead of the camera where it has no such point) and as deep as the sun's own, moved a whole
+ * texel at a time. `size` texels a side at the top tier and half that below it: at 8 m and 2048 a texel is 8 mm,
+ * and 16 mm on a phone, where the wide map's is 3 to 7 cm. Its edge is the sun's width in its own texels, and it
+ * needs next to no bias: the ground is not in a shadow map (only faces turned from the light are drawn into one),
+ * so the wide map's 9 cm, which lifted every shadow off the foot that cast it, is here a texel and a half.
+ * No `shadowNear`: the light is put out and the sun keeps its one map.
+ */
+function envCarryFiner(view, state, near) {
+  let light = view.envSunFiner;
+  if (!near) {
+    if (light) light.visible = false;
+    return;
+  }
+  const sun = view.lights.sun;
+  if (!light) {
+    light = view.envSunFiner = new THREE.DirectionalLight(0x000000, 0);
+    light.name = 'sun-finer';
+    light.castShadow = true;
+    // (After the sun in the scene, so after it among the lights that cast: the chunk reads "the light before it".)
+    view.scene.add(light, light.target);
+  }
+  light.visible = true;
+  const size = envChosen.tier === 'high' ? near.size : near.size >> 1;
+  if (light.shadow.mapSize.x !== size) setShadowMapSize(light, size);
+  const camera = light.shadow.camera;
+  const wide = sun.shadow.camera;
+  if (camera.right !== near.half || camera.near !== wide.near || camera.far !== wide.far) {
+    camera.left = camera.bottom = -near.half;
+    camera.right = camera.top = near.half;
+    camera.near = wide.near;
+    camera.far = wide.far;
+    camera.updateProjectionMatrix();
+  }
+  const [sx, sy, sz] = state.air.sun;
+  const eye = view.camera.position;
+  const at = view.orbit?.target;
+  const fx = at ? at.x : eye.x + envLookWay.x * near.half * 0.6;
+  const fz = at ? at.z : eye.z + envLookWay.z * near.half * 0.6;
+  const fy = state.group.userData.envHeight(fx, fz);
+  const level = Math.hypot(sx, sz) || 1;
+  const rx = sz / level;
+  const rz = -sx / level;
+  const ux = sy * rz;
+  const uy = sz * rx - sx * rz;
+  const uz = -sy * rx;
+  const texel = (2 * near.half) / size;
+  const right = fx * rx + fz * rz;
+  const up = fx * ux + fy * uy + fz * uz;
+  const dr = Math.round(right / texel) * texel - right;
+  const du = Math.round(up / texel) * texel - up;
+  light.target.position.set(fx + rx * dr + ux * du, fy + uy * du, fz + rz * dr + uz * du);
+  light.position.set(sx, sy, sz).multiplyScalar(sun.position.distanceTo(sun.target.position)).add(light.target.position);
+  light.target.updateMatrixWorld();
+  const deep = camera.far - camera.near;
+  light.shadow.bias = -(ENV.shadow.finerBias * texel) / deep;
+  light.shadow.radius = -(deep * ENV.shadow.sunWidth * ENV.shadow.soften) / texel;
+}
+
 let envLookWay = null;
 
 /**
@@ -755,6 +818,7 @@ export function envUpdate(view, world, lead = null) {
   // The sun's shadow: its box carried where the place asks, and its width in the edge (terrain.js
   // envInstallShadow): texels of blur per unit of the map's depth, of the box as it is now.
   if (own.shadowBox) envCarryShadow(view, state, own.shadowBox);
+  envCarryFiner(view, state, own.shadowNear ?? null);
   const shadow = view.lights.sun.shadow;
   shadow.radius = -((shadow.camera.far - shadow.camera.near) * ENV.shadow.sunWidth * ENV.shadow.soften) / ((shadow.camera.right - shadow.camera.left) / shadow.mapSize.x);
   // The figures take that shadow too (looks/kit.js FIGURE_SHADE), looked up a little off their surfaces.
@@ -764,6 +828,8 @@ export function envUpdate(view, world, lead = null) {
   FIGURE_SHADE.value[0] = 1;
   FIGURE_SHADE.value[1] = ENV.shadow.figure.mirror;
   FIGURE_SHADE.value[2] = (ENV.shadow.figure.off * (shadow.camera.right - shadow.camera.left)) / shadow.mapSize.x;
+  // (The sun's maps each by their own texels: a finer map round the fight is not looked up the wide map's distance off.)
+  FIGURE_SHADE.value[3] = ENV.shadow.figure.off;
   if (parts.beams) envBeamsLook(parts.beams, eye);
   // What stands on the ground, for the shade at its feet and the grass under them: the fighters nearest the camera.
   const bodies = u.uEnvBodies.value;

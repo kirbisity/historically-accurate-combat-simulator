@@ -98,6 +98,12 @@ vec3 envFilm(vec3 light, vec4 tone, vec2 grade) {
   light = max(mix(vec3(dot(light, vec3(0.2126, 0.7152, 0.0722))), light, grade.x), 0.0);
   vec3 p = pow(light, vec3(tone.y));
   return pow(tone.w * p / (p + tone.z), vec3(0.4545));
+}
+// The grade's split: the picture's lights toward the sun's amber and its darks toward the sky's blue, by this
+// share at the two ends and nothing at the middle (a sunlit day as film holds it: gold on what the sun touches,
+// blue in the shade, where one balance for the whole frame can only have one of them).
+vec3 envSplit(vec3 c, float split) {
+  return c * (1.0 + split * (dot(c, vec3(0.2126, 0.7152, 0.0722)) - 0.5) * vec3(1.0, 0.1, -1.0));
 }`;
 
 const ENV_POST_VERTEX = /* glsl */ `
@@ -187,12 +193,7 @@ void main() {
   vec2 off = (vUv - 0.5) * 2.0 * uLens.xy;
   float cosine = 1.0 / (1.0 + dot(off, off));
   light *= mix(1.0, cosine * cosine, uGrade.w);
-  vec3 c = envFilm(light, uTone, uGrade.xy);
-  // The grade's split: the picture's lights toward the sun's amber and its darks toward the sky's blue, by this
-  // share at the two ends and nothing at the middle (a low sun's day as film holds it: gold on what the sun
-  // touches, blue in the shade, where one balance for the whole frame can only have one of them).
-  float key = dot(c, vec3(0.2126, 0.7152, 0.0722)) - 0.5;
-  c *= 1.0 + uSplit * key * vec3(1.0, 0.1, -1.0);
+  vec3 c = envSplit(envFilm(light, uTone, uGrade.xy), uSplit);
   c += (fract(sin(dot(gl_FragCoord.xy, vec2(12.9898, 78.233))) * 43758.5453) - 0.5) / 255.0;
   gl_FragColor = vec4(c, 1.0);
 }`;

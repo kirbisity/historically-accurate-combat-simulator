@@ -700,10 +700,6 @@ function buildMeadow() {
  * the cavea rising behind, empty between games and worn by use, and the
  * arched travertine outer wall above them.
  */
-// The share of the sun's light the arena's sand sends back up as fill (sand's albedo about 0.4 x the sine of the sun's
-// height x the half of the floor the sun reaches: by eye from those).
-const ARENA_BOUNCE = 0.3;
-
 function buildColosseum() {
   const place = new THREE.Group();
   const { rx, rz } = COLOSSEUM;
@@ -744,21 +740,11 @@ function buildColosseum() {
   place.add(colosseum.group);
   // The open air (env/config.js PLACE_ENV.colosseum) is told of the sun's own shadow map: the dust in the air is lit
   // where the rim and the awning let the sun through, and stands in shade where they do not.
-  let shown = null;
   place.userData.bind = (view) => {
-    shown = view;
     const shadow = view.lights.sun.shadow;
     PLACE_ENV.colosseum.sunMap = { matrix: shadow.matrix, texture: () => shadow.map?.texture ?? null };
   };
-  // The sand's own light: a sunlit floor of pale sand throws about a third of the sun back up, and under an awning
-  // that is most of what the podium, the lower seats and a man's shaded side are lit by. Lit from below only (no sky
-  // in it: the open air's sky is the light from above), and only in the open air, whose sun is strong enough to throw it.
-  const bounce = new THREE.HemisphereLight(0x000000, 0xf2c890, 0);
-  bounce.name = 'arena-bounce';
-  place.add(bounce);
-  place.userData.tick = () => {
-    bounce.intensity = shown?.env?.on ? ARENA_BOUNCE * shown.lights.sun.intensity : 0;
-  };
+  // (The sand's own light on what stands over it is the open air's: env/config.js PLACE_ENV.colosseum `ground`.)
   // Ground beyond, under the stands.
   const ground = new THREE.Mesh(new THREE.PlaneGeometry(120, 120), stone(0xb9a07a));
   ground.rotation.x = -Math.PI / 2;

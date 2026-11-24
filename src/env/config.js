@@ -288,6 +288,13 @@ export const ENV = {
     // (the map's texels) a point is moved off its surface before it is looked up, so a body does not shade itself
     // in stripes; `every`, frames between looks through the scene for bodies made since.
     figure: { mirror: 0.5, off: 1.5, every: 30 },
+    // The finer map round the fight (a place's `shadowNear`): how many of its texels of depth a point is taken
+    // toward the sun before it is looked up. By eye, the least that leaves no stripes on a cloak or a banner
+    // (the things drawn into a shadow map from both sides).
+    finerBias: 1.5,
+    // How many looks its filter takes at an edge (terrain.js): twelve on a turned spiral leave a grain finer than
+    // the sand's own; at eight the grain showed on a pale floor. By eye.
+    finerLooks: 12,
     // Tree shade: under a crown the near map's shade is broken into flecks of sun the size of the gaps between
     // leaves' masses (`dapple` m), moving as the crown sways (the gust where it stands, `dappleSway` m per m/s).
     // The flecks are sharp where the shade is thin and close up as it deepens. By eye.
@@ -887,6 +894,9 @@ export const ENV_WEATHER = {
 //   wood either side is not; the standards' trunks are what bands that light, on the ground and in the air.
 // grass.share (left out: 1): the share of the blades drawn, each widened to cover the same ground: a desert's few
 //   patches of sward are coarse tufts and most of its blades would stand on bare ground at no height.
+// ground.albedo (left out: ENV.air.bounce, grass and soil), ground.cast (left out: none): what the ground throws back
+//   of the light on it, to light the underside and the shaded side of what stands on it, and that light's colour
+//   over grey ([r, g, b] about 1).
 // ground.loose, ground.ripple (left out: 0): how loose the bare ground is, 0..1 (dry sand 1: it takes a print), and how
 //   steep the wind's ripples stand on it (a slope; 0 on gravel).
 // woods: 0..1 of the far hills wooded (drawn as colour on the land beyond the last tree), and its colour.
@@ -902,6 +912,10 @@ export const ENV_WEATHER = {
 //     look's own box round the middle of the floor); `size`: the shadow map's side in texels at the top tier (left
 //     out: the look's own);
 //   far: m, the camera's far plane (left out: as the place's own lighting set it);
+//   (any place, not only one that draws itself) shadowNear: { half, size }: a second, finer map of the sun's
+//     shadow carried with the fight, `half` m each way and `size` texels a side at the top tier (half that below
+//     it), for the fighters' own shadows where the sun's one map is spread over a whole arena or a field
+//     (index.js envCarryFiner). Left out: the sun has its one map;
 //   wind: { toward: [x, z], speed m/s, gust 0..1 }, its own wind where wind.js PLACE_WIND has none for it;
 //   cover: what stands over the ground (roofs, a vault, a bridge), so nothing falls through it and blown snow
 //     starts from its top: { at: (x, z) => m, the top of the highest thing over the point, min: [x, z], size:
@@ -932,23 +946,37 @@ export const ENV_PLACE_PLAIN = {
 };
 
 export const PLACE_ENV = {
-  // The amphitheatre in the afternoon (it draws itself: props/arena.js): the sun over the far-left rim, so the cavea's
-  // shadow lies across part of the sand and the fight is seen against the light; the bowl holds the dust the fights
-  // and the crowd raise (no wind gets down into it), thick enough that the sun's light is seen in the air where the
-  // rim and the awning let it through and not where they shade it.
-  // (The dust: a haze of 170 m in a layer 16 m deep, about the cavea's height. By eye against stills of a dusty arena;
-  // a figure for the air of a real arena is not known to me.)
+  // The amphitheatre at noon (it draws itself: props/arena.js): a high clear sun over the far-left rim, so the awning's
+  // shadow lies in bars across part of the sand and the fight is seen a little against the light. The picture is a
+  // hard noon's as a camera holds it (the user's call, 2026-11-24, against frames of a sunlit sand yard): exposed
+  // for the pale sand, which sits bright and unclipped at about two thirds of full scale; one crisp dark shadow
+  // to a man; the balance neutral, the shade cool from the sky and filled a little from the sand; glare only on
+  // what is truly bright (steel, not the sand). Measured against those frames, sunlit sand there 177, 159, 144 of
+  // 255 and a man's shadow on it 30 to 36, a ratio of 20 to 40 in light: here 172, 161, 144 and 37, about 17 (the
+  // shade is left a little fuller than theirs: half this floor lies under the awning and is fought on).
+  // `weatherHere`: the bowl's dust is a thin veil (a visibility of 1100 m in a layer about the cavea's height: the
+  // far seats a little paler than the near, the sun's shafts faint), pale as the sand and not ochre; it was 340 m,
+  // which laid a yellow veil over everything past the podium and took the picture's contrast with it. `ev`: under
+  // the meter by a third of a stop (a meter fooled by pale ground is already told of it, `meter.albedo`).
+  // `contrast` 1.42 with `meter.sky` 0.75 (the seats in the sun stand in for some of the sky they hide) set that
+  // ratio of sun to shade. `bloom` from one white card up: sunlit sand is a third of one and throws none.
+  // All by eye and by those measurements; a figure for the air of a real arena is not known to me.
   colosseum: {
     ...ENV_PLACE_PLAIN,
     own: true,
     weather: 'dust',
-    weatherHere: { visibility: 340, hazeHeight: 26, wind: 0.25, gust: 0.05, sun: 0.92, cover: 0.1, shafts: 1.6, fall: { kind: 'dust', share: 0.5 }, grade: { contrast: 1.62, white: 6, saturation: 1.0, warmth: 0.04, split: 0.18, ev: 0.75, bloom: 2.6, bloomFrom: 0.8 } },
+    weatherHere: { visibility: 1100, hazeHeight: 26, wind: 0.25, gust: 0.05, sun: 1, cover: 0, shafts: 1.6, tint: 0xcabfae, fall: { kind: 'dust', share: 0.35 }, grade: { contrast: 1.42, white: 6, saturation: 1.0, warmth: -0.01, split: 0.12, ev: -0.3, bloom: 1.2, bloomFrom: 1.0 } },
     sun: { azimuth: -2.6, elevation: 54 },
     air: { visibility: 20000, hazeHeight: 900 },
     clouds: { cover: 0.12 },
+    // (The sand: it throws back two fifths of the light on it, a little warm, `cast`: display values over their
+    // mean, of the sand as it is painted, ground/painted.js sandRaked. That light from below is most of what the
+    // podium, the lower seats and a man's shaded side are lit by under a high sun.)
+    ground: { ...ENV_PLACE_PLAIN.ground, albedo: 0.4, cast: [1.07, 0.99, 0.9] },
     shadowBox: { half: 34, depth: 110, size: 2048 },
+    shadowNear: { half: 8, size: 2048 },
     far: 400,
-    meter: { sky: 0.6, frame: 0.1 },
+    meter: { sky: 0.75, frame: 0.1, albedo: 0.4 },
     litAt: [0, 45, 0],
     drift: [{ kind: 'motes', share: 1, colours: [0xf2dcae, 0xe6c890] }],
   },
@@ -1229,8 +1257,9 @@ export const PLACE_ENV = {
 // battle's: late in the afternoon a great wind got up and drove sand and gravel into the men's faces until neither
 // army could see the other (Shiji 111; the hour and the wind are the source's, their figures are not: by eye).
 // So the sun stands 22 degrees up ahead and to the left of a fight as it is first watched, through blown dust that
-// hides the ridges and takes the light as the arena's dust does (the colosseum's grade, a little less of each:
-// open ground under a low sun glares less than a bowl of pale sand at midday).
+// hides the ridges and takes the light as the arena's dust did before its noon was made a clear one (a warm,
+// glaring grade, a little less of each: open ground under a low sun glares less than a bowl of pale sand at
+// midday). Its own mood, a dust storm against a low sun: left as it is.
 PLACE_ENV.mobei = {
   weather: 'dust',
   weatherHere: { visibility: 1500, hazeHeight: 70, wind: 1.6, gust: 0.3, sun: 0.85, cover: 0.12, shafts: 1.3, fall: { kind: 'dust', share: 0.8 }, grade: { contrast: 1.5, white: 6, saturation: 0.95, warmth: 0.05, split: 0.16, ev: 0.35, bloom: 2.0, bloomFrom: 0.85 } },
@@ -1264,11 +1293,13 @@ PLACE_ENV.mobei = {
 // waterless, camelthorn in grey tufts, a few bare hills far off. The legions were brought to battle after noon in
 // the heat, and the Parthian horse raised dust until the Romans could neither see nor speak plainly (Plutarch,
 // Crassus 24 to 25; the hour is his, the figures here by eye): a high sun on pale ground, the arena's light and
-// sand in the open (the colosseum's grade nearly whole), the dust thinner than a bowl holds but a kilometre thick
-// toward the horizon, so the hills are a paler band and the sky near the ground is the ground's colour.
+// sand in the open (the colosseum's grade whole), the dust a veil a few kilometres thick toward the horizon, so
+// the hills are a paler band and the sky near the ground is the ground's colour.
 PLACE_ENV.carrhae = {
   weather: 'dust',
-  weatherHere: { visibility: 3200, hazeHeight: 60, wind: 0.9, gust: 0.15, sun: 0.95, cover: 0, shafts: 1.2, fall: { kind: 'dust', share: 0.55 }, grade: { contrast: 1.58, white: 6, saturation: 1.0, warmth: 0.04, split: 0.17, ev: 0.35, bloom: 2.4, bloomFrom: 0.82 } },
+  // (The arena's noon in the open, PLACE_ENV.colosseum: the frame exposed for pale sand in a hard sun, its balance
+  // neutral, its shade deep and cool, the glare kept to what is truly bright; the dust a paler veil than it was.)
+  weatherHere: { visibility: 4200, hazeHeight: 60, wind: 0.9, gust: 0.15, sun: 1, cover: 0, shafts: 1.2, tint: 0xcabfae, fall: { kind: 'dust', share: 0.4 }, grade: { contrast: 1.42, white: 6, saturation: 1.0, warmth: 0, split: 0.08, ev: -0.3, bloom: 1.2, bloomFrom: 1.0 } },
   sun: { azimuth: -2.5, elevation: 52 },
   air: { visibility: 20000, hazeHeight: 900 },
   clouds: { cover: 0 },
@@ -1283,8 +1314,10 @@ PLACE_ENV.carrhae = {
       { from: 4200, full: 8000, height: 260, length: 4200, shape: 'ridge' },
     ],
   },
-  // (The sand's colour is the arena's own, ground/painted.js sandRaked, a little paler and greyer with flint.)
-  ground: { grass: 0x7a8458, dry: 0x969268, soil: 0xc6a672, rock: 0xa89878, wear: 1.3, loose: 1, ripple: 0.22, paths: [], worn: [] },
+  // (Pale and nearly neutral, as dry sand is: about two fifths of the light thrown back, the arena's `ground`.)
+  ground: { grass: 0x7a8458, dry: 0x969268, soil: 0xc2ab91, rock: 0xa39a8c, wear: 1.3, loose: 1, ripple: 0.22, paths: [], worn: [], albedo: 0.4, cast: [1.07, 0.99, 0.9] },
+  meter: { albedo: 0.4 },
+  shadowNear: { half: 8, size: 2048 },
   grass: { height: [0.16, 0.26], grazed: 0, kept: 0.3, dry: 0.5, flowers: 0, flowerColours: [], share: 0.08 },
   rocks: [{ count: 10, from: 30, to: 240, clump: 0.3, size: [0.2, 0.7] }, { count: 360, from: 0, to: 80, clump: 0.3, size: [0.02, 0.08] }],
   trees: [{ kind: 'thorn', count: 260, from: 0, to: 120, clump: 0.35 }, { kind: 'thorn', count: 500, from: 120, to: 460, clump: 0.4 }, { kind: 'bunch', count: 160, from: 0, to: 110, clump: 0.5 }],

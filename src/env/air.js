@@ -6,7 +6,7 @@
 
 /* global THREE */
 
-import { ENV, ENV_WEATHER } from './config.js';
+import { ENV, ENV_WEATHER, PLACE_ENV } from './config.js';
 import { ENV_NOISE_CELLS, envNoiseTexture } from './noise.js';
 import { ENV_GLSL_FILM, envToneOf } from './post.js';
 
@@ -151,7 +151,10 @@ export function envAirState(place, weather) {
   // ground.albedo; grass and soil where it does not say), whitened by the weather's lying snow.
   const bare = place.ground?.albedo ?? tune.bounce;
   const thrown = bare + (tune.snowBounce - bare) * (weather.snow || 0);
-  air.bounce = air.skyLight.map((value, channel) => thrown * (value + air.sunColour[channel] * sun[1]));
+  // (And coloured by it, `ground.cast`: pale sand throws the sun back a little warm, which is what lights the
+  // shaded side of a man standing on it; nothing where the place does not say, and none of it under snow.)
+  const cast = place.ground?.cast ?? [1, 1, 1];
+  air.bounce = air.skyLight.map((value, channel) => thrown * (value + air.sunColour[channel] * sun[1]) * (1 + (cast[channel] - 1) * (1 - (weather.snow || 0))));
   // A cloud in the sun and a cloud's shaded base.
   air.cloudLit = air.sunColour.map((value, channel) => Math.min(tune.cloudMost, 0.72 * value / Math.max(0.05, weather.sun) * Math.max(weather.sun, 0.45) + 0.42 * air.skyLight[channel]));
   // A cloud's base: lit by the sky round it and the land under it, greyer than either.
@@ -715,10 +718,14 @@ export function envInstallTone() {
   envToneIds.clear();
   envToneGradeId(undefined);
   for (const weather of Object.values(ENV_WEATHER)) envToneGradeId(weather.grade);
+  // (And the grade a place gives its own weather, `weatherHere`, for the places described by now: without it the
+  // tier with no last pass drew an arena's hard noon with the default curve, a flatter and yellower picture than
+  // the tiers above it.)
+  for (const place of Object.values(PLACE_ENV)) if (place.weatherHere?.grade) envToneGradeId(place.weatherHere.grade);
   const neutral = { sunColour: [1, 1, 1], sun: [0, 1, 0], skyLight: [0, 0, 0], extinction: 0 };
   const film = (grade) => {
     const tone = envToneOf(neutral, { grade });
-    return `envFilm( light, vec4( 1.0, ${tone.contrast.toFixed(3)}, ${tone.sigma.toFixed(4)}, ${tone.gain.toFixed(4)} ), vec2( ${tone.saturation.toFixed(3)}, ${tone.warmth.toFixed(3)} ) )`;
+    return `envSplit( envFilm( light, vec4( 1.0, ${tone.contrast.toFixed(3)}, ${tone.sigma.toFixed(4)}, ${tone.gain.toFixed(4)} ), vec2( ${tone.saturation.toFixed(3)}, ${tone.warmth.toFixed(3)} ) ), ${tone.split.toFixed(3)} )`;
   };
   const cases = envToneGrades.slice(1).map((grade, at) => `    if ( id == ${at + 1} ) return ${film(grade)};`).join('\n');
   const curve = `${ENV_GLSL_FILM}
@@ -742,7 +749,7 @@ const envToneGrades = [];
 const envToneIds = new Map();
 const envToneKey = (grade) => {
   const whole = { ...ENV.tone.grade, ...grade };
-  return ['contrast', 'white', 'saturation', 'warmth'].map((name) => whole[name]).join(' ');
+  return ['contrast', 'white', 'saturation', 'warmth', 'split'].map((name) => whole[name]).join(' ');
 };
 function envToneGradeId(grade) {
   const key = envToneKey(grade);
