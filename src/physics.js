@@ -8895,8 +8895,10 @@ export function cutIntoLimb(world, defender, capsule, t, cleaving, square, event
   const done = ((defender.limbCuts ??= {})[key] ??= { flesh: 0, bone: 0 });
   done.flesh += Math.min(cleaving, left.flesh);
   if (left.broken || left.boneWhole <= 0) return false;
+  // (Reaching the bone through the near half of the flesh, physics/lodge.js lodgeDepth: as much of the edge's energy as
+  // came square across the limb.)
   const reach = BLADES.bone.grazeShare + (1 - BLADES.bone.grazeShare) * square;
-  const notch = left.notched + (Math.max(0, cleaving - left.flesh) * reach) / left.boneWhole;
+  const notch = left.notched + Math.max(0, cleaving * reach - left.flesh / 2) / left.boneWhole;
   done.bone = Math.max(done.bone, notch);
   if (notch < spec.splits) return false;
   event.effects.push('the bone cut into');
@@ -9628,34 +9630,13 @@ function registerWeaponImpact(world, attacker, defender, striker, closest, capsu
   // as it reaches it (BLADES.bone: by its force, and by how squarely across the limb it came), breaks it. Only a deep
   // one bleeds (wound: BLADES.bleed), and slowly; one to the bone of the thigh or the upper arm opens the artery there.
   const limb = capsule.key !== 'head' && capsule.key !== 'trunk';
-  const square = Math.max(0, 1 - vec.length(vec.sub(closest.onFirst, closest.onSecond)) / capsule.radius);
-  const flesh = BLADES.bone.flesh;
-  const toBone = (joules) => (limb ? flesh + (1 - flesh) * boneShare(joules, square) : 1);
-  // An edge that cannot bite deep (`cleave`: obsidian flakes in a wooden groove) opens the flesh but takes less of the bone.
-  const cleaving = cut * (wspec.cleave ?? 1);
-  let bleeds = 0;
-  // (A limb an edge or a point has gone into: broken later, its vessel is torn, not cut clean: breakJoint.)
-  if (limb && (cut > 0.5 || pierce > 0.5)) (defender.cutParts ??= new Set()).add(capsule.key);
-  if (cut > 0.5) {
-    bleeds += wound(defender, 'cut', cut, capsule.key, attacker);
-    addDamage(defender, capsule.key, cut / 6, false, toBone(cleaving));
-    event.effects.push(cut > 40 ? 'deep cut' : 'cut');
-  }
-  if (pierce > 0.5) {
-    bleeds += wound(defender, 'pierce', pierce, capsule.key, attacker);
-    addDamage(defender, capsule.key, pierce * (limb ? 0.25 : BLADES.pierceTrauma), false, toBone(pierce));
-    event.effects.push(pierce > 25 ? 'run through' : 'stabbed');
-  }
-  let through = false;
-  const wasOut = defender.state === 'out';
-  // (The trunk: the section the blade's sweep takes through it, trunkSection; a limb or the neck: the joint it is at.)
-  const joint = !wasOut && cut > 0 ? (capsule.key === 'trunk' ? trunkSection(defender, contactPoint, weapon.dir, relative, wspec.length) : jointAt(defender, capsule, closest.t, contactPoint)) : null;
-  // (Through a limb's or the neck's bone only as much of the edge's energy as came square across it, BLADES.bone grazeShare
-  // for a graze: `squarely`, how straight into the part the edge was going (its motion against the surface's normal) and how
-  // straight across the part's length the plane it sweeps lies. A glancing edge takes a chord of the section, the flesh and
-  // the side of the bone; one drawn along the limb opens it lengthwise; neither takes it off. (`square` above is measured
-  // at the first touch, where the blade is at the surface, and is ~0 for nearly every blow: no measure of this.) The trunk
-  // by its own section.)
+  // How squarely it came, one measure for every rule that asks (severing, notching and breaking the bone, the limb's
+  // weakening, the artery): an edge by how straight into the part it was moving (its motion against the surface's
+  // normal) times how straight across the part's length the plane it sweeps lies; a point by how straight its own line
+  // goes into the part. A glancing edge takes a chord of the section, the flesh and the side of the bone; one drawn along
+  // the limb opens it lengthwise; a point skidding along the surface goes in under the skin, not to the bone. (It was the
+  // blade's distance from the part's axis at the first touch, where the blade is at the surface: ~0 for nearly every
+  // blow, so every cut and every thrust counted as a graze, BLADES.bone grazeShare.)
   const [axisFrom, axisTo] = capsuleEnds(defender, capsule);
   const axis = vec.length(vec.sub(axisTo, axisFrom)) > 1e-6 ? vec.normalize(vec.sub(axisTo, axisFrom)) : [0, 1, 0];
   const speed = vec.length(relative);
@@ -9663,15 +9644,43 @@ function registerWeaponImpact(world, attacker, defender, striker, closest, capsu
   const sweep = vec.cross(weapon.dir, relative);
   const crossing = vec.length(sweep) > 1e-9 ? Math.abs(vec.dot(vec.normalize(sweep), axis)) : 0;
   const squarely = into * crossing;
-  const across = (limb || joint?.joint === 'neck') && joint ? BLADES.bone.grazeShare + (1 - BLADES.bone.grazeShare) * squarely : 1;
+  const pointSquarely = Math.max(0, -vec.dot(weapon.dir, normal));
   event.square = squarely;
+  // (What of the limb's flesh lies between the skin and the bone where it went in: half its section's, physics/lodge.js
+  // lodgeDepth.)
+  const limbLeft = limb && !defender.severedCapsules?.has(capsule.key) ? limbResistance(defender, limbSection(capsule, closest.t), capsule.key) : null;
+  const near = limbLeft ? limbLeft.flesh / 2 : null;
+  const flesh = BLADES.bone.flesh;
+  const toBone = (joules, square) => (limb ? flesh + (1 - flesh) * boneShare(joules, square, near) : 1);
+  // An edge that cannot bite deep (`cleave`: obsidian flakes in a wooden groove) opens the flesh but takes less of the bone.
+  const cleaving = cut * (wspec.cleave ?? 1);
+  let bleeds = 0;
+  // (A limb an edge or a point has gone into: broken later, its vessel is torn, not cut clean: breakJoint.)
+  if (limb && (cut > 0.5 || pierce > 0.5)) (defender.cutParts ??= new Set()).add(capsule.key);
+  if (cut > 0.5) {
+    bleeds += wound(defender, 'cut', cut, capsule.key, attacker);
+    addDamage(defender, capsule.key, cut / 6, false, toBone(cleaving, squarely));
+    event.effects.push(cut > 40 ? 'deep cut' : 'cut');
+  }
+  if (pierce > 0.5) {
+    bleeds += wound(defender, 'pierce', pierce, capsule.key, attacker);
+    addDamage(defender, capsule.key, pierce * (limb ? 0.25 : BLADES.pierceTrauma), false, toBone(pierce, pointSquarely));
+    event.effects.push(pierce > 25 ? 'run through' : 'stabbed');
+  }
+  let through = false;
+  const wasOut = defender.state === 'out';
+  // (The trunk: the section the blade's sweep takes through it, trunkSection; a limb or the neck: the joint it is at.)
+  const joint = !wasOut && cut > 0 ? (capsule.key === 'trunk' ? trunkSection(defender, contactPoint, weapon.dir, relative, wspec.length) : jointAt(defender, capsule, closest.t, contactPoint)) : null;
+  // (Through a limb's or the neck's bone only as much of the edge's energy as came square across it: `squarely`, above.
+  // The trunk by its own section.)
+  const across = (limb || joint?.joint === 'neck') && joint ? BLADES.bone.grazeShare + (1 - BLADES.bone.grazeShare) * squarely : 1;
   const needs = joint ? severThreshold(defender, joint, limb ? capsule.key : null, across) : Infinity;
   const severs = Boolean(joint && cleaving > needs && !defender.severed?.some((done) => done.side === joint.side && done.joint === joint.joint));
   // (What parting it there took, J, and the section it was: for the log and the tools.)
   if (joint) Object.assign(event, { sectionJ: needs, section: joint.along !== undefined ? `${joint.along.toFixed(2)}/${joint.cos.toFixed(2)}` : joint.joint });
   // (A limb cut off opens its vessel as the stump: sever, maiming.js.)
   const artery = BLADES.bleed.artery;
-  if (!severs && ARTERY_SEGMENTS.has(capsule.key.slice(1)) && Math.max(boneShare(cleaving, square), boneShare(pierce, square)) >= artery.reach) {
+  if (!severs && limbLeft && ARTERY_SEGMENTS.has(capsule.key.slice(1)) && reachesArtery(defender, capsule, closest, contactPoint, normal, weapon.dir, limbLeft, cleaving * (BLADES.bone.grazeShare + (1 - BLADES.bone.grazeShare) * squarely), pierce * pointSquarely)) {
     openVessel(defender, artery.seconds, attacker);
     bleeds += 1;
     event.effects.push(capsule.key.endsWith('Thigh') ? 'the femoral artery opened' : 'the brachial artery opened');
@@ -9684,7 +9693,7 @@ function registerWeaponImpact(world, attacker, defender, striker, closest, capsu
     : limb ? (defender.severedCapsules?.has(capsule.key) ? null : limbResistance(defender, limbSection(capsule, closest.t), capsule.key)) : skullLeft(BODY.toughness);
   if (!wasOut) {
     // An edge in a limb that does not take it off: into the flesh, and the bone as far as it reaches (cutIntoLimb).
-    if (!severs && limb && cleaving > 0.5 && !defender.severedCapsules?.has(capsule.key)) cutIntoLimb(world, defender, capsule, closest.t, cleaving, square, event);
+    if (!severs && limb && cleaving > 0.5 && !defender.severedCapsules?.has(capsule.key)) cutIntoLimb(world, defender, capsule, closest.t, cleaving, squarely, event);
     // (And in the trunk: what it parted of the section stays, cutIntoTrunk.)
     if (!severs && joint?.along !== undefined && cleaving > 0.5) cutIntoTrunk(defender, joint, cleaving);
     if (!severs && capsule.key === 'trunk' && cleaving > 0.5) {
@@ -10589,10 +10598,46 @@ function drainInjury(fighter, dt) {
 }
 
 /** Of a limb wound of `joules` (past the armour), the share that reaches the bone; `square` 0 (a graze) to 1 (across the axis). */
-export function boneShare(joules, square) {
+export function boneShare(joules, square, near = null) {
   const spec = BLADES.bone;
-  const deep = Math.max(0, Math.min(1, (joules - spec.fleshJ) / (spec.fullJ - spec.fleshJ)));
-  return deep * (spec.grazeShare + (1 - spec.grazeShare) * square);
+  const reach = spec.grazeShare + (1 - spec.grazeShare) * square;
+  // (On a man's limb, by the flesh it has to go through to the bone there, `near` J; without it, BLADES.bone's
+  // fleshJ and fullJ.)
+  if (near !== null) return Math.max(0, Math.min(1, (joules * reach) / Math.max(1e-6, near)));
+  return Math.max(0, Math.min(1, (joules - spec.fleshJ) / (spec.fullJ - spec.fleshJ))) * reach;
+}
+
+/**
+ * Whether an edge or a point in a thigh or an upper arm has opened its artery (BLADES.bleed.artery): the femoral and the
+ * brachial run on the inner side of the bone (the thigh's toward the other leg, the arm's toward the body), `vessel` of
+ * the way out from the bone to the muscle's edge. An edge cuts it if it went as deep as the vessel lies from where it came
+ * in (from the inner side, a little less than the bone; from the outer side, past the bone, which it does not go through);
+ * a point if its line passes within `channel` m of it, as far in as it went. `edge` and `point`: the joules of each, as
+ * much as came square (`squarely`).
+ */
+export function reachesArtery(defender, capsule, closest, contactPoint, normal, dir, left, edge, point0) {
+  const spec = BLADES.bleed.artery;
+  const segment = defender.body.segments[capsule.key];
+  const side = capsule.key[0];
+  const other = side === 'l' ? 'r' : 'l';
+  const [from, to] = capsuleEnds(defender, capsule);
+  const axis = vec.normalize(vec.sub(to, from));
+  const centre = vec.add(from, vec.scale(vec.sub(to, from), Math.max(0, Math.min(1, closest.t))));
+  const toward = vec.sub(point(defender.x, P[capsule.key.endsWith('Thigh') ? `${other}Hip` : `${other}Shoulder`]), centre);
+  const inward = vec.sub(toward, vec.scale(axis, vec.dot(toward, axis)));
+  if (vec.length(inward) < 1e-6) return false;
+  const vessel = vec.add(centre, vec.scale(vec.normalize(inward), segment.boneRadius + spec.vessel * Math.max(0, segment.muscleRadius - segment.boneRadius)));
+  const radius = capsule.radius;
+  const went = lodgeDepth(left, radius, segment.boneRadius, edge, point0);
+  if (went.thrust) {
+    const off = vec.sub(vessel, contactPoint);
+    const along = vec.dot(off, dir);
+    return along > 0 && along <= went.depth && vec.length(vec.sub(off, vec.scale(dir, along))) <= spec.channel;
+  }
+  // (Its depth from the skin where the edge came in, along the way in; deeper than the part's middle, the bone is between,
+  // and an edge that has not gone through the bone has not reached it.)
+  const below = vec.dot(vec.sub(contactPoint, vessel), normal);
+  return went.depth >= below && (below <= radius || went.bone >= 1.8 * segment.boneRadius);
 }
 
 // The joint that goes when a segment is broken: the arm hangs from the elbow, the leg gives at the knee or hip.

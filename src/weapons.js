@@ -1914,12 +1914,12 @@ export const BLADES = {
     // several times that fighting, straight out of the largest vessels there are).
     carry: 0.5, bleedSeconds: 4,
   },
-  // A cut or a stab in a limb breaks the bone only if it reaches it: the
-  // flesh takes the first `fleshJ` of it, all past `fullJ` gets to the bone;
-  // and a blow that only grazes the side of the limb (its line passing far
-  // from the axis, the bone) carries `grazeShare` of that, a square one all
-  // of it. So force and precision both decide; short of the bone it bleeds.
-  // Below the sever energies: a hard square cut breaks a limb before it takes it off.
+  // A cut or a stab in a limb reaches the bone only through the flesh before it (physics.js boneShare: the near half of the
+  // limb's own flesh there, limbResistance; `fleshJ` and `fullJ` only where there is no limb to measure, a bite), and only
+  // as much of it as came square (physics.js `squarely`: an edge moving straight into the limb and across its length, a
+  // point along its own line into it): a graze carries `grazeShare` of it, a square blow all of it (a blow along the
+  // surface parts a chord of the flesh; no measured figure, unverified). So force and precision both decide; short of the
+  // bone it bleeds. Below the sever energies: a hard square cut breaks a limb before it takes it off.
   // `flesh`: what a limb wound that stops short of the bone still counts towards the limb's health: cut muscle and
   // tendon weaken it, and enough of them disable it as a broken bone does (before, it only bled, and a forearm cut
   // to the bone's edge twice over did nothing but bleed).
@@ -1975,11 +1975,15 @@ export const BLADES = {
   // forearm loses ~2 % of his blood, a 100 J cut across the belly ~11 %, a 50 J thrust into it ~7 %, against the
   // ~21 % at which he collapses (collapseAt × BODY.toughness) — several deep wounds and minutes, not one and seconds.
   // What kills is the injury to the head and the trunk (WORLD.injury, the parts' health).
-  // The great vessels are their own: a limb's artery opened (`artery`: a cut or point that goes to the bone of the
-  // thigh or the upper arm, where the femoral and brachial run, `reach` of the way there by boneShare) collapses him in
-  // `seconds`; the chest's, `vital`. Before this a wound bled 3–4× as fast past 0.5 J, by the blade's full energy:
+  // The great vessels are their own: a limb's artery opened (`artery`: a cut or point that reaches the femoral or the
+  // brachial where it runs by the bone of the thigh or the upper arm) collapses him in `seconds`; the chest's, `vital`. Before this a wound bled 3–4× as fast past 0.5 J, by the blade's full energy:
   // three in four blows started a bleed, and a cut or two dropped a man in seconds.
-  bleed: { from: { cut: 40, pierce: 25 }, perJoule: { cut: 0.00002, pierce: 0.00003 }, zone: { head: 1.2, trunk: 1.5, limb: 1 }, artery: { reach: 0.6, seconds: 90 } },
+  // The artery (physics.js reachesArtery): the femoral in the adductor canal against the femur's inner side, the brachial
+  // in the medial bicipital groove along the humerus (Gray's Anatomy), `vessel` of the way from the bone to the muscle's
+  // edge (estimated from the anatomy, unverified); a point's channel `channel` m either side of its line (a blade's half
+  // width and the vessel's own). It was any cut or point `reach` 0.6 of the way to the bone by boneShare, whichever side
+  // it came from; with every blow then counted a graze (boneShare at most 0.3), no cut ever reached it.
+  bleed: { from: { cut: 40, pierce: 25 }, perJoule: { cut: 0.00002, pierce: 0.00003 }, zone: { head: 1.2, trunk: 1.5, limb: 1 }, artery: { vessel: 0.35, channel: 0.015, seconds: 90 } },
   // A wound eases as it clots, over about a minute of fighting (exertion keeps it open).
   clotSeconds: 60,
   collapseAt: 0.38,
