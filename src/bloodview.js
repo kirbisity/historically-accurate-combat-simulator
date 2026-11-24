@@ -30,6 +30,8 @@ export const BLOOD_VIEW = {
   hard: ['stone', 'wood', 'tile'],
   // A pool: spokes round it and rings out; never wider than `most` m; redrawn when it has grown by `grown`.
   spokes: 28, rings: [0, 0.45, 0.75, 0.9, 1], most: 1.7, grown: 1.03, perFrame: 6,
+  // With every pool in use: blood runs into one within `joins` m; else the smallest is given up if it holds under `keeps` ml.
+  joins: 1.2, keeps: 250,
   // A drop landing with this much (ml) or more starts a pool of its own; less, it is a stain.
   poolFrom: 5,
   // The least a shed drop carries (ml): what is drawn is a gout, not a real drop of a twentieth of a millilitre.
@@ -372,6 +374,8 @@ export function bloodFeed(blood, world, x, y, z, ml) {
   let found = null;
   let nearest = Infinity;
   let smallest = null;
+  let neighbour = null;
+  let apart = Infinity;
   const pools = blood.pools;
   const count = blood.budget.pools;
   for (let slot = 0; slot < count; slot += 1) {
@@ -385,12 +389,26 @@ export function bloodFeed(blood, world, x, y, z, ml) {
       nearest = gap;
       found = pool;
     }
+    if (gap < apart && Math.abs(pool.y - y) < 0.6) {
+      apart = gap;
+      neighbour = pool;
+    }
     if (!smallest || (smallest.active && pool.ml < smallest.ml)) smallest = pool;
   }
   if (!found) {
     found = smallest;
-    // (A pool gives way only to more blood than it holds.)
-    if (found.active && found.ml > ml * 4) return;
+    // Every pool in use: it runs into the nearest if that is within a stride or so; else the smallest gives way, unless
+    // that is already a pool worth keeping (then this blood is not drawn).
+    if (found.active) {
+      if (neighbour && apart < BLOOD_VIEW.joins) {
+        neighbour.ml += ml;
+        neighbour.fedAt = blood.clock;
+        neighbour.dirty = true;
+        return;
+      }
+      if (found.ml > BLOOD_VIEW.keeps) return;
+      bloodPoolHide(blood, found);
+    }
     found.active = true;
     found.x = x;
     found.z = z;
