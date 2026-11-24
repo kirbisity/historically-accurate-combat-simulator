@@ -19,10 +19,12 @@
 //    springs back on both faces; the grip is friction on them, the pressure as the opening (the depth in bone times the
 //    blade's taper) and the face as that depth again: `boneGrip` N per m2 of the depth in bone squared, at most
 //    `boneMost`. So a notch a centimetre into the bone holds a blade no more than the flesh round it, and an edge buried
-//    three or four centimetres in a spine, a pelvis or a skull holds as an axe in a log does (the Wisby and Towton skulls
-//    show edges that went centimetres into bone; an axe in a log of green wood takes several hundred newtons to a
+//    three or four centimetres in a spine, a pelvis or a thick femur holds as an axe in a log does (the Wisby and Towton
+//    skulls show edges that went centimetres into bone; an axe in a log of green wood takes several hundred newtons to a
 //    kilonewton to rock out, which is the order used; unverified). It was linear in the depth (25 kN/m): every cut that
-//    reached a bone at all was held by it, and half the long-sword duels had a blade stuck in a man;
+//    reached a bone at all was held by it, and half the long-sword duels had a blade stuck in a man. The skull is a
+//    shell, not a solid bone: past its vault (`skullWall`) the edge is in the brain, and only the vault's own thickness
+//    grips its faces, however far in it went (the face as deep as the wall, the opening as deep as the edge);
 //  - a point between the ribs or through the skull is pinched by them: `pinch` N.
 //  No weapon here is barbed (weapons.js has no such head): a spec's `barbed` would multiply the hold by `barbs`.
 //
@@ -70,6 +72,9 @@ export const LODGE = {
   // newtons for a knife; a broader sword or spear point more): depth = joules / thrustN.
   thrustN: 260,
   flesh: 5000, boneGrip: 1.1e6, boneMost: 1500, pinch: 120, barbs: 2.5,
+  // The skull vault's thickness (m): 5-7 mm over most of it in adults, the two tables and the diploe between (Lynnerup
+  // 2005, Forensic Sci Int 147: 1, CT of the vault, men ~6.5 mm; from memory of the abstract, unverified).
+  skullWall: 0.0065,
   // Coulomb friction of steel on wet flesh and bone: steel on skin and tissue runs about 0.2-0.5 wet (Derler & Gerhardt
   // 2012, Tribology Letters 45: 1, a review of skin friction), cortical bone on steel about 0.3-0.4 (orthopaedic fixation
   // tests; both from memory of the reviews, unverified): an edge sliding faster than this share of its speed into the
@@ -143,10 +148,11 @@ export function lodgeDepth(left, radius, boneRadius, cleaving, pierce, reach = I
 
 /**
  * N to draw a blade out of what it is in: `depth` m in, `bone` m of that in bone, `engaged` m of edge in the wound (a
- * point: its width), `pinched` whether a point is between ribs or through the skull, `barbed` whether its head is.
+ * point: its width), `pinched` whether a point is between ribs or through the skull, `barbed` whether its head is; `wall`
+ * (m) the most of the bone that grips it (the skull's vault: LODGE.skullWall; a solid bone all of it).
  */
-export function lodgeHold({ depth, bone }, engaged, pinched = false, barbed = false) {
-  const hold = LODGE.flesh * 2 * depth * engaged + Math.min(LODGE.boneMost, LODGE.boneGrip * bone * bone) + (pinched ? LODGE.pinch : 0);
+export function lodgeHold({ depth, bone }, engaged, pinched = false, barbed = false, wall = Infinity) {
+  const hold = LODGE.flesh * 2 * depth * engaged + Math.min(LODGE.boneMost, LODGE.boneGrip * bone * Math.min(bone, wall)) + (pinched ? LODGE.pinch : 0);
   return hold * (barbed ? LODGE.barbs : 1);
 }
 
@@ -179,7 +185,7 @@ export function lodgeBlade(world, attacker, defender, weapon, capsule, t, contac
   const pinched = went.thrust && (key === 'head' || chest);
   if (went.thrust ? went.depth < LODGE.least.thrust : went.bone <= 0 && went.depth < LODGE.least.cut) return false;
   const engaged = went.thrust ? weapon.spec.pointWidth ?? Math.max(0.025, weapon.spec.radius * 2) : Math.min(weapon.spec.length, 2 * Math.sqrt(Math.max(0, went.depth * (2 * radius - went.depth))));
-  const hold = lodgeHold(went, engaged, pinched, Boolean(weapon.spec.barbed));
+  const hold = lodgeHold(went, engaged, pinched, Boolean(weapon.spec.barbed), key === 'head' ? LODGE.skullWall : Infinity);
   const held = { a: capsule.a, b: capsule.b, t, ref: P[LODGE_REF[key]] };
   const frame = lodgeFrame(defender, held);
   const way = vec.length(hit.travel) > 1e-6 ? vec.normalize(hit.travel) : weapon.dir;

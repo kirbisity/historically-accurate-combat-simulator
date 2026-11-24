@@ -71,16 +71,16 @@ test('every weapon style carries its weapon and can reach with its moves', () =>
   assert.ok(!STYLE_KEYS.includes('gladius'), 'the drawn gladius is not a style to pick');
 });
 
-test('a full katana cut at a joint takes the part off; the fight is over for him', () => {
+test('a full katana cut across the body goes deep into him and stops there; the fight is over for him', () => {
+  // (A trunk takes far more to part than a limb: BLADES.tissueCut, the user's call, 2026-11-24. The cut stops in him, as
+  // deep as it went, into the spine past the great vessels.)
   const { events, world } = strikeAt('katana', 'kesagiri', 'body', 1.5);
-  const severed = events.find((event) => event.kind === 'severed');
-  assert.ok(severed, 'severed');
-  // (The cut on into his body kills him within the seconds a mortal wound leaves, WORLD.injury.drainSeconds.)
+  assert.ok(!events.some((event) => event.kind === 'severed' && event.trunk), 'not cut in two');
+  const landed = events.find((event) => event.kind === 'landed' && event.target === 'trunk');
+  assert.ok(landed && landed.depth > 0.06, `in ${(landed?.depth * 100).toFixed(1)} cm`);
+  assert.ok(landed.bleeds);
   advance(world, WORLD.injury.drainSeconds);
   assert.equal(world.fighters[1].state, 'out');
-  assert.ok(world.debris.some((piece) => piece.kind === 'piece'), 'the part lies loose');
-  const gone = SEVER_PARTS[severed.joint].capsules.map((key) => `${severed.side}${key}`);
-  assert.ok(!capsules(world.fighters[1]).some((capsule) => gone.includes(capsule.key)), 'a cut-off part cannot be struck');
   assert.ok(world.fighters[1].bleed > 0);
 });
 

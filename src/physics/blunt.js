@@ -5,6 +5,10 @@
 
 import { BODY, FRAMES, buildBody } from '../body.js';
 import { caloriesForWeight } from '../physiology.js';
+import { ARMOUR_COVER } from '../coverage.js';
+
+// (Where the hand begins along the forearm: coverage.js.)
+const HAND_FROM = ARMOUR_COVER.handFrom;
 
 export const BLUNT = {
   // The soft tissue over the bone where a blow meets a part, as shares of the part's own layers (body.js segments: fat
@@ -67,6 +71,22 @@ export const BLUNT = {
   // - beaten: a blade's parry that his arms could not hold lets the blow on from this share of its speed (the blade and his
   //   arms carried along with it); under it the blow is spent on them.
   guard: { hold: 1.8, unset: 0.6, least: 0.04, upperArm: 0.5, shown: 0.25, beaten: 0.25 },
+  // What a blow on a forearm meets, by where along it and how it faces the blow (guardMeets): the user's call, 2026-11-24
+  // (a guarding forearm broke in about one limb contact in 300 between equal gloved boxers, and in nearly every
+  // bare-knuckle bout: the forearm was struck as the ulna's border wherever the blow came, glove or no glove).
+  // - The hand: from coverage.js ARMOUR_COVER.handFrom of the way to the fist, and a glove's padded cuff (`cuff`, m: a
+  //   boxing glove's padding runs a few centimetres past the wrist; estimated from the glove's make, unverified) further
+  //   back. A blow there loads the forearm through the wrist, which gives: it is not struck across, and does not break.
+  //   What it meets is the glove (its padding in series with the striker's: the contact lasts as much longer again as one
+  //   glove draws a bare blow out, WORLD.fists gloved over bare, 11 ms over 8 ms), or the bare back of the fist (`fist`,
+  //   m of skin and tendon over the metacarpals: a few millimetres, unverified), whose bones are what can break (the
+  //   hand's load, body.fracture.hand).
+  // - The forearm: the ulna's border lies under the skin down its back, the flexor and extensor bellies on its faces
+  //   (Gray's Anatomy: the ulna's posterior border subcutaneous its whole length; the nightstick fracture is a blow on it).
+  //   The back of the forearm is the side the elbow points to (the olecranon's), so a blow square to it meets the border
+  //   (`edge` of the muscle layer over the bone: a little fascia), one from across the forearm's bend meets its belly
+  //   (`flat`: most of the muscle lies between it and the bone), by the square of how squarely it came onto the back.
+  meets: { cuff: 0.03, fist: 0.005, edge: 0.1, flat: 0.8 },
 };
 
 /**
@@ -129,6 +149,44 @@ export function bluntPart(body, key) {
   const toll = Math.max(least, Math.min(most, pad * (1 - bony + bony / tough)));
   const size = same ? 1 : body.segments[key].mass / reference.segments[key].mass;
   return (parts[key] = { depth, stretch, pad, toll, size });
+}
+
+/**
+ * What a blow on a forearm meets (BLUNT.meets): `at` its contact, `normal` out of the arm toward the striker; `elbow`,
+ * `hand` and `shoulder` the arm's particles; `gloved` whether his hands are in gloves. Returns this body's part there as
+ * bluntPart does (`depth`, `stretch`, `pad`, `toll`, `size`), with `region` 'hand' (the fist, or the glove: the forearm
+ * not bent by it) or 'forearm'. On any other part, the part as bluntPart has it.
+ */
+export function guardMeets(body, key, at, normal, { elbow, hand, shoulder }, gloved = false, gloveStretch = 1) {
+  const part = bluntPart(body, key);
+  if (body.segments[key]?.kind !== 'forearm' || body.inputs?.build?.rigid) return { ...part, region: 'part' };
+  const spec = BLUNT.meets;
+  const span = [hand[0] - elbow[0], hand[1] - elbow[1], hand[2] - elbow[2]];
+  const length = Math.hypot(...span) || 1e-6;
+  const axis = span.map((value) => value / length);
+  const along = ((at[0] - elbow[0]) * axis[0] + (at[1] - elbow[1]) * axis[1] + (at[2] - elbow[2]) * axis[2]) / length;
+  const handFrom = HAND_FROM - (gloved ? spec.cuff / Math.max(0.05, body.segments[key].length) : 0);
+  const same = (depth) => {
+    const stretch = fleshStretch(depth);
+    return { ...part, depth, stretch, pad: (part.pad * part.stretch) / stretch, toll: part.toll * (part.stretch / stretch) };
+  };
+  if (along >= handFrom) {
+    const fist = same(spec.fist);
+    if (!gloved) return { ...fist, region: 'hand' };
+    return { ...fist, stretch: fist.stretch * gloveStretch, pad: fist.pad / gloveStretch, toll: fist.toll / gloveStretch, region: 'hand' };
+  }
+  // The back of the forearm: the way the elbow points, square to the forearm (the upper arm's line run on past the elbow).
+  const upper = [elbow[0] - shoulder[0], elbow[1] - shoulder[1], elbow[2] - shoulder[2]];
+  const lean = upper[0] * axis[0] + upper[1] * axis[1] + upper[2] * axis[2];
+  const back = [upper[0] - lean * axis[0], upper[1] - lean * axis[1], upper[2] - lean * axis[2]];
+  const backLength = Math.hypot(...back);
+  // (A straight arm has no back to say: half way between.)
+  const square = backLength > 1e-3 ? Math.abs((back[0] * normal[0] + back[1] * normal[1] + back[2] * normal[2]) / backLength) : Math.SQRT1_2;
+  const share = spec.edge + (spec.flat - spec.edge) * (1 - square * square);
+  const segment = body.segments[key];
+  const cover = BLUNT.cover.forearm;
+  const depth = cover.skin + cover.fat * Math.max(0, segment.skinRadius - segment.muscleRadius) + share * BLUNT.muscle * Math.max(0, segment.muscleRadius - segment.boneRadius);
+  return { ...same(depth), region: 'forearm', edge: square };
 }
 
 /** A striking face of radius `face` (m; none: a broad one) as the bone under `depth` m of flesh meets it: spread wider by the flesh. */

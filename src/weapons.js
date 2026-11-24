@@ -1804,18 +1804,39 @@ export const BLADES = {
   // turned to its flat (WORLD.skill.flatBlunt). So a lance at the gallop that does not go through still stoves a man in:
   // the user's call, 2026-11-09 (a Bayara on foot took a full charge on his brigandine for under 5% of his health).
   stopped: 0.5,
-  sever: {
-    // joint: [J for a typical limb, the segment whose thickness scales it, typical radius m]
-    // The limbs' are an eighth below what they were (wrist 34, elbow 60, shoulder 105, ankle 55, knee 94, hip 195): an
-    // edge does not shear a long bone through its whole section, it is a wedge, and cortical bone (brittle across the
-    // grain: fracture toughness ~2-5 MPa·√m against a shear strength of ~50-70 MPa) splits ahead of it once it is in, so
-    // the last of the section parts for less than its shear work. (The neck is not a limb: as it was.)
-    wrist: [30, 'Forearm', 0.035], elbow: [53, 'Forearm', 0.04], shoulder: [92, 'UpperArm', 0.05],
-    ankle: [48, 'Shank', 0.045], knee: [83, 'Shank', 0.055], hip: [172, 'Thigh', 0.08], neck: [120, null, 0],
+  // What it takes to cut through a limb at a joint, and the trunk at any level (physics.js limbResistance,
+  // trunkResistance): one rule for both, from what is in the section on this body (body.js segments: bone inside, muscle
+  // and organs round it, fat outside), so a thick arm resists more than a thin one, a big man's femur more than a small
+  // woman's, an old or starved man's bone less (the user's call, 2026-11-24: a wrist came off in 66 of 80 katana duels).
+  // - `fleshJ` (J per m2 of muscle cut across) and `soft` (what a m2 of the rest, fat and viscera, takes beside muscle):
+  //   the soft tissue parts under an edge for little, the blade's drag on its faces most of it (forensic stab tests: a
+  //   knife through skin and muscle for ~50-100 N over its depth, Knight 1975, O'Callaghan et al. 1999; a hand's breadth
+  //   of muscle across for a few tens of joules). Kept as the trunk's figure was.
+  // - `boneJ` (J per m2 of bone section, for the reference man's bone: body.js boneStrength): the bone takes most of the
+  //   work. A butcher's cleaver (~1 kg at ~10 m/s, ~50 J a blow) takes several hard chops through a pig's or a man's femur
+  //   and goes through a rib or a forearm-sized bone in one or two: a femur ~200-250 J, the forearm's two bones ~80 J. The
+  //   segments' bone sections (body.js: the segment's bone volume over its length, the epiphyses and the hand's bones in
+  //   it) are ~13 cm2 for an ordinary man's thigh and ~5 cm2 for his forearm, hence 150 kJ/m2 (butchers' practice and
+  //   test cutting on carcasses, e.g. the ARMA forum's
+  //   cuts on meat and bone, "into the bone was usually possible, clean through was hard"; no instrumented measurement
+  //   found, unverified). It was 94 kJ/m2 and every figure besides taken at BODY.toughness (0.47, the game's knob for how
+  //   much harm tells): a forearm parted for ~15-25 J, a quarter of a katana's ordinary blow. The energy to part tissue is
+  //   its mechanics, not a tolerance of harm: no toughness. The bone's material is this body's (mineral and age: body.js
+  //   boneStrength's toughness over its section, the section being the segment's own).
+  // - `limbs`: joint -> [the segment cut through, its flesh there and its bone there against the segment's mean section].
+  //   The forearm thins to tendon at the wrist (its girth there ~0.6 of the forearm's greatest, ANSUR's wrist and forearm
+  //   circumferences: area ~0.4-0.6) while the radius widens to its distal end; the shank thins likewise to the ankle;
+  //   near the elbow, the knee and the hip the bellies are thickest (estimates from the girths, unverified).
+  // - `neck`: J to take a head off, as it was (not a segment of its own here; × BODY.toughness).
+  tissueCut: { fleshJ: 3430, soft: 0.6, boneJ: 150000, materialFloor: 0.3 },
+  limbs: {
+    wrist: ['Forearm', 0.6, 1], elbow: ['Forearm', 1.2, 1], shoulder: ['UpperArm', 1.1, 1],
+    ankle: ['Shank', 0.5, 1], knee: ['Shank', 1.2, 1], hip: ['Thigh', 1.1, 1],
   },
-  // What is left of a limb to cut through (physics.js limbResistance): the energy to go through it (`sever`) is the
-  // flesh's (skin, muscle, tendon: 1 - `bone` of it) and the bone's (`bone`: the bone takes most of the work, as a
-  // butcher's cleaver finds; the soft tissue parts under an edge for little). An edge that stops in the limb leaves it
+  sever: { neck: [120, null, 0] },
+  // What is left of a limb to cut through (physics.js limbResistance): the energy to go through it (`tissueCut`) is the
+  // flesh's (skin, muscle, tendon) and the bone's (the bone takes most of the work, as a butcher's cleaver finds; the soft
+  // tissue parts under an edge for little); `bone` is no longer used for it. An edge that stops in the limb leaves it
   // so: of the flesh it parted, `reopen` lies where the next blow at that place cuts (a blow put to a place lands within
   // a hand's breadth of the last; a wound gapes, and what is cut does not resist again); of the bone, what it notched.
   // An edge that goes into the bone `splits` of the way (by energy: what is past the flesh, and as much of it as came
@@ -1832,12 +1853,10 @@ export const BLADES = {
   // section is the trunk's own (its girth from the body's tissue: body.js segments.trunk) over cos(tilt), and it spans the
   // heights `along` -/+ radius x tan(tilt): a level cut at the waist stays below the ribs, one from the shoulder to the
   // opposite hip crosses the whole cage.
-  //  - `fleshJ` (J per m2 of muscle cut across): a limb's own figure, the hip's flesh share over a typical thigh's section
-  //    (172 x 0.4 / (pi x 0.08^2)). `soft`: what a m2 of the rest (viscera, lungs, fat) takes beside muscle: bowel and
-  //    lung part far more easily than muscle and fascia, but there is a great deal of it and it drags on the blade.
-  //  - `boneJ` (J per m2 of bone section): the hip's bone share over a typical femur's section (172 x 0.6 over ~11 cm2,
-  //    the thigh's bone volume over its length). The trunk's bone lies unevenly up its height, so each level's bone is a
-  //    share of the trunk's mean bone section (its bone volume over its length): `spine` everywhere (a lumbar body is
+  //  - The flesh and the bone per m2 of section are a limb's (`tissueCut`): the trunk's muscle, and `soft` of its viscera,
+  //    lungs and fat (bowel and lung part far more easily than muscle, but there is a great deal of it and it drags on the
+  //    blade); its bone, the trunk's bone lies unevenly up its height, so each level's bone is a share of the trunk's mean
+  //    bone section (its bone volume over its length): `spine` everywhere (a lumbar body is
   //    ~13 cm2 of cancellous bone in a cortical shell, with the arch and processes behind it), over cos(tilt);
   //    `ribs` for a level cut inside the cage (`cage`: from the costal margin up; ribs slope, so a level cut meets about
   //    three a side, and the sternum), more by the height of cage a leaning cut crosses (`ribsPer`: its share again for
@@ -1850,16 +1869,17 @@ export const BLADES = {
   //    across the belly (ichi-, ni-, san-no-do) the standard test of a blade, done on one body by any sound sword and on
   //    two or three stacked by a famous one; o-kesa, shoulder to hip, among the hard ones. (From memory, unverified: the
   //    order, not the names.) Those were bound, still bodies on a sand mound, cut with the whole swing of a specialist:
-  //    the ceiling of what a two-handed long blade does, which is where the figures put a level waist cut for a man of
-  //    middling build (about the best tenth of a katana's cuts as they land in this simulation), and a chest or
-  //    shoulder-to-hip cut beyond all but the great blades (odachi, zhanmadao, guandao).
+  //    the ceiling of what a two-handed long blade does on a body that does not move or give. In a fight the trunk is put
+  //    well above every limb of the same body (the user's call, 2026-11-24: a trunk cut takes more force than a limb cut
+  //    and may stop part-way, by the trunk's thickness): a level waist of a middling man ~500 J, his thigh ~270, his
+  //    forearm ~100, so a man is cut in two only by a great blade's best stroke into a slight body, and a cut short of it
+  //    is in him as deep as it went (physics.js: into the spine, past the great vessels).
   //  - `steepest`: the least cos(tilt) that is still a cut across him (steeper, the blade runs down the body and its
   //    section is the trunk's length: it never parts him). `from`/`to`: where on the pelvis-to-neck line a section still
   //    leaves two parts. `edge`: the blade must be this share of the section's width long, or it is buried before it
   //    is through (a knife does not cut a man in two).
   //  - What a cut short of it leaves is kept as a limb's is (limbCut `reopen`, the bone notched), by half of the trunk.
   trunkCut: {
-    fleshJ: 3430, soft: 0.6, boneJ: 94000,
     spine: 0.45, ribs: 0.35, ribsPer: 0.3, cage: [0.4, 0.95], girdle: 0.35, girdleFrom: 0.82, pelvis: 0.7, pelvisTo: 0.22,
     steepest: 0.45, from: 0.1, to: 0.92, edge: 1,
     // `carry`: the share of the blade's own momentum that goes on into the part it cut free. `bleedSeconds`: the aorta and
