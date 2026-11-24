@@ -77,8 +77,9 @@ if ( uMarkCount > 0.5 ) {
 		float markMetal = 0.0;
 		float markPorous = uWetKind.z * ( 1.0 - markSkin );
 	#endif
-	float markN = markGrain( vWetAt.xyz * 42.0 );
-	float markFine = markGrain( vWetAt.zxy * 260.0 );
+	// (The grain, worked out only for a pixel a mark reaches.)
+	float markN = -1.0;
+	float markFine = 0.0;
 	for ( int i = 0; i < ${MARKS.most}; i ++ ) {
 		if ( float( i ) >= min( uMarkCount, uMarkMost ) ) break;
 		vec4 mA = uMarkA[ i ];
@@ -92,6 +93,10 @@ if ( uMarkCount > 0.5 ) {
 		float mOut = dot( mOff, mD );
 		if ( abs( mOut ) > ${MARKS.depth.toFixed(3)} ) continue;
 		mOff -= mD * mOut;
+		if ( markN < 0.0 ) {
+			markN = markGrain( vWetAt.xyz * 42.0 );
+			markFine = markGrain( vWetAt.zxy * 260.0 );
+		}
 		float mT = clamp( dot( mOff, mB.xyz ), - mA.w, mA.w );
 		float mDist = length( mOff - mB.xyz * mT );
 		// (A cut is widest in its middle.)
