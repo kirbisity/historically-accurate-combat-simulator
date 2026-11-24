@@ -45,16 +45,16 @@ test('the same cut goes through a slight body and stops in a broad one, deeper t
   const broad = man(PRESETS.sumo);
   const whole = (body) => { const left = trunkResistance(body, level(body, 0.3)); return left.flesh + left.bone; };
   assert.ok(whole(slight) < whole(middling) && whole(middling) < whole(broad));
-  // 150 J: through the slight one, not the others.
-  assert.ok(150 > whole(slight) && 150 < whole(middling) && 150 < whole(broad), `${whole(slight).toFixed(0)}, ${whole(middling).toFixed(0)}, ${whole(broad).toFixed(0)} J`);
+  // 400 J: through the slight one, not the others.
+  assert.ok(400 > whole(slight) && 400 < whole(middling) && 400 < whole(broad), `${whole(slight).toFixed(0)}, ${whole(middling).toFixed(0)}, ${whole(broad).toFixed(0)} J`);
   const depth = (body, joules) => lodgeDepth(trunkResistance(body, level(body, 0.3)), body.body.segments.trunk.skinRadius * 0.78, body.body.segments.trunk.boneRadius, joules, 0);
-  // In the broad man it has more flesh to go through before the spine: 60 J is still in his muscle, and into the middling man's bone.
-  assert.equal(depth(broad, 60).bone, 0);
-  assert.ok(depth(middling, 60).bone > 0);
-  assert.ok(depth(broad, 110).depth > depth(broad, 60).depth && depth(broad, 200).depth > depth(broad, 110).depth);
-  // A limb likewise: a cut that takes a slight thigh off stops in a heavy one's bone.
+  // In the broad man it has more flesh to go through before the spine: 150 J is still in his muscle, and into the middling man's bone.
+  assert.equal(depth(broad, 150).bone, 0);
+  assert.ok(depth(middling, 150).bone > 0);
+  assert.ok(depth(broad, 200).depth > depth(broad, 150).depth && depth(broad, 300).depth > depth(broad, 200).depth);
+  // A limb likewise: a heavy man's thigh takes far more than a slight one's.
   const thigh = (body) => { const left = limbResistance(body, { joint: 'hip', side: 'l' }, 'lThigh'); return left.flesh + left.bone; };
-  assert.ok(thigh(slight) < 70 && thigh(broad) > 110);
+  assert.ok(thigh(broad) > 2 * thigh(slight), `${thigh(slight).toFixed(0)} J against ${thigh(broad).toFixed(0)} J`);
 });
 
 test('what holds a blade: little in flesh, much in bone, more the deeper; a point between bones is pinched', () => {

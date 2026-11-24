@@ -24,7 +24,7 @@ const total = (left) => left.flesh + left.bone;
 test('a whole limb resists with its flesh and its bone; broken, it has little but the flesh left', () => {
   const { world, fighter } = man();
   const whole = limbResistance(fighter, ELBOW, 'lForearm');
-  assert.ok(Math.abs(whole.bone / total(whole) - BLADES.limbCut.bone) < 1e-9, 'the bone takes its share of the work');
+  assert.ok(whole.bone > 2 * whole.flesh, 'the bone takes most of the work');
   breakJoint(world, fighter, 'lElbow', 'lForearm');
   assert.ok(fighter.fractured.has('lForearm'));
   const broken = limbResistance(fighter, ELBOW, 'lForearm');

@@ -15,10 +15,18 @@
 //    et al. 1999, Forensic Sci. Int. 104; Gilchrist et al. 2008, Forensic Sci. Int. 177: penetration forces; the
 //    withdrawal figure is from memory, unverified): 5 kPa gives a 2.5 cm blade 10 cm in about 25 N, a sword's width run
 //    20 cm through a trunk about 60 N, a long edge sunk a hand's breadth across a waist a few hundred.
-//  - bone wedges it: `bonePerM` N for each metre the edge is into bone, at most `boneMost`. A sword or an axe bitten
-//    into a skull, a long bone or the spine is what men have had to stand on the body to free (the accounts are many
-//    and unmeasured: the Wisby and Towton skulls show edges that went centimetres into bone; an axe in a log of green
-//    wood takes several hundred newtons to a kilonewton to rock out, which is the order used; unverified);
+//  - bone wedges it: an edge driven into bone opens the notch as wide as the blade is thick at that depth, and the bone
+//    springs back on both faces; the grip is friction on them, the pressure as the opening (the depth in bone times the
+//    blade's taper) and the face as that depth again: `boneGrip` N per m2 of the depth in bone squared, at most
+//    `boneMost`. So a notch a centimetre into the bone holds a blade no more than the flesh round it, and an edge buried
+//    three or four centimetres in a spine, a pelvis or a thick femur holds as an axe in a log does (the Wisby and Towton
+//    skulls show edges that went centimetres into bone; an axe in a log of green wood takes several hundred newtons to a
+//    kilonewton to rock out, which is the order used; unverified). It was linear in the depth (25 kN/m): every cut that
+//    reached a bone at all was held by it, and half the long-sword duels had a blade stuck in a man. The skull is a
+//    shell, not a solid bone: past its vault (`skullWall`) the edge is in the brain, and only the vault's own thickness
+//    grips its faces, however far in it went (the face as deep as the wall, the opening as deep as the edge). And the
+//    opening grows only as far as the blade's bevel runs (`bevel`): past it the faces are all but parallel, and a blade
+//    sunk deeper is no more forced apart;
 //  - a point between the ribs or through the skull is pinched by them: `pinch` N.
 //  No weapon here is barbed (weapons.js has no such head): a spec's `barbed` would multiply the hold by `barbs`.
 //
@@ -28,15 +36,31 @@
 // the hold it slides, the faster the more he has over it, and working at it loosens it (his pull's worth of the hold every `loosen` s). Out, it opens the
 // wound again (`reopen` of the bleeding the blow started).
 //
-// While it is in (holdLodged, each substep): the hand is kept on the blade's line at the wound, by moving the hand and
-// the struck part toward each other by their masses, so each man drags the other; the blade keeps the line it went in on
-// (in the struck part's own frame). A hand dragged further than it can follow for `tornSeconds` lets go; a man put down,
-// knocked out or disarmed lets go; then the weapon stays in the body (the loose weapon rides the part it is in, and can
-// be taken up once that man is down) and he goes on as any disarmed man does (rearm: his sidearm).
+// Whether it is held at all (lodgeBlade): it must have stopped. An edge still sliding along itself when its way into him
+// is stopped (a curved blade's draw, a cut drawn back as it lands) goes on along its own cut, as Coulomb's friction says:
+// the stop's impulse square to the edge can hold back at most `slip` times itself along it, so an edge that slides faster
+// than `slip` times its speed into the cut is not stopped by its faces and runs on out of the wound with the stroke.
+// Then a cut must be deep enough (`least`) or in bone, and more than his stroke's own recovery draws out at once
+// (`atOnce`).
+//
+// While it is in (holdLodged, each substep): a joint between his hands and the point in the wound where the blade is held
+// (it turns freely about that point and keeps its length), soft and damped as the flesh round the blade and the bone it
+// is in give (`stiff`, `damping`), solved as a compliant constraint (XPBD, Macklin, Müller & Chentanez 2016, Motion in
+// Games: the correction by both sides' inverse masses, the compliance over the substep squared), so what it does to each
+// man is a force, not a displacement. That force is capped by what can bear it: pulled out along the blade past the hold
+// (`hold`), the blade slides out of the wound by the rest; past what his hands can bear (lodgePull: his grip and his
+// weight) they give, and held so for `gives` s they let go. Driven in, it is capped by what it takes to drive the blade
+// deeper (`thrustN`). Before, the joint moved the hand and the part up to 8 mm a substep whatever force that took (up to
+// ~3.8 m/s of speed each substep, on the two particles at the held part's ends alone), so nothing bounded what it did
+// to either man; the violent motion seen with held blades was the blade itself being pushed out of the body it was in
+// (physics.js collideStriker), but an unbounded joint is no joint a blade and a grip make. A man put down, knocked out or disarmed lets go;
+// then the weapon stays in the body (the loose weapon rides the part it is in, and can be taken up once that man is
+// down) and he goes on as any disarmed man does (rearm: his sidearm). A part cut off, or a man cut in two, around a
+// blade lets it come free.
 
 import { P } from '../body.js';
 import { vec } from '../pose.js';
-import { BLADES } from '../weapons.js';
+import { BLADES, edgeSlide } from '../weapons.js';
 import { bladeFor, dropOffWeapon, dropWeapon, limbShares, point, quatFromTo, toLocal } from '../physics.js';
 
 export const LODGE = {
@@ -49,15 +73,28 @@ export const LODGE = {
   // N to drive a point through muscle once it is through the skin (the forensic stab tests' few tens to a hundred-odd
   // newtons for a knife; a broader sword or spear point more): depth = joules / thrustN.
   thrustN: 260,
-  flesh: 5000, bonePerM: 25000, boneMost: 1500, pinch: 120, barbs: 2.5,
+  flesh: 5000, boneGrip: 1.1e6, boneMost: 1500, pinch: 120, barbs: 2.5,
+  // The skull vault's thickness (m): 5-7 mm over most of it in adults, the two tables and the diploe between (Lynnerup
+  // 2005, Forensic Sci Int 147: 1, CT of the vault, men ~6.5 mm; from memory of the abstract, unverified).
+  skullWall: 0.0065,
+  // How far back from the edge a blade's bevel runs to its full thickness (m): a sword's ~2-3 cm (a katana's ha and
+  // shinogi-ji together; a sabre's or a dao's edge bevel likewise; from the blades' sections, unverified).
+  bevel: 0.025,
+  // Coulomb friction of steel on wet flesh and bone: steel on skin and tissue runs about 0.2-0.5 wet (Derler & Gerhardt
+  // 2012, Tribology Letters 45: 1, a review of skin friction), cortical bone on steel about 0.3-0.4 (orthopaedic fixation
+  // tests; both from memory of the reviews, unverified): an edge sliding faster than this share of its speed into the
+  // cut is not stopped by its faces.
+  slip: 0.35,
   // Drawing: m/s it slides at with twice the hold in hand; the share of the hold below which it does not move; s of
   // working at it for the hold to fall by what he pulls with; the share of his weight he can put into it stepping back at `backPace` m/s.
   pullSpeed: 1.2, stick: 0.55, loosen: 1.3, weight: 0.3, backPace: 0.8,
   // The least of his pull that works along the way out, however he stands to it (he shifts his grip and his feet to it).
   askew: 0.8,
-  // How far (m) the hand may be dragged off the blade's line in one substep's correction, how far off it counts as torn
-  // from him, and for how long (s).
-  step: 0.008, torn: 0.2, tornSeconds: 0.3,
+  // The joint (holdLodged): its stiffness (N/m: a blade a few centimetres in muscle or bone moves a few millimetres under
+  // a hundred newtons, the tissue's own give round it; the grip's give is the arm's, in the body already) and its damping
+  // ratio (1: critically damped, it settles without ringing). How far off the blade's line (m) his hand counts as torn
+  // from him, and for how long (s); and how long his hands bear more than they can (`gives`, s) before they let go.
+  stiff: 20000, damping: 1, torn: 0.2, tornSeconds: 0.3, gives: 0.15,
   // The skull, to go through its whole width, against what the neck takes (BLADES.sever): an edge that would take a head
   // off bites a few centimetres into the vault and stops (the Wisby and Towton cuts), so the whole of it is several times that.
   skull: 8,
@@ -86,6 +123,14 @@ function lodgeFrame(fighter, hold) {
   z = vec.length(z) > 1e-6 ? vec.normalize(z) : vec.normalize(vec.cross(y, Math.abs(y[1]) < 0.9 ? [0, 1, 0] : [1, 0, 0]));
   return { origin, x: vec.cross(y, z), y, z };
 }
+// The particles the joint moves on the man the blade is in, as one: what the held part is fixed to so firmly that a pull on
+// it moves them together (the trunk's six; the head with the neck; a limb's segment with the joint it hangs from). Moving
+// only the held part's two ends put the whole pull on a particle of a few kilograms (the neck's is 3.6) and flung it.
+const LODGE_CARRIES = {
+  head: ['head', 'neck'], trunk: ['pelvis', 'lHip', 'rHip', 'neck', 'lShoulder', 'rShoulder'],
+  lUpperArm: ['lShoulder', 'lElbow'], rUpperArm: ['rShoulder', 'rElbow'], lForearm: ['lElbow', 'lHand', 'lShoulder'], rForearm: ['rElbow', 'rHand', 'rShoulder'],
+  lThigh: ['lHip', 'lKnee', 'pelvis'], rThigh: ['rHip', 'rKnee', 'pelvis'], lShank: ['lKnee', 'lFoot', 'lHip'], rShank: ['rKnee', 'rFoot', 'rHip'],
+};
 const lodgeInto = (frame, v) => [vec.dot(v, frame.x), vec.dot(v, frame.y), vec.dot(v, frame.z)];
 const lodgeOutOf = (frame, v) => vec.add(vec.add(vec.scale(frame.x, v[0]), vec.scale(frame.y, v[1])), vec.scale(frame.z, v[2]));
 
@@ -108,10 +153,11 @@ export function lodgeDepth(left, radius, boneRadius, cleaving, pierce, reach = I
 
 /**
  * N to draw a blade out of what it is in: `depth` m in, `bone` m of that in bone, `engaged` m of edge in the wound (a
- * point: its width), `pinched` whether a point is between ribs or through the skull, `barbed` whether its head is.
+ * point: its width), `pinched` whether a point is between ribs or through the skull, `barbed` whether its head is; `wall`
+ * (m) the most of the bone that grips it (the skull's vault: LODGE.skullWall; a solid bone all of it).
  */
-export function lodgeHold({ depth, bone }, engaged, pinched = false, barbed = false) {
-  const hold = LODGE.flesh * 2 * depth * engaged + Math.min(LODGE.boneMost, LODGE.bonePerM * bone) + (pinched ? LODGE.pinch : 0);
+export function lodgeHold({ depth, bone }, engaged, pinched = false, barbed = false, wall = Infinity) {
+  const hold = LODGE.flesh * 2 * depth * engaged + Math.min(LODGE.boneMost, LODGE.boneGrip * Math.min(bone, LODGE.bevel) * Math.min(bone, wall)) + (pinched ? LODGE.pinch : 0);
   return hold * (barbed ? LODGE.barbs : 1);
 }
 
@@ -129,6 +175,11 @@ export function lodgedBlade(fighter) {
  */
 export function lodgeBlade(world, attacker, defender, weapon, capsule, t, contact, hit) {
   if (attacker.lodged || !weapon.held || weapon.spec.rope || weapon.spec.mounted || attacker.mount) return false;
+  // (An edge still sliding along itself runs on out of its cut: LODGE.slip.)
+  if (hit.cleaving >= hit.pierce && vec.length(hit.travel) > 1e-6) {
+    const { slide, press } = edgeSlide(weapon.spec, hit.travel, weapon.dir, hit.distance);
+    if (slide > LODGE.slip * Math.max(1e-6, press)) return false;
+  }
   const key = capsule.key;
   const radius = capsule.radius;
   const boneRadius = key === 'head' ? radius * 0.85 : defender.body.segments[key].boneRadius;
@@ -139,7 +190,7 @@ export function lodgeBlade(world, attacker, defender, weapon, capsule, t, contac
   const pinched = went.thrust && (key === 'head' || chest);
   if (went.thrust ? went.depth < LODGE.least.thrust : went.bone <= 0 && went.depth < LODGE.least.cut) return false;
   const engaged = went.thrust ? weapon.spec.pointWidth ?? Math.max(0.025, weapon.spec.radius * 2) : Math.min(weapon.spec.length, 2 * Math.sqrt(Math.max(0, went.depth * (2 * radius - went.depth))));
-  const hold = lodgeHold(went, engaged, pinched, Boolean(weapon.spec.barbed));
+  const hold = lodgeHold(went, engaged, pinched, Boolean(weapon.spec.barbed), key === 'head' ? LODGE.skullWall : Infinity);
   const held = { a: capsule.a, b: capsule.b, t, ref: P[LODGE_REF[key]] };
   const frame = lodgeFrame(defender, held);
   const way = vec.length(hit.travel) > 1e-6 ? vec.normalize(hit.travel) : weapon.dir;
@@ -263,8 +314,10 @@ export function carryStuck(world) {
 }
 
 /**
- * Each substep, for every man whose blade is held in a body: his hand kept on the blade's line at the wound (the hand and
- * the struck part moved toward each other by their masses: each drags the other), the blade on the line it went in by.
+ * Each substep, for every man whose blade is held in a body: the joint between his hands and the point it is held at
+ * (LODGE `stiff`, `damping`), a compliant, damped distance constraint solved once a substep (XPBD), its force capped by
+ * what bears it: pulled, the hold (past it the blade slides out by the rest) or his hands (past it they give: `gives`);
+ * pushed, what drives the blade deeper (`thrustN`). The blade keeps the line from the held point to his hand.
  */
 export function holdLodged(world, h) {
   for (const fighter of world.fighters) {
@@ -272,11 +325,11 @@ export function holdLodged(world, h) {
     if (!held) continue;
     const weapon = lodgedBlade(fighter);
     const victim = world.fighters[held.in];
-    if (!weapon?.held || !victim) continue;
-    const { pivot } = lodgeWant(victim, held);
+    if (!weapon?.held || !victim || victim.halves) continue;
+    const { pivot, exit } = lodgeWant(victim, held);
     const hand = P[`${weapon.main}Hand`];
-    // The blade turns about where it is held and keeps its length: the hand is the grip's length from that point, on
-    // whatever line the two men's motion leaves it.
+    // (Both hands on a two-handed weapon's grip: the joint holds them together.)
+    const hands = weapon.spec.hands !== 'one' ? [hand, P[`${weapon.off}Hand`]] : [hand];
     const reach = vec.sub(pivot, point(fighter.x, hand));
     const length = vec.length(reach);
     if (length < 1e-6) continue;
@@ -285,18 +338,44 @@ export function holdLodged(world, h) {
     held.world.dir = dir;
     weapon.dir = dir;
     weapon.spin = [0, 0, 0];
-    const slack = length - held.grip;
-    if (Math.abs(slack) < 1e-5) continue;
-    const move = vec.scale(dir, Math.sign(slack) * Math.min(Math.abs(slack), LODGE.step));
-    // (The struck part's two ends by where along it the wound is; a part of a man cut in two or lying still is moved too.)
-    const ends = held.a === held.b ? [[held.a, 1]] : [[held.a, 1 - held.t], [held.b, held.t]];
-    let theirs = 0;
-    for (const [index, share] of ends) theirs += share * share * victim.invMass[index];
-    const mine = fighter.invMass[hand];
+    // C > 0: his hands further from the held point than the grip is long (the blade pulled on); < 0, pushed in.
+    const stretch = length - held.grip;
+    const carried = (LODGE_CARRIES[held.key] ?? [held.a, held.b]).map((name) => (typeof name === 'number' ? name : P[name]));
+    let carriedMass = 0;
+    for (const index of carried) carriedMass += victim.invMass[index] > 0 ? 1 / victim.invMass[index] : 0;
+    const theirs = carriedMass > 0 ? 1 / carriedMass : 0;
+    let handsMass = 0;
+    for (const index of hands) handsMass += fighter.invMass[index] > 0 ? 1 / fighter.invMass[index] : 0;
+    const mine = handsMass > 0 ? 1 / handsMass : 0;
     const total = mine + theirs;
+    if (total <= 0) continue;
+    // Compliance over the substep squared, and the damping as XPBD's gamma (alpha beta / h), beta critical for the two
+    // masses the joint couples (2 sqrt(k m)) times LODGE.damping.
+    const compliance = 1 / (LODGE.stiff * h * h);
+    const beta = 2 * LODGE.damping * Math.sqrt(LODGE.stiff / total);
+    const gamma = (beta / LODGE.stiff) / h;
+    const moved = stretch - (held.stretch ?? stretch);
+    let lambda = -(stretch + gamma * moved) / ((1 + gamma) * total + compliance);
+    // The force it takes (N), against what bears it.
+    const force = -lambda / (h * h);
+    const pulled = force > 0;
+    const grip = pulled ? lodgePull(fighter, weapon, exit, held.world.exit) : Infinity;
+    const bears = pulled ? Math.min(held.hold, grip) : LODGE.thrustN;
+    if (Math.abs(force) > bears) {
+      lambda = -Math.sign(force) * bears * h * h;
+      // Pulled past the hold, the blade slides out by what the joint could not take up; past his hands, they give.
+      if (pulled && held.hold <= grip) {
+        const rest = stretch + lambda * total;
+        held.out = Math.min(held.depth, held.out + Math.max(0, rest) * Math.max(LODGE.askew, vec.dot(exit, vec.scale(dir, -1))));
+      }
+    }
+    held.strain = pulled && force > grip && grip < held.hold ? (held.strain ?? 0) + h : 0;
+    held.stretch = stretch + lambda * total;
+    // (What the joint bore this substep, N, + pulling: for the log and the tests.)
+    held.force = -lambda / (h * h);
     for (let axis = 0; axis < 3; axis += 1) {
-      fighter.x[hand * 3 + axis] += (move[axis] * mine) / total;
-      for (const [index, share] of ends) victim.x[index * 3 + axis] -= (move[axis] * share * victim.invMass[index]) / total;
+      for (const index of hands) fighter.x[index * 3 + axis] -= dir[axis] * lambda * mine;
+      for (const index of carried) victim.x[index * 3 + axis] += dir[axis] * lambda * theirs;
     }
     victim.stillFor = 0;
   }
@@ -320,15 +399,18 @@ export function stepLodged(world, dt) {
       letGoLodged(world, fighter, 'his blade stays in the wound');
       continue;
     }
+    // (The part it is in cut off, or the man cut in two round it: nothing holds it.)
+    const parted = victim.halves || victim.severedCapsules?.has(held.key);
+    if (parted) held.out = held.depth;
     // (The stroke that put it there is over.)
     if (fighter.punch && bladeFor(fighter, fighter.punch.spec) === weapon) fighter.punch = null;
     held.torn = held.off > LODGE.torn ? (held.torn ?? 0) + dt : 0;
-    if (held.torn > LODGE.tornSeconds) {
+    if (held.torn > LODGE.tornSeconds || (held.strain ?? 0) > LODGE.gives) {
       letGoLodged(world, fighter, 'his blade is torn from his hands, held in the wound');
       continue;
     }
     const frame = lodgeFrame(victim, held);
-    const pull = lodgePull(fighter, weapon, lodgeOutOf(frame, held.exit), held.world.exit);
+    const pull = parted ? 0 : lodgePull(fighter, weapon, lodgeOutOf(frame, held.exit), held.world.exit);
     const over = pull / Math.max(1, held.hold) - LODGE.stick;
     // (Worked at, it loosens by what he puts into it: his pull's worth of the hold every LODGE.loosen s.)
     held.hold = Math.max(0, held.hold - (pull * dt) / LODGE.loosen);

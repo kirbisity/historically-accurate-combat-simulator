@@ -4,7 +4,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { P, PARTICLES, PRESETS } from '../src/body.js';
-import { advance, capsules, createWorld, cutOff, halfPoints, inFight, placeFighter, point, SEVER_PARTS, trunkResistance, trunkSection } from '../src/physics.js';
+import { advance, capsules, createWorld, cutOff, halfPoints, inFight, limbResistance, placeFighter, point, SEVER_PARTS, trunkResistance, trunkSection } from '../src/physics.js';
 import { battleTally } from '../src/battletally.js';
 import { momentFor } from '../src/drama.js';
 import { strikeAt } from '../tools/weapon-strikes.js';
@@ -35,11 +35,13 @@ test('the trunk resists by what is in the section: the waist least, the ribs mor
   const kesa = joules(man, section(man, 0.55, 45));
   assert.ok(waist < chest && chest < armpits && armpits < hips, `waist ${waist.toFixed(0)} < chest ${chest.toFixed(0)} < armpits ${armpits.toFixed(0)} < hips ${hips.toFixed(0)}`);
   assert.ok(kesa > chest * 1.5, `shoulder to hip ${kesa.toFixed(0)} against a level chest cut ${chest.toFixed(0)}`);
-  // Where it sits among the strokes as they land in duels here (tools: the best tenth of a katana's cuts to the trunk are
-  // ~185-235 J, an odachi's best ~290, the best one-handed sabre, dao or kilij cut ~125): above every one-handed cut, within
-  // the best of the two-handed long blades.
-  assert.ok(waist > 135 && waist < 200, `a middling man's waist ${waist.toFixed(0)} J`);
-  assert.ok(chest > 180 && chest < 290, `his chest ${chest.toFixed(0)} J`);
+  // Far above what parts any limb of the same body (the user's call, 2026-11-24: a trunk cut takes more force than a limb
+  // cut, BLADES.tissueCut): above his thigh, the hardest of them, by half again, and his forearm several times over.
+  const limb = (where, key) => { const left = limbResistance(man, where, key); return left.flesh + left.bone; };
+  const thigh = limb({ joint: 'hip', side: 'l' }, 'lThigh');
+  const forearm = limb({ joint: 'elbow', side: 'l' }, 'lForearm');
+  assert.ok(waist > 1.5 * thigh && waist > 4 * forearm, `waist ${waist.toFixed(0)} J, thigh ${thigh.toFixed(0)}, forearm ${forearm.toFixed(0)}`);
+  assert.ok(waist > 300 && waist < 800, `a middling man's waist ${waist.toFixed(0)} J`);
 });
 
 test('a thin man is cut through for less than a stout one, by his own girth and bone', () => {
