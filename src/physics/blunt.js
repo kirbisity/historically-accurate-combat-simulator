@@ -40,6 +40,13 @@ export const BLUNT = {
   // The bone's share is hurt by the blow over the bone's toughness on this body (body.bone.toughness), the soft share
   // as on any body.
   bony: { head: 0.5, trunk: 0.5, upperArm: 1, forearm: 1, thigh: 1, shank: 1 },
+  // A long bone struck across is bent, and a load spread along it bends it less: a limb struck free in the air is a beam
+  // carried by its own inertia, its greatest moment under a patch of width w on a length L is F (L - w) / 8. The loads the
+  // bones break at (body.js BODY.fractureN) were set by broad blows on the thigh (`broad`, m: a shin's or a glove's
+  // half-width, on the reference man's thigh: `thigh`, m), so a broad face on a shorter bone (a glove on a forearm) bends
+  // it by (1 - w / L) over the thigh's share, ~0.8; a narrow face (a shaft, a mace's flange) in full, pressing in the
+  // harder besides (WORLD.contactStress).
+  bend: { broad: 0.065, thigh: 0.43 },
   // The most and the least a body's own flesh and bone change a blow's toll, against the reference man's.
   toll: [0.25, 4],
   // The reference man the game's capacities and fracture loads were set on: 1.75 m, medium frame, 75 kg, 27, some
@@ -139,4 +146,15 @@ export function guardGives(impulse, mass, force, gap) {
   const work = Math.max(0, force) * Math.max(BLUNT.guard.least, gap);
   const through = brought > work ? Math.sqrt(1 - work / brought) : 0;
   return { through, holds: Math.sqrt(2 * mass * work), taken: Math.min(brought, work) };
+}
+
+/**
+ * Of a blow's force on a limb of this body, the share that bends its long bone (BLUNT.bend): 1 for a narrow striking face
+ * (`face`, m, its radius; none: a broad one), less for a face that is broad against the bone's length, spread wider still
+ * by the flesh over it (`depth`, m).
+ */
+export function bendShare(body, key, face, depth) {
+  const spec = BLUNT.bend;
+  const span = (width, length) => Math.max(0, 1 - width / Math.max(1e-3, length));
+  return Math.min(1, span(2 * ((face > 0 ? face : spec.broad) + depth), body.segments[key].length) / span(2 * spec.broad, spec.thigh));
 }

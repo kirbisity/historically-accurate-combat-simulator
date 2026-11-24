@@ -35,7 +35,7 @@ import { climateOf, freshHeat, heatMark, heatRecovery, heatStrength, stepHeat } 
 import { bowShotCost, strokeHeft, swingEffort } from './physics/effort.js';
 import { bigDeflect, breakOpen, deflecting, deflectsWith, deflectWindow, guardHold, noteGuard } from './physics/deflect.js';
 import { jumpBlocked, jumpLanding, jumpOf } from './physics/jump.js';
-import { BLUNT, bluntPart, faceThrough, guardGives } from './physics/blunt.js';
+import { bendShare, BLUNT, bluntPart, faceThrough, guardGives } from './physics/blunt.js';
 import { formUp, placeWings, WINGS } from './formation.js';
 import { handling } from './handling.js';
 import { ARM_CUTS, brokenLevel, feelShock, LEG_CUTS, MAIMING, openArtery, playerStun, shockOf, stepVessels } from './maiming.js';
@@ -8380,8 +8380,10 @@ function bluntConsequences(world, attacker, defender, capsule, event, { impulse,
   // gone with it, and what force the bone did not bear goes on.
   const bone = capsule.key.replace(/^[lr](?=[A-Z])/, '');
   const joint = BREAKS_AT[bone] && `${capsule.key[0]}${BREAKS_AT[bone]}`;
-  const breaks = !checked && joint && body.fracture[bone] && boneLoad > body.fracture[bone] && !defender.broken.has(joint);
-  if (breaks && guard) through = Math.max(through, 1 - body.fracture[bone] / boneLoad);
+  // (Across the bone it bends it, the less for a face broad against the bone's length: physics/blunt.js bendShare.)
+  const bending = joint ? boneLoad * bendShare(body, capsule.key, face, part.depth) : 0;
+  const breaks = !checked && joint && body.fracture[bone] && bending > body.fracture[bone] && !defender.broken.has(joint);
+  if (breaks && guard) through = Math.max(through, 1 - body.fracture[bone] / bending);
   // The part's own hurt: a blow met on a guard that holds is taken on the muscle and rolled with (WORLD.blockedDamageShare of
   // it), and in full as far as the guard is beaten in.
   const met = !blocked ? 1 : WORLD.blockedDamageShare + (guard ? (1 - WORLD.blockedDamageShare) * through : 0);
