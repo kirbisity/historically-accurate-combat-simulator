@@ -4682,7 +4682,7 @@ const boxer = window.boxer = {
     weapon.dir = toward.toArray();
     const travel = cleaving > pierce ? new THREE.Vector3(0, 1, 0).cross(toward).normalize().toArray() : weapon.dir;
     const event = { effects: [] };
-    const held = lodgeBlade(world, striker, victim, weapon, capsule, t, contact.toArray(), { left, cleaving, pierce, distance: contact.distanceTo(hand), travel, bleed: 0.0005, event });
+    const held = lodgeBlade(world, striker, victim, weapon, capsule, t, contact.toArray(), { left, cleaving, pierce, distance: Math.min(contact.distanceTo(hand), weapon.spec.length * 0.8), travel, bleed: 0.0005, event });
     if (held) world.lodging = true;
     return held ? event.lodged : null;
   },

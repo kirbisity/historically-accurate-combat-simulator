@@ -208,19 +208,24 @@ export function stickLodged(world, fighter, weapon, debris) {
   if (!held || !debris || lodgedBlade(fighter) !== weapon) return;
   const spec = weapon.spec;
   // (The loose weapon's point is its middle: so far back along the blade from the wound.)
-  debris.stuck = { in: held.in, a: held.a, b: held.b, t: held.t, ref: held.ref, at: held.at, dir: held.dir, exit: held.exit, sunk: held.depth - held.out, back: held.grip - (spec.length - spec.handle) / 2 };
+  const victim = world.fighters[held.in];
+  // (As it lies in him now: the line it has come to, in the struck part's frame.)
+  const dir = victim ? lodgeInto(lodgeFrame(victim, held), held.world.dir) : held.dir;
+  debris.stuck = { in: held.in, a: held.a, b: held.b, t: held.t, ref: held.ref, at: held.at, dir, exit: held.exit, sunk: held.depth - held.out, back: held.grip - (spec.length - spec.handle) / 2 };
   debris.v = [0, 0, 0];
   debris.spin = [0, 0, 0];
   fighter.lodged = null;
 }
 
-/** Where the hand on a held blade must be now (world), the blade's line and the way out: sunk `depth` in, less what he has drawn. */
+/**
+ * Where a held blade is held (world): the point of it that is deepest in the wound (`pivot`: `depth` in along the way it
+ * went, less what he has drawn), about which it can turn; the hand is `grip` from it. And the way out, now.
+ */
 function lodgeWant(victim, held) {
   const frame = lodgeFrame(victim, held);
-  const dir = lodgeOutOf(frame, held.dir);
   const exit = lodgeOutOf(frame, held.exit);
   const wound = vec.add(frame.origin, lodgeOutOf(frame, held.at));
-  return { dir, exit, wound, hand: vec.add(vec.sub(wound, vec.scale(dir, held.grip)), vec.scale(exit, held.out - held.depth)) };
+  return { exit, wound, pivot: vec.add(wound, vec.scale(exit, held.out - held.depth)), frame };
 }
 
 /** A man whose blade is held in a body keeps his hand on it (his pose's `intent`, in his own frame), not back at his guard. */
@@ -228,11 +233,15 @@ export function lodgePose(world, fighter, intent) {
   const weapon = lodgedBlade(fighter);
   const victim = world.fighters[fighter.lodged.in];
   if (!weapon?.held || !victim) return;
-  const want = lodgeWant(victim, fighter.lodged);
-  intent[`${weapon.main}Hand`] = toLocal(fighter, want.hand);
+  const { pivot } = lodgeWant(victim, fighter.lodged);
+  // (On the blade's line from where it is held to his hand, the grip's length from it.)
+  const reach = vec.sub(point(fighter.x, P[`${weapon.main}Hand`]), pivot);
+  const back = vec.length(reach) > 1e-6 ? vec.normalize(reach) : vec.scale(fighter.lodged.world.dir, -1);
+  const hand = vec.add(pivot, vec.scale(back, fighter.lodged.grip));
+  intent[`${weapon.main}Hand`] = toLocal(fighter, hand);
   // (Both hands stay on a two-handed weapon's grip: he hauls on it with both.)
   if (weapon.spec.hands !== 'one') {
-    intent[`${weapon.off}Hand`] = toLocal(fighter, vec.sub(want.hand, vec.scale(want.dir, weapon.spec.spacing ?? 0.2)));
+    intent[`${weapon.off}Hand`] = toLocal(fighter, vec.add(hand, vec.scale(back, weapon.spec.spacing ?? 0.2)));
     intent.twoHanded = true;
   }
 }
@@ -264,16 +273,21 @@ export function holdLodged(world, h) {
     const weapon = lodgedBlade(fighter);
     const victim = world.fighters[held.in];
     if (!weapon?.held || !victim) continue;
-    const { dir, hand: want } = lodgeWant(victim, held);
+    const { pivot } = lodgeWant(victim, held);
     const hand = P[`${weapon.main}Hand`];
-    let move = vec.sub(want, point(fighter.x, hand));
-    const off = vec.length(move);
-    held.off = off;
+    // The blade turns about where it is held and keeps its length: the hand is the grip's length from that point, on
+    // whatever line the two men's motion leaves it.
+    const reach = vec.sub(pivot, point(fighter.x, hand));
+    const length = vec.length(reach);
+    if (length < 1e-6) continue;
+    const dir = vec.scale(reach, 1 / length);
+    held.off = Math.abs(length - held.grip);
     held.world.dir = dir;
     weapon.dir = dir;
     weapon.spin = [0, 0, 0];
-    if (off < 1e-6) continue;
-    if (off > LODGE.step) move = vec.scale(move, LODGE.step / off);
+    const slack = length - held.grip;
+    if (Math.abs(slack) < 1e-5) continue;
+    const move = vec.scale(dir, Math.sign(slack) * Math.min(Math.abs(slack), LODGE.step));
     // (The struck part's two ends by where along it the wound is; a part of a man cut in two or lying still is moved too.)
     const ends = held.a === held.b ? [[held.a, 1]] : [[held.a, 1 - held.t], [held.b, held.t]];
     let theirs = 0;
