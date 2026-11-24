@@ -17,7 +17,7 @@ import { buildArenaShield, buildArenaWeapon } from './arenaview.js';
 import { crowdBatch } from './crowdview.js';
 import { BLOOD_VIEW, bloodClear, bloodCreate, bloodDrop, bloodInfo, bloodSite, bloodSpray, bloodTier, bloodUpdate } from './bloodview.js';
 import { BATTLE_FX, BLACK_POWDER, battleFxAddGlint, battleFxArc, battleFxClear, battleFxElectricFlash, battleFxGlint, battleFxPrimary, battleFxShot, battleFxSpark, battleFxUpdate } from './battlefx.js';
-import { splitBody } from './woundview.js';
+import { roundWoundFace, splitBody } from './woundview.js';
 import { gashHalf, MARK_KIND, markAdd } from './markview.js';
 import { machineFxBusy, machineFxClear, machineFxCreate, machineFxHear, machineFxStep } from './machinefx.js';
 import { flutterCloth } from './clothwind.js';
@@ -2253,6 +2253,53 @@ function drawMounted(view, fighterView, arms, weapon, showing) {
   }
 }
 
+// ---- Blood on the blade ------------------------------------------------------------
+
+const bladePoint = new THREE.Vector3();
+
+/**
+ * Blood left on the blade that drew it (a landed blow's event, its edge or point through the armour): on the steel from
+ * where it met him towards the point, more with each wound, there for the rest of the fight. A man drawn in full only:
+ * a crowd's weapons are one mesh for all of a kind.
+ */
+export function bloodyBlade(fighterView, event) {
+  const weapon = fighterView.arms?.weapon;
+  const amount = Math.min(1, ((event.cut ?? 0) + (event.pierce ?? 0)) / 90);
+  if (!weapon || fighterView.baked || amount < 0.04 || !event.point) return;
+  weapon.traverse((object) => {
+    if (!object.userData.blade || !object.isMesh || Array.isArray(object.material)) return;
+    let blood = object.userData.bladeBlood;
+    if (!blood) {
+      blood = object.userData.bladeBlood = { value: new THREE.Vector4(0, 0, 0.1, 0) };
+      const material = object.material.clone();
+      const previous = material.onBeforeCompile;
+      const baseKey = material.customProgramCacheKey?.() ?? '';
+      material.onBeforeCompile = (shader, renderer) => {
+        previous?.call(material, shader, renderer);
+        shader.uniforms.uBladeBlood = blood;
+        shader.vertexShader = shader.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vBladeAt;').replace('#include <begin_vertex>', '#include <begin_vertex>\nvBladeAt = position;');
+        // (x: where along the blade it met him; y: how much; z: how far it reaches along the steel.)
+        shader.fragmentShader = shader.fragmentShader.replace('#include <common>', '#include <common>\nvarying vec3 vBladeAt;\nuniform vec4 uBladeBlood;')
+          .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
+	float bladeRun = sin( vBladeAt.y * 190.0 + sin( vBladeAt.x * 900.0 + vBladeAt.z * 700.0 ) * 2.0 ) * 0.5 + 0.5;
+	float bladeWet = uBladeBlood.y * ( 1.0 - smoothstep( uBladeBlood.z * ( 0.45 + 0.4 * bladeRun ), uBladeBlood.z * ( 0.8 + 0.5 * bladeRun ), abs( vBladeAt.y - uBladeBlood.x ) ) ) * ( 0.55 + 0.45 * bladeRun );
+	diffuseColor.rgb = mix( diffuseColor.rgb, vec3( 0.3, 0.012, 0.02 ), bladeWet * 0.9 );
+	#ifdef STANDARD
+		metalnessFactor *= 1.0 - 0.9 * bladeWet;
+		roughnessFactor = mix( roughnessFactor, 0.3, bladeWet );
+	#endif`);
+      };
+      material.customProgramCacheKey = () => `${baseKey}|bladeblood`;
+      object.material = material;
+    }
+    object.worldToLocal(bladePoint.set(event.point[0], event.point[1], event.point[2]));
+    // (Blood on blood: it lies where most of it was put, and reaches further.)
+    blood.value.x = blood.value.y > 0 ? blood.value.x + (bladePoint.y - blood.value.x) * 0.5 : bladePoint.y;
+    blood.value.y = Math.min(1, blood.value.y + 0.35 + amount);
+    blood.value.z = Math.min(0.6, blood.value.z + 0.08 + 0.25 * amount);
+  });
+}
+
 // ---- Cut off --------------------------------------------------------------------
 
 /**
@@ -2304,9 +2351,13 @@ export function severView(view, fighterView, event, debris) {
     fighterView.headDetached = true;
   }
   // The cut face of the piece.
-  const face = new THREE.Mesh(new THREE.SphereGeometry(debris.radius * (event.joint === 'neck' ? 0.5 : 0.9), 12, 8), surface(0x7e1016, { roughness: 0.4 }));
-  face.position.set(debris.cut[0], debris.cut[1], debris.cut[2]);
-  face.add(new THREE.Mesh(new THREE.SphereGeometry(debris.radius * 0.3, 8, 6), surface(0xe8dcc4)));
+  // (A machine's has no flesh: the old dark ball. A man's: the section of the limb or the neck, woundview.js.)
+  const machinePart = Boolean(fighterView.fighter.body.gear.machine);
+  const cutWay = new THREE.Vector3(debris.cut[0], debris.cut[1], debris.cut[2]);
+  const face = machinePart ? new THREE.Mesh(new THREE.SphereGeometry(debris.radius * 0.9, 12, 8), surface(GORE.machineStump, { roughness: 0.5, metalness: 0.7 }))
+    : roundWoundFace([0, 0, 0], [0, 1, 0], debris.radius * (event.joint === 'neck' ? 0.55 : 0.95));
+  face.position.copy(cutWay);
+  if (!machinePart && cutWay.lengthSq() > 1e-8) face.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), cutWay.clone().normalize());
   piece.add(face);
   piece.userData.debris = debris.id;
   view.scene.add(piece);
@@ -2319,8 +2370,9 @@ export function severView(view, fighterView, event, debris) {
   const radius = debris.radius * (event.joint === 'neck' ? 0.55 : 1.12);
   // A machine (gear.machine) has no flesh and no blood: the stump is dark metal round a bright actuator, and it throws sparks, not blood.
   const machine = Boolean(fighterView.fighter.body.gear.machine);
-  const stump = new THREE.Mesh(new THREE.SphereGeometry(radius, 12, 8), machine ? surface(GORE.machineStump, { roughness: 0.5, metalness: 0.7 }) : surface(0x7e1016, { roughness: 0.4 }));
-  stump.add(new THREE.Mesh(new THREE.SphereGeometry(radius * 0.35, 8, 6), surface(machine ? GORE.machineCore : 0xe8dcc4)));
+  const stump = machine ? new THREE.Mesh(new THREE.SphereGeometry(radius, 12, 8), surface(GORE.machineStump, { roughness: 0.5, metalness: 0.7 })) : roundWoundFace([0, 0, 0], [0, 1, 0], radius * 0.92);
+  if (machine) stump.add(new THREE.Mesh(new THREE.SphereGeometry(radius * 0.35, 8, 6), surface(GORE.machineCore)));
+  stump.userData.faces = !machine;
   fighterView.group.add(stump);
   (fighterView.stumps ??= []).push({ mesh: stump, ...ends });
   // (A machine's stump sputters sparks and arcs instead, for a while: machineFxHear, from the same event.)
@@ -2415,12 +2467,21 @@ function liftTriangles(mesh, boneIndices, origin) {
   return result;
 }
 
+const stumpWay = new THREE.Vector3();
+const stumpUp = new THREE.Vector3(0, 1, 0);
+
 /** After the body is posed: stumps sit at the joint they were cut at. */
 export function updateStumps(fighterView) {
   const fighter = fighterView.fighter;
   for (const stump of fighterView.stumps ?? []) {
     const at = stumpPoint(fighter, stump);
     stump.mesh.position.set(at[0], at[1], at[2]);
+    // (A cut face looks out along the limb it ended.)
+    if (stump.mesh.userData.faces) {
+      const from = point(fighter.x, stump.from);
+      stumpWay.set(at[0] - from[0], at[1] - from[1], at[2] - from[2]);
+      if (stumpWay.lengthSq() > 1e-8) stump.mesh.quaternion.setFromUnitVectors(stumpUp, stumpWay.normalize());
+    }
     stump.mesh.visible = fighterView.layers.skin.visible;
   }
 }

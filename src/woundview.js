@@ -139,10 +139,12 @@ function woundMaterial(kind, skinning, dual) {
  * from the centre, the first spoke along `forward` and the rest on round `normal`. `skin` (optional): for each spoke the
  * bones and weights its points are skinned by ({ index: [4], weight: [4] }), as the rim there is.
  */
-export function woundFaceGeometry({ centre, normal, forward, radii, skin = null }) {
+export function woundFaceGeometry({ centre, normal, forward, radii, skin = null, dome = 0 }) {
   const spec = WOUND_FACE;
   const spokes = radii.length;
-  const rings = spec.rings;
+  // (`dome`: a stump's end, not set into a rim of its own: it swells out by that share of its radius, and a last ring
+  // folds back round the limb's end.)
+  const rings = dome ? [...spec.rings, 1.08] : spec.rings;
   const n = new THREE.Vector3(...normal).normalize();
   const x = new THREE.Vector3(...forward).addScaledVector(n, -new THREE.Vector3(...forward).dot(n)).normalize();
   const y = new THREE.Vector3().crossVectors(n, x);
@@ -160,12 +162,12 @@ export function woundFaceGeometry({ centre, normal, forward, radii, skin = null 
     for (let ring = 0; ring < rings.length; ring += 1) {
       const vertex = spoke * rings.length + ring;
       const reach = rings[ring] * radius;
-      const sunk = spec.inset + spec.sink * mean * (1 - rings[ring] ** 2);
+      const sunk = rings[ring] > 1 ? 0.45 * mean : dome ? -dome * mean * (1 - rings[ring] ** 2) : spec.inset + spec.sink * mean * (1 - rings[ring] ** 2);
       at.set(centre[0], centre[1], centre[2]).addScaledVector(x, Math.cos(angle) * reach).addScaledVector(y, Math.sin(angle) * reach).addScaledVector(n, -sunk);
       positions.set([at.x, at.y, at.z], vertex * 3);
       normals.set([n.x, n.y, n.z], vertex * 3);
       // (The painted section's back is at u = 0.5: the first spoke, forward, is u = 0.)
-      uvs.set([spoke / spokes, rings[ring]], vertex * 2);
+      uvs.set([spoke / spokes, Math.min(1, rings[ring])], vertex * 2);
       if (skin) {
         const bound = skin[spoke % spokes];
         skinIndex.set(bound.index, vertex * 4);
@@ -197,7 +199,8 @@ export function woundFaceGeometry({ centre, normal, forward, radii, skin = null 
 /** A round cut face (a limb's, the neck's): `radius` about `centre`, facing `normal`. Unskinned: it rides what it is put on. */
 export function roundWoundFace(centre, normal, radius, kind = 'limb') {
   const forward = Math.abs(normal[1]) < 0.9 ? [0, 1, 0] : [1, 0, 0];
-  const geometry = woundFaceGeometry({ centre, normal, forward, radii: new Array(24).fill(radius) });
+  const geometry = woundFaceGeometry({ centre, normal, forward, radii: new Array(24).fill(radius), dome: 0.28 });
+  geometry.computeVertexNormals();
   return new THREE.Mesh(geometry, woundMaterial(kind, false, false));
 }
 

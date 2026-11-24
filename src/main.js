@@ -100,7 +100,7 @@ import { hasOrigin, originOf, REGION_ORIGINS, regionName, regionTone, setShade, 
 import { shadeGradient, shadeTone, toneShade } from './skintones.js';
 import { deflectCue } from './deflectlook.js';
 import { deflectsWith } from './physics/deflect.js';
-import { clearGore, goreInfo, goreTier, machineEvent, severView, spawnBlood, spawnShot, spawnSparks, updateArms, updateArrows, updateBlood, updateDebris, updateShots, updateStumps, updateWhips, woundBlood } from './weaponview.js';
+import { bloodyBlade, clearGore, goreInfo, goreTier, machineEvent, severView, spawnBlood, spawnShot, spawnSparks, updateArms, updateArrows, updateBlood, updateDebris, updateShots, updateStumps, updateWhips, woundBlood } from './weaponview.js';
 import { placeFlameTanks, updateFlames } from './flameview.js';
 import { updateClothWind } from './clothwind.js';
 import { wetHold, wetInfo, wetnessOf, wetTier, wetUpdate } from './wetview.js';
@@ -1552,6 +1552,11 @@ function consumeEvents() {
     if (event.kind === 'landed' && !machine && event.point && event.target) {
       const struck = state.views.find((entry) => entry.fighter.id === event.defender);
       if (struck?.frames) markOfBlow(struck.fighter, struck.frames, event, state.world.time);
+      // And the blood on the blade that drew it (weaponview.js).
+      if (event.weapon && (event.cut ?? 0) + (event.pierce ?? 0) > 4) {
+        const striker = state.views.find((entry) => entry.fighter.id === event.attacker);
+        if (striker) bloodyBlade(striker, event);
+      }
     }
     // A man in a powered frame (gear.assist) bleeds, and a weapon's blow on him strikes the frame's steel too: a few sparks.
     if (event.weapon && event.kind === 'landed' && state.world.fighters[event.defender]?.body.gear.assist) spawnSparks(scene, event.point, 6);
