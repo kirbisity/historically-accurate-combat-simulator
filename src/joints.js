@@ -18,29 +18,42 @@ const LIMB_BIND = { arm: (25 * Math.PI) / 180, leg: 0 };
  * shoulders (or `across`, the hips), forward = up × left. Null if degenerate.
  */
 export function trunkAxes(pelvis, neck, leftPoint, rightPoint) {
-  const up = vec.normalize(vec.sub(neck, pelvis));
-  const across = vec.sub(leftPoint, rightPoint);
-  const flat = vec.sub(across, vec.scale(up, vec.dot(across, up)));
-  const size = vec.length(flat);
+  // (Worked in numbers, not small arrays: the physics asks this several times a man a substep. The arithmetic is vec's, in its
+  // order, so the axes come out bit for bit as they did.)
+  const dx = neck[0] - pelvis[0];
+  const dy = neck[1] - pelvis[1];
+  const dz = neck[2] - pelvis[2];
+  const length = Math.sqrt(dx * dx + dy * dy + dz * dz) || 1;
+  const ux = dx / length;
+  const uy = dy / length;
+  const uz = dz / length;
+  const ax = leftPoint[0] - rightPoint[0];
+  const ay = leftPoint[1] - rightPoint[1];
+  const az = leftPoint[2] - rightPoint[2];
+  const along = ax * ux + ay * uy + az * uz;
+  const fx = ax - ux * along;
+  const fy = ay - uy * along;
+  const fz = az - uz * along;
+  const size = Math.sqrt(fx * fx + fy * fy + fz * fz);
   if (size < 1e-6) return null;
-  const left = vec.scale(flat, 1 / size);
-  return { up, left, forward: vec.cross(up, left) };
+  const inverse = 1 / size;
+  const lx = fx * inverse;
+  const ly = fy * inverse;
+  const lz = fz * inverse;
+  return { up: [ux, uy, uz], left: [lx, ly, lz], forward: [uy * lz - uz * ly, uz * lx - ux * lz, ux * ly - uy * lx] };
 }
 
 /** Rotate v about unit `axis` by `angle`. */
 export function turnAbout(v, axis, angle) {
   const cos = Math.cos(angle);
   const sin = Math.sin(angle);
-  return vec.add(vec.add(vec.scale(v, cos), vec.scale(vec.cross(axis, v), sin)), vec.scale(axis, vec.dot(axis, v) * (1 - cos)));
+  return turnedBy(v[0], v[1], v[2], axis[0], axis[1], axis[2], cos, sin);
 }
 
-/** v carried by the smallest rotation taking unit a onto unit b. */
-function swingAlong(v, a, b) {
-  const axis = vec.cross(a, b);
-  const sin = vec.length(axis);
-  const cos = vec.dot(a, b);
-  if (sin < 1e-6) return cos > 0 ? v : vec.scale(v, -1);
-  return turnAbout(v, vec.scale(axis, 1 / sin), Math.atan2(sin, cos));
+/** turnAbout in numbers (Rodrigues' rotation, vec's arithmetic in its order): (vx, vy, vz) about unit (ax, ay, az), by the angle of `cos` and `sin`. */
+function turnedBy(vx, vy, vz, ax, ay, az, cos, sin) {
+  const keep = (ax * vx + ay * vy + az * vz) * (1 - cos);
+  return [vx * cos + (ay * vz - az * vy) * sin + ax * keep, vy * cos + (az * vx - ax * vz) * sin + ay * keep, vz * cos + (ax * vy - ay * vx) * sin + az * keep];
 }
 
 /**
@@ -48,32 +61,84 @@ function swingAlong(v, a, b) {
  * forward of the hanging upper arm) or 'leg' (the shin flexes back of the
  * hanging thigh). Returns { twist (rad, + inward), elevation (rad), bend
  * (rad, 0 straight) }, or null where the limb is too straight to say.
+ * (Worked in numbers, not small arrays: the physics asks it of every limb of
+ * every man each substep, and the arrays were most of what a battle threw to
+ * the garbage collector. The arithmetic is vec's, in its order: the same
+ * answer bit for bit.)
  */
 export function limbTwist(axes, kind, side, root, middle, end) {
   if (!axes) return null;
-  const upper = vec.sub(middle, root);
-  const lower = vec.sub(end, middle);
-  const upperLength = vec.length(upper);
-  const lowerLength = vec.length(lower);
+  const upx = middle[0] - root[0];
+  const upy = middle[1] - root[1];
+  const upz = middle[2] - root[2];
+  const lox = end[0] - middle[0];
+  const loy = end[1] - middle[1];
+  const loz = end[2] - middle[2];
+  const upperLength = Math.sqrt(upx * upx + upy * upy + upz * upz);
+  const lowerLength = Math.sqrt(lox * lox + loy * loy + loz * loz);
   if (upperLength < 1e-6 || lowerLength < 1e-6) return null;
-  const u = vec.scale(upper, 1 / upperLength);
-  const f = vec.scale(lower, 1 / lowerLength);
-  const bend = Math.acos(Math.max(-1, Math.min(1, vec.dot(u, f))));
+  const upperInverse = 1 / upperLength;
+  const lowerInverse = 1 / lowerLength;
+  const ux = upx * upperInverse;
+  const uy = upy * upperInverse;
+  const uz = upz * upperInverse;
+  const fx = lox * lowerInverse;
+  const fy = loy * lowerInverse;
+  const fz = loz * lowerInverse;
+  const bend = Math.acos(Math.max(-1, Math.min(1, ux * fx + uy * fy + uz * fz)));
   if (bend < WORLD.limbTwist.from) return null;
-  const outward = side === 'l' ? axes.left : vec.scale(axes.left, -1);
+  const left = axes.left;
+  const up = axes.up;
+  const forward = axes.forward;
+  // Outward: his left for the left limb, else its opposite.
+  const ox = side === 'l' ? left[0] : left[0] * -1;
+  const oy = side === 'l' ? left[1] : left[1] * -1;
+  const oz = side === 'l' ? left[2] : left[2] * -1;
   const angle = LIMB_BIND[kind];
-  const bind = vec.add(vec.scale(axes.up, -Math.cos(angle)), vec.scale(outward, Math.sin(angle)));
+  const down = -Math.cos(angle);
+  const out = Math.sin(angle);
+  const bx = up[0] * down + ox * out;
+  const by = up[1] * down + oy * out;
+  const bz = up[2] * down + oz * out;
   // Swung up near the opposite of hanging, the swing from hanging has no
   // one way round, and the turn no meaning.
-  if (vec.dot(u, bind) < -WORLD.limbTwist.reversed) return null;
-  const flexes = kind === 'arm' ? axes.forward : vec.scale(axes.forward, -1);
+  if (ux * bx + uy * by + uz * bz < -WORLD.limbTwist.reversed) return null;
+  const kx = kind === 'arm' ? forward[0] : forward[0] * -1;
+  const ky = kind === 'arm' ? forward[1] : forward[1] * -1;
+  const kz = kind === 'arm' ? forward[2] : forward[2] * -1;
   // Inward is positive whichever side: the sign a turn of the bent part
   // towards the midline makes about the hanging bone.
-  const sign = Math.sign(vec.dot(vec.cross(flexes, vec.scale(outward, -1)), bind)) || 1;
-  const neutral = swingAlong(flexes, bind, u);
-  const bent = vec.sub(f, vec.scale(u, vec.dot(f, u)));
-  const twist = sign * Math.atan2(vec.dot(vec.cross(neutral, bent), u), vec.dot(neutral, bent));
-  return { twist, elevation: Math.asin(Math.max(-1, Math.min(1, vec.dot(u, axes.up)))), bend };
+  const nx = ox * -1;
+  const ny = oy * -1;
+  const nz = oz * -1;
+  const sign = Math.sign((ky * nz - kz * ny) * bx + (kz * nx - kx * nz) * by + (kx * ny - ky * nx) * bz) || 1;
+  // The flexing way carried by the smallest rotation taking hanging onto the upper bone (half-turned the other way: reversed).
+  const sx = by * uz - bz * uy;
+  const sy = bz * ux - bx * uz;
+  const sz = bx * uy - by * ux;
+  const swing = Math.sqrt(sx * sx + sy * sy + sz * sz);
+  const across = bx * ux + by * uy + bz * uz;
+  let ex;
+  let ey;
+  let ez;
+  if (swing < 1e-6) {
+    ex = across > 0 ? kx : kx * -1;
+    ey = across > 0 ? ky : ky * -1;
+    ez = across > 0 ? kz : kz * -1;
+  } else {
+    const inverse = 1 / swing;
+    const turn = Math.atan2(swing, across);
+    const neutral = turnedBy(kx, ky, kz, sx * inverse, sy * inverse, sz * inverse, Math.cos(turn), Math.sin(turn));
+    ex = neutral[0];
+    ey = neutral[1];
+    ez = neutral[2];
+  }
+  const fu = fx * ux + fy * uy + fz * uz;
+  const tx = fx - ux * fu;
+  const ty = fy - uy * fu;
+  const tz = fz - uz * fu;
+  const twist = sign * Math.atan2((ey * tz - ez * ty) * ux + (ez * tx - ex * tz) * uy + (ex * ty - ey * tx) * uz, ex * tx + ey * ty + ez * tz);
+  return { twist, elevation: Math.asin(Math.max(-1, Math.min(1, ux * up[0] + uy * up[1] + uz * up[2]))), bend };
 }
 
 /** The turn's limits at this elevation: { inward, outward } (rad). */
