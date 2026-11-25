@@ -43,8 +43,10 @@ import { HELM_HEAD_BREADTH, HELM_SPAN } from './helmforms.js';
 import { photoFaceFor, skinScatter } from './photoface.js';
 import { capsules, capsuleEnds, halfPoints, point, WORLD } from './physics.js';
 import { BONE, BONES, bindPoints, boneFrames, coherentFrames, frameMatrix, fromFrame, toFrame } from './rig.js';
-import { bakePieces, CROWD_VIEW, crowdBatch, crowdKey, frameAt, HEAD_VARIANT, onlyVariant, simplifyTemplate, stretchedInverses, withoutVariant } from './crowdview.js';
+import { bakePieces, clusterColors, CROWD_VIEW, crowdBatch, crowdKey, crowdShapeKey, frameAt, HEAD_VARIANT, onlyVariant, simplifyTemplate, stretchedInverses, topologyOf, withoutVariant } from './crowdview.js';
 import { chooseDraw, crowdLod } from './crowdlod.js';
+import { geometryArrays, materialTextures, textureBytes } from './memstats.js';
+import { tkTier } from './townkit/place.js';
 import { SoftShell } from './soft.js';
 import { FatSlosh } from './fatslosh.js';
 import { buildRobotBody } from './robotview.js';
@@ -220,6 +222,35 @@ const WIDE_FLOOR = 1.5;
 // textures in two passes through it: a phone's browser kills the page at that and reloads it. One kept: a scene played
 // on its battle's field, or a retry, goes back to the place just left without building it again.
 const PLACES_KEPT = 1;
+// MB (geometry and textures on the card) a hidden place may hold and still be kept, by the tier (townkit/place.js tkTier: 'low'
+// is a phone or a touch screen): a bigger one is let go as soon as it is left. The story's Pyongyang is some 290 MB (its town's
+// geometry 200 MB after meshpack.js, textures 85), and kept hidden it stayed behind every battle after it, a phone's whole
+// budget (measured 2026-11-25: a custom battle on the open field held 340 MB of the town it never showed). Building it again
+// costs about 7 s (12.7 s the first time, M1 Pro), so a computer keeps it as before. On the low tier the town is built without
+// its fine detail (about 90 MB) and is kept too: the budget is for what a phone cannot afford to hold unseen. The others (the
+// open fields, the stages) are 30 to 120 MB.
+const PLACE_KEPT_MB = { low: 160, high: Infinity };
+
+/** What a place holds on the card (MB): its geometry and the textures its materials use, each counted once. */
+function placeMb(group) {
+  const seen = new Set();
+  let bytes = 0;
+  group.traverse((object) => {
+    for (const [, attribute] of object.geometry ? geometryArrays(object.geometry) : []) {
+      if (seen.has(attribute)) continue;
+      seen.add(attribute);
+      bytes += attribute.count * (attribute.itemSize ?? attribute.stride ?? 1) * (attribute.array?.BYTES_PER_ELEMENT ?? 4);
+    }
+    for (const material of [].concat(object.material ?? [])) {
+      for (const texture of materialTextures(material)) {
+        if (seen.has(texture)) continue;
+        seen.add(texture);
+        bytes += textureBytes(texture);
+      }
+    }
+  });
+  return bytes / 1e6;
+}
 
 /** Free the hidden places beyond PLACES_KEPT (the longest unseen first): their geometry, materials and textures. */
 function releaseOldPlaces(view, shown) {
@@ -230,7 +261,10 @@ function releaseOldPlaces(view, shown) {
   // (A copy parked by swapFloor, `place@floor`, was last seen when its place was.)
   const seen = (key) => view.placeSeen.get(key) ?? view.placeSeen.get(key.split('@')[0]) ?? 0;
   hidden.sort((a, b) => seen(b) - seen(a));
-  for (const key of hidden.slice(PLACES_KEPT)) {
+  // (Measured once, when it is first hidden: a place does not grow while unseen.)
+  const budget = PLACE_KEPT_MB[tkTier()] ?? Infinity;
+  const tooBig = (key) => budget < Infinity && (view.places[key].userData.keptMb ??= placeMb(view.places[key])) > budget;
+  for (const key of [...hidden.slice(0, PLACES_KEPT).filter(tooBig), ...hidden.slice(PLACES_KEPT)]) {
     disposePlace(view, view.places[key]);
     view.places[key] = null;
     if (!key.includes('@') && view.floors) delete view.floors[key];
@@ -2397,7 +2431,7 @@ export function buildFighterView(view, fighter, { simple: crowd = false } = {}) 
   if (!FULL_MODELS.on && (crowd || fighter.body.inputs.simple)) {
     view.crowdTemplates ??= new Map();
     const key = crowdKey(fighter);
-    if (!view.crowdTemplates.has(key)) view.crowdTemplates.set(key, bakeCrowdTemplate(view, fighter));
+    if (!view.crowdTemplates.has(key)) view.crowdTemplates.set(key, bakeCrowdTemplate(view, fighter, crowdShapeKey(fighter)));
     return wetDress(crowdView(view, fighter, view.crowdTemplates.get(key)));
   }
   // (Sweat, water and mud drawn on everything he is made of: wetview.js, laid before any other sweep of his materials.)
@@ -3112,7 +3146,7 @@ function buildPhysicsLayer(fighter, layers) {
  * A crowd template: the first of a look built in detail at the bind pose,
  * and everything he wears baked into his skinned body and steel.
  */
-function bakeCrowdTemplate(view, fighter) {
+function bakeCrowdTemplate(view, fighter, shapeKey = null) {
   const full = detailedView(view, fighter, true);
   view.scene.remove(full.group);
   const { built } = full;
@@ -3166,11 +3200,32 @@ function bakeCrowdTemplate(view, fighter) {
     headRadius: fighter.body.lengths.headRadius,
     lacquer: full.lacquer,
     vertices: own + added,
+    // Each index as one GPU attribute, made the first time a man is drawn from it and shared by all who are (crowdView).
+    indexAttributes: {},
   };
+  disposeFighterView(view, full);
+  return shareShape(view, shapeKey, template);
+}
+
+/**
+ * A template baked, shared where it can be: another colouring of a shape already baked (crowdShapeKey, and the same vertices
+ * and triangles: topologyOf) is that shape's vertices, bones, triangles and far body with only its own colours (near, and far
+ * by the same merging: clusterColors) and its own steel lacquer. Otherwise its own far body and heads, and it is the shape
+ * the next colouring of it shares.
+ */
+function shareShape(view, shapeKey, template) {
+  view.crowdShapes ??= new Map();
+  const topology = topologyOf(template);
+  const shape = shapeKey === null ? null : view.crowdShapes.get(shapeKey);
+  if (shape && shape.topology === topology) {
+    const far = { ...shape.far, colors: clusterColors(shape.far, template.colors), lacquer: template.lacquer, colorAttribute: null };
+    return { ...shape, colors: template.colors, lacquer: template.lacquer, colorAttribute: null, users: 0, far };
+  }
+  template.topology = topology;
   template.far = farTemplate(template);
   splitHeads(template);
   splitHeads(template.far);
-  disposeFighterView(view, full);
+  if (shapeKey !== null && !shape) view.crowdShapes.set(shapeKey, template);
   return template;
 }
 
@@ -3214,6 +3269,7 @@ function farTemplate(template) {
       skinWeight: new THREE.Float32BufferAttribute(skinWeight, 4),
     },
     lacquer: template.lacquer,
+    indexAttributes: {},
     ...rest,
   };
 }
@@ -3242,11 +3298,14 @@ function crowdView(view, fighter, template) {
   const bodyOf = (source) => {
     const geometry = new THREE.BufferGeometry();
     for (const [name, attribute] of Object.entries(source.attributes)) geometry.setAttribute(name, attribute);
-    geometry.setAttribute('color', new THREE.BufferAttribute(source.colors.slice(), 3));
+    // His colours are his template's, shared with every man of that colouring: nothing paints a crowd man's vertices once
+    // built (his wounds and blood are marks laid over them: markview.js), and a cut or a helmet knocked off gives him his
+    // own index (setIndex), never a change to the shared one.
+    geometry.setAttribute('color', (source.colorAttribute ??= new THREE.BufferAttribute(source.colors, 3)));
     // (Which points are bare skin, shared by the crowd as the rest is: wetview.js.)
     geometry.setAttribute('wetSkin', (source.attributes.wetSkin ??= new THREE.BufferAttribute(Float32Array.from(source.vertexSegment, (segment) => (segment ? 1 : 0)), 1)));
-    geometry.setIndex(new THREE.BufferAttribute(source.bodyIndex.slice(), 1));
-    geometry.userData.sharedAttributes = Object.keys(source.attributes);
+    shareIndex(geometry, source, 'bodyIndex');
+    geometry.userData.sharedAttributes = [...Object.keys(source.attributes), 'color'];
     const skinned = (meshGeometry, material) => {
       const mesh = new THREE.SkinnedMesh(meshGeometry, material);
       mesh.bind(skeleton, new THREE.Matrix4());
@@ -3259,27 +3318,29 @@ function crowdView(view, fighter, template) {
     const inked = (meshGeometry, index) => {
       const outlineGeometry = new THREE.BufferGeometry();
       for (const [name, attribute] of Object.entries(meshGeometry.attributes)) outlineGeometry.setAttribute(name, attribute);
-      outlineGeometry.setIndex(new THREE.BufferAttribute(index.slice(), 1));
+      shareIndex(outlineGeometry, source, index);
       outlineGeometry.userData.sharedAttributes = Object.keys(meshGeometry.attributes);
       return outlineFor({ isSkinnedMesh: true, geometry: outlineGeometry, skeleton, bindMatrix: new THREE.Matrix4() });
     };
-    const outline = inked(geometry, source.bodyOutlineIndex);
+    const outline = inked(geometry, 'bodyOutlineIndex');
     mesh.userData.ink = outline;
     let steel = null;
     let steelOutline = null;
     if (source.steelIndex.length) {
       const steelGeometry = new THREE.BufferGeometry();
       for (const [name, attribute] of Object.entries(geometry.attributes)) steelGeometry.setAttribute(name, attribute);
-      steelGeometry.setIndex(new THREE.BufferAttribute(source.steelIndex.slice(), 1));
+      shareIndex(steelGeometry, source, 'steelIndex');
       // The colour is his own, but the skin's geometry frees it.
       steelGeometry.userData.sharedAttributes = Object.keys(geometry.attributes);
       steel = skinned(steelGeometry, steelPaint);
-      steelOutline = inked(steelGeometry, source.steelOutlineIndex);
+      steelOutline = inked(steelGeometry, 'steelOutlineIndex');
       steel.userData.ink = steelOutline;
     }
     return { mesh, outline, steel, steelOutline, baseColors: source.colors, vertexSegment: source.vertexSegment, source };
   };
   const near = bodyOf(template);
+  // (Counted, so that a template no man is drawn from any more can be let go: releaseUnusedCrowdTemplates.)
+  template.users = (template.users ?? 0) + 1;
   const { mesh: skinMesh, outline: skinOutline, steel: steelMesh } = near;
   layers.skin.add(skinMesh, skinOutline);
   if (steelMesh) layers.skin.add(steelMesh, near.steelOutline);
@@ -3343,10 +3404,17 @@ function crowdView(view, fighter, template) {
   return {
     fighter, group, layers, bones, built: { bindFrames: template.frames }, skinMesh, skinOutline, muscle: null, skeleton: boneGroups, attachments, shells: [], near, far,
     baseColors: template.colors, vertexSegment: template.vertexSegment, damageVersion: -1, headProps, dangles: [], steelMesh,
-    head: { group: headGroup, shell: { dent() {} }, update() {}, hideHair() {} }, layer: 'skin', frames, baked: true, banner, signs,
+    head: { group: headGroup, shell: { dent() {} }, update() {}, hideHair() {} }, layer: 'skin', frames, baked: true, banner, signs, template,
     // Drawn bare-headed (bareCrowdHead): his helmet knocked off.
     bareHead: false,
   };
+}
+
+/** One of a template's indices (`name`) set on a geometry as the attribute every man drawn from it shares (crowdView). */
+function shareIndex(geometry, source, name) {
+  const attribute = (source.indexAttributes[name] ??= new THREE.BufferAttribute(source[name], 1));
+  geometry.setIndex(attribute);
+  geometry.userData.sharedIndex = attribute;
 }
 
 /**
@@ -3414,6 +3482,7 @@ function ensureMuscle(fighterView) {
 }
 
 export function disposeFighterView(view, fighterView) {
+  if (fighterView.template && !fighterView.disposed) fighterView.template.users -= 1;
   fighterView.disposed = true;
   view.scene.remove(fighterView.group);
   for (const prop of fighterView.headProps ?? []) {
@@ -3424,24 +3493,54 @@ export function disposeFighterView(view, fighterView) {
     // Shared with the crowd: the template's vertices and merged weapons stay for the others.
     if (!object.geometry || object.userData.shared) return;
     for (const name of object.geometry.userData.sharedAttributes ?? []) object.geometry.deleteAttribute(name);
+    // (Still the template's index, not one of his own since: three frees a geometry's index with it.)
+    if (object.geometry.index && object.geometry.index === object.geometry.userData.sharedIndex) object.geometry.setIndex(null);
   });
   disposeObject(fighterView.group);
 }
 
+/**
+ * A template's GPU buffers (near and far): its vertices unless another template kept shares them (`keep`), its colours and indices.
+ * (Through a holder geometry, as before. three r128 frees buffers only through a geometry it has drawn, which a holder is not, so in
+ * practice the buffers go when the attributes, let go here, are collected: the browser deletes a collected WebGL buffer.)
+ */
+function releaseTemplate(template, keep = new Set()) {
+  for (const body of [template, template.far]) {
+    const holder = new THREE.BufferGeometry();
+    if (!keep.has(body.attributes)) {
+      for (const [name, attribute] of Object.entries(body.attributes)) holder.setAttribute(name, attribute);
+      for (const attribute of Object.values(body.indexAttributes ?? {})) holder.setAttribute(`index:${attribute.id}`, attribute);
+    }
+    if (body.colorAttribute) holder.setAttribute('color', body.colorAttribute);
+    holder.dispose();
+  }
+}
+
 /** Free the crowd templates and instanced batches, once no view uses them (between bouts). */
 export function clearCrowdTemplates(view) {
-  const release = (attributes) => {
-    const holder = new THREE.BufferGeometry();
-    for (const [name, attribute] of Object.entries(attributes)) holder.setAttribute(name, attribute);
-    holder.dispose();
-  };
-  for (const template of view.crowdTemplates?.values() ?? []) {
-    release(template.attributes);
-    release(template.far.attributes);
-  }
+  for (const template of view.crowdTemplates?.values() ?? []) releaseTemplate(template);
   for (const batch of view.crowdBatches?.values() ?? []) batch.dispose();
   view.crowdTemplates = new Map();
+  view.crowdShapes = new Map();
   view.crowdBatches = new Map();
+}
+
+/**
+ * Free the crowd templates no man is drawn from now (`users` 0), once a new army is built: a battle's men are cast afresh
+ * each visit, every man a colouring of his own, so what the last battle baked is rarely met again, and kept (up to 160
+ * templates) it was some 150 to 400 MB held from battle to battle (measured 2026-11-25: Sarhu then Pyongyang kept 130). A
+ * restart of the same men is built before this runs, so it still finds its templates. Returns how many were let go.
+ */
+export function releaseUnusedCrowdTemplates(view) {
+  const unused = [...(view.crowdTemplates ?? new Map())].filter(([, template]) => !(template.users > 0));
+  if (!unused.length) return 0;
+  for (const [key] of unused) view.crowdTemplates.delete(key);
+  // A shape another kept template still draws from keeps its vertices, its far body and its place as the shape.
+  const kept = new Set();
+  for (const template of view.crowdTemplates.values()) kept.add(template.attributes).add(template.far.attributes);
+  for (const [, template] of unused) releaseTemplate(template, kept);
+  for (const [key, shape] of view.crowdShapes ?? []) if (!kept.has(shape.attributes)) view.crowdShapes.delete(key);
+  return unused.length;
 }
 
 /**

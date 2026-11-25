@@ -299,7 +299,12 @@ const KT_ENV_REACH = `
 /** The fog chunk: the stage's distance fog, thickened with height (a mist that lies on the sea and the low ground and thins above). */
 const KT_FOG = `
 #ifdef USE_FOG
-  float fogFactor = smoothstep(fogNear, fogFar, fogDepth);
+  // (A hidden stage's materials may be compiled under another place's fog, the open air's exponential one: then its terms.)
+  #ifdef FOG_EXP2
+    float fogFactor = 1.0 - exp(-fogDensity * fogDensity * fogDepth * fogDepth);
+  #else
+    float fogFactor = smoothstep(fogNear, fogFar, fogDepth);
+  #endif
   float kitMid = 0.5 * (cameraPosition.y + vKitPos.y);
   float kitHeightFog = 1.0 - exp(-uKitFog.x * exp(-max(kitMid - uKitFog.y, 0.0) * uKitFog.z) * fogDepth);
   fogFactor = 1.0 - (1.0 - fogFactor) * (1.0 - kitHeightFog);

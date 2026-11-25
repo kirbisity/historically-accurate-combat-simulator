@@ -75,6 +75,58 @@ export function crowdKey(fighter) {
 }
 
 /**
+ * The shape a crowd template has, whatever its colours: `crowdKey` without the side, the skin, hair and eye colours and the
+ * outfit's paint and theme (armythemes.js: colour only). Men of one shape and different colours share one template's vertices,
+ * bones and triangles, each with only his own colours (render.js shareShape): a battle's men are each painted a little
+ * differently, and a template per colour was a template per man (a 500-man battle of ten kinds of man baked 500 bodies, about
+ * 0.9 MB each). Whether two men's bodies really are one shape is checked on what was built (`topologyOf`), not taken from this.
+ */
+export function crowdShapeKey(fighter) {
+  const inputs = fighter.body.inputs;
+  const { name, heightCm, age, exercise, calories, stats, frame, style, skill, ...look } = inputs;
+  const shape = structuredClone(look);
+  if (shape.look) for (const colour of ['skinTone', 'hairColor', 'eyeColor']) delete shape.look[colour];
+  if (shape.outfit) for (const colour of ['paint', 'theme', 'colors']) delete shape.outfit[colour];
+  const height = Math.round(heightCm / CROWD_VIEW.heightStep);
+  const bmi = Math.round(fighter.body.composition.bmi / CROWD_VIEW.bmiStep);
+  return JSON.stringify([height, bmi, frame, shape]);
+}
+
+/**
+ * A number for what a template is made of: its vertex count, its triangles (each index) and which head each vertex goes with.
+ * Two templates with the same are one mesh in two colourings (FNV-1a over the arrays; their lengths are in it too).
+ */
+export function topologyOf(template, names = ['bodyIndex', 'steelIndex', 'bodyOutlineIndex', 'steelOutlineIndex']) {
+  let hash = 2166136261;
+  const mix = (value) => {
+    hash ^= value;
+    hash = Math.imul(hash, 16777619) >>> 0;
+  };
+  mix(template.vertices);
+  for (const name of names) {
+    const indices = template[name];
+    mix(indices.length);
+    for (let at = 0; at < indices.length; at += 1) mix(indices[at]);
+  }
+  for (const variant of template.variant ?? []) mix(variant);
+  for (const segment of template.vertexSegment ?? []) mix(segment ? 1 : 0);
+  return hash;
+}
+
+/**
+ * A far body's colours for another colouring of its template (`colors`, the near body's, vertex by vertex): each of the far
+ * body's vertices the mean of the near ones it was merged from (simplifyTemplate's `clusterOf`, `members`).
+ */
+export function clusterColors(far, colors) {
+  const out = new Float32Array(far.vertices * 3);
+  for (let vertex = 0; vertex < far.clusterOf.length; vertex += 1) {
+    const cluster = far.clusterOf[vertex];
+    for (let axis = 0; axis < 3; axis += 1) out[cluster * 3 + axis] += colors[vertex * 3 + axis] / far.members[cluster];
+  }
+  return out;
+}
+
+/**
  * A crowd man's head is baked both ways: his helmet, and the hair (and beard, and long hair down the back) it hides. A man
  * shows one or the other by his own index (render.js crowdView, bareCrowdHead), so a helmet knocked off mid-fight is a new
  * index, not a new template baked (9-26 ms on the frame it fell in).
@@ -280,6 +332,9 @@ export function simplifyTemplate(template, { cell = CROWD_VIEW.farCell, colorSte
     vertexSegment: out.vertexSegment,
     variant: variant ? Uint8Array.from(first, (vertex) => variant[vertex]) : null,
     vertices: total,
+    // Which far vertex each near one went into, and how many went into each: another colouring's far colours (clusterColors).
+    clusterOf,
+    members: Uint32Array.from(members),
   };
 }
 
