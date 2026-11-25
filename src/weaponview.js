@@ -2446,25 +2446,7 @@ export function bloodyBlade(fighterView, event) {
     let blood = object.userData.bladeBlood;
     if (!blood) {
       blood = object.userData.bladeBlood = { value: new THREE.Vector4(0, 0, 0.1, 0) };
-      const material = object.material.clone();
-      const previous = material.onBeforeCompile;
-      const baseKey = material.customProgramCacheKey?.() ?? '';
-      material.onBeforeCompile = (shader, renderer) => {
-        previous?.call(material, shader, renderer);
-        shader.uniforms.uBladeBlood = blood;
-        shader.vertexShader = shader.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vBladeAt;').replace('#include <begin_vertex>', '#include <begin_vertex>\nvBladeAt = position;');
-        // (x: where along the blade it met him; y: how much; z: how far it reaches along the steel.)
-        shader.fragmentShader = shader.fragmentShader.replace('#include <common>', '#include <common>\nvarying vec3 vBladeAt;\nuniform vec4 uBladeBlood;')
-          .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
-	float bladeRun = sin( vBladeAt.y * 190.0 + sin( vBladeAt.x * 900.0 + vBladeAt.z * 700.0 ) * 2.0 ) * 0.5 + 0.5;
-	float bladeWet = uBladeBlood.y * ( 1.0 - smoothstep( uBladeBlood.z * ( 0.45 + 0.4 * bladeRun ), uBladeBlood.z * ( 0.8 + 0.5 * bladeRun ), abs( vBladeAt.y - uBladeBlood.x ) ) ) * ( 0.55 + 0.45 * bladeRun );
-	diffuseColor.rgb = mix( diffuseColor.rgb, vec3( 0.3, 0.012, 0.02 ), bladeWet * 0.9 );
-	#ifdef STANDARD
-		metalnessFactor *= 1.0 - 0.9 * bladeWet;
-		roughnessFactor = mix( roughnessFactor, 0.3, bladeWet );
-	#endif`);
-      };
-      material.customProgramCacheKey = () => `${baseKey}|bladeblood`;
+      const material = bladeBloodMaterial(object.material, blood);
       object.material = material;
     }
     object.worldToLocal(bladePoint.set(event.point[0], event.point[1], event.point[2]));
@@ -2473,6 +2455,38 @@ export function bloodyBlade(fighterView, event) {
     blood.value.y = Math.min(1, blood.value.y + 0.35 + amount);
     blood.value.z = Math.min(0.6, blood.value.z + 0.08 + 0.25 * amount);
   });
+}
+
+/** A blade's material made able to show blood (`blood`: the uniform, { value: Vector4 }): a copy of `steel` with the run of it drawn on. */
+function bladeBloodMaterial(steel, blood) {
+  const material = steel.clone();
+  const previous = material.onBeforeCompile;
+  const baseKey = material.customProgramCacheKey?.() ?? '';
+  material.onBeforeCompile = (shader, renderer) => {
+    previous?.call(material, shader, renderer);
+    shader.uniforms.uBladeBlood = blood;
+    shader.vertexShader = shader.vertexShader.replace('#include <common>', '#include <common>\nvarying vec3 vBladeAt;').replace('#include <begin_vertex>', '#include <begin_vertex>\nvBladeAt = position;');
+    // (x: where along the blade it met him; y: how much; z: how far it reaches along the steel.)
+    shader.fragmentShader = shader.fragmentShader.replace('#include <common>', '#include <common>\nvarying vec3 vBladeAt;\nuniform vec4 uBladeBlood;')
+      .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
+	float bladeRun = sin( vBladeAt.y * 190.0 + sin( vBladeAt.x * 900.0 + vBladeAt.z * 700.0 ) * 2.0 ) * 0.5 + 0.5;
+	float bladeWet = uBladeBlood.y * ( 1.0 - smoothstep( uBladeBlood.z * ( 0.45 + 0.4 * bladeRun ), uBladeBlood.z * ( 0.8 + 0.5 * bladeRun ), abs( vBladeAt.y - uBladeBlood.x ) ) ) * ( 0.55 + 0.45 * bladeRun );
+	diffuseColor.rgb = mix( diffuseColor.rgb, vec3( 0.3, 0.012, 0.02 ), bladeWet * 0.9 );
+	#ifdef STANDARD
+		metalnessFactor *= 1.0 - 0.9 * bladeWet;
+		roughnessFactor = mix( roughnessFactor, 0.3, bladeWet );
+	#endif`);
+  };
+  material.customProgramCacheKey = () => `${baseKey}|bladeblood`;
+  return material;
+}
+
+/**
+ * A copy of a blade's material as blood on it will make it, for its program to be built before the first wound and not on that
+ * frame (render.js warmSevered): with no blood on it (y 0) it draws as the steel does.
+ */
+export function bladeBloodCopy(steel) {
+  return bladeBloodMaterial(steel, { value: new THREE.Vector4(0, 0, 0.1, 0) });
 }
 
 // ---- Cut off --------------------------------------------------------------------

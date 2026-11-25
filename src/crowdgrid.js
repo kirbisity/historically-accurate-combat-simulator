@@ -159,6 +159,34 @@ export function crowdNear(world, points = [], segments = []) {
 }
 
 /**
+ * Each man who may be within `radius` m of (x, z) put to `visit(man)`, in no set order and without a list made: for a look whose
+ * answer does not hang on the order its men come in (a count, a yes or no, the most of something). crowdNear's index order is
+ * for sums of floating point numbers, which come out differently in another order; it sorts and copies what it finds, and in a
+ * battle of 500 a think's looks out to the man a mate is after (tens of metres) spent a seventh of the step doing it. False with no
+ * grid live (the caller then walks world.fighters as before).
+ */
+export function crowdEach(world, x, z, radius, visit) {
+  const grid = crowdGridFor(world);
+  if (!grid) return false;
+  const { cell, minX, minZ, nz } = grid;
+  const reach = radius + CROWD_GRID.slack;
+  const fx = Math.max(0, Math.floor((x - reach - minX) / cell));
+  const tx = Math.min(grid.nx - 1, Math.floor((x + reach - minX) / cell));
+  const fz = Math.max(0, Math.floor((z - reach - minZ) / cell));
+  const tz = Math.min(nz - 1, Math.floor((z + reach - minZ) / cell));
+  const fighters = world.fighters;
+  for (let cx = fx; cx <= tx; cx += 1) {
+    for (let cz = fz; cz <= tz; cz += 1) {
+      const k = cx * nz + cz;
+      for (let at = grid.start[k]; at < grid.start[k + 1]; at += 1) visit(fighters[grid.order[at]]);
+    }
+  }
+  for (const index of grid.loose) visit(fighters[index]);
+  for (let index = grid.count; index < fighters.length; index += 1) visit(fighters[index]);
+  return true;
+}
+
+/**
  * Whether any man within `width` m of the segment from (ax, az) to (bx, bz) passes `test(man)` (which measures him itself): the cells
  * walked from the segment's start outward, so a man in the way near the start (the comrade before a shooter) ends it at once.
  * `undefined` with no grid live.

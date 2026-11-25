@@ -10,6 +10,7 @@
 // stay put round the stage.
 
 import { ktPatch, ktRandom, ktWeather } from './kittex.js';
+import { prefilterFor } from '../looks/kit.js';
 import { DEFAULT_STAGE_LOOK, STAGE_LOOKS, approachLevels, interiorLevels, levelsSettled, stageLookOf } from './stagelooks.js';
 import { hexToRgb, skyDirection, stageShaftCanvas, stagePoolCanvas, stageSkyCanvas, stageSkyCapCanvas, stormSkyImage } from './stagesky.js';
 
@@ -231,9 +232,8 @@ export function stormEnvironment(renderer, name = stormState.look) {
   stormSkyWanted(name);
   const texture = new THREE.CanvasTexture(stageSkyCanvas(stageLookOf(name).sky, 512, 256));
   texture.mapping = THREE.EquirectangularReflectionMapping;
-  const generator = new THREE.PMREMGenerator(renderer);
-  const target = generator.fromEquirectangular(texture);
-  generator.dispose();
+  // (The renderer's own generator, kept: looks/kit.js prefilterFor.)
+  const target = prefilterFor(renderer).fromEquirectangular(texture);
   texture.dispose();
   // (If the look's photograph is still being decoded this is only the gradient that stands in for it: the environment is made again when it arrives.)
   stormState.environments.set(name, { renderer, texture: target.texture });

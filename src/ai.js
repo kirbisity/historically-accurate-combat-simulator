@@ -3,7 +3,7 @@
 // choosing from its style's moves those that reach from where it stands.
 
 import { finishTarget, startFinisher, updateFinisher } from './finisher.js';
-import { CROWD_GRID, crowdAnyAlong, crowdFirst, crowdNear, withCrowdGrid } from './crowdgrid.js';
+import { CROWD_GRID, crowdAnyAlong, crowdEach, crowdFirst, crowdNear, withCrowdGrid } from './crowdgrid.js';
 import { ghostStill, joinTable, keepTable, keptInFull, TABLE_DUEL, tableEligible, tableOn } from './tableduel.js';
 import { keepFearMap, nearestOnMap, readMap } from './fearmap.js';
 import { aheadOfSlot, DRILL, fallIn, fromSlot, moveFormations, moveWings, volleyDue, walkToSlot, WINGS } from './formation.js';
@@ -1837,11 +1837,13 @@ function teamSpacing(world, fighter, opponent, lineOfFire = AI.lineOfFire) {
     if (apart < AI.kickClearance && along > -0.2) kickRoom = false;
   }
   // A man not his to strike (a civilian, a prisoner: no foe of his) close by his man: no lunge, no meeting, no chase past him.
-  for (const other of crowdNear(world, [[at[0], at[2], length + AI.kickClearance]]) ?? world.fighters) {
-    if (other === fighter || other === opponent || other.corner === fighter.corner || other.state === 'out' || hostile(other, fighter)) continue;
+  // (A yes or no: the men may come in any order, crowdgrid.js crowdEach.)
+  const bystander = (other) => {
+    if (!kickRoom || other === fighter || other === opponent || other.corner === fighter.corner || other.state === 'out' || hostile(other, fighter)) return;
     const offset = vec.sub(point(other.x, P.pelvis), at);
     if (Math.hypot(offset[0], offset[2]) < length + AI.kickClearance && vec.dot(offset, ahead) > -0.2) kickRoom = false;
-  }
+  };
+  if (!crowdEach(world, at[0], at[2], length + AI.kickClearance, bystander)) world.fighters.forEach(bystander);
   // Facing turns the line: the fighter's own left is the line's left.
   return { strafe: Math.max(-1, Math.min(1, strafe)), blocked, kickRoom, leanOn };
 }
@@ -1876,7 +1878,12 @@ function waitingTurn(world, fighter, opponent) {
   const at = point(opponent.x, P.pelvis);
   const away = (other) => Math.hypot(...[0, 2].map((axis) => point(other.x, P.pelvis)[axis] - at[axis]));
   const mine = away(fighter);
-  const closer = (crowdNear(world, [[at[0], at[2], mine]]) ?? world.fighters).filter((mate) => mate !== fighter && mate.corner === fighter.corner && mate.state === 'up' && mate.focus === opponent.id && away(mate) < mine).length;
+  // (A count: the men may come in any order, crowdgrid.js crowdEach.)
+  let closer = 0;
+  const count = (mate) => {
+    if (mate !== fighter && mate.corner === fighter.corner && mate.state === 'up' && mate.focus === opponent.id && away(mate) < mine) closer += 1;
+  };
+  if (!crowdEach(world, at[0], at[2], mine, count)) world.fighters.forEach(count);
   return closer >= AI.engageSlots;
 }
 
@@ -3035,17 +3042,19 @@ export function shockFear(world, fighter) {
   const at = [fighter.x[P.pelvis * 3], fighter.x[P.pelvis * 3 + 2]];
   let horse = 0;
   // (In a think, only the riders near enough: a rider's hips sit over his horse, `seatSlack` m from its middle at most.)
-  for (const other of crowdNear(world, [[at[0], at[1], spec.horseFar + AI.seatSlack]]) ?? world.fighters) {
+  // (The most of them: the men may come in any order, crowdgrid.js crowdEach.)
+  const charging = (other) => {
     const mount = other.mount;
-    if (!mount || !hostile(other, fighter) || other.hidden || other.dormant || !inFight(other) || mount.speed < spec.horseSpeed) continue;
+    if (!mount || !hostile(other, fighter) || other.hidden || other.dormant || !inFight(other) || mount.speed < spec.horseSpeed) return;
     const off = [at[0] - mount.at[0], at[1] - mount.at[1]];
     const apart = Math.hypot(off[0], off[1]);
-    if (apart >= spec.horseFar) continue;
+    if (apart >= spec.horseFar) return;
     // Its heading on the floor (yaw 0 runs along +x), against the line to him.
     const heading = [Math.cos(mount.yaw), -Math.sin(mount.yaw)];
-    if ((off[0] * heading[0] + off[1] * heading[1]) / Math.max(apart, 1e-6) < spec.horseCone) continue;
+    if ((off[0] * heading[0] + off[1] * heading[1]) / Math.max(apart, 1e-6) < spec.horseCone) return;
     horse = Math.max(horse, Math.min(1, 1 - (apart - spec.horseNear) / (spec.horseFar - spec.horseNear)));
-  }
+  };
+  if (!crowdEach(world, at[0], at[1], spec.horseFar + AI.seatSlack, charging)) world.fighters.forEach(charging);
   return guns + spec.horse * horse * (horse > 0 ? strangeness(fighter, 'horse') : 1);
 }
 

@@ -73,6 +73,14 @@ export function createHitFeelView(view, { layer = null, dimLayer = null, screenL
     return mist;
   }
 
+  // One mist made now, hidden and spent, so its program is built with the place's (render.js compileHidden), not on the frame of
+  // the first blow that throws one (230 ms on an M1 Pro); spent, it is reused before any live one.
+  {
+    const spent = mistSprite();
+    spent.sprite.visible = false;
+    spent.age = spent.life;
+  }
+
   /** What hear() asked for at once: the vibration, the thump, the mist. */
   function felt(result) {
     if (!result) return;

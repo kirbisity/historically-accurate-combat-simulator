@@ -7,6 +7,7 @@ import { P } from './body.js';
 import { spring } from './followcam.js';
 import { t } from './i18n.js';
 import { uiIconMarkup } from './uiicons.js';
+import { screenBox } from './screenbox.js';
 
 export const DRAMA = {
   // Simulated seconds per real second at the slowest, how long the moment
@@ -241,7 +242,7 @@ export function addIcon(drama, moment, now) {
 /** Place every icon over its body part on screen, rising and fading. */
 export function updateIcons(drama, view, world, canvas, now) {
   drawFlash(drama, now);
-  const box = canvas.getBoundingClientRect();
+  const box = screenBox(canvas);
   const projected = new THREE.Vector3();
   drama.icons = drama.icons.filter((icon) => {
     const age = (now - icon.start) / DRAMA.iconSeconds;

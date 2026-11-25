@@ -37,7 +37,7 @@ import { envMeter, envPostAble, envPostDraw, envToneOf } from './post.js';
 import { envPressForget, envPressStep } from './press.js';
 import { envLieOf } from './lie.js';
 import { activeLook } from '../looks.js';
-import { FIGURE_SHADE, hidePaintedSky, setShadowMapSize, shootSurroundings, sweepFigureShade, replaceEnvironment, setRenderer } from '../looks/kit.js';
+import { FIGURE_SHADE, hidePaintedSky, prefilterFor, setShadowMapSize, shootSurroundings, sweepFigureShade, replaceEnvironment, setRenderer } from '../looks/kit.js';
 import { probeLiteProject } from '../looks/probe-lite.js';
 import { PLACE_ARENAS, reapplyPlace } from '../render.js';
 import { placeWind, setWindOver } from '../wind.js';
@@ -544,9 +544,8 @@ function envSteelSky(renderer, air, open, share) {
   texture.mapping = THREE.EquirectangularReflectionMapping;
   texture.magFilter = texture.minFilter = THREE.LinearFilter;
   texture.needsUpdate = true;
-  const generator = new THREE.PMREMGenerator(renderer);
-  const target = generator.fromEquirectangular(texture);
-  generator.dispose();
+  // (The renderer's own generator, kept: looks/kit.js prefilterFor.)
+  const target = prefilterFor(renderer).fromEquirectangular(texture);
   texture.dispose();
   return target.texture;
 }

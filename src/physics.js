@@ -6540,12 +6540,20 @@ function runForward(fighter, trunkUp) {
  */
 function hinge(world, fighter, joint, root, middle, end, bendSide, lever) {
   if (fighter.broken.has(joint)) return;
-  const a = point(fighter.x, root);
-  const b = point(fighter.x, middle);
-  const c = point(fighter.x, end);
-  const axis = vec.normalize(vec.sub(c, a));
-  const onLine = vec.add(a, vec.scale(axis, vec.dot(vec.sub(b, a), axis)));
-  const bend = vec.dot(vec.sub(b, onLine), bendSide);
+  // (In numbers, not small arrays: four hinges a man a substep. vec's arithmetic in its order: the same bend bit for bit.)
+  const x = fighter.x;
+  const ar = root * 3;
+  const br = middle * 3;
+  const cr = end * 3;
+  const dx = x[cr] - x[ar];
+  const dy = x[cr + 1] - x[ar + 1];
+  const dz = x[cr + 2] - x[ar + 2];
+  const length = Math.sqrt(dx * dx + dy * dy + dz * dz) || 1;
+  const ux = dx / length;
+  const uy = dy / length;
+  const uz = dz / length;
+  const along = (x[br] - x[ar]) * ux + (x[br + 1] - x[ar + 1]) * uy + (x[br + 2] - x[ar + 2]) * uz;
+  const bend = (x[br] - (x[ar] + ux * along)) * bendSide[0] + (x[br + 1] - (x[ar + 1] + uy * along)) * bendSide[1] + (x[br + 2] - (x[ar + 2] + uz * along)) * bendSide[2];
   // Straight is within range (a kick or a punch locks out); only bending
   // past straight, the wrong way, is held back.
   // Limp, the hinge's bend side comes from the trunk, which says little
