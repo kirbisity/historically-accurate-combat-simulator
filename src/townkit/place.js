@@ -27,6 +27,8 @@ export const TK_PLACE = {
   // `baked`: the baked shadow's map, texels along its longer side (half that on the low tier): a town 300 m long is
   // drawn at 7 cm a texel, where the headland's 2048 gave it 15 and a roof's shadow on the snow a street away was stepped.
   sun: { half: 16, distance: 60, openShadow: 1, baked: 4096 },
+  // (A place may ask for its baked shadow by the texel instead (tkKeep `shadowTexel`, m): the map no larger than that
+  // texel needs over what casts, `baked` still the most.)
   // The cube mirror's side (px) and the rain's streaks: how many, the box they fall in round the camera (m), their length and speed.
   mirror: 128, rain: { count: 2600, box: [34, 16, 34], length: 0.55, speed: 13 },
 };
@@ -102,12 +104,19 @@ function tkGeometry(batch) {
  * group; `group.userData.detail(focus)` shows each block's fine detail or its stand-in by its distance from `focus`
  * (a THREE.Vector3), and `group.userData.casters` are the meshes that throw the baked shadow.
  */
-export function tkMeshes(blocks, materials, { tier = 'high' } = {}) {
+export function tkMeshes(blocks, materials, options = {}) {
+  const steps = tkMeshesSteps(blocks, materials, options);
+  for (let next = steps.next(); ; next = steps.next()) if (next.done) return next.value;
+}
+
+/** tkMeshes in steps (a generator: a yield after every `every` meshes made, for a part of a place built while it is played: places/pyongyang.js). Returns the group. */
+export function* tkMeshesSteps(blocks, materials, { tier = 'high', every = Infinity } = {}) {
   const group = new THREE.Group();
   const switched = [];
   const casters = [];
   const near = tier === 'low' ? 0 : TK_PLACE.near;
-  const add = (builder, wide) => {
+  let made = 0;
+  const add = function* (builder, wide) {
     for (const batch of builder.batches()) {
       if (!batch.position.length || (batch.level === 'near' && !near)) continue;
       const mesh = new THREE.Mesh(tkGeometry(batch), materials.get(batch.material));
@@ -120,6 +129,7 @@ export function tkMeshes(blocks, materials, { tier = 'high' } = {}) {
         mesh.visible = batch.level === 'far';
         switched.push({ mesh, level: batch.level, centre: mesh.geometry.boundingSphere.center, radius: mesh.geometry.boundingSphere.radius });
       }
+      if ((made += 1) % every === 0) yield;
     }
   };
   // What is never switched (level 'all': walls, roofs, the ground's own things) is drawn `TK_PLACE.merge` blocks square
@@ -135,7 +145,7 @@ export function tkMeshes(blocks, materials, { tier = 'high' } = {}) {
       if (!merged.has(key)) merged.set(key, []);
       merged.get(key).push(batch);
     }
-    add({ batches: () => kept }, false);
+    yield* add({ batches: () => kept }, false);
   }
   const joined = (parts, name) => {
     const out = new Float32Array(parts.reduce((sum, part) => sum + part[name].length, 0));
@@ -145,9 +155,9 @@ export function tkMeshes(blocks, materials, { tier = 'high' } = {}) {
   };
   for (const parts of merged.values()) {
     const batch = parts.length === 1 ? parts[0] : { material: parts[0].material, level: 'all', position: joined(parts, 'position'), normal: joined(parts, 'normal'), uv: joined(parts, 'uv'), colour: joined(parts, 'colour') };
-    add({ batches: () => [batch] }, false);
+    yield* add({ batches: () => [batch] }, false);
   }
-  add(blocks.wide, true);
+  yield* add(blocks.wide, true);
   // The corners are the meshes' now: the builders let theirs go.
   blocks.free();
   group.userData.casters = casters;
@@ -277,7 +287,7 @@ export function tkRain({ count = TK_PLACE.rain.count, slant = [0.12, 0.05] } = {
  * thrown the way its sun stands, and the mirror is taken with its sky in it, in light's own measure.
  * Sets `root.userData.bind`, `.tick` and `.leave` (render.js calls them).
  */
-export function tkKeep(root, meshes, { sun, shadow = 0.8, sky = null, rain = null, weather = () => null, mirrorAt = [0, 1.6, 0], key = 'townkit', tier = 'high', lay = null, north = [0, -1], pools = 0.8, stir = null, air = null, look = null }) {
+export function tkKeep(root, meshes, { sun, shadow = 0.8, sky = null, rain = null, weather = () => null, mirrorAt = [0, 1.6, 0], key = 'townkit', tier = 'high', lay = null, north = [0, -1], pools = 0.8, stir = null, air = null, look = null, shadowTexel = null }) {
   const state = { view: null, saved: null, mirror: null, mirrored: null, checked: 0, baked: null, aired: null };
   const dir = new THREE.Vector3(...sun).normalize();
   if (air && TK_AIR.place) {
@@ -421,10 +431,13 @@ export function tkKeep(root, meshes, { sun, shadow = 0.8, sky = null, rain = nul
     // The baked shadow is one map shared with the castle stage: taken again if another place's bake replaced it
     // (looked for every 64 frames) or the sun has moved (the bake knows the sun it was thrown from).
     const taken = open ? TK_PLACE.sun.openShadow : shadow;
-    if (ktShadow.uKitShadowInfo.value?.x !== taken || state.checked !== view.renderer.info.render.frame >> 6 || state.baked !== dir.x + dir.z) {
+    // (And again when what casts has changed: a place built in parts holding more or less, `meshes.userData.version`.)
+    const version = meshes.userData.version ?? 0;
+    if (ktShadow.uKitShadowInfo.value?.x !== taken || state.checked !== view.renderer.info.render.frame >> 6 || state.baked !== dir.x + dir.z || state.version !== version) {
       state.checked = view.renderer.info.render.frame >> 6;
       state.baked = dir.x + dir.z;
-      ktShadowBake(view.renderer, root, meshes.userData.casters, [dir.x, dir.y, dir.z], taken, key, tier === 'low' ? TK_PLACE.sun.baked / 2 : TK_PLACE.sun.baked);
+      state.version = version;
+      ktShadowBake(view.renderer, root, meshes.userData.casters, [dir.x, dir.y, dir.z], taken, `${key}#${version}`, tier === 'low' ? TK_PLACE.sun.baked / 2 : TK_PLACE.sun.baked, shadowTexel && (tier === 'low' ? shadowTexel * 2 : shadowTexel));
     }
     if (state.mirrored !== (open ? `air:${view.env.weather.name}` : 'own')) takeMirror(view, open);
     else if (state.mirror && tkWeather.uTkEnv.value !== state.mirror.texture && (open ? state.mirror.userData.float : true) && tier !== 'low') {

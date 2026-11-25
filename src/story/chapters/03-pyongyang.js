@@ -56,8 +56,8 @@ export const CHAPTER_PYONGYANG = {
     {
       id: 'pyongyang-wall',
       text: {
-        zh: '正月初六，吴游击带南兵攻城北的牡丹峰，日本兵在土窟里放铳。云梯分下来，一队一架。',
-        en: 'On the sixth of the first month Commander Wu took the southern men against Moranbong, the hill north of the city, where the Japanese fired from dugouts in the earth. The scaling ladders were handed out, one to a squad.',
+        zh: '正月初六，吴游击带南兵攻城北的牡丹峰，日本兵在土窟里放铳。初八攻城：南兵打西城普通门一带，朝鲜兵打南城含毬门。云梯分下来，一队一架。',
+        en: 'On the sixth of the first month Commander Wu took the southern men against Moranbong, the hill north of the city, where the Japanese fired from dugouts in the earth. On the eighth came the walls: the southern men at the west wall by the Bot\'ong gate, the Koreans at the south wall by the Hamgu gate. The scaling ladders were handed out, one to a squad.',
       },
       choices: [
         { text: { zh: '上梯子。', en: 'Climb.' }, effects: { place: 'front', flags: { climbed: true } } },

@@ -67,6 +67,17 @@ says so or stays vague ("some said", "the histories do not make clear").
   [孙卫国, 中国社会科学网](https://www.cssn.cn/lsx/lsx_zgs/202210/t20221024_5552438.shtml);
   [The Paper](https://m.thepaper.cn/baijiahao_16424242)
 - Chen Er's beheading at the tent (the fatal choice) is invented; no execution for asking after the silver is recorded.
+- The gates on the 8th: the Sillok has Li Rubai at Hamgumun (含毬門), Yang Yuan at Bot'ongmun (普通門), Zhang Shijue
+  with Li Rusong at Chilseongmun, and "the Korean troops at the south wall, the Zhejiang troops at the west wall"; the
+  Mingshi has Yang Yuan first in at the "small west gate" and Li Rubai by the "great west gate"; the Encyclopedia of
+  Korean Culture puts Luo Shangzhi with the Korean troops at Hamgumun. The chapter follows the Sillok: the southern
+  troops at the west wall by Bot'ongmun, the Koreans at the south wall by Hamgumun.
+  [Seonjo sujeong sillok 26/1/1](https://sillok.history.go.kr/id/knb_12601001_002);
+  [Mingshi 238](https://zh.wikisource.org/wiki/明史/卷238);
+  [Encyclopedia of Korean Culture, 평양전투](https://encykorea.aks.ac.kr/Article/E0060006)
+- The town inside the walls: the south wall between the inner and the middle city is on record, its line here is the
+  game's; the Japanese barricade between the west gate quarter and the governor's quarter is the game's reading (earth
+  works and an earth-and-log fort inside the walls are on record, no barricade on that line).
 
 ## Chapter 4, 1593: Byeokjegwan
 

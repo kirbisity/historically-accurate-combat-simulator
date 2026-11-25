@@ -35,6 +35,13 @@ import { TK_HANOK, tkBell, tkCompoundRuns, tkHall, tkHallSolids, tkRoofedGate, t
  */
 export const PY_TOWN_FIGHT = { at: [40, -50] };
 
+// How many of the town's things are drawn between two yields of pyCityDraw (a house of the full drawing is a few
+// milliseconds of work: a handful a step keeps a step near the streamer's few milliseconds a frame).
+const PY_DRAW_EVERY = 4;
+
+/** The x of the south wall's gates (places/pyongyang.js PY_SOUTH_WALL): Hamgumun on the market street, a lane gate at 120. */
+export const PY_SOUTH_GATES = [61, 120];
+
 export const PY_CITY = {
   square: { x: [15, 42], z: [-63, -37] },
   avenue: { half: 3.5, x: [15, 142] },
@@ -48,6 +55,13 @@ export const PY_CITY = {
   crest: { at: [25, -110] },
   river: { at: [40, 114] },
   east: 145,
+  // The inner city's south wall against the middle city (places/pyongyang.js PY_SOUTH_WALL: its outer face at `z`), and
+  // the street left along its outer foot (m) before the middle city's first yards (the user's call, 2026-11-25: the
+  // southern yards' first row moved south to make room for the wall).
+  south: { z: 40, street: 3 },
+  // The line between the west gate quarter and the governor's quarter (x), where the Japanese barricade stands
+  // (places/pyongyang.js PY_BARRICADE): the avenue's north shops leave it a gap (`gap` m).
+  wg: { x: 87, gap: 4 },
   footing: 0.55,
   tiles: [0.56, 0.58, 0.61],
   rich: [0.95, 0.25],
@@ -104,7 +118,9 @@ export function pyCityPlan(groundAt) {
   paving.push({ material: 'street', x: [4.8, c.avenue.x[1]], z: [az - ah, az + ah] });
   ways.push({ line: [[4.8, az], [c.avenue.x[1], az]], half: ah - 0.5, kind: 'cart', strength: 1 });
   shopRow([sx1 + 10, az - ah], [c.temple.way - 4, az - ah], 13);
-  shopRow([c.temple.way + 4, az - ah], [c.avenue.x[1], az - ah], 14);
+  // (Cut where the barricade comes down the hill to the avenue: PY_CITY.wg.)
+  shopRow([c.temple.way + 4, az - ah], [c.wg.x - c.wg.gap / 2, az - ah], 14);
+  shopRow([c.wg.x + c.wg.gap / 2, az - ah], [c.avenue.x[1], az - ah], 19);
   shopRow([c.compound.x[0] - 2, az + ah], [c.market.x + c.market.half, az + ah], 15);
   shopRow([c.market.x - c.market.half, az + ah], [sx1 + 2, az + ah], 16);
   // The market street south: paved, shops both sides as far as the first lane, then houses.
@@ -178,7 +194,12 @@ export function pyCityPlan(groundAt) {
   for (const z of c.lanes.ew) {
     ways.push({ line: [[16, z], [c.east, z]], half: lh - 0.4, kind: 'foot', strength: 0.75 });
   }
-  for (const x of c.lanes.ns) ways.push({ line: [[x, az + ah], [x, 118]], half: lh - 0.4, kind: 'foot', strength: 0.7 });
+  // (A lane the south wall closes is trodden to the wall from either side; one with a gate through it, through.)
+  const gated = (x) => Math.abs(x - c.market.x) < 1 || PY_SOUTH_GATES.some((at) => Math.abs(x - at) < 1);
+  for (const x of c.lanes.ns) {
+    if (gated(x)) ways.push({ line: [[x, az + ah], [x, 118]], half: lh - 0.4, kind: 'foot', strength: 0.7 });
+    else ways.push({ line: [[x, az + ah], [x, c.south.z - 4]], half: lh - 0.4, kind: 'foot', strength: 0.7 }, { line: [[x, c.south.z + 1], [x, 118]], half: lh - 0.4, kind: 'foot', strength: 0.7 });
+  }
   const xs = [15, ...c.lanes.ns.flatMap((x) => [x - lh, x + lh]), c.east];
   // (Clear of the market street's own shops either side of it.)
   const marketCut = [mx - c.market.half - 6.8, mx + c.market.half + 6.8];
@@ -187,7 +208,8 @@ export function pyCityPlan(groundAt) {
   // (The market street splits the column it runs through.)
   const blocksX = columns.flatMap(([a, b]) => (a < marketCut[0] && b > marketCut[1] ? [[a, marketCut[0]], [marketCut[1], b]] : [[a, b]]));
   // (South of the square's and the avenue's shops.)
-  const zs = [-29.5, c.broad.z - c.broad.half, c.broad.z + c.broad.half, ...c.lanes.ew.flatMap((z) => [z - lh, z + lh]), 121];
+  // (The middle city's first row starts past the street at the south wall's foot: PY_CITY.south.)
+  const zs = [-29.5, c.broad.z - c.broad.half, c.broad.z + c.broad.half, ...c.lanes.ew.flatMap((z) => [z - lh, z + lh]), 121].map((z) => (z > c.south.z - 6 && z < c.south.z + c.south.street ? c.south.z + c.south.street : z));
   const rows = [];
   for (let k = 0; k + 1 < zs.length; k += 2) rows.push([zs[k], zs[k + 1]]);
   let yard = 0;
@@ -269,24 +291,35 @@ function pcHanok(spec, random) {
   };
 }
 
-/** Draw the town (pyCityPlan) into the place's blocks: `at(x, z)` the builder for a place. */
-export function pyCityDraw(blocks, city, groundAt) {
+/**
+ * Draw the town (pyCityPlan) into the place's blocks: `at(x, z)` the builder for a place. In steps (a generator: a yield
+ * after every `PY_DRAW_EVERY` houses, halls or walls), so that a district drawn while the town is walked (places/
+ * pyongyang.js) takes a few milliseconds of a frame at a time.
+ */
+export function* pyCityDraw(blocks, city, groundAt) {
+  let laid = 0;
+  const tally = () => (laid += 1) % PY_DRAW_EVERY === 0;
   for (const p of city.paving) tkPaving(blocks.wide, p.material, p.x[0], p.x[1], p.z[0], p.z[1], (p.y ?? groundAt((p.x[0] + p.x[1]) / 2, (p.z[0] + p.z[1]) / 2)) + 0.03, [0.86, 0.86, 0.84]);
   for (const house of city.houses) {
     const b = blocks.at(house.at[0], house.at[1]);
     if (house.footing) tkTerrace(b, tkgFrame(house.at[0], house.base - house.footing, house.at[1], house.yaw), { width: house.width + 0.9, depth: house.depth + 0.9, high: house.footing, steps: [{ side: 'front', at: 0, wide: 1.8 }] });
     if (house.kind === 'thatch') tkThatch(b, house);
     else tkHouse(b, house);
+    if (tally()) yield;
   }
   for (const hall of city.halls) tkHall(blocks.at(hall.at[0], hall.at[1]), tkgFrame(hall.at[0], hall.base, hall.at[1], hall.yaw), { ...hall, paint: hall.paint ?? undefined });
   for (const p of city.pavilions) tkTerracePavilion(blocks.at(p.at[0], p.at[1]), tkgFrame(p.at[0], p.base, p.at[1], p.yaw), p);
   for (const t of city.terraces) tkTerrace(blocks.at(t.at[0], t.at[1]), tkgFrame(t.at[0], t.base, t.at[1], t.yaw), t);
-  for (const w of city.walls) tkYardWall(blocks.at(...w.run[0]), w.run[0], w.run[1], { material: w.material, high: w.high, base: w.base, thick: w.low ? 0.5 : TK_HANOK.yard.thick });
+  for (const w of city.walls) {
+    tkYardWall(blocks.at(...w.run[0], false, w.district), w.run[0], w.run[1], { material: w.material, high: w.high, base: w.base, thick: w.low ? 0.5 : TK_HANOK.yard.thick });
+    if (tally()) yield;
+  }
   for (const g of city.gates) tkRoofedGate(blocks.at(g.at[0], g.at[1]), tkgFrame(g.at[0], g.base, g.at[1], g.yaw), g.temple ? { way: 3.4, high: 4.2 } : {});
   for (const p of city.pagodas) tkStonePagoda(blocks.at(p.at[0], p.at[1]), p.at[0], p.y, p.at[1], p);
   for (const l of city.lanterns) tkStoneLantern(blocks.at(l.at[0], l.at[1]), l.at[0], l.y, l.at[1], l);
   for (const b of city.bells) tkBell(blocks.at(b.at[0], b.at[1]), tkgFrame(b.at[0], b.y, b.at[1], 0), b);
   for (const j of city.jars) {
+    if (tally()) yield;
     const builder = blocks.at(j.at[0], j.at[1]);
     const random = tkRandom(j.seed * 71 + 3);
     const cols = Math.ceil(Math.sqrt(j.count * 1.5));
@@ -329,7 +362,8 @@ export function pyCitySolids(city) {
 }
 
 /**
- * The town's far part beyond the walked streets, drawn only (no walker reaches it): `x` and `z` its ground, `lanes` the
+ * The town's far part beyond the walked streets, drawn only as its skyline (no walker reaches it; places/pyongyang.js
+ * pySkyline, the user's call, 2026-11-25): `x` and `z` its ground, `lanes` the
  * spacing of its lanes (E-W), the avenue running on east through it to the east wall (`wall`: its x) and its gate at the
  * avenue's end; a hall, a temple and a pavilion standing over its roofs (`landmarks`: [x, z, kind]). The houses tiled
  * nearer the avenue, thatched further from it (PY_CITY.rich).
@@ -360,7 +394,9 @@ export function pyFarTownPlan(groundAt) {
   for (let z = f.z[0]; z + 8 < f.z[1]; z += f.lanes) {
     const z1 = Math.min(f.z[1], z + f.lanes - 4);
     // (Not across the avenue.)
-    const bands = z < -50 && z1 > -54 ? [[z, -54], [-46, z1]] : [[z, z1]];
+    // (Nor across the south wall, which runs on east to the east wall: PY_CITY.south.)
+    const [w0, w1] = [PY_CITY.south.z - 6, PY_CITY.south.z + PY_CITY.south.street];
+    const bands = (z < -50 && z1 > -54 ? [[z, -54], [-46, z1]] : [[z, z1]]).flatMap(([b0, b1]) => (b0 < w1 && b1 > w0 ? [[b0, w0], [w1, b1]] : [[b0, b1]]));
     for (const [b0, b1] of bands) {
       if (b1 - b0 < 9) continue;
       for (let k = 0; k + 1 < xs.length; k += 1) {
@@ -396,18 +432,4 @@ export function pyFarTownPlan(groundAt) {
   // The east gate's tower over the avenue's end, on the wall.
   pavilions.push({ at: [f.wall, -50], yaw: -Math.PI / 2, base: groundAt(f.wall, -50) + 4.5, storeys: [{ width: 12, depth: 6, high: 3.1, fill: 'open' }, { width: 9, depth: 4.4, high: 2.6, fill: 'lattice' }], terrace: 0.4, apron: 0.6, far: true, gate: true });
   return { houses, halls, pavilions, walls, gates, trees };
-}
-
-/** Draw the far town (pyFarTownPlan) into the place's far blocks; its trees by `tree(builder, tree)`. */
-export function pyFarTownDraw(blocks, far, tree) {
-  for (const w of far.walls) tkYardWall(blocks.at(w.run[0][0], w.run[0][1], true), w.run[0], w.run[1], { material: w.material, high: w.high, base: w.base, thick: w.low ? 0.5 : TK_HANOK.yard.thick });
-  for (const g of far.gates) tkRoofedGate(blocks.at(g.at[0], g.at[1], true), tkgFrame(g.at[0], g.base, g.at[1], g.yaw));
-  for (const t of far.trees) tree(blocks.at(t.at[0], t.at[1], true), t);
-  for (const house of far.houses) {
-    const b = blocks.at(house.at[0], house.at[1], true);
-    if (house.kind === 'thatch') tkThatch(b, house);
-    else tkHouse(b, house);
-  }
-  for (const hall of far.halls) tkHall(blocks.at(hall.at[0], hall.at[1], true), tkgFrame(hall.at[0], hall.base, hall.at[1], hall.yaw), hall);
-  for (const p of far.pavilions) tkTerracePavilion(blocks.at(p.at[0], p.at[1], true), tkgFrame(p.at[0], p.base, p.at[1], p.yaw), { ...p, steps: [] });
 }

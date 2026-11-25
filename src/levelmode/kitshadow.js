@@ -91,13 +91,18 @@ float kitSunShade(vec3 p, vec3 n) {
 }
 `;
 
-/** What was baked, and the target holding it (one: a look changes it, leaving the stage frees it). */
-const baked = { target: null, key: '' };
+/**
+ * What was baked, and the texture holding it (one: a look changes it, leaving the stage frees it). The map is drawn
+ * into a render target of its own with a depth buffer, its colour copied into `texture`, and the target let go: a
+ * target kept with its depth buffer held that buffer as long as the map (16 to 33 MB more on the card for a town's
+ * 4096 map, never read after the bake).
+ */
+const baked = { texture: null, key: '' };
 
 /** No shadow any more (a look without one, or the stage left): the map is let go. */
 export function ktShadowRelease() {
-  baked.target?.dispose();
-  baked.target = null;
+  baked.texture?.dispose();
+  baked.texture = null;
   baked.key = '';
   baked.info = null;
   if (ktShadow.uKitShadowInfo.value) ktShadow.uKitShadowInfo.value.x = 0;
@@ -107,8 +112,10 @@ export function ktShadowRelease() {
  * Draw the shadow map: the meshes in `casters`, seen from the sun (`dir`: a unit vector toward it), by `renderer`, into the shared map. `root` is
  * the Object3D they are in (its other things are hidden for the draw). `strength` 0..1 is what the shader takes of the sun in shadow; 0 frees the map
  * instead. Draws nothing if the same sun was baked already (`key`). Returns the milliseconds it took (0 if it did nothing).
+ * `texel` (m): the texel wanted, the map then no larger than that needs (a place built in part bakes over what it holds,
+ * at the texel the whole place had: places/pyongyang.js), `size` still the most.
  */
-export function ktShadowBake(renderer, root, casters, dir, strength, key = '', size = KT_SHADOW.size) {
+export function ktShadowBake(renderer, root, casters, dir, strength, key = '', size = KT_SHADOW.size, texel = null) {
   // (`size`: texels along the longer side, for a place wider than the headland; no more than the device can hold.)
   size = Math.min(size, renderer.capabilities.maxTextureSize);
   ktShadowInit();
@@ -118,7 +125,7 @@ export function ktShadowBake(renderer, root, casters, dir, strength, key = '', s
     return 0;
   }
   const sun = new THREE.Vector3(...dir).normalize();
-  const same = baked.target && baked.key === `${key}|${sun.x.toFixed(4)},${sun.y.toFixed(4)},${sun.z.toFixed(4)}`;
+  const same = baked.texture && baked.key === `${key}|${sun.x.toFixed(4)},${sun.y.toFixed(4)},${sun.z.toFixed(4)}`;
   info.x = strength;
   if (same) return 0;
   const started = performance.now();
@@ -147,12 +154,16 @@ export function ktShadowBake(renderer, root, casters, dir, strength, key = '', s
   Object.assign(camera, { left: low.x - pad, right: high.x + pad, bottom: low.y - pad, top: high.y + pad, near: Math.max(0.1, -high.z - pad), far: -low.z + pad });
   camera.updateProjectionMatrix();
   const wide = Math.max(across, up);
+  if (texel) size = Math.min(size, Math.ceil(wide / texel));
   const width = Math.max(2, Math.round((size * across) / wide));
   const height = Math.max(2, Math.round((size * up) / wide));
-  if (!baked.target || baked.target.width !== width || baked.target.height !== height) {
-    baked.target?.dispose();
-    baked.target = new THREE.WebGLRenderTarget(width, height, { minFilter: THREE.NearestFilter, magFilter: THREE.NearestFilter, format: THREE.RGBAFormat, type: THREE.UnsignedByteType, depthBuffer: true, stencilBuffer: false, generateMipmaps: false });
-    baked.target.texture.generateMipmaps = false;
+  // (Drawn with a depth buffer into a target for the bake alone: `baked`.)
+  const target = new THREE.WebGLRenderTarget(width, height, { minFilter: THREE.NearestFilter, magFilter: THREE.NearestFilter, format: THREE.RGBAFormat, type: THREE.UnsignedByteType, depthBuffer: true, stencilBuffer: false, generateMipmaps: false });
+  target.texture.generateMipmaps = false;
+  if (!baked.texture || baked.texture.image.width !== width || baked.texture.image.height !== height) {
+    baked.texture?.dispose();
+    baked.texture = new THREE.DataTexture(null, width, height, THREE.RGBAFormat, THREE.UnsignedByteType, undefined, undefined, undefined, THREE.NearestFilter, THREE.NearestFilter);
+    baked.texture.name = 'kit-shadow';
   }
   // Draw: the casters with the depth material, nothing else, white (the far plane) behind.
   const depth = new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking, side: THREE.DoubleSide });
@@ -166,11 +177,14 @@ export function ktShadowBake(renderer, root, casters, dir, strength, key = '', s
   const clear = renderer.getClearColor(new THREE.Color());
   const clearAlpha = renderer.getClearAlpha();
   const previous = renderer.getRenderTarget();
-  renderer.setRenderTarget(baked.target);
+  renderer.setRenderTarget(target);
   renderer.setClearColor(0xffffff, 1);
   renderer.clear(true, true, false);
   renderer.render(root, camera);
+  // (Its colour into the kept texture, the target and its depth buffer let go.)
+  renderer.copyFramebufferToTexture(new THREE.Vector2(0, 0), baked.texture);
   renderer.setRenderTarget(previous);
+  target.dispose();
   renderer.setClearColor(clear, clearAlpha);
   for (const [object, material, visible] of kept) {
     object.material = material;
@@ -188,7 +202,7 @@ export function ktShadowBake(renderer, root, casters, dir, strength, key = '', s
   info.w = KT_SHADOW.bias;
   ktShadow.uKitSunDir.value.copy(sun);
   ktShadow.uKitShadowSize.value.set(width, height);
-  ktShadow.uKitShadowMap.value = baked.target.texture;
+  ktShadow.uKitShadowMap.value = baked.texture;
   baked.key = `${key}|${sun.x.toFixed(4)},${sun.y.toFixed(4)},${sun.z.toFixed(4)}`;
   baked.info = { width, height, texel: info.y, range: info.z, area: [across, up] };
   return performance.now() - started;
