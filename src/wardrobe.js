@@ -165,6 +165,17 @@ export function roleColors(dress, skin) {
     shirt: base(top?.shirt ?? top?.under, 0xe4e4e6),
     tie: base(top?.tie, 0x8a1f2a),
     pattern: top?.pattern || top?.check ? base(top.pattern ?? top.check) : darker(topColor, 0.55),
+    // A tailored coat's parts (loftbody.js tailoredOn): its lapels of its own cloth, a collar (a velvet one its own colour),
+    // the waistcoat, buttons (horn, a shade under the cloth, or the design's), the pocket square (the shirt's linen unless
+    // named), the seams' shadow, a shell's zips and its lower panels (`block`).
+    lapel: topColor,
+    collar: base(top?.collar, topColor.getHex()),
+    vest: base(typeof top?.vest === 'string' ? top.vest : null, topColor.getHex()),
+    button: top?.button ? base(top.button) : darker(topColor, 0.45),
+    square: base(top?.square ?? top?.shirt, 0xf2f2f4),
+    seam: darker(topColor, 0.62),
+    zip: base(top?.zipColor, 0x1a1b1f),
+    block: base(top?.block, topColor.getHex()),
     belt: new THREE.Color(bottom?.kind === 'slacks' ? 0x151515 : 0x2a1d14),
     // A rope for a belt (rags).
     rope: new THREE.Color(0x8a7650),

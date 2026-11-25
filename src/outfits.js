@@ -819,7 +819,11 @@ export const OUTFITS = {
     // A heavy-soled boot puts weight behind a kick.
     kick: 1.1,
     designs: [
-      { label: 'Shell jacket', top: { kind: 'jacket', color: '#d4612a', zip: true, hood: false }, bottom: { kind: 'cargo', color: '#4a4f45' }, feet: { kind: 'hikingBoot', color: '#5a3d24' } },
+      // A hard shell (LOFT.tailoring.shell: its zip under a storm flap, a stand collar, pit zips, articulated sleeves).
+      { label: 'Shell jacket', top: { kind: 'jacket', color: '#d4612a', zip: true, hood: false, cut: 'shell' }, bottom: { kind: 'cargo', color: '#4a4f45' }, feet: { kind: 'hikingBoot', color: '#5a3d24' } },
+      // A ski shell: bright above and slate below (`block`), its helmet hood rolled down behind the collar; shell trousers with
+      // thigh vents, a knitted beanie, leather gloves. Drawn plain: no maker's name or mark on any of it.
+      { label: 'Ski shell', top: { kind: 'jacket', color: '#1f6fd6', block: '#4b5462', zip: true, hood: true, cut: 'shell', stuff: 'hardshell' }, bottom: { kind: 'pants', color: '#4b5462', stuff: 'hardshell', vents: true }, head: { kind: 'beanie', color: '#1b1d23' }, feet: { kind: 'hikingBoot', color: '#2a2a2e' }, gloves: '#3a2618' },
     ],
   },
   casual: {
@@ -856,8 +860,16 @@ export const OUTFITS = {
     // Heels (see heelFooting): a woman in them goes over more easily, and kicks with the heel.
     female: { kick: 1.2 },
     designs: [
-      // A black suit; for a woman the skirt suit, in black high-heeled ankle boots with pointed toes.
-      { label: 'Black suit', top: { kind: 'suit', color: '#16171b', shirt: '#f2f2f4', tie: '#8a1f2a' }, bottom: { kind: 'slacks', color: '#16171b', skirt: true }, feet: { kind: 'dressShoe', color: '#0e0d0c' }, femaleFeet: { kind: 'heelAnkleBoot', color: '#0b0b0d', heels: BUSINESS_HEELS }, extras: [{ kind: 'tie', color: '#8a1f2a' }] },
+      // A black suit (a lounge suit cut as tailors cut it: LOFT.tailoring.lounge); for a woman the skirt suit, in black
+      // high-heeled ankle boots with pointed toes. (Its tie is drawn on the shirt under the buttoned jacket, not swung.)
+      { label: 'Black suit', top: { kind: 'suit', color: '#16171b', shirt: '#f2f2f4', tie: '#8a1f2a', cut: 'lounge', square: false }, bottom: { kind: 'slacks', color: '#16171b', skirt: true, crease: true }, feet: { kind: 'dressShoe', color: '#0e0d0c' }, femaleFeet: { kind: 'heelAnkleBoot', color: '#0b0b0d', heels: BUSINESS_HEELS } },
+      // A black three-piece: peak lapels, a waistcoat, a black knitted silk tie and a white pocket square, the trousers cut
+      // straight and full with a crease and a break over the shoe.
+      { label: 'Black three-piece', top: { kind: 'suit', color: '#121316', shirt: '#f4f4f6', tie: '#0c0c0e', cut: 'lounge', lapel: 'peak', vest: true, square: '#f6f6f8', stuffs: { tie: 'knitSilk' } }, bottom: { kind: 'slacks', color: '#121316', crease: true, break: true }, feet: { kind: 'dressShoe', color: '#0b0a0a' }, femaleFeet: { kind: 'heelAnkleBoot', color: '#0b0b0d', heels: BUSINESS_HEELS } },
+      // A woman's black trouser suit: a long blazer with padded shoulders and peak lapels, its V deep to a belt of its own
+      // cloth wrapped and knotted at the waist, the hem cut aslant; a camisole in the V; high-waisted trousers flared to the
+      // floor (`sex`: dealt to women).
+      { label: 'Belted trouser suit', sex: 'female', top: { kind: 'suit', color: '#111114', shirt: '#0d0d10', cut: 'belted', stuff: 'crepe', square: false }, bottom: { kind: 'slacks', color: '#111114', flare: true, crease: true, stuff: 'crepe' }, feet: { kind: 'heelAnkleBoot', color: '#0b0b0d', heels: BUSINESS_HEELS } },
     ],
   },
   yakuza: {
@@ -3001,9 +3013,14 @@ export const OUTFITS = {
     faction: 'street',
     label: 'Victorian — frock coat and top hat', movement: 'good', fists: 'bare',
     designs: [
-      { label: 'Black frock coat', top: { kind: 'suit', color: '#1c1c20', shirt: '#f2f2f0', tie: '#1c1c20' }, bottom: { kind: 'pants', color: '#4a4a50' }, head: { kind: 'topHat', color: '#141416' }, feet: { kind: 'dressShoe', color: '#141416' } },
-      { label: 'Grey frock coat', top: { kind: 'suit', color: '#5a5a62', shirt: '#f2f2f0', tie: '#7a1a22' }, bottom: { kind: 'pants', color: '#2a2a30' }, head: { kind: 'topHat', color: '#2a2a30' }, feet: { kind: 'dressShoe', color: '#141416' } },
-      { label: 'Bottle-green frock coat', top: { kind: 'suit', color: '#24402c', shirt: '#f2f2f0', tie: '#d6a743' }, bottom: { kind: 'pants', color: '#3a3326' }, head: { kind: 'topHat', color: '#141416' }, feet: { kind: 'dressShoe', color: '#2a1d14' } },
+      // Frock coats to the knee, double-breasted (LOFT.tailoring.frock), of melton, a cravat at the throat in the tie's colour.
+      { label: 'Black frock coat', top: { kind: 'suit', color: '#1c1c20', shirt: '#f2f2f0', tie: '#1c1c20', cut: 'frock', cravat: true, square: false, stuff: 'melton' }, bottom: { kind: 'pants', color: '#4a4a50', crease: true }, head: { kind: 'topHat', color: '#141416' }, feet: { kind: 'dressShoe', color: '#141416' } },
+      { label: 'Grey frock coat', top: { kind: 'suit', color: '#5a5a62', shirt: '#f2f2f0', tie: '#7a1a22', cut: 'frock', cravat: true, square: false, stuff: 'melton' }, bottom: { kind: 'pants', color: '#2a2a30', crease: true }, head: { kind: 'topHat', color: '#2a2a30' }, feet: { kind: 'dressShoe', color: '#141416' } },
+      { label: 'Bottle-green frock coat', top: { kind: 'suit', color: '#24402c', shirt: '#f2f2f0', tie: '#d6a743', cut: 'frock', cravat: true, square: false, stuff: 'melton' }, bottom: { kind: 'pants', color: '#3a3326', crease: true }, head: { kind: 'topHat', color: '#141416' }, feet: { kind: 'dressShoe', color: '#2a1d14' } },
+      // The Regency coat: navy, double-breasted with brass buttons, a black velvet collar, cuffs turned back over the shirt's
+      // frills; a waistcoat of brown paisley brocade with covered buttons, a cream cravat tied full; pale buff fall-front
+      // trousers.
+      { label: 'Navy coat and brocade', top: { kind: 'suit', color: '#1d2742', shirt: '#efe9da', tie: '#ece4cf', cut: 'regency', cravat: true, square: false, vest: '#6a4428', brocade: true, collar: '#121214', velvet: true, brass: true, stuff: 'broadcloth' }, bottom: { kind: 'pants', color: '#cdb995', fallFront: true }, head: { kind: 'topHat', color: '#141416' }, feet: { kind: 'dressShoe', color: '#141416' } },
     ],
   },
   // A medieval common man: a belted tunic, hose, bare feet. No traits.
@@ -3262,11 +3279,13 @@ export function randomColors(kind, random = Math.random) {
  * A design for a fighter in an armour of this kind, at random among those
  * picked for the game (`picked`, design indices), else among them all.
  */
-export function randomDesign(kind, random = Math.random) {
+export function randomDesign(kind, random = Math.random, sex = null) {
   const spec = OUTFITS[kind];
   if (!spec) return 0;
   // (Not a design of Level Mode's, a character's own, or one only chosen in the builders: `chosen`.)
-  const pool = spec.picked ?? spec.designs.map((design, index) => (design.levelOnly || design.special || design.chosen ? null : index)).filter((index) => index !== null);
+  const dealt = spec.picked ?? spec.designs.map((design, index) => (design.levelOnly || design.special || design.chosen ? null : index)).filter((index) => index !== null);
+  // (Nor, for a man or a woman, one cut for the other: a design's `sex`.)
+  const pool = sex ? dealt.filter((index) => !spec.designs[index]?.sex || spec.designs[index].sex === sex) : dealt;
   return pool[Math.floor(random() * pool.length)] ?? 0;
 }
 

@@ -122,7 +122,7 @@ export const CLOTH_WEAR = {
 };
 
 // The garment regions (render.js paintBody's region names) that are cloth; leather, steel, mail, skin and fur keep theirs.
-const WORN_REGIONS = new Set(['kit', 'top', 'top2', 'trim', 'trim2', 'stripe', 'shirt', 'tie', 'pattern', 'under', 'mawashi', 'cloth', 'cloth2', 'pad', 'sock', 'band', 'rope']);
+const WORN_REGIONS = new Set(['kit', 'top', 'top2', 'trim', 'trim2', 'stripe', 'shirt', 'tie', 'pattern', 'lapel', 'collar', 'vest', 'square', 'seam', 'block', 'under', 'mawashi', 'cloth', 'cloth2', 'pad', 'sock', 'band', 'rope']);
 
 const wearFract = (value) => value - Math.floor(value);
 // A value in 0..1 fixed to a point (each vertex its own, the same each build).

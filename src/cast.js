@@ -118,7 +118,7 @@ export function redress(inputs, random = Math.random, { anyKind = false } = {}) 
   if (worn?.special || worn?.chosen) return inputs;
   const kind = anyKind && family ? pickOne(familyKinds(family), random) : current;
   const accessories = (inputs.accessories ?? []).filter((item) => headgearOptions(kind).includes(item));
-  return { ...inputs, outfit: { ...inputs.outfit, kind, design: randomDesign(kind, random) }, accessories: kind === current ? inputs.accessories : (accessories.length ? accessories : defaultHeadgear(kind)) };
+  return { ...inputs, outfit: { ...inputs.outfit, kind, design: randomDesign(kind, random, inputs.sex ?? null) }, accessories: kind === current ? inputs.accessories : (accessories.length ? accessories : defaultHeadgear(kind)) };
 }
 
 // The characters dealt at random: all but those kept for their own places (`undealt`: the starved rebel).

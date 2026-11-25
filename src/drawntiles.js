@@ -273,5 +273,88 @@ function laceTile(width = 256, height = 256) {
   return drawnBytes(layers, metres, metres, true);
 }
 
+// The paisley brocade's tile (m): two boteh to a tile in a half-drop, each `long` of the tile from its round foot to its
+// curled tip and `round` across at its foot; the ground a 2/1 twill at `twill` (m) a rib, the figure woven in satin floats.
+export const PAISLEY_TILE = { metres: 0.05, long: 0.5, round: 0.17, twill: 0.0011 };
+
+/** How far inside a boteh (paisley) a point is (negative inside, in shares of its foot's radius): a teardrop whose tip curls round. */
+function botehField(px, py, cx, cy, turn, spec) {
+  const [dx, dy] = [px - cx, py - cy];
+  // Into the figure's frame: `along` from the foot's middle toward the tip, `across` square to it.
+  const along = dx * Math.cos(turn) + dy * Math.sin(turn);
+  const across = -dx * Math.sin(turn) + dy * Math.cos(turn);
+  const length = spec.long * 0.8;
+  const share = along / length;
+  // The tip bends over to one side as it narrows (the pine cone's curl).
+  const bent = across - 0.6 * spec.round * Math.max(0, share) ** 2.2;
+  const half = share < 0 ? spec.round * Math.sqrt(Math.max(0, 1 - (share * length / spec.round) ** 2)) : spec.round * (1 - share) ** 1.3;
+  if (share < -spec.round / length || share > 1) return 1;
+  return (Math.abs(bent) - half) / spec.round;
+}
+
+function paisleyTile(width = 512, height = 512) {
+  const spec = PAISLEY_TILE;
+  const layers = drawnLayers(width, height);
+  const { relief, shade, rough, occlusion } = layers;
+  const metres = spec.metres / width;
+  // (A whole, even number of ribs and floats to the tile, so it repeats without a seam.)
+  const ribs = 2 * Math.round(spec.metres / spec.twill / 2);
+  const floats = 2 * Math.round(spec.metres / (spec.twill * 0.7) / 2);
+  // Two figures in a half-drop (each with its copies across the tile's edges, so the tile repeats), turned against each other.
+  const figures = [];
+  for (const [cx, cy, turn] of [[0.3, 0.22, 1.2], [0.8, 0.72, 1.2 + Math.PI]]) for (const ox of [-1, 0, 1]) for (const oy of [-1, 0, 1]) figures.push([cx + ox, cy + oy, turn]);
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      const at = y * width + x;
+      const [px, py] = [(x + 0.5) / width, (y + 0.5) / height];
+      let inside = 1;
+      for (const [cx, cy, turn] of figures) inside = Math.min(inside, botehField(px, py, cx, cy, turn, spec));
+      // The ground: a 2/1 twill, its ribs running up to the right.
+      const rib = Math.sin((px + py) * ribs * Math.PI);
+      const ground = 0.00006 * rib;
+      // The figure: satin floats lying across it, a raised cord round its edge, a second line inside it and a row of dots in its belly.
+      const cord = Math.exp(-((inside / 0.06) ** 2));
+      const inner = Math.exp(-(((inside + 0.35) / 0.05) ** 2));
+      const figure = inside < 0 ? 1 : 0;
+      const dots = figure && inside < -0.55 ? 0.5 + 0.5 * Math.cos((px * 60 + py * 36) * Math.PI) : 0;
+      const float = figure ? 0.00005 * Math.sin(py * floats * Math.PI) : 0;
+      relief[at] = figure ? 0.00022 + float + 0.0001 * dots : ground;
+      relief[at] += 0.00025 * cord + 0.00012 * inner;
+      // (Satin floats catch the light: the figure a little lighter and smoother than the twill ground.)
+      shade[at] = Math.min(1, (figure ? 0.95 + 0.04 * dots : 0.78 + 0.03 * rib) + 0.05 * cord);
+      rough[at] = figure ? 0.45 : 0.75;
+      occlusion[at] = 0.85 + 0.15 * Math.max(figure, cord);
+    }
+  }
+  return drawnBytes(layers, metres, metres, true);
+}
+
+// The velvet's tile (m): its cut pile (tufts `tuft` m apart), laid one way, and the shading where it is brushed against the
+// lay or crushed (`crush`, m: the size of the patches).
+export const VELVET_TILE = { metres: 0.03, tuft: 0.0004, crush: 0.012 };
+
+function velvetTile(width = 256, height = 256) {
+  const spec = VELVET_TILE;
+  const layers = drawnLayers(width, height);
+  const { relief, shade, rough, occlusion } = layers;
+  const metres = spec.metres / width;
+  const cells = spec.metres / spec.crush;
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      const at = y * width + x;
+      const [px, py] = [(x + 0.5) / width, (y + 0.5) / height];
+      // The pile: a fine stipple of tufts, each a little higher or lower, in crushed patches.
+      const tuft = drawnNoise(x * (metres / spec.tuft), y * (metres / spec.tuft), Math.round(width * (metres / spec.tuft)));
+      const crush = drawnNoise(px * cells, py * cells, Math.round(cells)) - 0.5;
+      relief[at] = 0.00008 * tuft + 0.00012 * crush;
+      // (Pile drinks the light: dark, and paler where it is brushed against its lay.)
+      shade[at] = Math.min(1, 0.72 + 0.1 * tuft + 0.22 * crush);
+      rough[at] = 0.92 - 0.1 * tuft;
+      occlusion[at] = 0.8 + 0.2 * tuft;
+    }
+  }
+  return drawnBytes(layers, metres, metres, true);
+}
+
 /** The tiles drawn in code, by name: each a function that draws it ({ width, height, albedo, normal, orm }: RGBA bytes). */
-export const DRAWN_TILES = { corsetSatin: corsetSatinTile, lace: laceTile };
+export const DRAWN_TILES = { corsetSatin: corsetSatinTile, lace: laceTile, paisley: paisleyTile, velvet: velvetTile };
