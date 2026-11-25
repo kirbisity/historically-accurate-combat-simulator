@@ -46,6 +46,7 @@ import { BONE, BONES, bindPoints, boneFrames, coherentFrames, frameMatrix, fromF
 import { bakePieces, clusterColors, CROWD_VIEW, crowdBatch, crowdKey, crowdShapeKey, frameAt, HEAD_VARIANT, onlyVariant, simplifyTemplate, stretchedInverses, topologyOf, withoutVariant } from './crowdview.js';
 import { chooseDraw, crowdLod } from './crowdlod.js';
 import { geometryArrays, materialTextures, textureBytes } from './memstats.js';
+import { tkTier } from './townkit/place.js';
 import { SoftShell } from './soft.js';
 import { FatSlosh } from './fatslosh.js';
 import { buildRobotBody } from './robotview.js';
@@ -207,11 +208,14 @@ const WIDE_FLOOR = 1.5;
 // textures in two passes through it: a phone's browser kills the page at that and reloads it. One kept: a scene played
 // on its battle's field, or a retry, goes back to the place just left without building it again.
 const PLACES_KEPT = 1;
-// MB (geometry and textures on the card) a hidden place may hold and still be kept: a bigger one is let go as soon as it is
-// left. The story's Pyongyang is some 290 MB (its town's geometry 200 MB after meshpack.js, textures 85), and kept hidden it
-// stayed behind every battle after it, a phone's whole budget (measured 2026-11-25: a custom battle on the open field held
-// 340 MB of the town it never showed). The others (the open fields, the stages) are 30 to 120 MB and are kept as before.
-const PLACE_KEPT_MB = 160;
+// MB (geometry and textures on the card) a hidden place may hold and still be kept, by the tier (townkit/place.js tkTier: 'low'
+// is a phone or a touch screen): a bigger one is let go as soon as it is left. The story's Pyongyang is some 290 MB (its town's
+// geometry 200 MB after meshpack.js, textures 85), and kept hidden it stayed behind every battle after it, a phone's whole
+// budget (measured 2026-11-25: a custom battle on the open field held 340 MB of the town it never showed). Building it again
+// costs about 7 s (12.7 s the first time, M1 Pro), so a computer keeps it as before. On the low tier the town is built without
+// its fine detail (about 90 MB) and is kept too: the budget is for what a phone cannot afford to hold unseen. The others (the
+// open fields, the stages) are 30 to 120 MB.
+const PLACE_KEPT_MB = { low: 160, high: Infinity };
 
 /** What a place holds on the card (MB): its geometry and the textures its materials use, each counted once. */
 function placeMb(group) {
@@ -244,7 +248,8 @@ function releaseOldPlaces(view, shown) {
   const seen = (key) => view.placeSeen.get(key) ?? view.placeSeen.get(key.split('@')[0]) ?? 0;
   hidden.sort((a, b) => seen(b) - seen(a));
   // (Measured once, when it is first hidden: a place does not grow while unseen.)
-  const tooBig = (key) => (view.places[key].userData.keptMb ??= placeMb(view.places[key])) > PLACE_KEPT_MB;
+  const budget = PLACE_KEPT_MB[tkTier()] ?? Infinity;
+  const tooBig = (key) => budget < Infinity && (view.places[key].userData.keptMb ??= placeMb(view.places[key])) > budget;
   for (const key of [...hidden.slice(0, PLACES_KEPT).filter(tooBig), ...hidden.slice(PLACES_KEPT)]) {
     disposePlace(view, view.places[key]);
     view.places[key] = null;
