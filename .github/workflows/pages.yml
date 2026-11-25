@@ -37,5 +37,9 @@ jobs:
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site
+      # The uploaded artifact can take a few seconds to be listed: deploying at once has failed with "No artifacts named
+      # github-pages were found" though the upload had finished.
+      - name: Wait for the artifact to be listed
+        run: sleep 20
       - id: deployment
         uses: actions/deploy-pages@v4
