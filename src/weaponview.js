@@ -21,6 +21,7 @@ import { roundWoundFace, splitBody } from './woundview.js';
 import { gashHalf, MARK_KIND, markAdd } from './markview.js';
 import { machineFxBusy, machineFxClear, machineFxCreate, machineFxHear, machineFxStep } from './machinefx.js';
 import { flutterCloth } from './clothwind.js';
+import { ARMOUR_LOOSE } from './armourwearview.js';
 
 export const GORE = {
   // Blood: drops thrown from a wound or a stump, and the stains they leave.
@@ -2709,6 +2710,27 @@ export function updateDebris(view, world) {
         const length = debris.half * 2;
         const geometry = debris.board ? new THREE.BoxGeometry(debris.width, length, 0.015) : new THREE.CylinderGeometry(debris.radius, debris.radius * 0.7, length, 6);
         mesh = new THREE.Mesh(geometry, debris.wood ? surface(0x7a5530, { roughness: 0.75 }) : steelMaterial(view.steelEnv, { vertexColors: false, color: 0xd9dde4 }));
+        view.scene.add(mesh);
+        view.pieces.set(debris.id, mesh);
+      }
+      mesh.position.set(debris.x[0], debris.x[1], debris.x[2]);
+      mesh.quaternion.set(debris.q[0], debris.q[1], debris.q[2], debris.q[3]);
+      continue;
+    }
+    // A piece of armour cut loose (physics/armourwear.js): the piece itself, as it hung when it fell (armourwearview.js
+    // ARMOUR_LOOSE), else a board of laced rows its size.
+    if (debris.kind === 'armour') {
+      if (!mesh) {
+        mesh = ARMOUR_LOOSE.get(debris.id) ?? null;
+        if (mesh) {
+          ARMOUR_LOOSE.delete(debris.id);
+          // (Its meshes kept where they were: under the debris's pose as it is now, undone.)
+          const inner = mesh.children[0];
+          inner.matrix.compose(restAt.set(debris.x[0], debris.x[1], debris.x[2]), restTurn.set(debris.q[0], debris.q[1], debris.q[2], debris.q[3]), restScale).invert();
+          inner.matrix.decompose(inner.position, inner.quaternion, inner.scale);
+        } else {
+          mesh = new THREE.Mesh(new THREE.BoxGeometry(debris.width, debris.half * 2, 0.012), surface(['kebiki', 'lamellar'].includes(debris.construction) ? 0x5a2420 : 0x55555a, { roughness: 0.6 }));
+        }
         view.scene.add(mesh);
         view.pieces.set(debris.id, mesh);
       }

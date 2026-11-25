@@ -2426,6 +2426,10 @@ function buildPagodaHelm(group, head, r, steel, color, { laced = false, still = 
 // (Swinging more, as hair does, the user's call, 2026-11-18: was hz 2.2, damping 0.4, reach 2 cm, no twist.) `twist*`: the turn's
 // own spring, the tiers trailing the head round as it turns (at most `twistReach` rad about the helmet's upright axis).
 const PAGODA_SWAY = { hz: 1.6, damping: 0.3, trail: 0.02, reach: 0.05, jump: 0.7, top: -0.1, hem: -1.92, twistHz: 1.5, twistDamping: 0.3, twistReach: 0.15 };
+// The kabuto's shikoro as hung lames (the aventail's swing, pagodaSwing, with its own figures): five lacquered iron lames on silk
+// lacing, ~13 cm deep in all, swing as a pendulum of 2/3 of that (~1.7 Hz), the lacing damping them little (0.12 of critical);
+// its rows lag the head by up to `reach` m at the hem, the lower rows more (`curve`), and trail it round as it turns.
+const SHIKORO_SWAY = { hz: 1.7, damping: 0.12, trail: 0.02, reach: 0.045, jump: 0.7, curve: 1.2, twistHz: 1.4, twistDamping: 0.15, twistReach: 0.18 };
 
 const pagodaScratch = { at: new THREE.Vector3(), turn: new THREE.Quaternion(), move: new THREE.Vector3(), offset: new THREE.Matrix4(), spin: new THREE.Matrix4(), ahead: new THREE.Vector3(), euler: new THREE.Euler() };
 
@@ -2433,8 +2437,7 @@ const pagodaScratch = { at: new THREE.Vector3(), turn: new THREE.Quaternion(), m
  * The aventail's swing (render.js moves it each frame: `userData.swing.update(dt)`), on a holder in the helmet: the laced tiers'
  * meshes (`userData.aventailTier`) moved whole, or the instanced plates' matrices (`instanced`) tier by tier.
  */
-function pagodaSwing(group, weights, instanced) {
-  const spec = PAGODA_SWAY;
+function pagodaSwing(group, weights, instanced, spec = PAGODA_SWAY) {
   const holder = new THREE.Object3D();
   holder.name = 'aventail-swing';
   let at = null;
@@ -3113,7 +3116,16 @@ function buildKabuto(group, head, r, steel, color, lowDetail = false) {
     cord.material.side = THREE.DoubleSide;
     cord.position.y = lame.position.y - 0.13 * r;
     cord.scale.z = narrow;
+    // (Each tier hung from the one above on its lacing: it swings, SHIKORO_SWAY, and comes apart where its laces are cut,
+    // physics/armourwear.js, its row `shikoroTier`.)
+    lame.userData.aventailTier = cord.userData.aventailTier = tier;
+    lame.userData.shikoroTier = cord.userData.shikoroTier = tier;
     group.add(lame, cord);
+  }
+  // The rows hang as laced lames do from the bowl's foot: the lowest swing most (SHIKORO_SWAY); not in a crowd.
+  if (!lowDetail) {
+    const tiers = head.tiers ?? 4;
+    group.add(pagodaSwing(group, Array.from({ length: tiers }, (_, tier) => ((tier + 1) / tiers) ** SHIKORO_SWAY.curve), null, SHIKORO_SWAY));
   }
   // The early great helmets' fukigaeshi: the top tiers' front ends turned
   // back into big wings either side of the face. Each is hinged on the neck

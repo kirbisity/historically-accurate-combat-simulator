@@ -3782,7 +3782,9 @@ export function gearTraits(inputs) {
     footCover: footCoverOf(feet?.kind ?? 'bare'),
     // What his armour is drawn as, and what is on his hands and feet: what covers each place on him (coverage.js, read by
     // physics.js protectionAt where a blow lands).
-    cover: { armor: look.armor?.kind ?? null, fists: spec.fists ?? null, hands: spec.hands ?? null, feet: feet?.kind ?? null, also: spec.coverAlso ?? null },
+    cover: { armor: look.armor?.kind ?? null, fists: spec.fists ?? null, hands: spec.hands ?? null, feet: feet?.kind ?? null, also: spec.coverAlso ?? null,
+      // (And the helmet he wears and its aventail: its neck guard wears as laced, mail or cloth, physics/armourwear.js.)
+      head: bare ? null : (helm ? helm.head : look.head)?.kind ?? null, aventail: bare ? null : (helm ? helm.head : look.head)?.aventail ?? null },
     // The helm bolted to the cuirass: the head moves only with the trunk (physics lockHead, pose, rig), and he sees only ahead.
     headLocked: Boolean(spec.headLocked) && !headChanged,
     // His skill in this kit, as a share of his own (a man who cannot turn his head fights by feel).

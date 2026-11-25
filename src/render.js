@@ -23,6 +23,7 @@ import { armourDecorMaterial, armourDetailMaterial, clothAtlasTexture, clothDeta
 import { lookSkinHex } from './skintones.js';
 import { buildSkeleton } from './bones.js';
 import { Dangle } from './dangle.js';
+import { updateArmourWear } from './armourwearview.js';
 import { FACTIONS, HEADGEAR, factionOf, glovedFists, headgearOptions, outfitOf } from './outfits.js';
 import { WEAPONS } from './weapons.js';
 import { applyScenery } from './scenery.js';
@@ -3704,6 +3705,8 @@ export function updateFighterView(fighterView, dt, time) {
   const trunk = colliders[1];
   const hairColliders = fighterView.armourBack > trunk.radius ? [...colliders, { a: trunk.a, b: trunk.b, radius: fighterView.armourBack, part: 'armour' }] : colliders;
   if (!fighterView.headDetached) fighterView.head.update(step, fighter, time, hairColliders);
+  // (His armour's wear first: a blow near a hung piece knocks it, a cut cord loosens it, a piece cut loose falls.)
+  updateArmourWear(fighterView, fighter);
   for (const dangle of fighterView.dangles) dangle.update(step, colliders.slice(1));
   // A helmet's tassel, plume or feathers swing after the head (chinahelmview.js); still while paused (dt 0).
   // (An armour's soft swing, `soft`, only where the man has it: main.js softSwing.)

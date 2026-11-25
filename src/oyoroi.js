@@ -27,12 +27,17 @@ export const OYOROI = {
   rowsPerMetre: 34,
   plateRepeat: 0.09,
   // Sode: a large guard hung from each shoulder strap, curved round the arm (its
-  // radius), standing out from it (`tilt`, rad). Hung on cords, it and the kusazuri
-  // swing a little with each step and blow and settle (moderate sag and damping), held off the arms and thighs.
-  sode: { width: 0.3, height: 0.36, radius: 0.42, out: 0.05, tilt: 0.28, sag: 0.14, damping: 0.5 },
+  // radius), standing out from it (`tilt`, rad). A rigid board of laced rows of its real weight (`kg`: ~1-1.5 kg of
+  // lacquered iron and leather kozane, Sinclaire 2001) hung on silk cords from the strap (`hold`, dangle.js HUNG): it and the
+  // kusazuri swing as hung plates do, by gravity, the body's own movement and turns, blows and the arm and thighs they rest on,
+  // with only the cords' little stiffness and the air to still them (was a spring back to rest, sag 0.14, damping 0.5: they
+  // read as stuck to the body). Held off the arms and thighs.
+  sode: { width: 0.3, height: 0.36, radius: 0.42, out: 0.05, tilt: 0.28, kg: 1.3, hold: 'cords', cords: 0.06 },
   // Kusazuri: four flaring panels (front, back, both sides) from the dō's lower edge, each a
-  // quarter-turn round less a gap, flaring out (`flare`: the hem's radius over the top's).
-  kusazuri: { height: 0.36, span: 1.45, flare: 1.3, sag: 0.14, damping: 0.5 },
+  // quarter-turn round less a gap, flaring out (`flare`: the hem's radius over the top's); each ~0.8 kg, laced to the hem
+  // by short cords (`cords` m: the sode's to the strap's rings, the panels' suspension lacing), so each swings out and back
+  // about its top edge and only a little along it (dangle.js HUNG hinge).
+  kusazuri: { height: 0.36, span: 1.45, flare: 1.3, kg: 0.8, hold: 'cords', cords: 0.05 },
   quiverArrows: 14,
 };
 
@@ -307,7 +312,9 @@ export function buildOyoroiHanging(body, armor, collar, hips, still = false) {
   const { scale, trunk, depth, width } = doSize(body);
   const box = OYOROI.box;
   const dangles = [];
-  const hang = (anchor, pivot, rest, length, spec, piece, collides) => {
+  // (Each hung piece named as physics/armourwear.js names it, `armourPiece`, so its wear can loosen and drop it; `corner`: the
+  // cord it hangs by when the rest are cut, in its own coordinates.)
+  const hang = (anchor, pivot, rest, length, spec, piece, collides, name, area, corner, hinge) => {
     if (still) {
       const holder = new THREE.Group();
       holder.position.set(...pivot);
@@ -315,8 +322,9 @@ export function buildOyoroiHanging(body, armor, collar, hips, still = false) {
       anchor.add(holder);
       return;
     }
-    const dangle = new Dangle(anchor, pivot, rest, length, { sag: spec.sag, damping: spec.damping, collides });
+    const dangle = new Dangle(anchor, pivot, rest, length, { collides, hung: { mass: spec.kg, area, hold: spec.hold, hinge, cords: spec.cords } });
     dangle.group.add(piece);
+    Object.assign(dangle, { armourPiece: name, corner });
     dangles.push(dangle);
   };
   // Sode: large, curved round the upper arm, a lacquered plate (kanmuri-no-ita) along the top; hung at an angle out from the arm.
@@ -331,22 +339,25 @@ export function buildOyoroiHanging(body, armor, collar, hips, still = false) {
     crown.rotation.y = side > 0 ? -Math.PI / 2 : Math.PI / 2;
     crown.position.y = -0.0175 * scale;
     piece.add(crown);
-    hang(collar, [0, -0.02 * scale, side * (width + sode.out * scale)], [0, -1, side * Math.tan(sode.tilt)], sode.height * scale, sode, piece, ['arm', 'shoulders']);
+    hang(collar, [0, -0.02 * scale, side * (width + sode.out * scale)], [0, -1, side * Math.tan(sode.tilt)], sode.height * scale, sode, piece, ['arm', 'shoulders'], `shoulder:${side > 0 ? 'l' : 'r'}`, sode.width * sode.height * scale * scale, [-(sode.width * scale) / 2, 0, 0], [1, 0, 0]);
   }
   // Kusazuri: front, back and both sides, each a quarter of a flaring skirt less a gap, hung from the dō's hem.
   const spec = OYOROI.kusazuri;
   const from = (1 - box.bottom) * trunk;
   const panels = [
-    { facing: Math.PI / 2, radius: depth, rest: [0.15, -1, 0] },
-    { facing: -Math.PI / 2, radius: depth, rest: [-0.15, -1, 0] },
-    { facing: 0, radius: width, rest: [0, -1, 0.15] },
-    { facing: Math.PI, radius: width * 1.04, rest: [0, -1, -0.15] },
+    { facing: Math.PI / 2, radius: depth, rest: [0.15, -1, 0], name: 'skirt:front' },
+    { facing: -Math.PI / 2, radius: depth, rest: [-0.15, -1, 0], name: 'skirt:back' },
+    { facing: 0, radius: width, rest: [0, -1, 0.15], name: 'skirt:l' },
+    { facing: Math.PI, radius: width * 1.04, rest: [0, -1, -0.15], name: 'skirt:r' },
   ];
   for (const panel of panels) {
     const radius = panel.radius * 1.04;
     const piece = curvedPanel(radius, radius * spec.flare, spec.height * scale, panel.facing, spec.span, armor);
     const pivot = [Math.sin(panel.facing) * radius, from, Math.cos(panel.facing) * radius];
-    hang(hips, pivot, panel.rest, spec.height * scale, spec, piece, ['leg']);
+    // (Its top edge runs square to the way it faces: the cord left at one end of it.)
+    const half = (spec.span * radius) / 2;
+    const corner = [Math.cos(panel.facing) * half, 0, -Math.sin(panel.facing) * half];
+    hang(hips, pivot, panel.rest, spec.height * scale, spec, piece, ['leg'], panel.name, spec.span * radius * spec.height * scale, corner, [Math.cos(panel.facing), 0, -Math.sin(panel.facing)]);
   }
   for (const dangle of dangles) inkAll(dangle.group, 0.0022);
   return dangles;

@@ -10,7 +10,8 @@ import { calorieRange, caloriesForWeight, deriveStats, exerciseHours } from './p
 import { paintHealth, thinkAll } from './ai.js';
 import { withTanks } from './physics/flame.js';
 import { CUSTOM_STYLE_KEYS, MOVES, STRATEGIES, STYLE_KEYS, STYLES } from './moves.js';
-import { advance, capsules, opponentFor, collapseAt, cutOff, dropWeapon, concussionCapacity, createWorld, perform, placeFighter, placeOnFloor, point, reviveFighter, startCrawl, startJump, throwPunch, WORLD } from './physics.js';
+import { armourSpotAt, wearArmour, wearWork } from './physics/armourwear.js';
+import { advance, armourPieceAt, capsules, opponentFor, collapseAt, cutOff, dropWeapon, concussionCapacity, createWorld, perform, placeFighter, placeOnFloor, point, reviveFighter, startCrawl, startJump, throwPunch, WORLD } from './physics.js';
 import { bleedingFast } from './maiming.js';
 import { DEFAULT_LOOK, LOOK_OPTIONS } from './face.js';
 import { activateLook, activateLookNow, activeLook, DEFAULT_LOOK_ID, OFFICIAL_LOOK_ID, flattenView, loadLook, lookById, lookIdFromSearch, lookList, LOOKS, rememberedLookId, rememberLook } from './looks.js';
@@ -4683,6 +4684,24 @@ const boxer = window.boxer = {
     const edge = new THREE.Vector3().crossVectors(axis, out).applyAxisAngle(out, turn);
     const event = { kind: 'landed', defender: id, target, point: [at[0] + out.x * radius, at[1] + out.y * radius, at[2] + out.z * radius], normal: out.toArray(), edge: edge.toArray(), ...blow };
     return markOfBlow(fighter, view.frames, event, state.world.time - age);
+  },
+  // A blow's wear put on a man's armour (physics/armourwear.js), for shots and tests: on part `target` at `t` along it, its
+  // surface facing `toward` (a world point; the other man's neck), an edge's `edge` J, a point's `pierce` J, a blunt `blunt` J
+  // on what is there; `impulse` (N·s) knocks what hangs near. Returns the stage it reached, or null.
+  armourBlow: (id, target, { t = 0.5, toward = null, edge = 0, pierce = 0, blunt = 0, impulse = 8 } = {}) => {
+    const fighter = state.world.fighters[id];
+    const [a, b] = target === 'head' ? [point(fighter.x, P.head), point(fighter.x, P.neck)] : [point(fighter.x, P[SEGMENTS[target].from]), point(fighter.x, P[SEGMENTS[target].to])];
+    const at = target === 'head' ? a : a.map((value, axis) => value + (b[axis] - value) * t);
+    const axis = new THREE.Vector3(b[0] - a[0], b[1] - a[1], b[2] - a[2]).normalize();
+    const to = new THREE.Vector3(...(toward ?? point(state.world.fighters[id === 0 ? 1 : 0].x, P.neck))).sub(new THREE.Vector3(...at));
+    const out = (target === 'head' ? to : to.addScaledVector(axis, -to.dot(axis))).normalize();
+    const radius = target === 'head' ? fighter.body.lengths.headRadius : fighter.body.segments[target].skinRadius;
+    const where = [at[0] + out.x * radius, at[1] + out.y * radius, at[2] + out.z * radius];
+    const spot = armourSpotAt(fighter, target, t, out.toArray(), armourPieceAt(fighter.body.gear, target, t), radius);
+    const travel = out.clone().negate().toArray();
+    fighter.blowAt = { time: state.world.time, point: where, travel, impulse };
+    const work = spot ? wearWork(spot.construction, { edge, point: pierce, blunt, travel, up: [0, 1, 0] }) : 0;
+    return spot ? wearArmour(state.world, fighter, spot, work, { point: where, velocity: [0, 0, 0], along: travel })?.name ?? null : null;
   },
   // A man's blade put into the other of a duel and held there (physics/lodge.js lodgeBlade: he loses it, and it stays in
   // the wound), for shots and tests: into the part `key` at `t` along it, a thrust of `pierce` J or a cut of `cleaving` J
