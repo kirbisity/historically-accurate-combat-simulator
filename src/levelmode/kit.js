@@ -15,26 +15,38 @@
 //    the reaches are the quality tier's (levelmode/quality.js, `view.setQuality`).
 //  - what moves: gates and ladders with their state, flames, ravens, drips, light shafts, the markers on things to take.
 // Every mesh is a merged batch per material per chunk of ground, with frustum culling on.
+// A section's detail is held only while he is in it, near a gate into it, or sees into it (levelmode/sectionstream.js): built again, the same to
+// the vertex, a few milliseconds a frame as he comes toward it, and let go a while after he has gone (createCastleView).
 
 import { P } from '../body.js';
 import { ceilingAt, pushOut, rayBlocked } from '../physics/terrain.js';
 import { KitBatch, kgAddGrid, kgBox, kgCylinder, kgExtrude, kgFlight, kgFloor, kgLump, kgOpening, kgRock, kgPlace, kgShape, kgTube, kgVault } from './kitgeo.js';
 import { kpBuild } from './kitprops.js';
 import { islandHeights, landHole, landNoise, mainlandHeight, stageBlocks } from './landform.js';
-import { kwDecorate } from './kitwear.js';
+import { kwDecorateSteps } from './kitwear.js';
 import { stormFlashLevel, stormFogFar, stormFollow, stormInterior, stormRain, stormTorch, stormTorchReach } from './storm.js';
-import { interiorAt } from './stage.js';
+import { activeSections, interiorAt } from './stage.js';
 import { kcDecor, kcDoubleDoor, kcExtras, kcFar, kcMaterials } from './kitchapel.js';
 import { ktShadowBake, ktShadowRelease } from './kitshadow.js';
 import { FaceRegistry } from '../depthrange.js';
 import { lampShare, newLamps, pickLit, stepLamps, torchFlicker } from './torchpool.js';
 import { kwtCreate } from './kitwater.js';
+import { createResourceLedger, createSectionStream, sectionsNear, STREAM_FRAME } from './sectionstream.js';
 import { kfDropped, kfDynamics, kfHeap } from './kitfilth.js';
 import { skyDirection } from './stagesky.js';
 import { ktDispose, ktMaterials, ktRandom, ktSetLod, ktWeather } from './kittex.js';
 import { QUALITY_LAMPS_MOST, TIER_NAMES, tierOf } from './quality.js';
 import { chooseSections, fogReach, holdSections, holdMan, manDrawn, manSeen, nearestBoxDistance, pastReachHeld, sectionGraph, seeThroughIds, VISIBILITY } from './visibility.js';
 import { runSteps } from '../loftbody.js';
+
+/**
+ * How a section's detail is cut into steps when it is built while he plays (levelmode/sectionstream.js): a yield every this many solids
+ * and decor pieces (each a fraction of a millisecond to some tenths on an M1), so that a step stays well inside the stream's budget.
+ */
+const KIT_STEP = { solids: 4, decor: 1, upload: 1.5e6 };
+
+/** A move of the player's hips (m) between two frames that is a jump (a respawn, a fast travel, the chute), not a walk or a fall: the room he lands in is built behind the loading screen. */
+const KIT_JUMP = 3;
 
 /** The real lights the torches are lent (quality.js: the best tier's count; a tier lights fewer). */
 const KIT_LAMPS = QUALITY_LAMPS_MOST;
@@ -363,9 +375,16 @@ function kitParapet(batch, solid) {
  * The solids of a section as blocks and floors. Detail: only those that are drawn as themselves (`skin` not false). Silhouette: all
  * (a wall run is its pieces), and plainer.
  */
-function kitSolids(batch, section, { silhouette = false } = {}) {
+function kitSolids(batch, section, options = {}) {
+  runSteps(kitSolidsSteps(batch, section, options));
+}
+
+/** kitSolids in steps (a yield every few solids: a section built a little at a time), the same pieces in the same order. */
+function* kitSolidsSteps(batch, section, { silhouette = false } = {}) {
   const tops = new Map();
+  let count = 0;
   for (const solid of section.terrain) {
+    if ((count += 1) % KIT_STEP.solids === 0) yield;
     if (!silhouette && solid.skin === false && solid.kind !== 'ceiling') continue;
     if (['iron', 'ladder', 'fence', 'hidden'].includes(solid.style)) continue;
     const [cx, cz] = solid.at;
@@ -407,10 +426,11 @@ function kitSolids(batch, section, { silhouette = false } = {}) {
   }
 }
 
-/** Rails and posts along a fence's points; an old fence, some posts leaning, some rails gone. */
-function kitFence(batch, fence, seed) {
+/** Rails and posts along a fence's points; an old fence, some posts leaning, some rails gone. (A generator: a yield between its stretches.) */
+function* kitFence(batch, fence, seed) {
   const random = ktRandom(seed);
   for (let i = 0; i + 1 < fence.points.length; i += 1) {
+    if (i) yield;
     const [x0, z0, y0] = fence.points[i];
     const [x1, z1, y1] = fence.points[i + 1];
     const length = Math.hypot(x1 - x0, z1 - z0);
@@ -494,9 +514,10 @@ function kitSpiral(batch, spiral) {
 }
 
 /** A rock outcrop: lumps of black rock (and the tufts of gorse and heather at their feet): `decor.lumps` = [{ at: [x, y, z] (the base), r: [rx, ry, rz], seed }]. */
-function kitOutcrop(batch, outcrop) {
+function* kitOutcrop(batch, outcrop) {
   const random = ktRandom(Math.floor(Math.abs((outcrop.lumps[0]?.at[0] ?? 1) * 17 + (outcrop.lumps[0]?.at[2] ?? 1) * 29)) + 3);
-  for (const lump of outcrop.lumps) {
+  for (const [index, lump] of outcrop.lumps.entries()) {
+    if (index) yield;
     const [x, y, z] = lump.at;
     const [rx, ry, rz] = lump.r;
     kgRock(batch, 'rock', x, y + ry * 0.55, z, rx, ry, rz, { seed: lump.seed ?? 5, detail: rx + ry > 5 ? 4 : 3, aoFrom: y - 0.5, aoSpan: Math.max(2, ry), tint: [0.78 + random() * 0.18, 0.78 + random() * 0.16, 0.8 + random() * 0.16] });
@@ -555,14 +576,19 @@ function kitWaymarks(dyn, trail) {
   }
 }
 
-/** The detail of a section: its solids as masonry, its decor, its props. Returns { group, dyn }. */
-function kitSection(section, mats, seed, levels = [], faces = null) {
+/**
+ * The detail of a section: its solids as masonry, its decor, its props. Returns { group, dyn, triangles }. In steps (a generator: a yield
+ * every few solids, decor pieces, wall runs and meshes), so that a section can be built a few milliseconds a frame while he plays.
+ */
+function* kitSectionSteps(section, mats, seed, levels = [], faces = null) {
   const batch = new KitBatch(mats, seed, faces);
   const dyn = { flames: [], lights: [], ravens: [], drips: [], puddles: [], shafts: [], waymarks: [], waters: [], filth: [] };
-  kitSolids(batch, section);
+  yield* kitSolidsSteps(batch, section);
   const cellar = ['vault', 'cell', 'crypt', 'sewer'].includes(section.id);
   let fences = 0;
+  let count = 0;
   for (const decor of section.decor ?? []) {
+    if ((count += 1) % KIT_STEP.decor === 0) yield `decor:${count - 1}:${decor.kind}/${decor.what ?? ''}`;
     switch (decor.kind) {
       case 'run': kitRun(batch, decor, false, 0); break;
       case 'vault': {
@@ -570,7 +596,7 @@ function kitSection(section, mats, seed, levels = [], faces = null) {
         kgVault(batch, decor.nave ? 'nave' : timber ? 'boards' : cellar ? 'rubble' : 'ashlar', decor.a, decor.b, decor.width, decor.crown, { ribs: decor.ribs ?? (cellar ? 4.1 : 0), ribMaterial: timber ? 'wood' : 'ashlar', tint: cellar ? 0.8 : 0.9, ...(decor.nave ? { ribWidth: 0.9, ribDrop: 0.34 } : {}) });
         break;
       }
-      case 'fence': kitFence(batch, decor, seed * 31 + (fences += 1)); break;
+      case 'fence': yield* kitFence(batch, decor, seed * 31 + (fences += 1)); break;
       case 'paving':
         for (const [x0, x1, z0, z1] of decor.rects) kgFloor(batch, 'cobble', x0, x1, z0, z1, decor.y + 0.03);
         break;
@@ -578,7 +604,7 @@ function kitSection(section, mats, seed, levels = [], faces = null) {
       case 'mass': kitMass(batch, decor); break;
       case 'spiral': kitSpiral(batch, decor); break;
       case 'prop': kpBuild(decor, { batch, dyn }); break;
-      case 'outcrop': kitOutcrop(batch, decor); break;
+      case 'outcrop': yield* kitOutcrop(batch, decor); break;
       case 'cairn': kitCairn(batch, decor); break;
       case 'face': kitFace(batch, decor); break;
       case 'waymarks': kitWaymarks(dyn, decor); break;
@@ -587,10 +613,10 @@ function kitSection(section, mats, seed, levels = [], faces = null) {
       default: kcDecor(batch, dyn, decor); break;
     }
   }
-  kwDecorate(batch, section, levels);
+  yield* kwDecorateSteps(batch, section, levels);
   const group = new THREE.Group();
   group.name = `detail:${section.id}`;
-  batch.build(group, { name: section.id });
+  yield* batch.buildSteps(group, { name: section.id });
   return { group, dyn, triangles: batch.triangles };
 }
 
@@ -1172,8 +1198,21 @@ function kitReach(chunks, ex, ey, ez) {
 /**
  * The castle of a stage with a `landform`: its land, its sections' detail and silhouettes, its gates, its things to take.
  * Returns the stage view (terrainview.js's shape, with `update(world)` and the rest): { stage, group, sections, mechanisms, update, setEnvironment, dispose, stats }.
+ *
+ * Drawn a section at a time (levelmode/sectionstream.js). The whole castle is made once as the stage opens, behind the loading screen: so that
+ * every lift between two faces on one plane is decided in the one order (depthrange.js), its shadow is baked from all of it, and every shader
+ * it will ever want is built before play (a shader built in play stalls a frame 140-260 ms). Then the detail of each section the player is
+ * not near is let go (its meshes, its own materials and pictures, its flames and filth; the shared stone and its maps stay), and built again,
+ * the same to the vertex, a few milliseconds a frame as he walks toward it, so that it is there before he is through the gate. The
+ * silhouettes, the land and what the sound and the light pool read of every section stay. `options.stream` false keeps the whole castle
+ * built, as it was; `options.renderer`, the renderer, lets a material that holds a shader program be kept (`view.renderer` may be set later).
  */
-export function createCastleView(stage) {
+export function createCastleView(stage, options = {}) {
+  return runSteps(createCastleViewSteps(stage, options));
+}
+
+/** createCastleView in steps (a generator: a yield every few pieces of each section, behind the loading screen, main.js loadInto). */
+export function* createCastleViewSteps(stage, { stream: streamed = true, renderer = null, streamConfig = {} } = {}) {
   const mats = ktMaterials();
   kcMaterials(mats);
   const foam = new THREE.MeshBasicMaterial({ map: kitFoamTexture(), transparent: true, opacity: 0.4, depthWrite: false, side: THREE.DoubleSide });
@@ -1187,10 +1226,9 @@ export function createCastleView(stage) {
   const farFaces = detailFaces;
   const land = kitLand(stage, mats, blocks, foam, detailFaces);
   group.add(land);
+  yield;
   const sections = {};
   const parts = {};
-  const mechanisms = [];
-  const markers = [];
   const lights = [];
   // What the ear hears of the castle's decor (audio/ambience.js): the flames by their size (a brazier's, a torch's: not a candle's, nor the filth's green glow) and the drips.
   const sounding = { fires: [], drips: [] };
@@ -1201,58 +1239,81 @@ export function createCastleView(stage) {
   // What the dead leave lying (a helmet off a head: kitfilth.js), from the run's `level.dropped`.
   const dropped = kfDropped();
   group.add(dropped.group);
-  const heaps = [];
-  let seed = 7;
-  for (const section of stage.sections) {
-    seed += 13;
-    const detail = kitSection(section, mats, seed, stage.levels ?? [], detailFaces);
-    const far = kitSilhouette(section, mats, seed + 1, farFaces);
+  const levels = stage.levels ?? [];
+  // (The reach of the small decals, the quality tier's: a section built later is given the reach in force.)
+  let decalReach = Infinity;
+
+  /**
+   * What is made from a section's detail: its flames, filth and chapel lights, its gates and ladders, its things to take, its heaps; put into its holder, hidden until
+   * the next update shows it. In steps (a generator), as the detail is.
+   */
+  function* dress(section, detail) {
     // (The merged meshes of the section, before anything that moves is put in with them.)
     const chunks = kitChunks(detail.group.children, (mesh) => mesh.material !== mats.wear);
     const decals = kitChunks(detail.group.children, (mesh) => mesh.material === mats.wear);
-    const silhouette = kitChunks(far.group.children);
+    for (const chunk of decals) chunk.reach = decalReach;
+    yield;
     const dynamic = kitDynamics(detail.dyn, mats, textures);
     dynamic.group.name = `dyn:${section.id}`;
     detail.group.add(dynamic.group);
-    water.addSection(section.id, detail.dyn.waters, detail.group);
+    water.attach(section.id, detail.group);
+    yield;
     // The filth's moving parts (kitfilth.js): the fungus's glow, flies, sewage pouring.
     const filth = kfDynamics(detail.dyn.filth, textures, water);
     if (filth) detail.group.add(filth.group);
+    yield;
     const ext = kcExtras(section, mats, textures);
     if (ext) detail.group.add(ext.group);
-    const holder = new THREE.Group();
-    holder.name = `section:${section.id}`;
-    holder.add(detail.group, far.group);
     // Things in it that open, and things to take.
     const moving = [];
     for (const mech of [...(section.gates ?? []), ...(section.ladders ?? [])]) {
+      yield;
       const made = kitMechanism(section, mech, mats);
       detail.group.add(made.group);
       moving.push(made);
-      mechanisms.push(made);
     }
     const marks = [];
     for (const item of section.items ?? []) {
       const marker = kitMarker(item, textures);
       detail.group.add(marker.group);
       marks.push(marker);
-      markers.push(marker);
     }
-    for (const l of detail.dyn.lights) lights.push({ ...l, section: section.id });
-    // (Every flame by its size: a torch, a brazier, a hearth, a lantern; a candle's still flame makes no sound.)
-    for (const f of detail.dyn.flames) if (!f.candle) sounding.fires.push({ at: f.at, size: f.size, section: section.id });
-    for (const d of detail.dyn.drips) sounding.drips.push({ at: d.at, section: section.id });
     // A man buried in a heap of filth (a spawn's `lurk`): the heap, which slides off him as he rises (kitfilth.js kfHeap, world.stage.lurk).
+    const heaps = [];
     for (const spawn of section.spawns ?? []) {
       if (!spawn.lurk) continue;
       const heap = kfHeap(spawn);
       detail.group.add(heap.group);
       heaps.push(heap);
     }
+    detail.group.visible = false;
+    sections[section.id].add(detail.group);
+    return { detail, dynamic, moving, marks, ext, filth, chunks, decals, heaps };
+  }
+
+  // Each section once, in the stage's order: its detail, its silhouette, and what is kept of it whether built or not (its lights, its sounds, its water).
+  // (`sources`: what a section's detail is built from again: its seed, and the number of the first face it placed, depthrange.js FaceRegistry.)
+  const sources = {};
+  let seed = 7;
+  for (const section of stage.sections) {
+    seed += 13;
+    sources[section.id] = { seed, faces: detailFaces.next };
+    // (At once, behind the loading screen: a yield a section, not the fine steps of a build in play, which would each cost the screen a frame.)
+    const detail = runSteps(kitSectionSteps(section, mats, seed, levels, detailFaces));
+    const far = kitSilhouette(section, mats, seed + 1, farFaces);
+    water.addSection(section.id, detail.dyn.waters);
+    const holder = new THREE.Group();
+    holder.name = `section:${section.id}`;
     sections[section.id] = holder;
-    parts[section.id] = { detail, far, dynamic, moving, marks, ext, filth, chunks, decals, silhouette };
-    stats.sections[section.id] = { detail: detail.triangles, far: far.triangles };
     group.add(holder);
+    for (const l of detail.dyn.lights) lights.push({ ...l, section: section.id });
+    // (Every flame by its size: a torch, a brazier, a hearth, a lantern; a candle's still flame makes no sound.)
+    for (const f of detail.dyn.flames) if (!f.candle) sounding.fires.push({ at: f.at, size: f.size, section: section.id });
+    for (const d of detail.dyn.drips) sounding.drips.push({ at: d.at, section: section.id });
+    parts[section.id] = { section, far, silhouette: kitChunks(far.group.children), made: runSteps(dress(section, detail)) };
+    holder.add(far.group);
+    stats.sections[section.id] = { detail: detail.triangles, far: far.triangles };
+    yield;
   }
   // Where each section lies, and the ways between them (a portal's area is where its two sections meet), for what the camera can see (visibility.js).
   const graph = sectionGraph(stage);
@@ -1286,15 +1347,210 @@ export function createCastleView(stage) {
     // The quality tier in force (quality.js), and what visibility.js has decided: the state of each section as painted ('detail', 'far', 'off'), the men not drawn.
     tier: 'high', q: tierOf('high'), held: {}, states: new Map(), hidden: new Set(), menHeld: {}, menSeen: new Map(), open: new Map(), stamp: null,
     sight: seeThroughIds(stage), eye: [0, 0, 0], fogFar: Infinity, paint: { sections: 0, far: 0, chunks: 0, decals: 0 },
+    // The stream: whether the warm is over (every shader built) and the castle has since been let go to what is near (`settled`).
+    warmDone: false, settled: false,
   };
-  const view = { stage, group, sections, mechanisms: [], mats, stats, safe: null, water, sounding };
+  const view = { stage, group, sections, mechanisms: [], mats, stats, safe: null, water, sounding, renderer };
+
+  // ---- the stream: each section's detail built while near, let go when not (levelmode/sectionstream.js) -------------------------------
+
+  // A material whose shader program no other living material holds is kept, not disposed, when its section is let go: building the program
+  // again when the section comes back would stall that frame. One such material for each program (their pictures are still freed).
+  const keepers = new Map();
+  const keep = (material) => {
+    const programs = view.renderer?.properties.get(material).programs;
+    if (!programs?.size) return false;
+    let needed = false;
+    for (const key of programs.keys()) {
+      if (keepers.has(key)) continue;
+      keepers.set(key, material);
+      needed = true;
+    }
+    return needed;
+  };
+  const ledger = createResourceLedger({ keep });
+  /** Build a section's detail again (the same seed, the faces as they stood when it was first built: the same meshes to the vertex). */
+  function* buildSection(id, { now = false } = {}) {
+    const { section } = parts[id];
+    const source = sources[id];
+    const detail = yield* kitSectionSteps(section, mats, source.seed, levels, detailFaces.replay(source.faces));
+    const made = yield* dress(section, detail);
+    let done = false;
+    try {
+      if (!now && view.renderer) yield* uploadSteps(made.detail.group);
+      done = true;
+    } finally {
+      // (A build given up half way, wanted at once behind the loading screen and begun again there: what it made is let go.)
+      if (!done) {
+        water.detach(id);
+        made.detail.group.parent?.remove(made.detail.group);
+        ledger.hold(`${id}:abandoned`, made.detail.group);
+        ledger.drop(`${id}:abandoned`);
+      }
+    }
+    ledger.hold(id, made.detail.group);
+    parts[id].made = made;
+    return made;
+  }
+  // Meshes being sent to the graphics card ahead of being seen: in the scene, drawn with nothing to draw (`uploadSteps`).
+  const uploader = new THREE.Group();
+  uploader.name = 'uploading';
+  group.add(uploader);
+  /**
+   * A section built again sends its meshes' vertices to the graphics card a few at a time (`KIT_STEP.upload` bytes a frame), before it is
+   * shown: each lot is put in the scene for one frame with a draw range of nothing (three.js sends a mesh's buffers the first frame it is in
+   * view, and draws none of it), then put back. Otherwise the first frame a room is seen would send all of it at once.
+   */
+  function* uploadSteps(holder) {
+    const meshes = holder.children.filter((object) => object.isMesh);
+    const order = new Map(holder.children.map((object, index) => [object, index]));
+    let lot = [];
+    let bytes = 0;
+    const send = function* send() {
+      for (const mesh of lot) {
+        mesh.geometry.setDrawRange(0, 0);
+        mesh.frustumCulled = false;
+        uploader.add(mesh);
+      }
+      const frame = view.renderer?.info.render.frame;
+      do yield STREAM_FRAME;
+      while (view.renderer && view.renderer.info.render.frame === frame);
+      for (const mesh of lot) {
+        mesh.geometry.setDrawRange(0, Infinity);
+        mesh.frustumCulled = true;
+        holder.add(mesh);
+      }
+      lot = [];
+      bytes = 0;
+    };
+    try {
+      for (const mesh of meshes) {
+        lot.push(mesh);
+        for (const attribute of Object.values(mesh.geometry.attributes)) bytes += attribute.array.byteLength;
+        if (bytes >= KIT_STEP.upload) yield* send();
+      }
+      if (lot.length) yield* send();
+    } finally {
+      // (Given up half way: the lot out in the scene is put back as it was.)
+      for (const mesh of lot) {
+        mesh.geometry.setDrawRange(0, Infinity);
+        mesh.frustumCulled = true;
+        holder.add(mesh);
+      }
+      holder.children.sort((a, b) => order.get(a) - order.get(b));
+    }
+  }
+  /** Let a section's detail go: its water taken out first (kept for the stage), then whatever only it held disposed. */
+  const freeSection = (id, made) => {
+    water.detach(id);
+    made.detail.group.parent?.remove(made.detail.group);
+    ledger.drop(id);
+    if (parts[id].made === made) parts[id].made = null;
+  };
+  const stream = createSectionStream({ graph, build: buildSection, free: freeSection, config: streamConfig });
+  const landing = stage.ending?.landing ? activeSections(stage, stage.ending.landing.at) : null;
+  for (const id of graph.ids) stream.adopt(id, parts[id].made);
+  /**
+   * After the warm, the first frame seen: what the stage holds for good counted as held by the place (the land, the silhouettes, the water,
+   * the kit's own materials and pictures), each section's detail as held by it, and every section not near him nor in the picture let go.
+   */
+  const settle = (keepIds) => {
+    const place = [land, water.group, dropped.group, ...Object.values(parts).map((entry) => entry.far.group)];
+    const shared = [...Object.values(mats), foam, ...Object.values(textures).map((map) => ({ map }))];
+    ledger.hold('place', {
+      traverse(visit) {
+        for (const root of place) root.traverse(visit);
+        for (const mesh of [...water.sections.values()].flatMap((entry) => entry.meshes)) visit(mesh);
+        for (const material of shared) visit({ material });
+        // (The one quad every sprite of the page is drawn on: three.js's own.)
+        visit({ geometry: new THREE.Sprite().geometry });
+      },
+    }, { forever: true });
+    for (const id of graph.ids) if (parts[id].made) ledger.hold(id, parts[id].made.detail.group);
+    for (const id of graph.ids) if (!keepIds.has(id)) stream.release(id);
+    state.settled = true;
+  };
+  /** The geometry bytes of the sections' detail built now. */
+  const builtBytes = () => {
+    const seen = new Set();
+    let bytes = 0;
+    for (const entry of Object.values(parts)) {
+      entry.made?.detail.group.traverse((object) => {
+        const geometry = object.geometry;
+        if (!geometry || seen.has(geometry)) return;
+        seen.add(geometry);
+        for (const attribute of [...Object.values(geometry.attributes), ...(geometry.index ? [geometry.index] : [])]) bytes += (attribute.isInterleavedBufferAttribute ? attribute.data : attribute).array.byteLength;
+      });
+    }
+    return bytes;
+  };
+  /** The sections of `world`'s stage the player stands in that are not built (a jump there: a respawn, a fast travel): to be built behind the loading screen. */
+  // (Only after a jump: walked into, a room not yet built shows its silhouette, with the ground and solids that are always there, and its
+  // detail fills in at the stream's most urgent pace: he never waits at a gate, the user's call, 2026-11-25.)
+  view.missing = (world) => {
+    if (!streamed || !state.settled) return [];
+    const me = world.fighters[0];
+    const at = [me.x[P.pelvis * 3], me.x[P.pelvis * 3 + 1], me.x[P.pelvis * 3 + 2]];
+    const last = state.lastAt;
+    state.lastAt = at;
+    const jumped = !last || Math.hypot(at[0] - last[0], at[1] - last[1], at[2] - last[2]) > KIT_JUMP;
+    return jumped ? stream.missing(world.stage.active) : [];
+  };
+  /** Build those of `ids` not built, as steps (behind the loading screen: main.js). */
+  view.ensureSteps = (ids) => stream.ensureSteps(ids);
+  /** Keep section `id` built whatever else (a place a scene is about to cut to); `on` false lets it go back to the stream's rules. */
+  view.pin = (id, on = true) => stream.pin(id, on);
+  /** The stream now: { built, building, wanted, builds, frees, steps, longestStepMs, buildMs, ledger, keepers, detailBytes, streamed, settled }. */
+  view.streamStats = () => ({ ...stream.stats(), ledger: { ...ledger.counts }, keepers: keepers.size, detailBytes: builtBytes(), streamed, settled: state.settled });
+  view.stream = stream;
+  /** Build section `id` again now, timing each step (ms) with what it was at (a decor piece's kind): for the tools that check no step is long. */
+  view.buildTimes = (id) => {
+    stream.release(id);
+    const steps = buildSection(id, { now: true });
+    const times = [];
+    let label = 'start';
+    for (;;) {
+      const begun = performance.now();
+      const next = steps.next();
+      times.push([label, +(performance.now() - begun).toFixed(2)]);
+      if (next.done) {
+        stream.adopt(id, next.value);
+        return times;
+      }
+      label = next.value ?? label;
+    }
+  };
+  /**
+   * A fingerprint of each built section's detail (every vertex attribute and index of its meshes, in order: FNV-1a over their bytes), to
+   * show that a section built again is the one first made, to the bit (tools: the castle with `?stream=0` against the streamed one).
+   */
+  view.detailHashes = () => {
+    const out = {};
+    for (const [id, entry] of Object.entries(parts)) {
+      if (!entry.made) continue;
+      let hash = 0x811c9dc5;
+      let meshes = 0;
+      entry.made.detail.group.traverse((object) => {
+        const geometry = object.geometry;
+        if (!geometry) return;
+        meshes += 1;
+        for (const attribute of [...Object.values(geometry.attributes), ...(geometry.index ? [geometry.index] : [])]) {
+          const bytes = new Uint8Array(attribute.array.buffer, attribute.array.byteOffset, attribute.array.byteLength);
+          for (let k = 0; k < bytes.length; k += 1) hash = Math.imul(hash ^ bytes[k], 16777619) >>> 0;
+        }
+      });
+      out[id] = `${meshes}:${hash.toString(16)}`;
+    }
+    return out;
+  };
 
   /** Put the picture in a quality tier (quality.js: 'high', 'medium', 'low'): the reaches of the small things and of the shader's finer terms, the rain. */
   view.setQuality = (name) => {
     state.tier = TIER_NAMES.includes(name) ? name : 'high';
     state.q = tierOf(state.tier);
     stormRain(state.q.rain);
-    for (const entry of Object.values(parts)) for (const chunk of entry.decals) chunk.reach = state.q.decals;
+    decalReach = state.q.decals;
+    for (const entry of Object.values(parts)) for (const chunk of entry.made?.decals ?? []) chunk.reach = decalReach;
   };
   view.quality = () => state.tier;
   /** Whether a man (fighter id) is hidden this frame by sight (see kitMen). */
@@ -1374,7 +1630,21 @@ export function createCastleView(stage) {
     state.stamp = terrain?.solids;
     const open = camera.set && terrain ? (link) => linkOpen(link, terrain, state.eye, py) : () => true;
     const reach = camera.set ? (id) => nearestBoxDistance(graph.bounds[id], ex, ey, ez) <= fogLimit : () => true;
-    const states = holdSections(state.held, chooseSections(graph, { active, inView, open, reach }), dt);
+    const wanted = holdSections(state.held, chooseSections(graph, { active, inView, open, reach }), dt);
+    // The stream: the sections he stands in, those the picture would paint in detail and those near a way out are built (a few ms a frame), the rest let go.
+    // (Before it has settled, every section is built: the castle as it was made, for the warm and the baked shadow.)
+    const seen = [...wanted].filter(([, painted]) => painted === 'detail').map(([id]) => id);
+    // (The ending's cesspool is held built from the moment its chute may be taken: the drop cuts there in a second of dark, ending.js.)
+    if (landing) for (const id of landing) stream.pin(id, ['open', 'horde', 'fall'].includes(run.level?.ending?.phase));
+    if (streamed && state.settled) {
+      stream.update(dt, { position: [px, py, pz], active: run.active, seen });
+      stream.pump();
+    } else if (streamed && state.warmDone && camera.set) {
+      settle(new Set([...sectionsNear(graph, run.active, [px, py, pz], stream.numbers.lead).keys(), ...seen]));
+    }
+    // (A section wanted in detail that is not built yet shows its silhouette meanwhile.)
+    const states = new Map();
+    for (const [id, painted] of wanted) states.set(id, painted === 'detail' && !parts[id].made ? 'far' : painted);
     state.states = states;
     const paint = state.paint;
     paint.sections = 0;
@@ -1382,15 +1652,15 @@ export function createCastleView(stage) {
     paint.chunks = 0;
     paint.decals = 0;
     for (const section of stage.sections) {
-      const entry = parts[section.id];
+      const { far, silhouette, made: entry } = parts[section.id];
       const painted = states.get(section.id);
       const detailed = painted === 'detail';
-      entry.detail.group.visible = detailed;
-      entry.far.group.visible = painted === 'far';
+      if (entry) entry.detail.group.visible = detailed;
+      far.group.visible = painted === 'far';
       if (detailed) paint.sections += 1;
       else if (painted === 'far') paint.far += 1;
       // (Gates and ladders keep their motion whether or not they are seen, so that one shut behind him is shut when he turns round.)
-      if (near.has(section.id) || detailed) {
+      if (entry && (near.has(section.id) || detailed)) {
         for (const moving of entry.moving) {
           const target = ['open', 'down'].includes(run.mechanisms[moving.id]) ? 1 : 0;
           // (A seal comes down at `drop` a second, a dropped grate's or boards' fall, and goes back up at the winch's pace.)
@@ -1401,8 +1671,8 @@ export function createCastleView(stage) {
         }
       }
       if (painted === 'far') {
-        for (const chunk of entry.silhouette) chunk.reach = fogLimit;
-        kitReach(entry.silhouette, ex, ey, ez);
+        for (const chunk of silhouette) chunk.reach = fogLimit;
+        kitReach(silhouette, ex, ey, ez);
       }
       if (!detailed) continue;
       for (const chunk of entry.chunks) chunk.reach = fogLimit;
@@ -1421,6 +1691,7 @@ export function createCastleView(stage) {
         mark.group.position.y = mark.item.at[1] + (mark.item.lift ?? 0) + Math.sin(state.time * 2 + mark.item.at[0]) * 0.03;
         mark.glint.material.opacity = 0.55 + 0.35 * Math.sin(state.time * 3.1 + mark.item.at[2]);
       }
+      for (const heap of entry.heaps) heap.update(run.lurk?.[heap.id], state.time);
     }
     for (const chunk of landChunks) chunk.reach = fogLimit;
     kitReach(landChunks, ex, ey, ez);
@@ -1430,7 +1701,6 @@ export function createCastleView(stage) {
     // The water: rings round the men wading in it, splashes, the reflections (kitwater.js).
     water.update(world, state.time, dt, states, q);
     dropped.update(run.level?.dropped);
-    for (const heap of heaps) heap.update(run.lurk?.[heap.id], state.time);
     // The lights: the nearest of the lit things in the sections shown (as many as the tier lights), a few times a second.
     const lamps = Math.min(pool.length, q.lamps ?? pool.length);
     const reachNow = stormTorchReach();
@@ -1491,7 +1761,7 @@ export function createCastleView(stage) {
     group.traverse((object) => {
       if (object.isMesh || object.isLine || object.isPoints) kept.push([object, object.frustumCulled, object.visible]);
     });
-    const holders = Object.values(parts).flatMap((entry) => [entry.detail.group, entry.far.group]).map((holder) => [holder, holder.visible]);
+    const holders = Object.values(parts).flatMap((entry) => [entry.made?.detail.group, entry.far.group].filter(Boolean)).map((holder) => [holder, holder.visible]);
     const lamps = pool.map((light) => light.visible);
     for (const [object] of kept) {
       object.frustumCulled = false;
@@ -1508,6 +1778,8 @@ export function createCastleView(stage) {
     pool.forEach((light, k) => {
       light.visible = lamps[k];
     });
+    // (Every shader of the castle is built now: what is not near him may be let go, its programs kept, `keep`.)
+    state.warmDone = true;
   };
 
   /** Give the wet stone and the puddles a reflection: `env` is a cube or equirect environment map. */
@@ -1531,39 +1803,44 @@ export function createCastleView(stage) {
    * Returns the milliseconds it took.
    */
   view.bakeShadow = (renderer, look) => {
+    view.renderer ??= renderer;
     const strength = look.bakedShadow ?? 0;
-    if (!state.casters) {
-      // What casts: the opaque kit meshes of the land and of each section's detail, but not the gates (they move), the things to take, the flames and ravens.
-      const opaque = new Set(['ashlar', 'ruin', 'rubble', 'rock', 'cobble', 'flags', 'grass', 'path', 'boards', 'wood', 'iron', 'bone', 'cloth', 'straw', 'black'].map((name) => mats[name]));
-      const skip = new Set();
-      for (const entry of Object.values(parts)) {
-        for (const owner of [...entry.moving, ...entry.marks, entry.dynamic, ...(entry.ext ? [entry.ext] : [])]) owner.group.traverse((object) => skip.add(object));
-      }
-      state.casters = [];
-      for (const root of [land, ...Object.values(parts).map((entry) => entry.detail.group)]) {
-        root.traverse((object) => {
-          if (object.isMesh && opaque.has(object.material) && !skip.has(object)) state.casters.push(object);
-        });
-      }
+    // (Every section's detail casts, near the player or not: one let go is built again for the bake, at once, and let go after it.)
+    const lent = streamed ? stream.missing(graph.ids) : [];
+    runSteps(stream.ensureSteps(lent));
+    // What casts: the opaque kit meshes of the land and of each section's detail, but not the gates (they move), the things to take, the flames and ravens.
+    const opaque = new Set(['ashlar', 'ruin', 'rubble', 'rock', 'cobble', 'flags', 'grass', 'path', 'boards', 'wood', 'iron', 'bone', 'cloth', 'straw', 'black'].map((name) => mats[name]));
+    const skip = new Set();
+    const built = Object.values(parts).map((entry) => entry.made).filter(Boolean);
+    for (const entry of built) {
+      for (const owner of [...entry.moving, ...entry.marks, entry.dynamic, ...(entry.ext ? [entry.ext] : [])]) owner.group.traverse((object) => skip.add(object));
     }
-    // (Every section's detail is drawn for it, whether or not it is near the player now.)
-    const holders = Object.values(parts).flatMap((entry) => [entry.detail.group, entry.far.group]).map((holder) => [holder, holder.visible]);
+    const casters = [];
+    for (const root of [land, ...built.map((entry) => entry.detail.group)]) {
+      root.traverse((object) => {
+        if (object.isMesh && opaque.has(object.material) && !skip.has(object)) casters.push(object);
+      });
+    }
+    const holders = Object.values(parts).flatMap((entry) => [entry.made?.detail.group, entry.far.group].filter(Boolean)).map((holder) => [holder, holder.visible]);
     for (const entry of Object.values(parts)) {
-      entry.detail.group.visible = true;
+      if (entry.made) entry.made.detail.group.visible = true;
       entry.far.group.visible = false;
     }
     // (And every chunk, whether or not it is within the eye's reach now.)
-    const shown = state.casters.map((mesh) => mesh.visible);
-    for (const mesh of state.casters) mesh.visible = true;
-    state.shadowMs = ktShadowBake(renderer, group, state.casters, skyDirection(look.sun.az, look.sun.el), strength, stage.id);
-    state.casters.forEach((mesh, k) => {
+    const shown = casters.map((mesh) => mesh.visible);
+    for (const mesh of casters) mesh.visible = true;
+    state.shadowMs = ktShadowBake(renderer, group, casters, skyDirection(look.sun.az, look.sun.el), strength, stage.id);
+    casters.forEach((mesh, k) => {
       mesh.visible = shown[k];
     });
     for (const [holder, visible] of holders) holder.visible = visible;
+    for (const id of lent) stream.release(id);
     return state.shadowMs;
   };
 
   view.dispose = () => {
+    stream.dispose();
+    for (const material of keepers.values()) material.dispose();
     ktShadowRelease();
     water.dispose();
     group.traverse((object) => {

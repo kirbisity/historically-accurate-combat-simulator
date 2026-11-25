@@ -84,7 +84,7 @@ import { createLevelMarkers } from './levelmode/markers.js';
 import { createGuide } from './levelmode/endingview.js';
 import { createCutsceneDirector, createTwistDirector } from './levelmode/cutsceneview.js';
 import { STAGES } from './levelmode/stages.js';
-import { createStageView, disposeStageView, placeStageSea, updateStageView } from './levelmode/terrainview.js';
+import { createStageViewSteps, disposeStageView, placeStageSea, updateStageView } from './levelmode/terrainview.js';
 import { pinnedRung, QUALITY_MODES, readQuality, writeQuality } from './levelmode/quality.js';
 import { stormEnvironment, stormLastStrike, stormLook, stormOnSkyArrived, stormReset, stormSetLook, stormStrikeNow } from './levelmode/storm.js';
 import { stageWaters } from './levelmode/water.js';
@@ -1059,6 +1059,8 @@ function frame(now) {
     // test hooks, boxer.advance and boxer.playFrames, never have one.)
     if (!state.paused && !state.viewQueue?.length) tick(dt * state.speed * fightPace());
     settleStoryFallen();
+    // A stage's section he has jumped into that is not built (a respawn, a fast travel, the chute: levelmode/sectionstream.js): built behind the loading screen first.
+    if (stageSectionsMissing()) return;
     draw(dt);
     // The page's boot screen (index.html) away once the first frame is drawn under the menu.
     if (bootScreen && state.world) {
@@ -3764,6 +3766,23 @@ let stageRun = 0;
 // A development overlay of what each man is doing (boxer.stage().overlay(true)).
 let awarenessOverlay = null;
 
+// The castle drawn a section at a time (levelmode/kit.js, sectionstream.js); `?stream=0` in the address keeps every section built, as before.
+const STAGE_STREAM = new URLSearchParams(location.search).get('stream') !== '0';
+
+/**
+ * Whether the stage's sections he stands in are not built (he was put somewhere new: a respawn at a rest, a fast travel of the ghost
+ * walk, the drop of the ending): if so they are built behind the loading screen (a load already in hand builds them at once), and
+ * true is returned, the frame not drawn. `now`: build them at once, no screen (the test hooks' frames).
+ */
+function stageSectionsMissing({ now = false } = {}) {
+  const world = state.world;
+  const ids = world?.stage && stageView?.missing ? stageView.missing(world) : [];
+  if (!ids.length) return false;
+  if (now || loading) runSteps(stageView.ensureSteps(ids));
+  else loadInto(stageLoadInfo(), () => stageView.ensureSteps(ids));
+  return !now;
+}
+
 /**
  * Take a stage down when the screen goes to anything else (the menu, a battle, the sandbox): its cards, its drawing, its
  * markers; and the storm is let go (render.js setPlace does that when the place changes, so no rain or fog is left behind).
@@ -3820,7 +3839,8 @@ function* enterStageSteps(key, { opening = false, sandbox = null, ghost: asGhost
   const place = stage.place ?? 'stage';
   yield* setPlaceSteps(scene, place, PLACE_ARENAS[place]);
   if (stageView) disposeStageView(stageView);
-  stageView = createStageView(stage);
+  // (The castle is built a section at a time while he plays, levelmode/sectionstream.js; `?stream=0` keeps it all built, as it was.)
+  stageView = yield* createStageViewSteps(stage, { renderer: scene.renderer, stream: STAGE_STREAM });
   yield;
   stageView.setQuality?.(resolution.tier);
   scene.places[place].add(stageView.group);
@@ -4800,6 +4820,7 @@ const boxer = window.boxer = {
     for (let index = 0; index < count; index += 1) {
       buildQueuedViews();
       if (!state.paused && !state.viewQueue?.length) tick(dt * state.speed * fightPace(), { budget: Infinity });
+      stageSectionsMissing({ now: true });
       draw(dt);
       pumpSkinBuilds(scene);
     }
@@ -4827,6 +4848,7 @@ const boxer = window.boxer = {
     for (let index = 0; index < count; index += 1) {
       buildQueuedViews();
       if (!state.paused && !state.viewQueue?.length) tick(dt * state.speed * paceNow(), state.captureHeld ? { budget: Infinity } : undefined);
+      stageSectionsMissing({ now: true });
       draw(dt);
       pumpSkinBuilds(scene);
     }

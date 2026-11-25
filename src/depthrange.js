@@ -74,32 +74,52 @@ export function chooseLift(offsets, preferred, config = KIT_LIFT, separation = K
  * The big flat faces placed so far, to find where a new one would lie on the same plane (and the same facing) and overlap. A face is
  * { axis (0 x, 1 y, 2 z), sign (+1 or -1: which way it faces), height (m along its normal: sign * the plane's coordinate, with the lift), rect: [a0, a1, b0, b1]
  * (its extent along the other two axes, in order) }.
+ *
+ * Each face is numbered in the order it was placed (`next`), and a query sees only the faces numbered before the one being placed now: so a piece
+ * built again later (a section of a stage let go and made again as the player comes back: levelmode/kit.js) can be given the very lift it had the
+ * first time, from `replay(from)`, which answers as the registry did when face `from` was the next to come and places nothing itself.
  */
 export class FaceRegistry {
   constructor(cell = 0.004) {
     this.cell = cell;
     this.cells = new Map();
+    this.next = 0;
   }
 
   add(axis, sign, height, rect) {
     const key = `${axis}${sign > 0 ? '+' : '-'}${Math.round(height / this.cell)}`;
     let list = this.cells.get(key);
     if (!list) this.cells.set(key, (list = []));
-    list.push({ height, rect });
+    list.push({ height, rect, order: this.next });
+    this.next += 1;
   }
 
-  /** The heights of the faces within `reach` m of `height` that overlap `rect` (positively: a shared edge is not an overlap). */
-  near(axis, sign, height, rect, reach = 0.0045) {
+  /** The heights of the faces within `reach` m of `height` that overlap `rect` (positively: a shared edge is not an overlap), of those placed before face number `before`. */
+  near(axis, sign, height, rect, reach = 0.0045, before = this.next) {
     const found = [];
     const steps = Math.ceil(reach / this.cell);
     const centre = Math.round(height / this.cell);
     for (let d = -steps; d <= steps; d += 1) {
       for (const face of this.cells.get(`${axis}${sign > 0 ? '+' : '-'}${centre + d}`) ?? []) {
-        if (Math.abs(face.height - height) > reach) continue;
+        if (face.order >= before || Math.abs(face.height - height) > reach) continue;
         const r = face.rect;
         if (Math.min(r[1], rect[1]) - Math.max(r[0], rect[0]) > 1e-4 && Math.min(r[3], rect[3]) - Math.max(r[2], rect[2]) > 1e-4) found.push(face.height);
       }
     }
     return found;
+  }
+
+  /** The registry as it stood when face number `from` was the next to be placed: the same `near` and `add`, but `add` only counts (the faces are here already). */
+  replay(from) {
+    const registry = this;
+    return {
+      next: from,
+      add() {
+        this.next += 1;
+      },
+      near(axis, sign, height, rect, reach = 0.0045) {
+        return registry.near(axis, sign, height, rect, reach, this.next);
+      },
+    };
   }
 }
