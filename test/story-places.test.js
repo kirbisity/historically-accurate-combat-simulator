@@ -17,7 +17,9 @@ const { tkgBuilder, tkgFrame, tkgRoof, tkgVault, tkgWall } = await import('../sr
 const { tkHouse, tkRow, tkTree, tkArchBridge, tkArchBridgeSolids, tkLaneGateSolids } = await import('../src/townkit/build.js');
 const { tkGatehouse, tkGatehouseSolids, tkPavilion, tkPavilionSolids, tkRampart, tkRampartSolids, tkRock, tkWorksStair, tkWorksStairSolid } = await import('../src/townkit/works.js');
 const { CANAL_TOWN, canalTownSolids } = await import('../src/places/canaltown.js');
-const { PYONGYANG_PLACE, pyongyangGround, pyongyangSolids } = await import('../src/places/pyongyang.js');
+const { PYONGYANG_PLACE, PY_BARRICADE, PY_DISTRICTS, PY_HOLDS, PY_SOUTH_WALL, pyDistrict, pyHoldFor, pyongyangGround, pyongyangPlan, pyongyangSolids, pySkylineItems } = await import('../src/places/pyongyang.js');
+const { PY_CITY, PY_TOWN_FIGHT } = await import('../src/places/pyongyang-city.js');
+const { tkSkyline } = await import('../src/townkit/skyline.js');
 const { STORY_MUSTER_RADIUS, STORY_PLACES, storyPlaceWeather } = await import('../src/places/storyplaces.js');
 
 /** Every number anywhere in `value` (arrays, typed arrays, objects), given to `each`. */
@@ -256,4 +258,64 @@ test('pyongyang: the frozen river is reached on foot, the feet on the drawn bank
     assert.ok(z < river.field.to, `and is bounded before the field's end (z ${z})`);
     assert.ok(Math.abs(lowest - river.ice) < 0.05, `on the way it is on the ice (${lowest.toFixed(2)} m)`);
   }
+});
+
+test('pyongyang: every plan item stands in exactly one district, the one its anchor is in, and the districts cover the walked ground', () => {
+  const plan = pyongyangPlan();
+  const c = plan.city;
+  const lists = { houses: c.houses, halls: c.halls, pavilions: c.pavilions, terraces: c.terraces, walls: c.walls, gates: c.gates, lanterns: c.lanterns, jars: c.jars, pagodas: c.pagodas, bells: c.bells, trees: plan.trees, rocks: plan.rocks, outcrops: plan.outcrops };
+  const counts = Object.fromEntries(PY_DISTRICTS.ids.map((id) => [id, 0]));
+  for (const [name, list] of Object.entries(lists)) {
+    for (const item of list) {
+      assert.ok(PY_DISTRICTS.ids.includes(item.district), `${name} at ${item.at ?? item.run} has a district (${item.district})`);
+      const at = item.at ?? [(item.run[0][0] + item.run[1][0]) / 2, (item.run[0][1] + item.run[1][1]) / 2];
+      assert.equal(item.district, pyDistrict(...at), `${name} at [${at}] is in the district it stands in`);
+      counts[item.district] += 1;
+    }
+  }
+  for (const id of ['F', 'W', 'G', 'M']) assert.ok(counts[id] > 10, `${id} holds things (${counts[id]})`);
+  // (Every point of the walked ground is in one district: the ids are the whole set.)
+  for (let x = -149; x <= 304; x += 7) for (let z = -130; z <= 640; z += 7) assert.ok(PY_DISTRICTS.ids.includes(pyDistrict(x, z)));
+  // The uses: Battle Mode's town fight lies wholly inside W, chapter 3 and the custom strip hold F and W.
+  const [fx, fz] = PY_TOWN_FIGHT.at;
+  for (const x of [fx - 26, fx + 26]) for (const z of [fz - 15, fz + 15]) assert.equal(pyDistrict(x, z), 'W', `the town fight's corner [${x}, ${z}] is in W`);
+  assert.ok(!PY_HOLDS.roam.includes('E'), 'the east town is never held: its skyline only');
+});
+
+test('pyongyang: each district\'s skyline is drawn from its plan, finite and far lighter than its full drawing', () => {
+  for (const id of PY_DISTRICTS.ids) {
+    const builder = tkgBuilder();
+    tkSkyline(builder, pySkylineItems(id));
+    if (id === 'R') continue;
+    finiteTriangles(builder, `${id}'s skyline`);
+    const houses = pySkylineItems(id).houses ?? [];
+    if (!houses.length) continue;
+    const alone = tkgBuilder();
+    tkSkyline(alone, { houses });
+    const each = finiteTriangles(alone, `${id}'s houses`) / houses.length;
+    assert.ok(each < 40, `${id}: ${each.toFixed(0)} triangles a house in its skyline`);
+  }
+});
+
+test('pyongyang: the south wall and the barricade close the districts but at their gates, and the battle strip runs on clear through the barricade', () => {
+  const terrain = createTerrain(pyongyangSolids());
+  const z = PY_SOUTH_WALL.z;
+  // Across the south wall: shut along it, open through Hamgumun and the lane gate.
+  for (let x = 20; x <= 140; x += 2) {
+    const gate = PY_SOUTH_WALL.gates.find((g) => Math.abs(x - g.x) < g.way / 2 - 0.4);
+    const floor = standing(terrain, x, z - 2, 0);
+    if (gate) assert.equal(floor, 0, `the gate's passage at x ${x} is open`);
+    else assert.equal(floor, null, `the wall at x ${x} is solid at the ground`);
+  }
+  // From the gate square: through Hamgumun into the middle city; through the barricade's gate into the governor's
+  // quarter; the hill's palisade shut.
+  const square = [30, 0, -50];
+  const walk = reached(terrain, square, 1, [170, 170]);
+  for (const [name, at] of Object.entries({ middle: [61, 60], governor: [110, -50], broadEast: [110, 0], laneGateSouth: [120, 60] })) assert.ok(walk.at(...at) !== undefined, `${name} [${at}] is reached from the square`);
+  const x = PY_CITY.wg.x;
+  for (const zz of [-110, -90, -70]) assert.equal(standing(terrain, x, zz, pyongyangGround(x, zz)), null, `the palisade at [${x}, ${zz}] is solid`);
+  // The strip chapter 3 fights along (|z| <= 9: PYONGYANG_1593.arena) is clear through the barricade's gateway, as far
+  // as the governor's compound's south wall, which stood 2 m into the broad street before the barricade.
+  for (let xx = x - 6; xx <= x + 6; xx += 1) for (let zz = -7; zz <= PYONGYANG_1593.arena.halfZ; zz += 1) assert.equal(standing(terrain, xx, zz, 0), 0, `the broad street at [${xx}, ${zz}] is clear`);
+  for (const [px, pz] of PY_BARRICADE.stands) assert.ok(Math.abs(pz) > PYONGYANG_1593.arena.halfZ, `a watch stand at [${px}, ${pz}] stands outside the strip`);
 });

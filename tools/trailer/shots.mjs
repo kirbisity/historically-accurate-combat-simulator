@@ -47,7 +47,8 @@ export const SHOTS = {
       await TC.warm(120);`,
     segments: [real(14.5)],
   },
-  // Story ch. 3, seed 1: the hero's approach through the snow, the Hamgu gate (含毬門) in frame (it stands 50 m along the wall).
+  // Story ch. 3, seed 1: the hero's approach through the snow, the west gate in frame (it stands 50 m along the wall; the
+  // frozen trailer shows its old board, 含毬門: the gate is Bot'ongmun, 普通門, since 2026-11-25).
   pyongyangGate: {
     view: 'phone',
     setup: `

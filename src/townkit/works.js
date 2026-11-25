@@ -331,3 +331,108 @@ export function tkRock(builder, x, y, z, { size = 1.6, seed = 1, colour = [0.72,
   const profile = [[r * (0.95 + 0.1 * random()), 0], [r * (1.0 + 0.12 * random()), r * tall * 0.45], [r * (0.72 + 0.2 * random()), r * tall * 0.95], [r * (0.3 + 0.2 * random()), r * tall * 1.3], [0.001, r * tall * 1.36]];
   builder.lathe('rock', frame, (random() - 0.5) * r * 0.3, (random() - 0.5) * r * 0.3, profile, { colour: colour.map((value) => value * (0.88 + 0.2 * random())), sides: 5 + Math.floor(random() * 3) });
 }
+
+// A field barricade of timber and earth, as an army in occupation throws across a town's streets (an earth bank, a
+// palisade of split logs set in it, pointed, tied by rails behind; a gate of heavy posts and plank leaves; a watch
+// stand of four posts and a floor). Typical of such work, none of it from a record of one (the Japanese in Pyongyang
+// in 1592-93 dug earth works and an earth-and-log fort inside the walls: places/pyongyang.js says what is the game's
+// reading). `bank`: the bank's height, its foot's and its top's width (m); `logs`: their spacing, radius and height
+// over the bank [least, most], the point's length, how far one leans either way; `rails`: the rails' heights over the
+// bank; colours of the dug earth, the logs (fresh-split pine, weathered a winter) and the rails. By eye.
+export const TK_BARRICADE = {
+  bank: { high: 0.9, foot: 2.6, top: 0.9 },
+  logs: { every: 0.34, radius: [0.11, 0.16], high: [2.2, 2.7], point: 0.35, lean: 0.05 },
+  rails: [0.8, 1.9],
+  earth: [0.55, 0.48, 0.4], log: [0.5, 0.4, 0.31], rail: [0.36, 0.28, 0.21],
+};
+
+/**
+ * A barricade along `points` ([x, z] each, in order), on the ground `heightAt(x, z)`: its bank, its palisade and the
+ * rails behind it (on the right of one walking the points).
+ */
+export function tkBarricade(builder, points, { heightAt, seed = 1 }) {
+  const b = TK_BARRICADE;
+  const random = tkRandom(seed * 613 + 5);
+  const lerp = ([lo, hi], u) => lo + (hi - lo) * u;
+  for (let k = 0; k + 1 < points.length; k += 1) {
+    const [ax, az] = points[k];
+    const [bx, bz] = points[k + 1];
+    const length = Math.hypot(bx - ax, bz - az);
+    const frame = tkgFrame(ax, 0, az, Math.atan2(-(bz - az), bx - ax));
+    const ground = (x) => {
+      const [wx, , wz] = frame(x, 0, 0);
+      return heightAt(wx, wz);
+    };
+    // The bank, in pieces of about 2 m so that it follows the ground.
+    const pieces = Math.max(1, Math.round(length / 2));
+    for (let n = 0; n < pieces; n += 1) {
+      const [x0, x1] = [(n * length) / pieces, ((n + 1) * length) / pieces];
+      const [g0, g1] = [ground(x0), ground(x1)];
+      const [f, t, h] = [b.bank.foot / 2, b.bank.top / 2, b.bank.high];
+      builder.quad('earth', frame(x0, g0 - 0.2, f), frame(x1, g1 - 0.2, f), frame(x1, g1 + h, t), frame(x0, g0 + h, t), { colour: b.earth });
+      builder.quad('earth', frame(x1, g1 - 0.2, -f), frame(x0, g0 - 0.2, -f), frame(x0, g0 + h, -t), frame(x1, g1 + h, -t), { colour: b.earth });
+      builder.quad('earth', frame(x0, g0 + h, t), frame(x1, g1 + h, t), frame(x1, g1 + h, -t), frame(x0, g0 + h, -t), { colour: b.earth });
+      if (n === 0) builder.quad('earth', frame(0, g0 - 0.2, -f), frame(0, g0 - 0.2, f), frame(0, g0 + h, t), frame(0, g0 + h, -t), { colour: b.earth });
+      if (n === pieces - 1) builder.quad('earth', frame(length, g1 - 0.2, f), frame(length, g1 - 0.2, -f), frame(length, g1 + h, -t), frame(length, g1 + h, t), { colour: b.earth });
+    }
+    // The palisade on the bank's crest: a log every `every` m, each its own height, pointed.
+    const logs = Math.max(1, Math.round(length / b.logs.every));
+    for (let n = 0; n <= logs; n += 1) {
+      const x = (n * length) / logs;
+      const foot = ground(x) + b.bank.high - 0.3;
+      const [r, high] = [lerp(b.logs.radius, random()), lerp(b.logs.high, random()) + 0.3];
+      const lean = (random() - 0.5) * 2 * b.logs.lean;
+      const colour = b.log.map((value) => value * (0.85 + 0.3 * random()));
+      builder.round('timber', frame, x, lean * 0.5, foot, foot + high - b.logs.point, r, r * 0.92, { sides: 6, caps: '', colour });
+      builder.round('timber', frame, x, lean, foot + high - b.logs.point, foot + high, r * 0.92, 0.02, { sides: 6, caps: '', colour });
+    }
+    // The rails behind, lashed across the logs.
+    for (const rail of b.rails) builder.tube('timber', [frame(0, ground(0) + b.bank.high + rail, -0.22), frame(length, ground(length) + b.bank.high + rail, -0.22)], 0.07, 0.07, { sides: 5, colour: b.rail });
+  }
+}
+
+/** The solids of tkBarricade: along each stretch, an upright block the bank's foot thick to the logs' heads. */
+export function tkBarricadeSolids(points, { heightAt }) {
+  const b = TK_BARRICADE;
+  const solids = [];
+  for (let k = 0; k + 1 < points.length; k += 1) {
+    const [a, c] = [points[k], points[k + 1]];
+    const feet = [heightAt(...a), heightAt(...c), heightAt((a[0] + c[0]) / 2, (a[1] + c[1]) / 2)];
+    solids.push(wallLine(a, c, b.bank.foot * 0.7, Math.min(...feet) - 1, Math.max(...feet) + b.bank.high + b.logs.high[1]));
+  }
+  return solids;
+}
+
+/**
+ * A barricade's gate in `frame` (the passage's middle at the ground, the way through along local z): two heavy posts,
+ * a beam over them `high` m up, and two plank leaves standing open against the palisade's inner side. `way` m wide.
+ */
+export function tkBarricadeGate(builder, frame, { way = 4.4, high = 3.4 } = {}) {
+  const b = TK_BARRICADE;
+  for (const s of [-1, 1]) {
+    builder.round('timber', frame, s * (way / 2 + 0.2), 0, -0.2, high + 0.5, 0.24, 0.22, { sides: 8, caps: 'top', colour: b.log });
+    builder.box('timber', frame.child(s * (way / 2 - 0.05), 0, -0.25, -s * 1.35), -0.07, 0.07, 0.05, high - 0.3, -way / 2 + 0.1, 0, { colour: b.rail });
+  }
+  builder.box('timber', frame, -way / 2 - 0.6, way / 2 + 0.6, high, high + 0.32, -0.2, 0.2, { colour: b.rail });
+}
+
+/** The solids of tkBarricadeGate: its two posts. */
+export function tkBarricadeGateSolids(frame, { way = 4.4, high = 3.4 } = {}, base = 0) {
+  return [-1, 1].map((s) => {
+    const [x, , z] = frame(s * (way / 2 + 0.2), 0, 0);
+    return wallOf([x, z], [0.5, 0.5], base - 1, base + high + 0.8);
+  });
+}
+
+/** A watch stand at world (x, y, z): four posts `size` m apart, a plank floor `high` m up with a rail round it. */
+export function tkWatchStand(builder, x, y, z, { size = 1.1, high = 3.0, yaw = 0 } = {}) {
+  const b = TK_BARRICADE;
+  const frame = tkgFrame(x, y, z, yaw);
+  const h = size / 2;
+  for (const [px, pz] of [[-h, -h], [h, -h], [h, h], [-h, h]]) builder.round('timber', frame, px, pz, -0.2, high + 1.0, 0.1, 0.09, { sides: 6, caps: 'top', colour: b.log });
+  builder.box('timber', frame, -h - 0.15, h + 0.15, high, high + 0.12, -h - 0.15, h + 0.15, { colour: b.rail });
+  for (const [x0, x1, z0, z1] of [[-h, h, -h - 0.05, -h + 0.05], [-h, h, h - 0.05, h + 0.05], [-h - 0.05, -h + 0.05, -h, h], [h - 0.05, h + 0.05, -h, h]]) builder.box('timber', frame, x0, x1, high + 0.85, high + 0.95, z0, z1, { colour: b.rail });
+}
+
+/** The solid of tkWatchStand: its posts' square to above its rail. */
+export const tkWatchStandSolid = (x, y, z, { size = 1.1, high = 3.0, yaw = 0 } = {}) => wallOf([x, z], [size + 0.2, size + 0.2], y - 1, y + high + 1.0, { yaw });

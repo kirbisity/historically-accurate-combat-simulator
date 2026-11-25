@@ -7,7 +7,11 @@
 //    after Swope, A Dragon's Head and a Serpent's Tail (2009).
 //  - 8 February: the gates pounded by the guns; the walls rushed with ladders. Li Rusong offered 5,000 taels of silver
 //    to the first man up (先登上城牆的人，賞賜白銀五千兩); Luo Shangzhi (骆尚志), commanding southern troops, went up
-//    first at the Hamgu gate (含毬门) with a long halberd (zh.wikipedia, 平壤之战 (1593年)). Wu Weizhong (吴惟忠), the
+//    first with a long halberd (zh.wikipedia, 平壤之战 (1593年), which puts him at the Hamgu gate, 含毬门). The Sillok has
+//    the Zhejiang troops at the west wall and the Korean troops at the south wall by the Hamgu gate; the Mingshi has Yang
+//    Yuan first in at the "small west gate". The game follows the Sillok: the southern troops' ladders are on the west
+//    wall by its gate, Bot'ongmun (普通門), and Hamgumun is the gate of the inner city's south wall (places/pyongyang.js
+//    PY_SOUTH_WALL; the user's call, 2026-11-25). Wu Weizhong (吴惟忠), the
 //    Yiwu officer of Qi's army who led the southern troops, attacked the Moranbong heights (牡丹峰) and was hit in the
 //    chest and fought on (Mingshi 238: 中炮伤胸，犹奋呼督战; the Yiwu gazetteer has it in his left side).
 //  - Afterwards the credit went to the northern troops and the promised silver was not paid to the southern men: a cause

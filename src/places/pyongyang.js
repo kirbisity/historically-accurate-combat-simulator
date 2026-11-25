@@ -10,8 +10,11 @@
 // sides of the wall) is level at y 0, as the battle's own floor is.
 //
 // The gate's form is read off a reference photograph of a Joseon gate (a dressed-stone base with an arched passage, a
-// two-storey pavilion over it); it carries the name of the one gate the story's sources name at the assault, the Hamgu
-// gate (含毬門). Its true form, the wall's line and the lie of the ground in 1593 are not known here: typical, not surveyed.
+// two-storey pavilion over it). It is the west gate, Bot'ongmun (普通門): the Sillok has the Zhejiang troops at the west
+// wall and the Korean troops at the south wall by Hamgumun (含毬門), and the Mingshi has Yang Yuan first in at the "small
+// west gate"; so Hamgumun is the gate of the inner city's south wall here (PY_SOUTH_WALL), and the west gate carries
+// Bot'ongmun (the user's call, 2026-11-25; before, the west gate carried Hamgumun, the user's call of 2026-11-14). Its
+// true form, the wall's line and the lie of the ground in 1593 are not known here: typical, not surveyed.
 
 import { createTerrain, fieldOf, slabOf, wallLine, wallOf } from '../physics/terrain.js';
 import { STORY_WALL } from '../story/ground/walls.js';
@@ -24,9 +27,9 @@ import { runSteps } from '../loftbody.js';
 import { tkStir } from '../townkit/stir.js';
 import { TK_GLOW, TK_MATERIALS } from '../townkit/weather.js';
 import { TK_THINGS, tkArrows, tkBasket, tkBrazier, tkCampfire, tkCart, tkDrift, tkFirewood, tkIcicles, tkLadder, tkMantlet, tkPoles, tkSacks, tkScatter, tkStack, tkTub, tkTuft } from '../townkit/things.js';
-import { PY_CITY, PY_FAR_TOWN, PY_TOWN_FIGHT, pyCityDraw, pyCityPlan, pyCitySolids, pyFarTownPlan, pyInFarTown } from './pyongyang-city.js';
+import { PY_CITY, PY_FAR_TOWN, PY_SOUTH_GATES, PY_TOWN_FIGHT, pyCityDraw, pyCityPlan, pyCitySolids, pyFarTownPlan, pyInFarTown } from './pyongyang-city.js';
 import { tkSkyline, tkSkylinePavilion } from '../townkit/skyline.js';
-import { TK_WORKS, tkGatehouse, tkGatehouseSolids, tkPavilion, tkPavilionSolids, tkRampart, tkRampartSolids, tkWorksStair, tkWorksStairSolid } from '../townkit/works.js';
+import { TK_WORKS, tkBarricade, tkBarricadeGate, tkBarricadeGateSolids, tkBarricadeSolids, tkGatehouse, tkGatehouseSolids, tkPavilion, tkPavilionSolids, tkRampart, tkRampartSolids, tkWatchStand, tkWatchStandSolid, tkWorksStair, tkWorksStairSolid } from '../townkit/works.js';
 
 /** The place's plan (m). Choices for the game's ground, set against the battle's field and a walker's reach; none is a measurement of the real town. */
 export const PYONGYANG_PLACE = {
@@ -93,7 +96,79 @@ export const PYONGYANG_PLACE = {
 // ground's fields, the far country and its woods, the sky, the town's paving, and the walls between districts (the
 // north, east and south walls, the barricade). A thing belongs to the district its anchor stands in (a house's middle,
 // a wall run's middle).
-export const PY_DISTRICTS = { ids: ['F', 'W', 'G', 'M', 'R', 'E'], west: 1, wg: 87, south: 40, river: 130, east: 148 };
+export const PY_DISTRICTS = { ids: ['F', 'W', 'G', 'M', 'R', 'E'], west: 1, wg: PY_CITY.wg.x, south: PY_CITY.south.z, river: 130, east: 148 };
+
+// The inner city's south wall, against the middle city (the user's call, 2026-11-25): the record's inner/middle-city
+// cross-wall, with Hamgumun LIKELY in it (the Sillok pairs Hamgumun with the Korean attack on the "south wall"). A stone
+// town wall as the west wall is (its height, walk and parapet, PYONGYANG_PLACE.wall and STORY_WALL), its outer face to
+// the south at `z` (PY_CITY.south), free-standing (no earth bank behind it: the town's yards come up to its inner lane),
+// from the west wall's walk (`x[0]`, where the two walks meet) east to the east wall. Its gates (`gates`, x along it,
+// PY_CITY's PY_SOUTH_GATES): Hamgumun (含毬門) on the market street, a block `wide` along the wall by `deep` through it
+// standing `out` proud of its face, `high` to its terrace, its passage `way` (arched at `spring`, rising `rise`), and a
+// two-storey pavilion (`storeys`, three quarters of the west gate's, the lesser gate of the two); and a lane gate at x 120
+// on the lane south, its terrace level with the walk, a one-storey pavilion. Dimensions by eye against the west gate;
+// none surveyed. A walker climbs from the walk to Hamgumun's terrace by a stair either side, as at the west gate.
+export const PY_SOUTH_WALL = {
+  z: PY_CITY.south.z, x: [4.8, PY_FAR_TOWN.wall],
+  gates: [
+    { x: PY_SOUTH_GATES[0], name: '含毬門', wide: 14, deep: 7.4, out: 1.6, high: 6.2, way: 4.2, spring: 2.6, rise: 2.1, storeys: [{ width: 12, depth: 5.6, high: 3.0, fill: 'open' }, { width: 9, depth: 3.8, high: 2.5, fill: 'lattice' }] },
+    { x: PY_SOUTH_GATES[1], wide: 8, deep: 5, out: 0.6, high: 4.5, way: 3, spring: 2.3, rise: 1.4, storeys: [{ width: 5.6, depth: 3.4, high: 2.6, fill: 'open' }] },
+  ],
+};
+
+// The line between W and G (PY_CITY.wg). No ward wall inside the Joseon inner city is on record: this is the game's
+// reading, not a record (the user's call, 2026-11-25): a Japanese barricade of timber and earth (townkit/works.js
+// tkBarricade), thrown up in the six months' occupation as the inner redoubts were, across the avenue and the broad
+// street, joined to the yard and compound walls, and carried up the hill to the north wall. Its stretches ([x, z]
+// points): `runs`; across the avenue, a gate of posts and plank leaves standing open (`gate`: its middle, its way);
+// across the broad street an open gateway from the governor's compound's corner (whose south wall stands 2 m into the
+// broad street) to a watch stand (`stands`) at the street's south edge, no leaves, so that the battle strip of chapter
+// 3 (|z| <= 9: story/battles/03-pyongyang.js, which runs on east past this line; its physics has no town in it) is
+// not blocked; the compound's west gate barred by a stretch across it.
+export const PY_BARRICADE = {
+  runs: [
+    [[87, -116], [87, -54.2]],
+    [[87, -53.5], [87, -52.6]], [[87, -47.4], [87, -46.5]],
+    [[87, -46.5], [87, -44.2]],
+    [[85.2, -18.2], [85.2, -13.8]],
+    [[87.7, 31.7], [87.7, 36.2]],
+  ],
+  gate: { at: [87, -50], way: 4.4, high: 3.4 },
+  stands: [[88.4, 10.2]],
+};
+
+/** The south wall's runs (PY_SOUTH_WALL) between its gates, west to east: nodes [x, z, foot, top] (its outer side, south, on the left). */
+function pySouthWallRuns() {
+  const plan = pyongyangPlan();
+  const w = PY_SOUTH_WALL;
+  const high = PYONGYANG_PLACE.wall.high;
+  const foot = (x) => (x <= plan.east ? tkFieldAt(plan.inside, x, w.z) : pyFar(x, w.z));
+  // (Its walk level with the west wall's where the two meet, over the west wall's bank; beyond, its height over its own foot.)
+  const node = (x) => [x, w.z, foot(x), x < plan.head + plan.wall.bank ? pyFoot(w.z) + high : foot(x) + high];
+  const cuts = [w.x[0], ...w.gates.flatMap((g) => [g.x - g.wide / 2, g.x + g.wide / 2]), w.x[1]];
+  const runs = [];
+  for (let k = 0; k + 1 < cuts.length; k += 2) {
+    const [a, b] = [cuts[k], cuts[k + 1]];
+    const count = Math.max(1, Math.round((b - a) / PYONGYANG_PLACE.cell));
+    runs.push(Array.from({ length: count + 1 }, (_, n) => node(a + ((b - a) * n) / count)));
+  }
+  return runs;
+}
+
+/** A south wall gate's frames: its block's (at the middle of its outer face's foot, facing out, south) and its pavilion's (on its terrace); its stairs from the walk. */
+function pySouthGate(g) {
+  const plan = pyongyangPlan();
+  const { wall } = plan;
+  const base = tkFieldAt(plan.inside, g.x, PY_SOUTH_WALL.z);
+  const walkZ = PY_SOUTH_WALL.z - wall.face - wall.thick - (wall.walk - wall.thick) / 2;
+  const run = (g.high - wall.high) * 2;
+  return {
+    base,
+    block: tkgFrame(g.x, base, PY_SOUTH_WALL.z + g.out, 0),
+    pavilion: tkgFrame(g.x, base + g.high, PY_SOUTH_WALL.z + g.out - g.deep / 2, 0),
+    stairs: run > 0.2 ? [[[g.x - g.wide / 2 - run, walkZ], [g.x - g.wide / 2, walkZ]], [[g.x + g.wide / 2 + run, walkZ], [g.x + g.wide / 2, walkZ]]] : [],
+  };
+}
 
 /** The district (PY_DISTRICTS) a point of the place stands in. */
 export function pyDistrict(x, z) {
@@ -766,6 +841,21 @@ export function pyongyangSolids() {
   // (The passage's floor: the two fields of ground stop at the wall's two sides.)
   solids.push(slabOf([wall.x - t.gate.out + t.gate.deep / 2, t.gate.z], [t.gate.deep + 1, t.gate.way], 0, { bottom: -3 }));
   for (const [from, to] of pyGateStairs()) solids.push(tkWorksStairSolid(from, to, wall.high, t.gate.high, { wide: wall.walk - wall.thick }));
+  // The south wall (PY_SOUTH_WALL): its runs (no walls across the walk at their ends: the walk goes on from the west
+  // wall's and over the gates), its gates' blocks, Hamgumun's stairs and pavilion.
+  for (const run of pySouthWallRuns()) solids.push(...tkRampartSolids(run, { ...wall, ends: false }));
+  for (const g of PY_SOUTH_WALL.gates) {
+    const frames = pySouthGate(g);
+    solids.push(...tkGatehouseSolids(frames.block, { ...g, base: frames.base }));
+    for (const [from, to] of frames.stairs) solids.push(tkWorksStairSolid(from, to, frames.base + wall.high, frames.base + g.high, { wide: wall.walk - wall.thick }));
+    solids.push(...tkPavilionSolids(frames.pavilion, { storeys: g.storeys }, frames.base + g.high));
+  }
+  // The barricade between W and G (PY_BARRICADE): its stretches, its gate's posts, the watch stands.
+  const inside = (x, z) => tkFieldAt(plan.inside, x, z);
+  for (const run of PY_BARRICADE.runs) solids.push(...tkBarricadeSolids(run, { heightAt: inside }));
+  const barGate = PY_BARRICADE.gate;
+  solids.push(...tkBarricadeGateSolids(tkgFrame(barGate.at[0], 0, barGate.at[1], Math.PI / 2), barGate, inside(...barGate.at)));
+  for (const [x, z] of PY_BARRICADE.stands) solids.push(tkWatchStandSolid(x, inside(x, z), z));
   const pavilions = pyPavilions();
   solids.push(...tkPavilionSolids(pavilions.gate, { storeys: t.pavilion }, t.gate.high));
   // The terrace's ends beside the stairs' heads (the block is wider than the walk): closed with a low wall.
@@ -1540,7 +1630,7 @@ buildPyongyang.steps = (arena) => buildPyongyangSteps(arena);
  * The place's drawing into `blocks` (pyBlocks: what stands in a district not held is not made) and its far woods into
  * `woods`, in steps (a yield after each big piece). `stir`: the kit's moving things; `layOf(blocks)`: the place's lie,
  * baked once the place's masses are laid and before its dressing (the dressing reads it). Returns { lay, eave (the
- * west gate pavilion's top eave), pavilions (pyPavilions), scattered }. Run again with one district held and no
+ * west gate pavilion's top eave), pavilions (pyPavilions), scattered, southEaves (each south gate pavilion's top eave) }. Run again with one district held and no
  * backdrop, it draws that district alone, as it was drawn with the rest.
  */
 function* pyDrawPlace(blocks, woods, plan, tier, stir, layOf) {
@@ -1659,6 +1749,20 @@ function* pyDrawPlace(blocks, woods, plan, tier, stir, layOf) {
   const crest = pyFoot(t.wall.z[0]);
   tkRampart(blocks.wide, Array.from({ length: 13 }, (_, k) => [PY_FAR_TOWN.wall - k * ((PY_FAR_TOWN.wall - wall.x) / 12), t.wall.z[0], crest, crest + wall.high]), { ...wall, inner: () => crest, masonry, seed: 7 });
   tkRampart(blocks.wide, pySouthRun(), { ...wall, inner: (node) => node[2], masonry, seed: 9 });
+  // The south wall, its gates and their pavilions (PY_SOUTH_WALL), and the barricade between W and G (PY_BARRICADE):
+  // the backdrop's, drawn for every use, as the walls between districts are.
+  for (const [index, run] of pySouthWallRuns().entries()) tkRampart(blocks.wide, run, { ...wall, inner: (node) => node[2], masonry, seed: 20 + index });
+  const southEaves = PY_SOUTH_WALL.gates.map((g) => {
+    const frames = pySouthGate(g);
+    tkGatehouse(blocks.wide, frames.block, g);
+    for (const [from, to] of frames.stairs) tkWorksStair(blocks.wide, from, to, frames.base + wall.high, frames.base + g.high, { wide: wall.walk - wall.thick });
+    return tkPavilion(blocks.wide, frames.pavilion, { storeys: g.storeys, board: !!g.name });
+  });
+  const inside = (x, z) => tkFieldAt(plan.inside, x, z);
+  for (const [index, run] of PY_BARRICADE.runs.entries()) tkBarricade(blocks.wide, run, { heightAt: inside, seed: index + 1 });
+  const barGate = PY_BARRICADE.gate;
+  blocks.wide.at('all', () => tkBarricadeGate(blocks.wide, tkgFrame(barGate.at[0], inside(...barGate.at), barGate.at[1], Math.PI / 2), barGate));
+  for (const [x, z] of PY_BARRICADE.stands) tkWatchStand(blocks.wide, x, inside(x, z), z);
   // The gate: its block, the stairs up from the walk, the pavilion on its terrace; the corner's pavilion.
   const gate = blocks.at(wall.x, t.gate.z);
   tkGatehouse(gate, plan.gateFrame, t.gate);
@@ -1702,7 +1806,7 @@ function* pyDrawPlace(blocks, woods, plan, tier, stir, layOf) {
   pyForeDraw(blocks, stir, plan, tier);
   pyReeds(blocks, plan);
   yield;
-  return { lay, eave, pavilions, scattered };
+  return { lay, eave, pavilions, scattered, southEaves };
 }
 
 /**
@@ -1734,7 +1838,7 @@ export function* buildPyongyangSteps(arena = null, { shift = [0, 0], key = 'pyon
     ground: (x, z) => (z > t.outside.z[1] ? tkFieldAt(plan.south, x, z) : x <= wall.x ? tkFieldAt(plan.outside, x, z) : x < head ? pyFoot(z) : tkFieldAt(plan.inside, x, z)),
   });
   const stir = tkStir(3);
-  const { lay, eave, pavilions, scattered } = yield* pyDrawPlace(blocks, woods, plan, tier, pyStirFor(stir), layOf);
+  const { lay, eave, pavilions, scattered, southEaves } = yield* pyDrawPlace(blocks, woods, plan, tier, pyStirFor(stir), layOf);
 
   // (The river's ice is frozen, not open water: no pool's mirror. The wind scours lying snow off smooth ice into drifts
   // and bare patches more than off rough ground: it holds `snow` 0.6 of the ground's share (by eye against photographs
@@ -1752,12 +1856,20 @@ export function* buildPyongyangSteps(arena = null, { shift = [0, 0], key = 'pyon
   root.name = key;
   root.position.set(dx, 0, dz);
   const sky = tkSky({ horizon: PY_LIGHT.haze, zenith: 0x7fa3d0, cloud: 0.3, cloudColour: 0xf4f4f0, radius: 2200, sun: PY_LIGHT.sun, glow: 0.3 });
-  // The gate's name on its board (the story's: the Hamgu gate), on the outer side under the upper eave.
-  const board = pyNameBoard('含毬門');
+  // The gates' names on their boards, on the outer side under the upper eave: the west gate Bot'ongmun, the south
+  // wall's Hamgumun (the user's call, 2026-11-25: the record's reading, the head of this file).
+  const board = pyNameBoard('普通門');
   board.position.set(...pavilions.gate(0, eave - 1.04, t.pavilion[1].depth / 2 + 0.41));
   board.rotation.y = -Math.PI / 2;
+  const boards = [board];
+  PY_SOUTH_WALL.gates.forEach((g, index) => {
+    if (!g.name) return;
+    const named = pyNameBoard(g.name);
+    named.position.set(...pySouthGate(g).pavilion(0, southEaves[index] - 1.04, g.storeys.at(-1).depth / 2 + 0.41));
+    boards.push(named);
+  });
   const moved = stir.make(materials, tier);
-  root.add(meshes, woodMeshes, moved.group, sky, board);
+  root.add(meshes, woodMeshes, moved.group, sky, ...boards);
   // The open air (env/): the day's sun, a continental winter's clear cold air (a visibility of about 25 km:
   // approximate), a third of the sky in cloud; in snow, the open air's snow showers ('flurries': a flurry out of each
   // cloud that passes, the low sun between them on the new snow); without it, its clear day. The ground's own
@@ -1892,9 +2004,11 @@ export function* buildPyongyangSteps(arena = null, { shift = [0, 0], key = 'pyon
     materials.dispose();
     lay.textures.a.dispose();
     lay.textures.b.dispose();
-    board.material.map.dispose();
-    board.material.dispose();
-    board.geometry.dispose();
+    for (const each of boards) {
+      each.material.map.dispose();
+      each.material.dispose();
+      each.geometry.dispose();
+    }
   };
   return root;
 }

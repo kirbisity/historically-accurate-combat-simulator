@@ -35,6 +35,9 @@ import { TK_HANOK, tkBell, tkCompoundRuns, tkHall, tkHallSolids, tkRoofedGate, t
  */
 export const PY_TOWN_FIGHT = { at: [40, -50] };
 
+/** The x of the south wall's gates (places/pyongyang.js PY_SOUTH_WALL): Hamgumun on the market street, a lane gate at 120. */
+export const PY_SOUTH_GATES = [61, 120];
+
 export const PY_CITY = {
   square: { x: [15, 42], z: [-63, -37] },
   avenue: { half: 3.5, x: [15, 142] },
@@ -48,6 +51,13 @@ export const PY_CITY = {
   crest: { at: [25, -110] },
   river: { at: [40, 114] },
   east: 145,
+  // The inner city's south wall against the middle city (places/pyongyang.js PY_SOUTH_WALL: its outer face at `z`), and
+  // the street left along its outer foot (m) before the middle city's first yards (the user's call, 2026-11-25: the
+  // southern yards' first row moved south to make room for the wall).
+  south: { z: 40, street: 3 },
+  // The line between the west gate quarter and the governor's quarter (x), where the Japanese barricade stands
+  // (places/pyongyang.js PY_BARRICADE): the avenue's north shops leave it a gap (`gap` m).
+  wg: { x: 87, gap: 4 },
   footing: 0.55,
   tiles: [0.56, 0.58, 0.61],
   rich: [0.95, 0.25],
@@ -104,7 +114,9 @@ export function pyCityPlan(groundAt) {
   paving.push({ material: 'street', x: [4.8, c.avenue.x[1]], z: [az - ah, az + ah] });
   ways.push({ line: [[4.8, az], [c.avenue.x[1], az]], half: ah - 0.5, kind: 'cart', strength: 1 });
   shopRow([sx1 + 10, az - ah], [c.temple.way - 4, az - ah], 13);
-  shopRow([c.temple.way + 4, az - ah], [c.avenue.x[1], az - ah], 14);
+  // (Cut where the barricade comes down the hill to the avenue: PY_CITY.wg.)
+  shopRow([c.temple.way + 4, az - ah], [c.wg.x - c.wg.gap / 2, az - ah], 14);
+  shopRow([c.wg.x + c.wg.gap / 2, az - ah], [c.avenue.x[1], az - ah], 19);
   shopRow([c.compound.x[0] - 2, az + ah], [c.market.x + c.market.half, az + ah], 15);
   shopRow([c.market.x - c.market.half, az + ah], [sx1 + 2, az + ah], 16);
   // The market street south: paved, shops both sides as far as the first lane, then houses.
@@ -178,7 +190,12 @@ export function pyCityPlan(groundAt) {
   for (const z of c.lanes.ew) {
     ways.push({ line: [[16, z], [c.east, z]], half: lh - 0.4, kind: 'foot', strength: 0.75 });
   }
-  for (const x of c.lanes.ns) ways.push({ line: [[x, az + ah], [x, 118]], half: lh - 0.4, kind: 'foot', strength: 0.7 });
+  // (A lane the south wall closes is trodden to the wall from either side; one with a gate through it, through.)
+  const gated = (x) => Math.abs(x - c.market.x) < 1 || PY_SOUTH_GATES.some((at) => Math.abs(x - at) < 1);
+  for (const x of c.lanes.ns) {
+    if (gated(x)) ways.push({ line: [[x, az + ah], [x, 118]], half: lh - 0.4, kind: 'foot', strength: 0.7 });
+    else ways.push({ line: [[x, az + ah], [x, c.south.z - 4]], half: lh - 0.4, kind: 'foot', strength: 0.7 }, { line: [[x, c.south.z + 1], [x, 118]], half: lh - 0.4, kind: 'foot', strength: 0.7 });
+  }
   const xs = [15, ...c.lanes.ns.flatMap((x) => [x - lh, x + lh]), c.east];
   // (Clear of the market street's own shops either side of it.)
   const marketCut = [mx - c.market.half - 6.8, mx + c.market.half + 6.8];
@@ -187,7 +204,8 @@ export function pyCityPlan(groundAt) {
   // (The market street splits the column it runs through.)
   const blocksX = columns.flatMap(([a, b]) => (a < marketCut[0] && b > marketCut[1] ? [[a, marketCut[0]], [marketCut[1], b]] : [[a, b]]));
   // (South of the square's and the avenue's shops.)
-  const zs = [-29.5, c.broad.z - c.broad.half, c.broad.z + c.broad.half, ...c.lanes.ew.flatMap((z) => [z - lh, z + lh]), 121];
+  // (The middle city's first row starts past the street at the south wall's foot: PY_CITY.south.)
+  const zs = [-29.5, c.broad.z - c.broad.half, c.broad.z + c.broad.half, ...c.lanes.ew.flatMap((z) => [z - lh, z + lh]), 121].map((z) => (z > c.south.z - 6 && z < c.south.z + c.south.street ? c.south.z + c.south.street : z));
   const rows = [];
   for (let k = 0; k + 1 < zs.length; k += 2) rows.push([zs[k], zs[k + 1]]);
   let yard = 0;
@@ -361,7 +379,9 @@ export function pyFarTownPlan(groundAt) {
   for (let z = f.z[0]; z + 8 < f.z[1]; z += f.lanes) {
     const z1 = Math.min(f.z[1], z + f.lanes - 4);
     // (Not across the avenue.)
-    const bands = z < -50 && z1 > -54 ? [[z, -54], [-46, z1]] : [[z, z1]];
+    // (Nor across the south wall, which runs on east to the east wall: PY_CITY.south.)
+    const [w0, w1] = [PY_CITY.south.z - 6, PY_CITY.south.z + PY_CITY.south.street];
+    const bands = (z < -50 && z1 > -54 ? [[z, -54], [-46, z1]] : [[z, z1]]).flatMap(([b0, b1]) => (b0 < w1 && b1 > w0 ? [[b0, w0], [w1, b1]] : [[b0, b1]]));
     for (const [b0, b1] of bands) {
       if (b1 - b0 < 9) continue;
       for (let k = 0; k + 1 < xs.length; k += 1) {
