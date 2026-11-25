@@ -412,7 +412,9 @@ export function buildHorseView(view, horse, { detail = 'full' } = {}) {
     swaying.materials = [];
     for (const mesh of meshes) {
       swaying.materials.push(mesh.material);
-      for (const child of mesh.children) if (child.userData.outline && child.material) swayBard(child.material, swaying, W);
+      // (Not an outline drawn in the look's one hidden material, toon.js hiddenOutline: shared by every outline of a look
+      // without ink, it took each horse's sway patch on top of the last, and compiled to a shader that would not build.)
+      for (const child of mesh.children) if (child.userData.outline && child.material?.visible) swayBard(child.material, swaying, W);
     }
   } else horsePart(frame, parts.body, materials, { ink, bard });
   // Neck, head, ears: the neck pivots at the withers, the head at the poll, the ears at their bases.

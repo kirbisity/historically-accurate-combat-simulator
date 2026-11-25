@@ -5,6 +5,7 @@
 
 import { ktShadow, ktShadowBake } from '../levelmode/kitshadow.js';
 import { placeWind } from '../wind.js';
+import { freeOnUpload, packedColours, packedNormals } from '../meshpack.js';
 import { tkgBuilder } from './geo.js';
 import { TK_LAY, tkLayBake, tkLayTextures } from './lay.js';
 import { tkMaterials, tkSetAir, tkSetLay, tkSetLook, tkSetWeather, tkWeather } from './weather.js';
@@ -85,10 +86,12 @@ export function tkBlocks(cell = TK_PLACE.block, { near = true } = {}) {
 function tkGeometry(batch) {
   const geometry = new THREE.BufferGeometry();
   // (The batch's views are its own copies of what was laid: taken as they are.)
+  // The normals and colours packed in bytes, and they and the uvs let go on the page once on the card (meshpack.js): a town
+  // is millions of vertices that only the card reads again. The positions stay: the camera's room reads them (occluders.js).
   geometry.setAttribute('position', new THREE.BufferAttribute(batch.position, 3));
-  geometry.setAttribute('normal', new THREE.BufferAttribute(batch.normal, 3));
-  geometry.setAttribute('uv', new THREE.BufferAttribute(batch.uv, 2));
-  geometry.setAttribute('color', new THREE.BufferAttribute(batch.colour, 3));
+  geometry.setAttribute('normal', freeOnUpload(packedNormals(batch.normal)));
+  geometry.setAttribute('uv', freeOnUpload(new THREE.BufferAttribute(batch.uv, 2)));
+  geometry.setAttribute('color', freeOnUpload(packedColours(batch.colour)));
   geometry.computeBoundingBox();
   geometry.computeBoundingSphere();
   return geometry;

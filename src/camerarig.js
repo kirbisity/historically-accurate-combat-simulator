@@ -21,7 +21,10 @@ const CUT = 2;
 
 export function createCameraRig() {
   const arm = createArm();
-  const taken = new Map();
+  // Weakly, by the place's group: a place let go (render.js releaseOldPlaces) goes with its voxels. Held in a Map, every
+  // place ever shown was kept whole by its key, its geometry and textures and its open air (measured 2026-11-25: about 65 MB
+  // more on the page with each round of three places, without end).
+  let taken = new WeakMap();
   const rig = { cost: 0, frames: 0, last: null, place: null };
   let lastPlace = null;
   let lastAt = null;
@@ -63,7 +66,7 @@ export function createCameraRig() {
 
   /** The scenery was swapped (scenerylod.js) or the place rebuilt: taken again when next needed. */
   function forget() {
-    taken.clear();
+    taken = new WeakMap();
   }
 
   /** The next frame cuts: the arm starts where it should be, not from where it was. */

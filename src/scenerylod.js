@@ -18,6 +18,8 @@
 
 /* global THREE */
 
+import { packedGeometry } from './meshpack.js';
+
 export const SCENERY_LOD = {
   // m: the cell a wide instanced scatter (trees all round the place, litter over the field) is cut into. A 60 m view holds a handful of these; the rest are culled or thinned.
   cell: 24,
@@ -410,6 +412,8 @@ function mergeable(mesh, state) {
   if (Array.isArray(material) || material.transparent || !material.depthWrite || material.userData?.reflects) return false;
   const geometry = mesh.geometry;
   if (geometry.morphAttributes?.position || !geometry.attributes.position) return false;
+  // (Packed, or let go on the page once on the card: meshpack.js. Nothing of it is left here to merge.)
+  if (packedGeometry(geometry)) return false;
   if (geometry.drawRange.start !== 0 || geometry.drawRange.count !== Infinity) return false;
   for (const attribute of Object.values(geometry.attributes)) {
     if (attribute.isInterleavedBufferAttribute || !(attribute.array instanceof Float32Array)) return false;

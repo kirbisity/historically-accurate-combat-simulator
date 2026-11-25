@@ -58,7 +58,7 @@ import { blastEvent, createBlastScreen, fragmentEvent, updateThrown } from './bl
 import { artilleryFired, artilleryHit, updateArtillery } from './artilleryview.js';
 import { DETAIL_MAPS } from './detailmaps.js';
 import { setHelmStyle } from './helmstyle.js';
-import { bareCrowdHead, BODY_STYLE, FULL_MODELS, BODY_STYLES, buildFighterView, clearCrowdTemplates, prefetchSkins, pumpSkinBuilds, setBodyStyle, setSkinQuality, SKIN_BUILD, skinBuildStats, PLACE_ARENAS, createScene, disposeFighterView, forgetPlaces, placeCamera, reapplyPlace, render, resize, selectCrowdDraw, setLayer, setPlace, showImpact, updateFighterView, updateProps, updateSpray, warmSevered } from './render.js';
+import { bareCrowdHead, BODY_STYLE, FULL_MODELS, BODY_STYLES, buildFighterView, clearCrowdTemplates, releaseUnusedCrowdTemplates, prefetchSkins, pumpSkinBuilds, setBodyStyle, setSkinQuality, SKIN_BUILD, skinBuildStats, PLACE_ARENAS, createScene, disposeFighterView, forgetPlaces, placeCamera, reapplyPlace, render, resize, selectCrowdDraw, setLayer, setPlace, showImpact, updateFighterView, updateProps, updateSpray, warmSevered } from './render.js';
 import { buildHorseView, disposeHorseView, updateHorseView } from './horseview.js';
 import { releaseSkinTextures } from './skintex.js';
 import { placeMounted } from './physics/mounted.js';
@@ -123,6 +123,8 @@ import { tkWeatherNow } from './townkit/weather.js';
 import { createStoryPlaceMark } from './story/placemark.js';
 import { mountCameraTuner } from './camtuner.js';
 import { mountDeflectTuner } from './deflecttuner.js';
+import { memoryStats } from './memstats.js';
+import { watchContextLoss } from './contextloss.js';
 
 const STEP = 1 / 60;
 const $ = (selector) => document.querySelector(selector);
@@ -202,6 +204,8 @@ activateLookNow(startingLookId);
 }
 
 const scene = createScene($('#stage'));
+// The picture lost (the card reset, its memory taken back): said so, with a reload, the fight held (contextloss.js).
+watchContextLoss(scene.renderer.domElement, { onLost: () => { state.paused = true; } });
 if (activeLook().id !== DEFAULT_LOOK_ID) reapplyPlace(scene);
 
 // The sound (audio/engine.js): on from the first tap; the speaker button in the corner of every screen, the menus' clicks, the bench.
@@ -669,6 +673,8 @@ function lastGateFrame(world) {
 const mustering = document.body.appendChild(Object.assign(document.createElement('div'), { id: 'mustering', hidden: true }));
 function showMustering() {
   const waiting = state.viewQueue?.length ?? 0;
+  // The army all built: the crowd templates none of its men is drawn from are let go (render.js releaseUnusedCrowdTemplates).
+  if (!waiting) releaseUnusedCrowdTemplates(scene);
   mustering.hidden = waiting === 0;
   if (waiting) mustering.textContent = t('fight.mustering', { done: state.views.length, total: state.views.length + waiting });
 }
@@ -4563,6 +4569,8 @@ const boxer = window.boxer = {
     if (on !== undefined) crowdLod.enabled = Boolean(on);
     return crowdLod.enabled;
   },
+  // What the scene holds in memory (memstats.js): geometry and texture bytes, the biggest, a man's own by tier; three's own counts.
+  memory: (options) => ({ ...memoryStats(scene.scene, state.views, options), info: { ...scene.renderer.info.memory, programs: scene.renderer.info.programs?.length ?? 0 }, men: state.world?.fighters.length ?? 0 }),
   // Play `count` real frames of `dt` s each, as the page's own loop would (tests, profiling).
   playFrames: (count, dt = 1 / 60) => {
     for (let index = 0; index < count; index += 1) {
