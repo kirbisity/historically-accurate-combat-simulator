@@ -11,6 +11,7 @@ import { attackMark, moveName } from '../control.js';
 import { FIGHT_UI, fightUiColour, fightUiMoves, fightUiZoneOf } from './logic.js';
 import { FIGHT_UI_OUTCOME_GLYPHS, fightUiIcon } from './icons.js';
 import { t, tname } from '../i18n.js';
+import { screenBox } from '../screenbox.js';
 
 export const FIGHT_UI_KIT = {
   // The word stays this long (s) from the blow, and this long after how it went is known.
@@ -292,7 +293,7 @@ export function fightUiKit(root, hooks) {
     // At the height of his head, clear of the ring on him.
     const at = hooks.project([target.x[P.head * 3], target.x[P.head * 3 + 1] + 0.1, target.x[P.head * 3 + 2]]);
     if (!at[2]) return;
-    const width = root.getBoundingClientRect().width || innerWidth;
+    const width = screenBox(root).width || innerWidth;
     // On his right if it fits there, else on his left; kept on the screen either way.
     const wide = toast.offsetWidth || 160;
     const gap = 62;

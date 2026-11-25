@@ -10,7 +10,7 @@ import { WORLD } from './physics/config.js';
 import { FACTIONS, factionOf, gauntletOf, HEADGEAR, OUTFITS, outfitOf, RAGS, ragStrips, ragTear, resolveColor } from './outfits.js';
 import { doubleSided, outlineFor, surface } from './toon.js';
 import { activeLook } from './looks.js';
-import { outlineScale } from './looks/kit.js';
+import { outlineScale, prefilterFor } from './looks/kit.js';
 import { buildArenaHelm, buildGalea, buildLionHead, formMesh } from './arenaview.js';
 import { buildStechhelm } from './stechzeug.js';
 import { CLOTH_GARMENTS, clothMaterialOf, DETAIL_MAPS, HELMET_PART_TILES, HELMET_TILES, MOULDED_TILES } from './detailmaps.js';
@@ -258,9 +258,8 @@ export function steelEnvironment(renderer, { linear = false } = {}) {
   // The painted sky is authored in sRGB; a linear-workflow look needs it decoded before it is filtered (see the colour trap in looks.js).
   if (linear) texture.encoding = THREE.sRGBEncoding;
   texture.mapping = THREE.EquirectangularReflectionMapping;
-  const generator = new THREE.PMREMGenerator(renderer);
-  const target = generator.fromEquirectangular(texture);
-  generator.dispose();
+  // (The renderer's own generator, kept: looks/kit.js prefilterFor.)
+  const target = prefilterFor(renderer).fromEquirectangular(texture);
   texture.dispose();
   return target.texture;
 }

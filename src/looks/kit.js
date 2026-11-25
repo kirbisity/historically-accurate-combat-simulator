@@ -384,11 +384,25 @@ export function shootSurroundings(view, x, y, z, side) {
   for (const child of hidden) child.visible = false;
   camera.update(renderer, view.scene);
   for (const child of hidden) child.visible = true;
-  const generator = new THREE.PMREMGenerator(renderer);
-  const texture = generator.fromCubemap(target.texture).texture;
-  generator.dispose();
+  const texture = prefilterFor(renderer).fromCubemap(target.texture).texture;
   target.dispose();
   return texture;
+}
+
+// One prefiltering generator (three's PMREMGenerator) a renderer, kept for good. A generator compiles its blur's program
+// when it is made and its cube's or picture's the first time it is asked, and a generator disposed takes the programs with it:
+// made and disposed for each picture of the place metal mirrors (env/index.js envSteelShot: again whenever the fight has moved
+// on ten metres), each picture compiled two programs mid-fight and stalled the page 200 to 350 ms on an M1 Pro.
+const prefilters = new WeakMap();
+
+/** The renderer's prefiltering generator (made once, never disposed: its two programs and its blur's lobes are all it holds between uses). */
+export function prefilterFor(renderer) {
+  let generator = prefilters.get(renderer);
+  if (!generator) {
+    generator = new THREE.PMREMGenerator(renderer);
+    prefilters.set(renderer, generator);
+  }
+  return generator;
 }
 
 /**

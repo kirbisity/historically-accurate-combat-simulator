@@ -25,6 +25,7 @@ import { introPlaying, playIntro, skipIntro, stepIntro } from './intro.js';
 import { breakRun, contextAction, directFighter, keyStick, keyThrottle, MOVE_KEYS, moveName, newOrders, playerCrawl, swingAt } from './control.js';
 import { preferredWalk } from './physics/gait.js';
 import { installFightControls, TOUCH } from './touch.js';
+import { nextScreenFrame, screenBox } from './screenbox.js';
 import { canCommand, chooseGroup, chosenGroup, clearOrders, COMMAND_ORDERS, FIRE_ORDER_KEY, giveFireOrder, giveOrder, hasShot, holdingFire } from './command.js';
 import { createFightUiMarks } from './fightui/marker.js';
 import { fightUiChoose } from './fightui/index.js';
@@ -279,11 +280,11 @@ const fightControls = installFightControls($('#fight-ui'), {
   onDevice: (kind) => tutorial.setDevice(kind),
   project: (at) => {
     const projected = new THREE.Vector3(at[0], at[1], at[2]).project(scene.camera);
-    const box = scene.renderer.domElement.getBoundingClientRect();
+    const box = screenBox(scene.renderer.domElement);
     return [box.left + ((projected.x + 1) / 2) * box.width, box.top + ((1 - projected.y) / 2) * box.height, projected.z < 1 && Math.abs(projected.x) < 1.2 && Math.abs(projected.y) < 1.2];
   },
   ray: (x, y) => {
-    const box = scene.renderer.domElement.getBoundingClientRect();
+    const box = screenBox(scene.renderer.domElement);
     const through = new THREE.Vector3(((x - box.left) / box.width) * 2 - 1, -((y - box.top) / box.height) * 2 + 1, 0.5).unproject(scene.camera);
     const origin = scene.camera.position;
     const dir = through.sub(origin).normalize();
@@ -861,6 +862,10 @@ function frame(now) {
   // (Trailer capture: boxer.capture(true) hands the clock to boxer.playFrames, one frame per grab.)
   if (state.captureHeld) { last = now; return; }
   const started = performance.now();
+  // (The page's boxes are read afresh this frame, once each: screenbox.js. The canvas's first, before this frame has changed
+  // anything on the page, while the layout the browser made for the last frame still holds and costs nothing to read.)
+  nextScreenFrame();
+  screenBox(scene.renderer.domElement);
   const interval = now - last;
   const dt = Math.min(0.1, interval / 1000);
   last = now;
@@ -1636,7 +1641,7 @@ function renderHud() {
     const card = $(`#hud-${corner}`);
     // The sandbox shows each lead's fighting rating (roster.js: ∝ inferred K/D; Maximus is 100).
     const rating = state.game === 'sandbox' ? ratingOf(fighter.body.inputs) : null;
-    card.querySelector('.name').textContent = rating ? `${tname(fighter.body.inputs.name)} · ${rating}` : tname(fighter.body.inputs.name);
+    hudText(card.querySelector('.name'), rating ? `${tname(fighter.body.inputs.name)} · ${rating}` : tname(fighter.body.inputs.name));
     paintStamina(card.querySelector('.stamina'), fighter.stamina);
     paintAfflictions(card, fighter);
     const capacity = concussionCapacity(fighter);
@@ -1645,12 +1650,12 @@ function renderHud() {
     const blood = card.querySelector('.blood');
     blood.hidden = !(fighter.bloodLost > 0);
     blood.querySelector('i').style.width = `${Math.min(100, Math.round(((fighter.bloodLost ?? 0) / collapseAt()) * 100))}%`;
-    card.querySelector('.kd').textContent = fighter.state === 'out' ? t(state.world.fighters.length > 2 ? 'fight.kd.killed' : 'fight.kd.out') : fighter.state === 'down' ? t('fight.kd.down') : fighter.panicked ? t('fight.kd.panic') : fighter.dazed > 0 ? t('fight.kd.dazed') : fighter.stagger > 0 ? t('fight.kd.reeling') : t('fight.kd.count', { n: fighter.knockdowns });
+    hudText(card.querySelector('.kd'), fighter.state === 'out' ? t(state.world.fighters.length > 2 ? 'fight.kd.killed' : 'fight.kd.out') : fighter.state === 'down' ? t('fight.kd.down') : fighter.panicked ? t('fight.kd.panic') : fighter.dazed > 0 ? t('fight.kd.dazed') : fighter.stagger > 0 ? t('fight.kd.reeling') : t('fight.kd.count', { n: fighter.knockdowns }));
     const nerve = fighter.aiConfidence ?? 0;
     const mood = nerve > 0.35 ? t('fight.confident') : nerve < -0.35 ? t('fight.wary') : '';
     // The sandbox reads out fear and adrenaline; everywhere else, one health bar says enough.
     const feeling = t('fight.feeling', { fear: Math.round((fighter.fear ?? 0) * 100), adrenaline: Math.round((fighter.adrenaline ?? 0) * 100) });
-    card.querySelector('.speed').textContent = `${fighter.stats.lastHandSpeed.toFixed(1)} m/s${mood}${feeling}`;
+    hudText(card.querySelector('.speed'), `${fighter.stats.lastHandSpeed.toFixed(1)} m/s${mood}${feeling}`);
     // (The player's own man's with its ghost, how far his health is still falling: paintHealth.)
     paintHealth(card.querySelector('.health'), fighter, Boolean(fighter.player));
     // A great vessel open (a limb lost: maiming.js): the bar pulses and drains.
@@ -1658,13 +1663,26 @@ function renderHud() {
     let roster = card.querySelector('.roster');
     if (!roster) roster = card.appendChild(Object.assign(document.createElement('div'), { className: 'roster' }));
     roster.hidden = team.length < 2;
-    roster.innerHTML = team.map((member) => {
+    // (Parsed again only when a man's state has changed: a battle's side of 250 names was parsed every frame.)
+    const html = team.map((member) => {
       const status = member.state === 'out' ? 'out' : member.state === 'up' ? 'up' : 'down';
       return `<span class="${status}">${shortName(member.body.inputs.name)}</span>`;
     }).join('');
+    if (roster.drawnHtml !== html) {
+      roster.innerHTML = html;
+      roster.drawnHtml = html;
+    }
   }
   const time = state.world?.time ?? 0;
-  $('#clock').textContent = `${Math.floor(time / 60)}:${String(Math.floor(time % 60)).padStart(2, '0')}`;
+  hudText($('#clock'), `${Math.floor(time / 60)}:${String(Math.floor(time % 60)).padStart(2, '0')}`);
+}
+
+/**
+ * An element's text, written only when it differs: a text written replaces the element's text node even when it is the
+ * same, and every change to the page's text makes the next read of a box (or the frame's own drawing) lay the page out again.
+ */
+function hudText(element, text) {
+  if (element.textContent !== text) element.textContent = text;
 }
 
 // A fight-log line's drawn mark (uiicons.js), by name.

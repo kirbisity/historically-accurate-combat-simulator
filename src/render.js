@@ -7,6 +7,7 @@
 /* global THREE */
 import { buildOyoroiBox, buildOyoroiHanging } from './oyoroi.js';
 import { buildJoustKit } from './stechzeug.js';
+import { bladeBloodCopy } from './weaponview.js';
 import { P, PARTICLES } from './body.js';
 import { buildBodyMesh } from './bodymesh.js';
 import { dualQuaternionSkinning } from './dqskin.js';
@@ -301,6 +302,8 @@ function lightPlace(view, place) {
   view.lights.hemi.intensity = light.hemi ?? 0.62;
   view.lights.key.castShadow = !light.sun;
   warmShaders(view);
+  // (And, once the warmers are done, whatever is in the scene still hidden: compileHidden.)
+  view.compileDue = true;
   applyLook(view, place);
 }
 
@@ -625,7 +628,21 @@ export function warmSevered(view, fighterViews) {
     }
   }
   warmMaterials(view, materials, unskinnedCopy);
+  // A blade's look with blood on it (weaponview.js bloodyBlade) is a program of its own, built on the frame of the first wound
+  // (180 ms on an M1 Pro); each new weapon of a man drawn in full has it warmed once.
+  const blades = [];
+  for (const fighterView of fighterViews) {
+    const weapon = fighterView.arms?.weapon;
+    if (!weapon || fighterView.baked || bladesWarmed.has(weapon)) continue;
+    bladesWarmed.add(weapon);
+    weapon.traverse((object) => {
+      if (object.userData.blade && object.isMesh && !Array.isArray(object.material) && !object.userData.bladeBlood) blades.push(object.material);
+    });
+  }
+  if (blades.length) warmMaterials(view, blades, bladeBloodCopy);
 }
+// The weapons whose blades' bloody look is warmed (warmSevered).
+const bladesWarmed = new WeakSet();
 
 /**
  * What a crowd man wears is baked into his body; knocked off (a helmet, its plume, a pennant), it is drawn alone in its own materials, a program
@@ -4050,5 +4067,20 @@ export function render(view) {
   updateSceneryLod(view);
   drawFrame(view);
   // The warmers have done their work once drawn a few times; seven calls a frame for nothing after that.
-  if (view.warmFrames > 0 && (view.warmFrames -= 1) === 0 && view.warmers) view.warmers.visible = false;
+  if (view.warmFrames > 0 && (view.warmFrames -= 1) === 0 && view.warmers) {
+    view.warmers.visible = false;
+    if (view.compileDue) compileHidden(view);
+  }
+}
+
+/**
+ * The programs of everything in the scene not drawn yet (hidden until wanted: the red marks of a stroke that cannot be deflected,
+ * the fight's marks, a tag over a man), built now for the lights in force, the frame the warmers finish (a new place, a look):
+ * each built instead the first time it shows stalled that frame 180 to 350 ms on an M1 Pro (ANGLE on Metal links a program
+ * slowly), five or six times in a duel's first seconds. A program already built is only looked up. Only after a new place or look
+ * (setPlace): a warmer added for a man's new skin needs no look over the whole scene, which in a battle of 500 is tens of ms.
+ */
+function compileHidden(view) {
+  view.compileDue = false;
+  view.renderer.compile(view.scene, view.camera);
 }
