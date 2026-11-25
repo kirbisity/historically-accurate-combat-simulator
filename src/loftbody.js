@@ -370,6 +370,11 @@ export const LOFT = {
   // krug's discs and a segmentata's bands not at all). Its point is marked armour (negative: clothsway.js gives it the
   // swing and the ripple, little of the wind). Drawn with the detail maps only (the tile is read off the point's coordinates).
   armourGive: { mail: 0.95, lamellae: 0.8, kozane: 0.8, sugake: 0.8, scale: 0.7, ironScale: 0.65, brigandine: 0.6, euroBrigandine: 0.5, bifu: 0.3 },
+  // A board hung at the shoulder (boardOn: a sode, a coat's shoulder flap) is a rigid piece on cords or a strap, not cloth lying
+  // on the arm: it swings from its top edge, its points loose by how far down it they are (none at the cords, `hung` at its
+  // hem, times its tile's give, or `hungPlain` for one without a flexible tile), so its hem lags and swings past the arm as
+  // the horse's bard does (clothsway.js armour), not only where it happens to stand off the skin.
+  hungSwing: { hung: 0.9, hungPlain: 0.5 },
   // A board hung beside a limb (boardOn: a sode, a coat's shoulder flap): `wide` (m) across, its edges bowed `bow` (m) in
   // towards the limb, `columns` faces across; laced lames each stand `tilt` (m) out at the head over the foot of the lame
   // above, `row` (m) tall where no laced tile gives the height.
@@ -684,8 +689,19 @@ function fallOf(mesh, positions) {
  * nearest skin (LOFT.sway). Skin, steel, shells and every stiff body's points are 0: nothing rigid sways; but a flexible
  * armour's points (by their tile, `uvs`: LOFT.armourGive) hang as cloth would times their give, marked negative.
  */
-function looseness(positions, regions, stiff, uvs = null, hung = null) {
+function looseness(positions, regions, stiff, uvs = null, hung = null, kinds = null) {
   const { from, full, cell } = LOFT.sway;
+  // The hung boards' tops and hems (their highest and lowest points as built: LOFT.hungSwing).
+  const hungSpan = new Map();
+  if (kinds) {
+    for (let vertex = 0; vertex < regions.length; vertex += 1) {
+      const body = stiff[vertex];
+      if (!body || kinds.get(body) !== 'hung') continue;
+      const y = positions[vertex * 3 + 1];
+      const span = hungSpan.get(body) ?? [Infinity, -Infinity];
+      hungSpan.set(body, [Math.min(span[0], y), Math.max(span[1], y)]);
+    }
+  }
   // A flexible armour's give at a point (LOFT.armourGive), from the tile its coordinates are in; 0 elsewhere.
   const giveAt = (vertex) => (uvs ? LOFT.armourGive[detailKindOf(uvs[vertex * 2])] ?? 0 : 0);
   const count = regions.length;
@@ -705,6 +721,13 @@ function looseness(positions, regions, stiff, uvs = null, hung = null) {
   for (let vertex = 0; vertex < count; vertex += 1) {
     const role = regions[vertex];
     const give = role === 'skin' ? 0 : giveAt(vertex);
+    const span = hungSpan.get(stiff[vertex]);
+    if (span && role !== 'skin' && span[1] - span[0] > 1e-3) {
+      const down = (span[1] - positions[vertex * 3 + 1]) / (span[1] - span[0]);
+      sway[vertex] = -down * (give ? give * LOFT.hungSwing.hung : LOFT.hungSwing.hungPlain);
+      if (sway[vertex] !== 0) any = true;
+      continue;
+    }
     if (role === 'skin' || (!give && (stiff[vertex] || STEEL_ROLES.has(role) || SHELL_ROLES.has(role)))) continue;
     const [x, y, z] = [positions[vertex * 3], positions[vertex * 3 + 1], positions[vertex * 3 + 2]];
     const [cx, cy, cz] = [at(vertex, 0), at(vertex, 1), at(vertex, 2)];
@@ -6492,7 +6515,7 @@ export function* buildLoftBodySteps(body, { faceted = false, lowDetail = false, 
     for (let vertex = 0; vertex < positionArray.length / 3; vertex += 1) uvs.set(mesh.uvs.get(vertex) ?? FLAT_UV, vertex * 2);
   }
   // How loose the cloth hangs, point by point (measured while the skin under it is still here); not on a crowd's body.
-  let sway = lowDetail ? null : looseness(positionArray, colors, stiff, uvs, mesh.hung ?? null);
+  let sway = lowDetail ? null : looseness(positionArray, colors, stiff, uvs, mesh.hung ?? null, mesh.kinds);
   // What a boned piece holds (a corset): the cloth worn on the same part within its span, under it or over it (a bodice's
   // foot, a skirt's band), is laced down with it and hangs no looser than it does: not at all.
   if (sway && mesh.ringOf && !faceted) {

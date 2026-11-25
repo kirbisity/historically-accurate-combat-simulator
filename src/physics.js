@@ -16,6 +16,7 @@ import { BLADES, edgeProofOf, bleedRate, bleedToLose, bulletRegion, SHIELDS, WEA
 import { desiredPose, lockedHead, POSE, restArmAngle, restPose, twoBoneIK, unleaned, vec, yawCos, yawRotate, yawSin } from './pose.js';
 import { WORLD } from './physics/config.js';
 import { gapChance, gapExposure, gapsOf, gapUnder, gapZoneAt, hungOff, rigidAt } from './physics/gaps.js';
+import { armourSpotAt, armourWornAt, wearArmour, wearWork } from './physics/armourwear.js';
 import { limbTwist, shoulderBehindLimit, shoulderRangeOf, swivelIntoRange, trunkAxes, turnAbout, twistExcess } from './joints.js';
 import { aimTargets, CYLINDER_LOAD, drawBow, emptied, fire, flyArrows, loadStop, LONG_GUN, MAGAZINE_CHANGE, raisedAim, reload, reloadKind, sightsOn, SUPPORT_GRIP, TUBE_LOAD } from './physics/ranged.js';
 import { clinchGrip, countPin, drive, holdClinch, holdPin, neckLow, pinnedBy, pinPoints, startPin } from './physics/grappling.js';
@@ -904,6 +905,20 @@ function stuffAt(gear, capsuleKey, along) {
   return over?.material ?? 'bare';
 }
 
+/**
+ * The armour piece drawn outermost at a place on him (coverage.js: its `slot` and `material`), for what wears there
+ * (physics/armourwear.js); null where coverage is not known or nothing of armour is drawn there.
+ */
+export function armourPieceAt(gear, capsuleKey, along) {
+  const part = capsuleKey.replace(/^[lr](?=[A-Z])/, '');
+  if (part === 'head' || part === 'Hand' || along == null) return null;
+  const side = /^[lr](?=[A-Z])/.test(capsuleKey) ? capsuleKey[0] : 'l';
+  const cover = armourCoverOf(gear)?.[side];
+  const name = part === 'trunk' ? 'trunk' : part[0].toLowerCase() + part.slice(1);
+  if (!cover?.[name]) return null;
+  return piecesAt(cover, name, along).find((piece) => ARMOUR_COVER.armour.includes(piece.material) || (cover.quilted && piece.material === 'cloth')) ?? null;
+}
+
 function guardAt(gear, capsuleKey, along = null) {
   const guard = kitGuardAt(gear, capsuleKey, along);
   // The foot (the far end of the shank): what the shoe itself stops (outfits.js FOOT_COVERS), where that is more than the kit
@@ -963,6 +978,18 @@ function kitGuardAt(gear, capsuleKey, along = null) {
 // and skirt under a conquistador's breastplate are mail, not the breastplate). Mail: riveted mail on its padding, as the mail
 // shirt worn under a coat (outfits.js UNDER_ARMOUR.mail).
 const COVERED_STUFF = { mail: { blunt: 0.3, cut: 0.85, pierce: 0.65 } };
+
+/**
+ * The armour at a place as the blows it has taken there left it (physics/armourwear.js armourWornAt): its proof against an edge
+ * and a point by `keep`, against a blunt blow by the root of it; a piece gone, what is under it (as where nothing is drawn).
+ */
+function wornProtection(gear, capsuleKey, protection, worn) {
+  if (worn.keep >= 1 && !worn.gone) return protection;
+  const part = capsuleKey.replace(/^[lr](?=[A-Z])/, '');
+  if (worn.gone) return part === 'head' ? { ...protection, cut: 0, pierce: 0, blunt: (protection.blunt ?? 0) * 0.5, deflects: false } : { ...uncovered(gear, part === 'trunk' ? 'trunk' : part), stuff: 'bare' };
+  const soft = Math.sqrt(worn.keep);
+  return { ...protection, cut: (protection.cut ?? 0) * worn.keep, pierce: (protection.pierce ?? 0) * worn.keep, blunt: (protection.blunt ?? 0) * soft, deflects: worn.keep > 0.9 ? protection.deflects : false };
+}
 
 /** Where nothing of the armour is over a place: the layer under it where it reaches (UNDER_ARMOUR `covers`), else nothing. */
 function uncovered(gear, part) {
@@ -2007,6 +2034,8 @@ export function reclothe(world, fighter, inputs) {
   }
   fighter.capsuleCache = undefined;
   fighter.damageVersion += 1;
+  // (Other armour: none of its wear, physics/armourwear.js.)
+  fighter.armourWear = null;
   // (Other clothes keep heat in, and cost breath to move in, as they do: worked out again.)
   fighter.heat.kit = null;
   refreshProps(world, fighter);
@@ -9678,8 +9707,13 @@ function registerWeaponImpact(world, attacker, defender, striker, closest, capsu
   if (!haft) bluntEdge(weapon, mix);
   // (Armour hung beside a raised arm, the sode, has swung off it: physics/gaps.js hungOff.)
   const hung = hungOff(defender, capsule.key);
-  const covered = hung && world.random() < hung.share ? hung.under : protectionAt(body.gear, capsule.key, closest.t);
+  const swungOff = hung && world.random() < hung.share;
   const contactPoint = vec.add(closest.onSecond, vec.scale(normal, capsule.radius));
+  // What the armour there has left from the blows it has taken at that spot (physics/armourwear.js): laces cut, rings split, a
+  // piece fallen. (Not the armour hung off a raised arm: the blow meets what is under it.)
+  const wornSpot = swungOff ? null : armourSpotAt(defender, capsule.key, closest.t, normal, armourPieceAt(body.gear, capsule.key, closest.t), capsule.radius);
+  const worn = armourWornAt(defender, wornSpot);
+  const covered = swungOff ? hung.under : wornProtection(body.gear, capsule.key, protectionAt(body.gear, capsule.key, closest.t), worn);
   // Into a gap in rigid armour (BLADES.gaps): only where there is one (physics/gaps.js gapZoneAt: the armpit, the groin, the
   // throat, the sights, the bend of a joint; never the middle of the breast, the back or the crown), then only what is under it, and no glance.
   const rigid = rigidAt(covered, body.gear) && mix.cut + mix.pierce > 0.2;
@@ -9699,7 +9733,9 @@ function registerWeaponImpact(world, attacker, defender, striker, closest, capsu
   const opened = gapZone && !bareFace && (spec.mode === 'thrust' || BLADES.gaps.zones[gapZone]?.edge) ? gapExposure(defender, capsule.key, gapZone, contactPoint) : 0;
   const found = gapFound > 0 ? (bareFace ? gapFound : gapFound * attacker.body.technique * (0.5 + (attacker.body.skill ?? 0.5))) : 0;
   const intoGap = (found > 0 || opened > 0) && world.random() < opened + (1 - opened) * found;
-  const protection = intoGap ? { ...gapUnder(body.gear, gapZone, covered), deflects: false } : covered;
+  // (A row gaping where its laces are cut, or plates shifted: an opening there, met as often as it gapes, as a gap in the lacing.)
+  const intoGape = !intoGap && worn.gape > 0 && mix.cut + mix.pierce > 0.2 && world.random() < worn.gape;
+  const protection = intoGap ? { ...gapUnder(body.gear, gapZone, covered), deflects: false } : intoGape ? { ...gapUnder(body.gear, 'lacing', covered), deflects: false } : covered;
   // (A shaft that shatters on armour it cannot go into, below.)
   const shattered = !haft && !intoGap && shattersOn(weapon, spec.mode, protection, energy);
   const blocked = BLOCKING.has(capsule.key);
@@ -9790,6 +9826,15 @@ function registerWeaponImpact(world, attacker, defender, striker, closest, capsu
     edgeShare: (mix.cut + mix.pierce) / Math.max(1e-6, mix.blunt + mix.cut + mix.pierce), haft: haft || undefined,
     gapZone: gapZone ?? undefined,
   };
+  if (intoGape) event.gapZone = 'lacing';
+  // Where the last blow met him (drawing: the hung armour near it is knocked swinging, armourwearview.js).
+  defender.blowAt = { time: world.time, point: contactPoint, travel: relative, impulse };
+  // What the blow did to the armour at that spot (not where it went into a gap past it, the armpit, the throat; into the lacing
+  // it went through the laces): an edge on the cords, a point, the jar.
+  if (wornSpot && !(intoGap && gapZone !== 'lacing') && !worn.gone) {
+    const work = wearWork(wornSpot.construction, { edge: edgeJoules, point: pointJoules, blunt: blowJoules * mix.blunt, travel: relative, up: vec.normalize(vec.sub(point(defender.x, P.neck), point(defender.x, P.pelvis))) });
+    wearArmour(world, defender, wornSpot, work, { point: contactPoint, velocity: struckVelocity, along: relative });
+  }
   // A cut on the helmet takes what is fixed on it (a crest) away, whatever the helmet turns.
   if (capsule.key === 'head') cutOffHeadgear(world, defender, event, energy * mix.cut, contactPoint);
   const concentration = Math.sqrt(WORLD.contactSeconds / contactSeconds);
