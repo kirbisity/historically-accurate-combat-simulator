@@ -102,14 +102,47 @@ export function wristAngle(elbow, hand, bladeDir) {
 }
 
 /**
- * How far a limb's pose is out of range: the turn's excess past its range
- * (`margin` inside it), plus how far a held blade points back past the
- * wrist's reach. 0 within range.
+ * A body's shoulder range (WORLD.joint.shoulder), as its build has it: an
+ * animal's own (`inputs.build.shoulder`) over a man's.
  */
-function poseExcess(axes, kind, side, root, middle, end, bladeDir, margin) {
-  const turn = limbTwist(axes, kind, side, root, middle, end);
-  let excess = Math.abs(twistExcess(kind, turn, margin));
+export function shoulderRangeOf(body) {
+  const own = body?.inputs?.build?.shoulder;
+  return own ? { ...WORLD.joint.shoulder, ...own } : WORLD.joint.shoulder;
+}
+
+/**
+ * How far (rad) the upper arm may point behind the trunk's coronal plane at
+ * this elevation (rad above the shoulders' level): `range.hanging` with the
+ * arm down (extension), `range.level` with it out at the side (horizontal
+ * abduction behind the back), `range.overhead` raised; straight lines between.
+ */
+export function shoulderBehindLimit(range, elevation) {
+  const share = Math.max(-1, Math.min(1, elevation / (Math.PI / 2)));
+  return share <= 0 ? range.level + (range.hanging - range.level) * -share : range.level + (range.overhead - range.level) * share;
+}
+
+/** How far (rad) an upper arm from `shoulder` to `elbow` points behind the trunk past `range`: 0 within it. */
+export function shoulderExcess(axes, range, shoulder, elbow) {
+  if (!axes || !range) return 0;
+  const upper = vec.sub(elbow, shoulder);
+  const length = vec.length(upper);
+  if (length < 1e-6) return 0;
+  const behind = Math.asin(Math.max(-1, Math.min(1, -vec.dot(upper, axes.forward) / length)));
+  const elevation = Math.asin(Math.max(-1, Math.min(1, vec.dot(upper, axes.up) / length)));
+  return Math.max(0, behind - shoulderBehindLimit(range, elevation));
+}
+
+/**
+ * How far a limb's pose is out of range: the turn's excess past its range
+ * (`margin` inside it; none counted if `twist` is false), how far a held
+ * blade points back past the wrist's reach, and how far an upper arm points
+ * behind the trunk past `shoulder` (a range, shoulderBehindLimit). 0 within range.
+ */
+function poseExcess(axes, kind, side, root, middle, end, { bladeDir = null, margin = 0, shoulder = null, twist = true } = {}) {
+  let excess = 0;
+  if (twist) excess += Math.abs(twistExcess(kind, limbTwist(axes, kind, side, root, middle, end), margin));
   if (bladeDir) excess += Math.max(0, wristAngle(middle, end, bladeDir) - (WORLD.limbTwist.wristBack - margin));
+  if (shoulder && kind === 'arm') excess += shoulderExcess(axes, shoulder, root, middle);
   return excess;
 }
 
@@ -118,10 +151,13 @@ function poseExcess(axes, kind, side, root, middle, end, bladeDir, margin) {
  * ends, to the nearest place where the limb is within range (`margin` inside
  * it): the limb's ends stay where the move wants them and the joint between
  * finds a way to get there untwisted. Returns the middle joint's position.
- * Where nowhere is in range, the least-twisted place.
+ * Where nowhere is in range, the least-twisted place. `shoulder` (a range,
+ * shoulderBehindLimit) also keeps an elbow from pointing too far behind the
+ * trunk; `twist` false leaves the turn out of it.
  */
-export function swivelIntoRange(axes, kind, side, root, middle, end, { bladeDir = null, margin = 0, samples = 24 } = {}) {
-  if (!axes || poseExcess(axes, kind, side, root, middle, end, bladeDir, margin) === 0) return middle;
+export function swivelIntoRange(axes, kind, side, root, middle, end, { bladeDir = null, margin = 0, samples = 24, shoulder = null, twist = true } = {}) {
+  const limits = { bladeDir, margin, shoulder, twist };
+  if (!axes || poseExcess(axes, kind, side, root, middle, end, limits) === 0) return middle;
   const line = vec.sub(end, root);
   const length = vec.length(line);
   if (length < 1e-6) return middle;
@@ -130,7 +166,7 @@ export function swivelIntoRange(axes, kind, side, root, middle, end, { bladeDir 
   const offset = vec.sub(middle, centre);
   if (vec.length(offset) < 1e-6) return middle;
   const at = (angle) => vec.add(centre, turnAbout(offset, axis, angle));
-  const excessAt = (angle) => poseExcess(axes, kind, side, root, at(angle), end, bladeDir, margin);
+  const excessAt = (angle) => poseExcess(axes, kind, side, root, at(angle), end, limits);
   // The nearest angle either way that is in range: sampled, then the edge
   // found by halving, so the joint moves no further round than it must.
   let best = null;
