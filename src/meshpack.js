@@ -37,10 +37,31 @@ export function packedColours(colours) {
 export function freeOnUpload(attribute) {
   if (!MESH_PACK.on) return attribute;
   attribute.onUpload(function release() {
+    // (Sent again once let go, after its geometry was disposed and drawn once more: the card has nothing to draw then. A
+    // geometry that a cache of shapes shares across builds must not be packed for the card.)
+    if (this.packedAway) console.error('HACS: a vertex attribute let go on the page was sent to the card again (meshpack.js)');
     this.array = new this.array.constructor(0);
     this.packedAway = true;
   });
   return attribute;
+}
+
+/**
+ * A geometry built for the card alone, packed and let go on the page once sent: its normals and colours in bytes (above), and
+ * every attribute but those in `keep` freed on upload. The positions and the index are kept by default: the camera's room
+ * (occluders.js) and anything that casts a ray read them. For a geometry no one else holds (no cache of shapes shares it,
+ * and nothing merges, clones or reads it later): the Colosseum's stands (props/arena.js arenaBuilder), the open air's land,
+ * grass, trees and stones (env/index.js), made for one place and built again with it. Returns the geometry.
+ */
+export function packForCard(geometry, { keep = ['position'] } = {}) {
+  if (!MESH_PACK.on || geometry.userData.packedForCard) return geometry;
+  geometry.userData.packedForCard = true;
+  const normal = geometry.attributes.normal;
+  if (normal && !normal.isInterleavedBufferAttribute && normal.array instanceof Float32Array && normal.itemSize === 3) geometry.setAttribute('normal', packedNormals(normal.array));
+  const color = geometry.attributes.color;
+  if (color && !color.isInterleavedBufferAttribute && color.array instanceof Float32Array && color.itemSize === 3) geometry.setAttribute('color', packedColours(color.array));
+  for (const [name, attribute] of Object.entries(geometry.attributes)) if (!keep.includes(name) && !attribute.isInterleavedBufferAttribute) freeOnUpload(attribute);
+  return geometry;
 }
 
 /** Whether a geometry has packed or uploaded-and-freed attributes (it must not be merged, cloned or read). */

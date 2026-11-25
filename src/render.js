@@ -29,7 +29,7 @@ import { FACTIONS, HEADGEAR, factionOf, glovedFists, headgearOptions, outfitOf }
 import { WEAPONS } from './weapons.js';
 import { applyScenery, applyScenerySteps } from './scenery.js';
 import { orbitAboveGround } from './watchcam.js';
-import { arenaColosseum } from './props/arena.js';
+import { arenaColosseum, arenaForgetPainted, arenaPaintSteps } from './props/arena.js';
 import { harbourPort } from './props/harbour.js';
 import { SUBWAY_ARENA, subwayPuddleFilm, subwayStation } from './props/subway.js';
 import { swayGrass } from './clothwind.js';
@@ -231,6 +231,14 @@ const PLACES_KEPT = 1;
 // its fine detail (about 90 MB) and is kept too: the budget is for what a phone cannot afford to hold unseen. The others (the
 // open fields, the stages) are 30 to 120 MB.
 const PLACE_KEPT_MB = { low: 160, high: Infinity };
+// The place behind the menus (main.js attract: the Colosseum and its bout) is not kept hidden while a fight or a level is
+// on: it was the place kept through every fight (the menu is where every fight is entered from), about 100 MB on the card
+// (43 MB of geometry, 50 to 56 MB of textures) and 70 MB on the page (its geometry, its painted stone: props/arena.js
+// arenaForgetPainted), never seen until the menu is back. Going back to the menu builds it again behind the menu (main.js
+// loadInto, quiet: the menu is up at once as before, the bout behind it about a second later than when it was kept:
+// 2 to 3 s from the press instead of 1 to 1.5 s, its longest frame no longer than before; M1 Pro, measured 2026-11-25).
+// `keptOn`: the tiers that keep it anyway.
+export const MENU_BACKDROP = { place: 'colosseum', keptOn: [] };
 
 /** What a place holds on the card (MB): its geometry and the textures its materials use, each counted once. */
 function placeMb(group) {
@@ -265,7 +273,10 @@ function releaseOldPlaces(view, shown) {
   // (Measured once, when it is first hidden: a place does not grow while unseen.)
   const budget = PLACE_KEPT_MB[tkTier()] ?? Infinity;
   const tooBig = (key) => budget < Infinity && (view.places[key].userData.keptMb ??= placeMb(view.places[key])) > budget;
-  for (const key of [...hidden.slice(0, PLACES_KEPT).filter(tooBig), ...hidden.slice(PLACES_KEPT)]) {
+  const backdrop = (key) => key.split('@')[0] === MENU_BACKDROP.place && !MENU_BACKDROP.keptOn.includes(tkTier());
+  // (The backdrop's turn in the kept places is not passed on to an older one: the place just left is the one worth keeping.)
+  const kept = hidden.slice(0, PLACES_KEPT);
+  for (const key of [...kept.filter((key) => backdrop(key) || tooBig(key)), ...hidden.slice(PLACES_KEPT)]) {
     disposePlace(view, view.places[key]);
     view.places[key] = null;
     if (!key.includes('@') && view.floors) delete view.floors[key];
@@ -275,6 +286,7 @@ function releaseOldPlaces(view, shown) {
 /** Take a place out of the scene and free what it holds on the GPU: its geometry and textures. */
 function disposePlace(view, group) {
   view.scene.remove(group);
+  arenaForgetPainted();
   group.traverse((object) => {
     if (object.userData.shared) return;
     object.geometry?.dispose?.();
@@ -824,6 +836,13 @@ function buildColosseum() {
   });
   return place;
 }
+
+// Built again whenever the menu is gone back to (MENU_BACKDROP): its painted stone first, a surface a step, so the bout
+// behind the menu comes without one long frame.
+buildColosseum.steps = function* colosseumSteps() {
+  yield* arenaPaintSteps();
+  return buildColosseum();
+};
 
 /** A canvas texture: tiles, a station name, a warning strip. */
 function paintedTexture(width, height, paint, repeat = [1, 1]) {

@@ -43,6 +43,7 @@ import { PLACE_ARENAS, reapplyPlace } from '../render.js';
 import { placeWind, setWindOver } from '../wind.js';
 import { PHOTO_FACES, setPhotoFill } from '../photoface.js';
 import { runSteps } from '../loftbody.js';
+import { packForCard } from '../meshpack.js';
 
 // What is chosen for the whole page: `enabled` (false: no place is drawn this way), `weather` a forced ENV_WEATHER
 // name or null, `tier` the quality tier in force, and the tier controller's running figures.
@@ -263,6 +264,10 @@ function* envFillSteps(group, place, view, spec, own) {
   parts.particles = envBuildParticles(map, own.cover);
   parts.beams = envBuildBeams(own.openings ?? [], sun);
   group.add(parts.sky, parts.terrain, parts.grass, parts.trees, parts.rocks, parts.particles, parts.beams);
+  // The land, the blades, the trees and the stones are made for this place and this day alone (made again, never read back:
+  // the quality tiers draw a share by count, the land's height is a function), so they are packed for the card and let go
+  // on the page once sent (meshpack.js): the field's open air was some 20 MB of arrays held twice.
+  for (const part of [parts.terrain, parts.grass, parts.trees, parts.rocks]) part.traverse((object) => object.geometry && packForCard(object.geometry));
   group.userData.envParts = parts;
   group.userData.envHeight = height;
   // (The land the camera is kept above: render.js groundHeightAt reads a place's child that carries `heightAt`.)
