@@ -410,16 +410,21 @@ export function createFightUiMarks(view) {
     }
   }
 
-  /** Compile the marks' one shader now (at the start of a fight), not at the first blow. */
-  function warm() {
+  /**
+   * Compile the marks' one shader now (at the start of a fight), not at the first blow. `draw`: how the scene is drawn
+   * for it (the loading screen's: a frame through the look's own passes, main.js loadInto); none, the renderer compiles
+   * the whole scene.
+   */
+  function warm(draw = null) {
     const renderer = view.renderer;
-    if (!renderer?.compile) return;
+    if (!draw && !renderer?.compile) return;
     for (const mark of every) {
       mark.holder.visible = true;
       mark.mesh.material.opacity = 0.01;
     }
     try {
-      renderer.compile(view.scene, camera);
+      if (draw) draw();
+      else renderer.compile(view.scene, camera);
     } finally {
       hideAll();
     }

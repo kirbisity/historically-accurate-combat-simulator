@@ -10,6 +10,34 @@
 <link rel="stylesheet" href="fightui.css">
 </head>
 <body>
+<!-- boot -->
+<!-- The first screen, before anything else of the page has come (the single-file build is some 30 MB of script): its own
+     colours and its own few lines, nothing it waits for. main.js takes it away when the first frame is drawn. -->
+<style>
+#boot { position: fixed; inset: 0; z-index: 90; display: grid; place-items: center; padding: 16px; background: radial-gradient(ellipse at 50% 42%, #1b1813, #0c0b09 72%); color: #ece5d3; font: 14px/1.4 system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif; text-align: center; cursor: progress; }
+#boot div { display: grid; justify-items: center; gap: 12px; width: min(520px, 100%); }
+#boot i { width: 46px; height: 46px; margin-bottom: 6px; border: 1px solid rgba(216, 178, 94, 0.55); animation: boot-turn 2.4s linear infinite; }
+#boot h1 { margin: 0; font: 700 clamp(26px, 5.4vw, 44px)/1.05 'Cormorant Garamond', 'Iowan Old Style', Palatino, Georgia, 'Songti SC', serif; letter-spacing: 0.04em; text-transform: uppercase; color: #d8b25e; text-wrap: balance; }
+#boot b { position: relative; display: block; width: min(420px, 100%); height: 4px; margin-top: 10px; background: rgba(236, 229, 211, 0.1); overflow: hidden; }
+#boot b::after { content: ''; position: absolute; top: 0; bottom: 0; left: 0; width: 30%; background: linear-gradient(90deg, transparent, #d8b25e, transparent); animation: boot-glint 1.3s cubic-bezier(0.2, 0.7, 0.2, 1) infinite; }
+#boot span { font: 500 12px ui-monospace, monospace; letter-spacing: 0.08em; color: #b8b09b; }
+@keyframes boot-turn { from { transform: rotate(45deg); } to { transform: rotate(405deg); } }
+@keyframes boot-glint { from { transform: translateX(-100%); } to { transform: translateX(340%); } }
+</style>
+<div id="boot" role="status" aria-live="polite"><div><i></i><h1>Historically Accurate Combat Simulator</h1><b></b><span>Loading the game</span></div></div>
+<script>
+// The boot screen in the language the game will open in (i18n.js: the one kept, else the browser's).
+try {
+  var kept = localStorage.getItem('gladiator.lang');
+  if (kept === 'zh' || (!kept && /^zh/i.test(navigator.language || ''))) {
+    document.querySelector('#boot h1').textContent = '历史考据战斗模拟器';
+    document.querySelector('#boot span').textContent = '游戏载入中';
+  }
+} catch (error) {
+  // (No storage: the English words stay.)
+}
+</script>
+<!-- /boot -->
 <main class="arena">
   <canvas id="stage" aria-label="Boxing ring" data-i18n-aria="page.stage"></canvas>
   <!-- The player's stamina overdraft: a vignette and a desaturating grey over the picture, under every control (overdraftview.js). -->

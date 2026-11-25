@@ -17,7 +17,8 @@ import { activeLook } from './looks.js';
 import { PAINTED_GROUND } from './ground/painted.js';
 import { LIVING_GROUND } from './ground/living.js';
 import { PLACE_ARENAS } from './render.js';
-import { envApply, envBuild, envLeave, envOwnDrawn, envWanted } from './env/index.js';
+import { envApply, envBuild, envBuildSteps, envLeave, envOwnDrawn, envWanted } from './env/index.js';
+import { runSteps } from './loftbody.js';
 
 /**
  * What each open-air place has beyond its ground, for a variant to draw in
@@ -155,7 +156,7 @@ const DEFAULT_SCENERY = { id: 'default', label: 'Default for the look' };
 const sceneryForLook = (view, place) => (activeLook().id === 'toon' ? 'current' : envWanted(view, place) ? 'open-air' : 'photo-foothills');
 // (Its two halves are function declarations, so this can name them whichever of the two modules is evaluated first.
 // `litter` and `groundmarks` are the tufts, stones and painted tracks render.js tags for it: its own grass and worn earth stand in.)
-const OPEN_AIR = { id: 'open-air', label: 'Open air (sky, land, grass, trees, weather: env/)', replaces: ['hills', 'mountains', 'trees', 'plants', 'litter', 'groundmarks'], build: envBuild, apply: envApply };
+const OPEN_AIR = { id: 'open-air', label: 'Open air (sky, land, grass, trees, weather: env/)', replaces: ['hills', 'mountains', 'trees', 'plants', 'litter', 'groundmarks'], build: envBuild, buildSteps: envBuildSteps, apply: envApply };
 
 const SCENERY_COMPOSITES = [
   // The pick: the photograph for the far mountains and sky, gentle generated hills in front of it, trees on them.
@@ -192,6 +193,11 @@ function partsOf(variant) {
  * hide any other variant's groups, then let each part adjust to the light.
  */
 export function applyScenery(view, place) {
+  runSteps(applyScenerySteps(view, place));
+}
+
+/** applyScenery in steps (a part with `buildSteps` built a step at a time: main.js loadInto), the same work in the same order. */
+export function* applyScenerySteps(view, place) {
   const group = view.places?.[place];
   const spec = sceneryFor(place, view.floor);
   // The open air hands back what it took over (light probe, wind) before anything else is shown; it takes it again below if it is chosen.
@@ -214,7 +220,8 @@ export function applyScenery(view, place) {
     if (!part.build) continue;
     let built = group.children.find((child) => child.userData.sceneryVariant === part.id);
     if (!built) {
-      built = part.build({ place, view, spec, rng: sceneryRandom(place, part.id) });
+      const made = { place, view, spec, rng: sceneryRandom(place, part.id) };
+      built = part.buildSteps ? yield* part.buildSteps(made) : part.build(made);
       if (!built) continue;
       built.userData.sceneryVariant = part.id;
       group.add(built);
