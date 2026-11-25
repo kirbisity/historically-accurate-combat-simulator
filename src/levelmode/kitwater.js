@@ -241,7 +241,7 @@ export function kwtCreate(stage, options = {}) {
   const ctl = { waters, pool, group, renderer: null, scene: null, sections, drops };
 
   /** Put a section's water meshes in its detail group (`waters`: its `water` decor). */
-  ctl.addSection = (sectionId, list, holder) => {
+  ctl.addSection = (sectionId, list, holder = null) => {
     if (!list.length) return;
     const meshes = list.map((water) => {
       const material = kwtMaterial(KWT_LOOKS[water.murk] ?? KWT_LOOKS.clear, uniforms, max);
@@ -251,13 +251,24 @@ export function kwtCreate(stage, options = {}) {
         ctl.renderer = renderer;
         ctl.scene = scene;
       };
-      holder.add(mesh);
+      holder?.add(mesh);
       return mesh;
     });
     const xs = list.map((water) => water.at[0]);
     const zs = list.map((water) => water.at[2]);
     const centre = [(Math.min(...xs) + Math.max(...xs)) / 2, Math.max(...list.map((water) => water.at[1])) + 0.6, (Math.min(...zs) + Math.max(...zs)) / 2];
     sections.set(sectionId, { meshes, centre, target: null, shownFor: 0 });
+  };
+
+  /**
+   * Put a section's water meshes (made by `addSection`, kept for the stage's life with their reflection) into `holder`, a
+   * section's detail built again; `detach` takes them out of it before it is let go (levelmode/kit.js: a section built only while near).
+   */
+  ctl.attach = (sectionId, holder) => {
+    for (const mesh of sections.get(sectionId)?.meshes ?? []) holder.add(mesh);
+  };
+  ctl.detach = (sectionId) => {
+    for (const mesh of sections.get(sectionId)?.meshes ?? []) mesh.parent?.remove(mesh);
   };
 
   /** Take the reflection of a section's water: a cube map from over it, the water itself hidden. */

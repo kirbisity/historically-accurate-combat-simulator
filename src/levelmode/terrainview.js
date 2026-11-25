@@ -7,7 +7,7 @@
 // mechanism in its present state (then `view.extras(world)`, if the screen set it). The group goes into the stage's place in the scene
 // (render.js setPlace 'stage'); `view.group.parent` is that place while it is there.
 
-import { createCastleView } from './kit.js';
+import { createCastleViewSteps } from './kit.js';
 
 const COLORS = { slab: 0x8a8f95, ramp: 0x9a9388, stairs: 0xa4a9ae, wall: 0x6c6f78, ceiling: 0x575a62 };
 const ALTERNATE = 0xb9bec3;
@@ -79,10 +79,22 @@ function solidsGroup(solids, floorY) {
   return group;
 }
 
-/** The drawing of a stage: { group, sections: { id: Group }, mechanisms: [{ id, state, section, group }] }. */
-export function createStageView(stage) {
+/**
+ * The drawing of a stage: { group, sections: { id: Group }, mechanisms: [{ id, state, section, group }] }. `options` for a castle (kit.js
+ * createCastleView): `renderer`, `stream` (false: every section kept built).
+ */
+export function createStageView(stage, options = {}) {
+  const steps = createStageViewSteps(stage, options);
+  for (;;) {
+    const next = steps.next();
+    if (next.done) return next.value;
+  }
+}
+
+/** createStageView in steps (a generator: behind the loading screen, main.js loadInto), the same view. */
+export function* createStageViewSteps(stage, options = {}) {
   // A stage with a landform of its own is drawn as a castle (kit.js); the others in plain boxes.
-  if (stage.landform) return createCastleView(stage);
+  if (stage.landform) return yield* createCastleViewSteps(stage, options);
   const floorY = Number.isFinite(stage.sea) ? stage.sea : -4;
   const group = new THREE.Group();
   group.name = `stage:${stage.id}`;
