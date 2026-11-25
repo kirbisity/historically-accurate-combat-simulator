@@ -1488,6 +1488,12 @@ const PY_WEATHERED = {
 // fewer (`tint` over the foliage sheet's green, by eye).
 const PY_OAK = { kind: 'broad', tint: [0.95, 0.55, 0.3], spread: 0.55 };
 
+// The baked sun-shadow's texel (m): what the whole town's 4096 map gave it (8.5 cm over its 349 m across the light),
+// kept for any part of it held, so that a part's map is as sharp and only as large as that part needs (measured
+// 2026-11-25: the field and the west gate quarter 3567 x 1314, 18.7 MB; the west gate quarter alone 3194 x 795,
+// 10.2 MB; against the whole town's 4096 x 2030, 33.3 MB and its depth buffer).
+const PY_SHADOW_TEXEL = 0.085;
+
 // What each use holds in full (PY_DISTRICTS; every other district is drawn as its skyline, and E always is):
 //   town    Battle Mode's town fight (scenarios.js SCENARIOS.pyongyang, the key 'pyongyangtown'): its field, x 14..66 and
 //           z -65..-35, lies wholly inside W, which ends 21 m beyond it at the W-G barricade;
@@ -1973,7 +1979,8 @@ export function* buildPyongyangSteps(arena = null, { shift = [0, 0], key = 'pyon
     });
     lay.lay.min = [lay.lay.min[0] + dx, lay.lay.min[1] + dz];
   }
-  tkKeep(root, meshes, { look: PY_LOOK, sun: PY_LIGHT.sun, shadow: 0.6, sky, key, tier, mirrorAt: [-20 + dx, 1.6, dz], lay, north: [0, -1], air, stir: moved.tick, weather: (view) => ({ ...(PYONGYANG_WEATHER[view.weather?.town?.name] ?? PYONGYANG_WEATHER.snow), ...(view.weather?.town ?? null) }) });
+  // (The baked shadow by the texel the whole town had at 4096, 8.5 cm, over what is held: PY_SHADOW_TEXEL.)
+  tkKeep(root, meshes, { look: PY_LOOK, sun: PY_LIGHT.sun, shadow: 0.6, sky, key, tier, shadowTexel: PY_SHADOW_TEXEL, mirrorAt: [-20 + dx, 1.6, dz], lay, north: [0, -1], air, stir: moved.tick, weather: (view) => ({ ...(PYONGYANG_WEATHER[view.weather?.town?.name] ?? PYONGYANG_WEATHER.snow), ...(view.weather?.town ?? null) }) });
   root.userData.lay = lay.lay;
   root.userData.scattered = scattered;
   // Holding more or fewer districts in full once built: a district let go is freed and drawn as its skyline (cheap,
