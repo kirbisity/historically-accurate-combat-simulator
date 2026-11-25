@@ -24,7 +24,8 @@ import { runSteps } from '../loftbody.js';
 import { tkStir } from '../townkit/stir.js';
 import { TK_GLOW, TK_MATERIALS } from '../townkit/weather.js';
 import { TK_THINGS, tkArrows, tkBasket, tkBrazier, tkCampfire, tkCart, tkDrift, tkFirewood, tkIcicles, tkLadder, tkMantlet, tkPoles, tkSacks, tkScatter, tkStack, tkTub, tkTuft } from '../townkit/things.js';
-import { PY_CITY, PY_FAR_TOWN, PY_TOWN_FIGHT, pyCityDraw, pyCityPlan, pyCitySolids, pyFarTownDraw, pyFarTownPlan, pyInFarTown } from './pyongyang-city.js';
+import { PY_CITY, PY_FAR_TOWN, PY_TOWN_FIGHT, pyCityDraw, pyCityPlan, pyCitySolids, pyFarTownPlan, pyInFarTown } from './pyongyang-city.js';
+import { tkSkyline, tkSkylinePavilion } from '../townkit/skyline.js';
 import { TK_WORKS, tkGatehouse, tkGatehouseSolids, tkPavilion, tkPavilionSolids, tkRampart, tkRampartSolids, tkWorksStair, tkWorksStairSolid } from '../townkit/works.js';
 
 /** The place's plan (m). Choices for the game's ground, set against the battle's field and a walker's reach; none is a measurement of the real town. */
@@ -1397,47 +1398,131 @@ const PY_WEATHERED = {
 // fewer (`tint` over the foliage sheet's green, by eye).
 const PY_OAK = { kind: 'broad', tint: [0.95, 0.55, 0.3], spread: 0.55 };
 
+// What each use holds in full (PY_DISTRICTS; every other district is drawn as its skyline, and E always is):
+//   town    Battle Mode's town fight (scenarios.js SCENARIOS.pyongyang, the key 'pyongyangtown'): its field, x 14..66 and
+//           z -65..-35, lies wholly inside W, which ends 21 m beyond it at the W-G barricade;
+//   battle  chapter 3's ladder assault (story/battles/03-pyongyang.js) and the custom battle's strip before the west
+//           wall: the columns' field and the wall, with the town's strip behind it;
+//   roam    the story's walk: every district a walker reaches, until the section streamer holds only the one he is
+//           in and the next one by the gate he walks to (levelmode/stage.js; the `sections` branch). Reaching a gate
+//           before the far side is built, he never waits: the ground, the solids and the skyline are always there and
+//           the detail fills in (the user's call, 2026-11-25).
+// (The user's call, 2026-11-25: build only what each use needs.)
+export const PY_HOLDS = { town: ['W'], battle: ['F', 'W'], roam: ['F', 'W', 'G', 'M', 'R'] };
+
+/** The districts a use holds in full (PY_HOLDS): the town fight by its key; a battle by its own arena (the roam's is the place's own, `own`). */
+export function pyHoldFor(_arena, _key = 'pyongyang') {
+  return PY_HOLDS.roam;
+}
+
+// A builder that keeps nothing (tkgBuilder's verbs, each doing nothing): what a district not held is drawn into, so
+// that the drawing runs the same, its seeded draws taken in the same order, and only the held districts are made.
+const PY_SINK = { lod: 'all', at() {}, batches: () => [], free() {}, tri() {}, quad() {}, upright() {}, level() {}, box() {}, round() {}, lathe() {}, tube() {}, sweep() {} };
+
 /**
- * The place's builders by district (PY_DISTRICTS): one tkBlocks for each district and one for the backdrop. `at(x, z,
- * plain, district)` is the builder for what stands at (x, z), in the district it stands in unless `district` is given;
- * `in(id)` a district's own blocks; `wide` the backdrop's builder for what is too large for a block (the ground, the
- * far country). `all()` every builder (for the lie, which is baked from the whole place).
+ * The place's builders by district (PY_DISTRICTS): one tkBlocks for each district in `held` and one for the backdrop
+ * (none if `backdrop` is false: a district built again on its own); what stands in a district not held goes to
+ * PY_SINK. `at(x, z, plain, district)` is the builder for what stands at (x, z), in the district it stands in unless
+ * `district` is given; `in(id)` a district's own blocks; `wide` the backdrop's builder for what is too large for a
+ * block (the ground, the far country). `all()` every builder (for the lie).
  */
-function pyBlocks(tier) {
+function pyBlocks(tier, held, { backdrop = true } = {}) {
   const near = tier !== 'low';
-  const districts = Object.fromEntries(PY_DISTRICTS.ids.map((id) => [id, tkBlocks(undefined, { near })]));
-  const backdrop = tkBlocks(undefined, { near });
+  const districts = Object.fromEntries([...held].map((id) => [id, tkBlocks(undefined, { near })]));
+  const back = backdrop ? tkBlocks(undefined, { near }) : null;
+  const none = { at: () => PY_SINK, wide: PY_SINK };
   return {
     districts,
-    backdrop,
-    at: (x, z, plain = false, district = null) => districts[district ?? pyDistrict(x, z)].at(x, z, plain),
-    in: (id) => districts[id],
-    wide: backdrop.wide,
-    all: () => [...backdrop.all(), ...Object.values(districts).flatMap((blocks) => [...blocks.all(), blocks.wide])],
+    backdrop: back,
+    at: (x, z, plain = false, district = null) => (districts[district ?? pyDistrict(x, z)] ?? none).at(x, z, plain),
+    in: (id) => districts[id] ?? none,
+    wide: back ? back.wide : PY_SINK,
+    all: () => [...(back ? back.all() : []), ...Object.values(districts).flatMap((each) => [...each.all(), each.wide])],
   };
 }
 
 /**
- * The place's meshes by district (tkMeshes for each of pyBlocks's, the backdrop's too), in one group that is kept as
- * tkKeep keeps a single tkMeshes group: its `detail(focus)` and `triangles()` go over every district's, and its
- * `casters` are every district's still meshes. Each district's group is named `pyongyang:<id>` (the backdrop's
- * `pyongyang:backdrop`) and kept in `userData.districts`.
+ * The kit's moving things (tkStir) for a place built in part: a flag or a banner whose pole goes into a district not
+ * held is left out with it (else its cloth would fly from nothing); smoke, fires and the rest are kept (the hearths'
+ * smoke over the skyline's roofs is part of what is seen of a district from the next).
  */
-function pyDistrictMeshes(blocks, materials, tier) {
+function pyStirFor(stir) {
+  return { ...stir, flag: (into, ...rest) => (into === PY_SINK ? undefined : stir.flag(into, ...rest)), nobori: (into, ...rest) => (into === PY_SINK ? undefined : stir.nobori(into, ...rest)) };
+}
+
+let pyFarMade = null;
+/** The east town's plan (pyFarTownPlan on the far country's ground), every item in E. Made once. */
+function pyFarPlan() {
+  if (pyFarMade) return pyFarMade;
+  pyFarMade = pyFarTownPlan(pyFar);
+  for (const list of Object.values(pyFarMade)) for (const item of list) item.district = 'E';
+  return pyFarMade;
+}
+
+/** What of district `id` its skyline draws (townkit/skyline.js tkSkyline's items), from the plan its full drawing is made from. */
+export function pySkylineItems(id) {
+  const plan = pyongyangPlan();
+  if (id === 'E') {
+    const far = pyFarPlan();
+    return { houses: far.houses, halls: far.halls, pavilions: far.pavilions, walls: far.walls, gates: far.gates, trees: far.trees };
+  }
+  const c = plan.city;
+  const of = (list) => list.filter((item) => item.district === id);
+  return { houses: of(c.houses), halls: of(c.halls), pavilions: of(c.pavilions), terraces: of(c.terraces), walls: of(c.walls), gates: of(c.gates), pagodas: of(c.pagodas), trees: of(plan.trees), ramparts: id === 'W' ? plan.runs.map((nodes) => ({ nodes, ...plan.wall })) : [] };
+}
+
+/** District `id` drawn as its skyline (tkSkyline), in blocks of its own: with W, the west gate's block and its pavilions. */
+function pySkyline(id) {
+  const t = PYONGYANG_PLACE;
+  const plan = pyongyangPlan();
+  const blocks = tkBlocks(undefined, { near: false });
+  tkSkyline(blocks.wide, pySkylineItems(id));
+  if (id === 'W') {
+    blocks.wide.box('ashlar', plan.gateFrame, -t.gate.wide / 2, t.gate.wide / 2, -0.3, t.gate.high, -t.gate.deep, 0, { colour: TK_WORKS.dressed, skip: 'bottom' });
+    const pavilions = pyPavilions();
+    tkSkylinePavilion(blocks.wide, pavilions.gate, t.pavilion);
+    tkSkylinePavilion(blocks.wide, pavilions.corner, t.corner);
+  }
+  return blocks;
+}
+
+/**
+ * The place's meshes by part, in one group that is kept as tkKeep keeps a single tkMeshes group: its `detail(focus)`
+ * and `triangles()` go over every part's, and its `casters` are every part's still meshes. The parts: the backdrop
+ * (`pyongyang:backdrop`), each held district in full (`pyongyang:<id>`), each other as its skyline
+ * (`pyongyang:<id>:skyline`). `userData.put(name, group)` and `drop(name)` change a part (dropped, its geometry is
+ * freed); `version` counts the changes (the baked shadow is taken again on one).
+ */
+function pyDistrictMeshes(blocks, skylines, materials, tier) {
   const group = new THREE.Group();
   group.name = 'pyongyang-districts';
-  const districts = {};
-  for (const [id, each] of [['backdrop', blocks.backdrop], ...Object.entries(blocks.districts)]) {
-    districts[id] = tkMeshes(each, materials, { tier });
-    districts[id].name = `pyongyang:${id}`;
-    group.add(districts[id]);
-  }
-  group.userData.districts = districts;
-  group.userData.detail = (focus) => {
-    for (const each of Object.values(districts)) each.userData.detail(focus);
+  const parts = new Map();
+  const drop = (name) => {
+    const made = parts.get(name);
+    if (!made) return;
+    group.remove(made);
+    made.traverse((object) => object.geometry?.dispose());
+    parts.delete(name);
+    group.userData.version += 1;
   };
-  group.userData.triangles = () => Object.values(districts).reduce((sum, each) => sum + each.userData.triangles(), 0);
-  Object.defineProperty(group.userData, 'casters', { get: () => Object.values(districts).flatMap((each) => each.userData.casters), enumerable: true });
+  const put = (name, made) => {
+    drop(name);
+    made.name = `pyongyang:${name}`;
+    parts.set(name, made);
+    group.add(made);
+    group.userData.version += 1;
+  };
+  Object.assign(group.userData, {
+    version: 0, parts, put, drop,
+    detail: (focus) => {
+      for (const made of parts.values()) made.userData.detail(focus);
+    },
+    triangles: () => [...parts.values()].reduce((sum, made) => sum + made.userData.triangles(), 0),
+  });
+  Object.defineProperty(group.userData, 'casters', { get: () => [...parts.values()].flatMap((made) => made.userData.casters), enumerable: true });
+  put('backdrop', tkMeshes(blocks.backdrop, materials, { tier }));
+  for (const [id, each] of Object.entries(blocks.districts)) put(id, tkMeshes(each, materials, { tier }));
+  for (const [id, each] of Object.entries(skylines)) put(`${id}:skyline`, tkMeshes(each, materials, { tier }));
   return group;
 }
 
@@ -1452,20 +1537,15 @@ export function buildPyongyang(arena = null, options = {}) {
 buildPyongyang.steps = (arena) => buildPyongyangSteps(arena);
 
 /**
- * buildPyongyang in steps (a generator: a yield after each big piece of the town, its walls, its streets, its lie, its
- * dressing, its materials painted, its meshes), so the loading screen moves while it is built (main.js loadInto); the
- * same work in the same order.
+ * The place's drawing into `blocks` (pyBlocks: what stands in a district not held is not made) and its far woods into
+ * `woods`, in steps (a yield after each big piece). `stir`: the kit's moving things; `layOf(blocks)`: the place's lie,
+ * baked once the place's masses are laid and before its dressing (the dressing reads it). Returns { lay, eave (the
+ * west gate pavilion's top eave), pavilions (pyPavilions), scattered }. Run again with one district held and no
+ * backdrop, it draws that district alone, as it was drawn with the rest.
  */
-export function* buildPyongyangSteps(_arena = null, { shift = [0, 0], key = 'pyongyang' } = {}) {
+function* pyDrawPlace(blocks, woods, plan, tier, stir, layOf) {
   const t = PYONGYANG_PLACE;
-  const [dx, dz] = shift;
-  const plan = pyongyangPlan();
   const { wall } = plan;
-  const tier = tkTier();
-  // (Each district in blocks of its own, and the backdrop: pyBlocks.)
-  const blocks = pyBlocks(tier);
-  // (The far woods by tiles of their own: PY_WOODS.tile.)
-  const woods = tkBlocks(PY_WOODS.tile, { near: tier !== 'low' });
   // The ground: the two fields, tinted (the road to the gate and the trodden strip darker; the bank's earth), and the far country.
   const road = (x, z) => 1 - pySmooth(2.2, 5, Math.abs(z - pyRoad(x)));
   blocks.wide.at('all', () => {
@@ -1588,10 +1668,10 @@ export function* buildPyongyangSteps(_arena = null, { shift = [0, 0], key = 'pyo
   tkPavilion(blocks.at(wall.x, t.wall.z[0]), pavilions.corner, { storeys: t.corner, board: false, overhang: 1.2 });
   yield;
   // The town (places/pyongyang-city.js): its houses, halls, pavilions, terraces, walls, gates, pagoda, lanterns, paving;
-  // its far part on east to the east wall (drawn only), and that wall from the hill's crest south toward the river.
+  // its far part on east to the east wall is its skyline only (pySkyline: the user's call, 2026-11-25), and that wall
+  // from the hill's crest south toward the river.
   pyCityDraw(blocks, plan.city, (x, z) => tkFieldAt(plan.inside, x, z));
   yield;
-  pyFarTownDraw(blocks, pyFarTownPlan(pyFar), (builder, tree) => tkTree(builder, tree.at[0], tree.y, tree.at[1], { ...tree, ...(tree.kind === 'oak' ? PY_OAK : null), laden: PY_LADEN }));
   tkRampart(blocks.wide, Array.from({ length: 11 }, (_, k) => { const z = t.wall.z[0] + k * ((PY_FAR_TOWN.z[1] + 8 - t.wall.z[0]) / 10); const foot = Math.max(pyFar(PY_FAR_TOWN.wall, z), pyFoot(z)); return [PY_FAR_TOWN.wall, z, foot, foot + wall.high]; }), { ...wall, inner: (node) => node[2], masonry, seed: 12 });
   // (An oak keeps its dead leaves through a Korean winter: a broad crown in their brown.)
   for (const tree of plan.trees) tkTree(blocks.at(...tree.at), tree.at[0], tree.y, tree.at[1], { ...tree, ...(tree.kind === 'oak' ? PY_OAK : null), laden: PY_LADEN });
@@ -1615,19 +1695,46 @@ export function* buildPyongyangSteps(_arena = null, { shift = [0, 0], key = 'pyo
 
   // The place's lie (townkit/lay.js): the gate's passage and the eaves' shade, the ground's low places, where the
   // columns and the town's people trod, and how the wind laid the snow against the wall.
-  const head = plan.head;
-  const lay = tkLayOf(blocks, tier, {
-    box: PY_LAY.box, ways: pyWays(plan), wind: PY_LAY.wind, seed: 3, skip: [...TK_LAY.skip, 'snowpad'], ...(tier === 'low' ? null : { texel: PY_LAY.texel }),
-    ground: (x, z) => (z > t.outside.z[1] ? tkFieldAt(plan.south, x, z) : x <= wall.x ? tkFieldAt(plan.outside, x, z) : x < head ? pyFoot(z) : tkFieldAt(plan.inside, x, z)),
-  });
-
+  const lay = layOf(blocks);
   yield;
-  const stir = tkStir(3);
   const scattered = pyDress(blocks, stir, plan, lay, eave, tier);
   pyField(blocks, plan, tier);
   pyForeDraw(blocks, stir, plan, tier);
   pyReeds(blocks, plan);
   yield;
+  return { lay, eave, pavilions, scattered };
+}
+
+/**
+ * buildPyongyang in steps (a generator: a yield after each big piece of the town, its walls, its streets, its lie, its
+ * dressing, its materials painted, its meshes), so the loading screen moves while it is built (main.js loadInto); the
+ * same work in the same order. `hold`: the districts built in full (PY_HOLDS), else those the use needs (pyHoldFor:
+ * by `arena` and `key`); the rest are drawn as their skylines. The place's `userData.districts` holds more or fewer
+ * later (`hold(ids)`, a generator), and `userData.holdFor(arena)` holds what a use needs (render.js, on every use).
+ */
+export function* buildPyongyangSteps(arena = null, { shift = [0, 0], key = 'pyongyang', hold = null } = {}) {
+  const t = PYONGYANG_PLACE;
+  const [dx, dz] = shift;
+  const plan = pyongyangPlan();
+  const { wall } = plan;
+  const tier = tkTier();
+  // (What this use holds in full, PY_HOLDS; E is never held, it is its skyline only.)
+  const held = new Set((hold ?? pyHoldFor(arena, key)).filter((id) => id !== 'E'));
+  // (Each held district in blocks of its own, and the backdrop: pyBlocks.)
+  const blocks = pyBlocks(tier, held);
+  // (The far woods by tiles of their own: PY_WOODS.tile.)
+  const woods = tkBlocks(PY_WOODS.tile, { near: tier !== 'low' });
+  // (Every district not held, as its skyline: laid before the lie is baked, so that the lie has their masses.)
+  const skylines = Object.fromEntries(PY_DISTRICTS.ids.filter((id) => !held.has(id)).map((id) => [id, pySkyline(id)]));
+  // The place's lie (townkit/lay.js): the gate's passage and the eaves' shade, the ground's low places, where the
+  // columns and the town's people trod, and how the wind laid the snow against the wall.
+  const head = plan.head;
+  const layOf = (laid) => tkLayOf({ all: () => [...laid.all(), ...Object.values(skylines).map((each) => each.wide)], wide: laid.wide }, tier, {
+    box: PY_LAY.box, ways: pyWays(plan), wind: PY_LAY.wind, seed: 3, skip: [...TK_LAY.skip, 'snowpad'], ...(tier === 'low' ? null : { texel: PY_LAY.texel }),
+    ground: (x, z) => (z > t.outside.z[1] ? tkFieldAt(plan.south, x, z) : x <= wall.x ? tkFieldAt(plan.outside, x, z) : x < head ? pyFoot(z) : tkFieldAt(plan.inside, x, z)),
+  });
+  const stir = tkStir(3);
+  const { lay, eave, pavilions, scattered } = yield* pyDrawPlace(blocks, woods, plan, tier, pyStirFor(stir), layOf);
 
   // (The river's ice is frozen, not open water: no pool's mirror. The wind scours lying snow off smooth ice into drifts
   // and bare patches more than off rough ground: it holds `snow` 0.6 of the ground's share (by eye against photographs
@@ -1637,7 +1744,7 @@ export function* buildPyongyangSteps(_arena = null, { shift = [0, 0], key = 'pyo
   // (The stone and the timber as a northern winter has them: PY_WEATHERED.)
   const materials = tkMaterialsFor(tier, { extra: { ice: { sheet: 'plaster', colour: [0.72, 0.8, 0.84], blotch: 0.5, plain: true, snow: 0.6, rough: 0.15, scour: 1 }, reed: { ...TK_MATERIALS.tuft, snow: 0 }, bare: { sheet: 'earth', blotch: 1.4, snow: 0.12, dirt: [0, 0.5, 0.3, 0] }, ...PY_WEATHERED, track: { sheet: 'earth', blotch: 1.2, snow: t.trodden }, street: { sheet: 'cobble', snow: t.trodden * 1.3 } } });
   yield;
-  const meshes = pyDistrictMeshes(blocks, materials, tier);
+  const meshes = pyDistrictMeshes(blocks, skylines, materials, tier);
   yield;
   const woodMeshes = tkMeshes(woods, materials, { tier });
   woodMeshes.name = 'pyongyang-woods';
@@ -1756,6 +1863,31 @@ export function* buildPyongyangSteps(_arena = null, { shift = [0, 0], key = 'pyo
   tkKeep(root, meshes, { look: PY_LOOK, sun: PY_LIGHT.sun, shadow: 0.6, sky, key, tier, mirrorAt: [-20 + dx, 1.6, dz], lay, north: [0, -1], air, stir: moved.tick, weather: (view) => ({ ...(PYONGYANG_WEATHER[view.weather?.town?.name] ?? PYONGYANG_WEATHER.snow), ...(view.weather?.town ?? null) }) });
   root.userData.lay = lay.lay;
   root.userData.scattered = scattered;
+  // Holding more or fewer districts in full once built: a district let go is freed and drawn as its skyline (cheap,
+  // at once); one taken up is drawn on its own as it was with the rest (pyDrawPlace with it alone held: the same seeded
+  // drawing, the lie already baked) and meshed, its skyline then dropped. The solids are the whole place's whatever is
+  // held (pyongyangSolids): walking through a gate never meets a missing floor.
+  const holdDistricts = function* (ids) {
+    const want = new Set(ids.filter((id) => id !== 'E'));
+    for (const id of PY_DISTRICTS.ids) {
+      if (!held.has(id) || want.has(id)) continue;
+      meshes.userData.drop(id);
+      meshes.userData.put(`${id}:skyline`, tkMeshes(pySkyline(id), materials, { tier }));
+      held.delete(id);
+    }
+    for (const id of PY_DISTRICTS.ids) {
+      if (held.has(id) || !want.has(id)) continue;
+      const one = pyBlocks(tier, new Set([id]), { backdrop: false });
+      // (Its moving things are the first build's: those of this drawing are not kept.)
+      yield* pyDrawPlace(one, null, plan, tier, pyStirFor(tkStir(3)), () => lay);
+      meshes.userData.put(id, tkMeshes(one.districts[id], materials, { tier }));
+      meshes.userData.drop(`${id}:skyline`);
+      held.add(id);
+      yield;
+    }
+  };
+  root.userData.districts = { held: () => [...held], hold: holdDistricts };
+  root.userData.holdFor = (use) => holdDistricts(pyHoldFor(use, key));
   root.userData.dispose = () => {
     materials.dispose();
     lay.textures.a.dispose();

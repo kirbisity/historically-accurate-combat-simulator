@@ -329,7 +329,8 @@ export function pyCitySolids(city) {
 }
 
 /**
- * The town's far part beyond the walked streets, drawn only (no walker reaches it): `x` and `z` its ground, `lanes` the
+ * The town's far part beyond the walked streets, drawn only as its skyline (no walker reaches it; places/pyongyang.js
+ * pySkyline, the user's call, 2026-11-25): `x` and `z` its ground, `lanes` the
  * spacing of its lanes (E-W), the avenue running on east through it to the east wall (`wall`: its x) and its gate at the
  * avenue's end; a hall, a temple and a pavilion standing over its roofs (`landmarks`: [x, z, kind]). The houses tiled
  * nearer the avenue, thatched further from it (PY_CITY.rich).
@@ -396,18 +397,4 @@ export function pyFarTownPlan(groundAt) {
   // The east gate's tower over the avenue's end, on the wall.
   pavilions.push({ at: [f.wall, -50], yaw: -Math.PI / 2, base: groundAt(f.wall, -50) + 4.5, storeys: [{ width: 12, depth: 6, high: 3.1, fill: 'open' }, { width: 9, depth: 4.4, high: 2.6, fill: 'lattice' }], terrace: 0.4, apron: 0.6, far: true, gate: true });
   return { houses, halls, pavilions, walls, gates, trees };
-}
-
-/** Draw the far town (pyFarTownPlan) into the place's far blocks; its trees by `tree(builder, tree)`. */
-export function pyFarTownDraw(blocks, far, tree) {
-  for (const w of far.walls) tkYardWall(blocks.at(w.run[0][0], w.run[0][1], true), w.run[0], w.run[1], { material: w.material, high: w.high, base: w.base, thick: w.low ? 0.5 : TK_HANOK.yard.thick });
-  for (const g of far.gates) tkRoofedGate(blocks.at(g.at[0], g.at[1], true), tkgFrame(g.at[0], g.base, g.at[1], g.yaw));
-  for (const t of far.trees) tree(blocks.at(t.at[0], t.at[1], true), t);
-  for (const house of far.houses) {
-    const b = blocks.at(house.at[0], house.at[1], true);
-    if (house.kind === 'thatch') tkThatch(b, house);
-    else tkHouse(b, house);
-  }
-  for (const hall of far.halls) tkHall(blocks.at(hall.at[0], hall.at[1], true), tkgFrame(hall.at[0], hall.base, hall.at[1], hall.yaw), hall);
-  for (const p of far.pavilions) tkTerracePavilion(blocks.at(p.at[0], p.at[1], true), tkgFrame(p.at[0], p.base, p.at[1], p.yaw), { ...p, steps: [] });
 }
