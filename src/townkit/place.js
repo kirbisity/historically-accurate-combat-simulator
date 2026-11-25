@@ -104,12 +104,19 @@ function tkGeometry(batch) {
  * group; `group.userData.detail(focus)` shows each block's fine detail or its stand-in by its distance from `focus`
  * (a THREE.Vector3), and `group.userData.casters` are the meshes that throw the baked shadow.
  */
-export function tkMeshes(blocks, materials, { tier = 'high' } = {}) {
+export function tkMeshes(blocks, materials, options = {}) {
+  const steps = tkMeshesSteps(blocks, materials, options);
+  for (let next = steps.next(); ; next = steps.next()) if (next.done) return next.value;
+}
+
+/** tkMeshes in steps (a generator: a yield after every `every` meshes made, for a part of a place built while it is played: places/pyongyang.js). Returns the group. */
+export function* tkMeshesSteps(blocks, materials, { tier = 'high', every = Infinity } = {}) {
   const group = new THREE.Group();
   const switched = [];
   const casters = [];
   const near = tier === 'low' ? 0 : TK_PLACE.near;
-  const add = (builder, wide) => {
+  let made = 0;
+  const add = function* (builder, wide) {
     for (const batch of builder.batches()) {
       if (!batch.position.length || (batch.level === 'near' && !near)) continue;
       const mesh = new THREE.Mesh(tkGeometry(batch), materials.get(batch.material));
@@ -122,6 +129,7 @@ export function tkMeshes(blocks, materials, { tier = 'high' } = {}) {
         mesh.visible = batch.level === 'far';
         switched.push({ mesh, level: batch.level, centre: mesh.geometry.boundingSphere.center, radius: mesh.geometry.boundingSphere.radius });
       }
+      if ((made += 1) % every === 0) yield;
     }
   };
   // What is never switched (level 'all': walls, roofs, the ground's own things) is drawn `TK_PLACE.merge` blocks square
@@ -137,7 +145,7 @@ export function tkMeshes(blocks, materials, { tier = 'high' } = {}) {
       if (!merged.has(key)) merged.set(key, []);
       merged.get(key).push(batch);
     }
-    add({ batches: () => kept }, false);
+    yield* add({ batches: () => kept }, false);
   }
   const joined = (parts, name) => {
     const out = new Float32Array(parts.reduce((sum, part) => sum + part[name].length, 0));
@@ -147,9 +155,9 @@ export function tkMeshes(blocks, materials, { tier = 'high' } = {}) {
   };
   for (const parts of merged.values()) {
     const batch = parts.length === 1 ? parts[0] : { material: parts[0].material, level: 'all', position: joined(parts, 'position'), normal: joined(parts, 'normal'), uv: joined(parts, 'uv'), colour: joined(parts, 'colour') };
-    add({ batches: () => [batch] }, false);
+    yield* add({ batches: () => [batch] }, false);
   }
-  add(blocks.wide, true);
+  yield* add(blocks.wide, true);
   // The corners are the meshes' now: the builders let theirs go.
   blocks.free();
   group.userData.casters = casters;

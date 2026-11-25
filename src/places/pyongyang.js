@@ -21,7 +21,9 @@ import { STORY_WALL } from '../story/ground/walls.js';
 import { tkgFrame } from '../townkit/geo.js';
 import { tkFbm, tkRandom } from '../townkit/tex.js';
 import { TK_HOUSE, tkFieldAt, tkFieldMesh, tkHouse, tkHouseSolid, tkJar, tkPaving, tkRow, tkTree } from '../townkit/build.js';
-import { tkBlocks, tkKeep, tkLayOf, tkMaterialsFor, tkMeshes, tkSky, tkSunWay, tkTier } from '../townkit/place.js';
+import { tkBlocks, tkKeep, tkLayOf, tkMaterialsFor, tkMeshes, tkMeshesSteps, tkSky, tkSunWay, tkTier } from '../townkit/place.js';
+import { createSectionStream, STREAM_FRAME } from '../levelmode/sectionstream.js';
+import { sectionGraph } from '../levelmode/visibility.js';
 import { TK_LAY } from '../townkit/lay.js';
 import { runSteps } from '../loftbody.js';
 import { tkStir } from '../townkit/stir.js';
@@ -907,10 +909,45 @@ export function pyongyangStage() {
   return {
     id: 'pyongyang', title: 'The walls of Pyongyang', place: 'pyongyang',
     start: { section: 'walls', at: t.start.at, facing: t.start.facing },
-    // (The section holds the walked ground, the town's square and the bank and ice to the south: its terrain is live only inside it.)
+    // (The section holds the walked ground, the town's square and the bank and ice to the south, and all the place's
+    // solids, whatever district he is in: walking through a gate never meets a missing floor.)
     sections: [{ id: 'walls', name: 'The walls of Pyongyang', bounds: { at: [0, (t.river.field.to + 20 - 140) / 2], size: [320, t.river.field.to + 20 + 140] }, terrain: pyongyangSolids(), spawns: [] }],
+    // The districts as sections of what is drawn (pyDistrictSections), the section streamer's graph: not the world's
+    // sections, which would make the terrain again from the whole place's solids each time he crossed a gate or stood
+    // in a gate's area (levelmode/stage.js: the active sections' union, rebuilt on every change of the active set).
+    districts: pyDistrictSections(),
   };
 }
+
+/**
+ * The districts (PY_DISTRICTS, E but drawn only) as sections of the place's stage (levelmode/stage.js: `bounds`, and
+ * `portals` [{ to, area }] where two meet: visibility.js sectionGraph), for the section streamer (levelmode/
+ * sectionstream.js). A portal's area is where its gate is, and the streamer builds the district beyond it while he is
+ * within its lead of it (PY_STREAM): F-W the west wall's whole line (its gate, its walk and the ladders: from the wall
+ * both are seen, and on it both are active, so it is a portal either way), W-G the barricade's avenue gate and broad-street gateway, W-M Hamgumun and the corner where the west
+ * and south walls' walks meet, G-M the lane gate, F-R and M-R the river's edge (open ground, and the bound over the bank).
+ */
+export function pyDistrictSections() {
+  const box = (x0, x1, z0, z1) => ({ at: [(x0 + x1) / 2, (z0 + z1) / 2], size: [x1 - x0, z1 - z0] });
+  const d = PY_DISTRICTS;
+  const [north, far] = [PYONGYANG_PLACE.outside.z[0], PYONGYANG_PLACE.river.field.to];
+  const south = PY_SOUTH_WALL.gates;
+  const gate = (x, z, wide, deep) => box(x - wide / 2, x + wide / 2, z - deep / 2, z + deep / 2);
+  return [
+    { id: 'F', name: 'Before the west wall', bounds: box(-150, d.west, north, d.river), portals: [{ to: 'W', area: box(-6, 15, -122, 125) }, { to: 'R', area: box(-150, d.west, d.river - 4, d.river + 4) }] },
+    { id: 'W', name: 'The west gate quarter', bounds: box(d.west, d.wg, north, d.south), portals: [{ to: 'F', area: box(-6, 15, -122, 125) }, { to: 'G', area: [gate(d.wg, -50, 8, 9), gate(d.wg, 0, 8, 20)] }, { to: 'M', area: [gate(south[0].x, d.south, 10, 16), box(d.west, 15, d.south - 8, d.south + 2)] }] },
+    { id: 'G', name: 'The governor\'s quarter', bounds: box(d.wg, d.east, north, d.south), portals: [{ to: 'M', area: gate(south[1].x, d.south, 8, 14) }] },
+    { id: 'M', name: 'The middle city', bounds: box(d.west, d.east, d.south, d.river), portals: [{ to: 'R', area: box(d.west, d.east, d.river - 4, d.river + 2) }] },
+    { id: 'R', name: 'The frozen river', bounds: box(-150, 150, d.river, far), portals: [] },
+  ];
+}
+
+// The roam's section streamer (levelmode/sectionstream.js SECTION_STREAM, this place's own: Dunnottar's is left as it
+// is). `lead` m: a district beyond a gate is built from this near it. A district is about 1 to 2.5 s of work
+// (PLAN.txt section 7), at the streamer's few milliseconds a frame some 15 to 40 s of frames; walking at 1.4 m/s that is
+// 20 to 55 m, so 60 m of lead has it built before he is through. `keep` m and `linger` s: a district behind him is let
+// go once every gate into it is this far and this long ago, so that a turn back at a gate frees nothing.
+export const PY_STREAM = { lead: 60, keep: 80, linger: 5, hops: 2 };
 
 /** The weather the place is seen in (tkSetWeather's argument): snow lying, the air dry and clear. A view's `weather.town` replaces any part of it. */
 export const PYONGYANG_WEATHER = {
@@ -1214,9 +1251,13 @@ const PY_SIEGE = {
 /**
  * Dress the place (after its lie is baked: the drifts and the scatter are laid by it): the garrison's banners,
  * fires and stones on the wall, the siege's litter before it, the camps, the town's hearths and icicles, the
- * drifts, and what stands through the snow. `stir`: the kit's moving things (townkit/stir.js).
+ * drifts, and what stands through the snow. `stir`: the kit's moving things (townkit/stir.js). In steps (a generator: a
+ * yield every PY_DRESS_EVERY houses), for a district dressed while the town is walked; returns what it scattered.
  */
-function pyDress(blocks, stir, plan, lay, eave, tier) {
+// How many houses pyDress dresses between two yields (a house's drifts and icicles are a few milliseconds of work).
+const PY_DRESS_EVERY = 6;
+
+function* pyDress(blocks, stir, plan, lay, eave, tier) {
   const t = PYONGYANG_PLACE;
   const s = PY_SIEGE;
   const { wall, head } = plan;
@@ -1349,7 +1390,8 @@ function pyDress(blocks, stir, plan, lay, eave, tier) {
   for (const side of [-1, 1]) tkStack(blocks.at(head + 13, t.gate.z), tkgFrame(head + 13, 0, t.gate.z + side * 6.5, 0.2 * side), { kind: 'stone', long: 2.2, high: 0.9, deep: 1.1, seed: 5 + side });
 
   // The town: a clay stack and its smoke at the end of each house with a fire lit; icicles along the near eaves.
-  for (const house of plan.houses) {
+  for (const [index, house] of plan.houses.entries()) {
+    if (index % PY_DRESS_EVERY === PY_DRESS_EVERY - 1) yield;
     const dice = tkRandom(house.seed * 31 + 5);
     const frame = tkgFrame(house.at[0], house.base ?? 0, house.at[1], house.yaw ?? 0);
     if (dice() < s.hearths) {
@@ -1406,7 +1448,8 @@ function pyDress(blocks, stir, plan, lay, eave, tier) {
       tkDrift(blocks.at(wall.x, (z0 + z1) / 2), [wall.x, z1], [wall.x, z0], { ...s.drift.wall, heightAt: outside, share: (x, z) => unworn(wall.x - 1.5, z) * pySmooth(t.strip[0] + 0.5, t.strip[0] + 5, Math.abs(z)), seed: 1, taper: false });
     }
   }
-  for (const house of plan.houses) {
+  for (const [index, house] of plan.houses.entries()) {
+    if (index % PY_DRESS_EVERY === PY_DRESS_EVERY - 1) yield;
     if (house.far) continue;
     const frame = tkgFrame(house.at[0], 0, house.at[1], house.yaw ?? 0);
     const [w, d] = [house.width / 2, house.depth / 2];
@@ -1499,12 +1542,13 @@ const PY_SHADOW_TEXEL = 0.085;
 //           z -65..-35, lies wholly inside W, which ends 21 m beyond it at the W-G barricade;
 //   battle  chapter 3's ladder assault (story/battles/03-pyongyang.js) and the custom battle's strip before the west
 //           wall: the columns' field and the wall, with the town's strip behind it;
-//   roam    the story's walk: every district a walker reaches, until the section streamer holds only the one he is
-//           in and the next one by the gate he walks to (levelmode/stage.js; the `sections` branch). Reaching a gate
-//           before the far side is built, he never waits: the ground, the solids and the skyline are always there and
-//           the detail fills in (the user's call, 2026-11-25).
+//   roam    the story's walk: at its start what he stands in and sees, F and W (he comes in before the west wall, or
+//           stands on it after the battle), and from there the section streamer (PY_STREAM) builds each district as he
+//           nears its gate and lets go of those behind him. Reaching a gate before the far side is built, he never
+//           waits: the ground, the solids and the skyline are always there and the detail fills in (the user's call,
+//           2026-11-25).
 // (The user's call, 2026-11-25: build only what each use needs.)
-export const PY_HOLDS = { town: ['W'], battle: ['F', 'W'], roam: ['F', 'W', 'G', 'M', 'R'] };
+export const PY_HOLDS = { town: ['W'], battle: ['F', 'W'], roam: ['F', 'W'] };
 
 /** The districts a use holds in full (PY_HOLDS): the town fight by its key; a battle by its own arena (the roam's is the place's own, `own`). */
 export function pyHoldFor(arena, key = 'pyongyang') {
@@ -1583,31 +1627,83 @@ function pySkyline(id) {
   return blocks;
 }
 
+// The kit's materials the whole town is drawn with (measured from its full drawing, 2026-11-25: the mesh names of every
+// district held), made at the first build whatever is held: buildPyongyangSteps's warm meshes.
+const PY_MATERIALS = ['ashlar', 'bare', 'bark', 'boulder', 'cobble', 'drift', 'earth', 'flags', 'foliage', 'ice', 'icicle', 'lattice', 'needles', 'plaster', 'reed', 'rock', 'rooftile', 'rubble', 'scrap', 'snowpad', 'street', 'timber', 'track', 'tuft', 'ware'];
+
+// A district built while he walks is sent to the graphics card `bytes` at a time (a lot a frame), before it is shown:
+// three.js sends a mesh's vertices the first frame it is drawn, and a district at once was 25 to 57 MB in one frame.
+// `meshes`: how many meshes are made between two yields while it is meshed. (As levelmode/kit.js uploadSteps does for
+// the castle: 1.5 MB a frame.)
+const PY_UPLOAD = { bytes: 1.5e6, meshes: 6 };
+
+/**
+ * Send the meshes under `made` (tkMeshes's group) to the graphics card a lot at a time: each lot put under `uploader`
+ * (in the scene) for one frame, drawn with nothing to draw, then put back (levelmode/kit.js uploadSteps, the same way).
+ * A generator: it yields STREAM_FRAME until a frame has been drawn.
+ */
+function* pyUploadSteps(made, uploader, renderer) {
+  const meshes = made.children.filter((object) => object.isMesh);
+  let lot = [];
+  let bytes = 0;
+  const send = function* () {
+    const was = lot.map((mesh) => mesh.visible);
+    for (const mesh of lot) {
+      mesh.geometry.setDrawRange(0, 0);
+      mesh.frustumCulled = false;
+      mesh.visible = true;
+      uploader.add(mesh);
+    }
+    const frame = renderer.info.render.frame;
+    try {
+      do yield STREAM_FRAME;
+      while (renderer.info.render.frame === frame && uploader.parent);
+    } finally {
+      lot.forEach((mesh, index) => {
+        mesh.geometry.setDrawRange(0, Infinity);
+        mesh.frustumCulled = true;
+        mesh.visible = was[index];
+        made.add(mesh);
+      });
+      lot = [];
+      bytes = 0;
+    }
+  };
+  for (const mesh of meshes) {
+    lot.push(mesh);
+    for (const attribute of Object.values(mesh.geometry.attributes)) bytes += attribute.array?.byteLength ?? 0;
+    if (bytes >= PY_UPLOAD.bytes) yield* send();
+  }
+  if (lot.length) yield* send();
+}
+
 /**
  * The place's meshes by part, in one group that is kept as tkKeep keeps a single tkMeshes group: its `detail(focus)`
  * and `triangles()` go over every part's, and its `casters` are every part's still meshes. The parts: the backdrop
  * (`pyongyang:backdrop`), each held district in full (`pyongyang:<id>`), each other as its skyline
  * (`pyongyang:<id>:skyline`). `userData.put(name, group)` and `drop(name)` change a part (dropped, its geometry is
- * freed); `version` counts the changes (the baked shadow is taken again on one).
+ * freed); `version` counts the parts put that throw the baked shadow (it is taken again on one).
  */
 function pyDistrictMeshes(blocks, skylines, materials, tier) {
   const group = new THREE.Group();
   group.name = 'pyongyang-districts';
   const parts = new Map();
+  // (Only a part that throws the baked shadow counts as a change of it: a district let go leaves its shadow in the
+  // map, where its skyline stands much as it did, rather than the map being drawn again, some 250 ms at the town's
+  // size on an M1, at each gate he walks through.)
   const drop = (name) => {
     const made = parts.get(name);
     if (!made) return;
     group.remove(made);
     made.traverse((object) => object.geometry?.dispose());
     parts.delete(name);
-    group.userData.version += 1;
   };
   const put = (name, made) => {
     drop(name);
     made.name = `pyongyang:${name}`;
     parts.set(name, made);
     group.add(made);
-    group.userData.version += 1;
+    if (made.userData.casters?.length) group.userData.version += 1;
   };
   Object.assign(group.userData, {
     version: 0, parts, put, drop,
@@ -1781,11 +1877,14 @@ function* pyDrawPlace(blocks, woods, plan, tier, stir, layOf) {
   // The town (places/pyongyang-city.js): its houses, halls, pavilions, terraces, walls, gates, pagoda, lanterns, paving;
   // its far part on east to the east wall is its skyline only (pySkyline: the user's call, 2026-11-25), and that wall
   // from the hill's crest south toward the river.
-  pyCityDraw(blocks, plan.city, (x, z) => tkFieldAt(plan.inside, x, z));
+  yield* pyCityDraw(blocks, plan.city, (x, z) => tkFieldAt(plan.inside, x, z));
   yield;
   tkRampart(blocks.wide, Array.from({ length: 11 }, (_, k) => { const z = t.wall.z[0] + k * ((PY_FAR_TOWN.z[1] + 8 - t.wall.z[0]) / 10); const foot = Math.max(pyFar(PY_FAR_TOWN.wall, z), pyFoot(z)); return [PY_FAR_TOWN.wall, z, foot, foot + wall.high]; }), { ...wall, inner: (node) => node[2], masonry, seed: 12 });
   // (An oak keeps its dead leaves through a Korean winter: a broad crown in their brown.)
-  for (const tree of plan.trees) tkTree(blocks.at(...tree.at), tree.at[0], tree.y, tree.at[1], { ...tree, ...(tree.kind === 'oak' ? PY_OAK : null), laden: PY_LADEN });
+  for (const [index, tree] of plan.trees.entries()) {
+    tkTree(blocks.at(...tree.at), tree.at[0], tree.y, tree.at[1], { ...tree, ...(tree.kind === 'oak' ? PY_OAK : null), laden: PY_LADEN });
+    if (index % PY_DRESS_EVERY === PY_DRESS_EVERY - 1) yield;
+  }
   // The trodden ground: the road out from the gate (a ribbon laid on the ground's own heights) and the columns' way to the wall.
   // (Each strip of the ribbon takes the ground's height under its own corners, a finger above it: it has no sides to show
   // where the ground falls away across the road.)
@@ -1808,9 +1907,12 @@ function* pyDrawPlace(blocks, woods, plan, tier, stir, layOf) {
   // columns and the town's people trod, and how the wind laid the snow against the wall.
   const lay = layOf(blocks);
   yield;
-  const scattered = pyDress(blocks, stir, plan, lay, eave, tier);
+  const scattered = yield* pyDress(blocks, stir, plan, lay, eave, tier);
+  yield;
   pyField(blocks, plan, tier);
+  yield;
   pyForeDraw(blocks, stir, plan, tier);
+  yield;
   pyReeds(blocks, plan);
   yield;
   return { lay, eave, pavilions, scattered, southEaves };
@@ -1862,6 +1964,18 @@ export function* buildPyongyangSteps(arena = null, { shift = [0, 0], key = 'pyon
   const root = new THREE.Group();
   root.name = key;
   root.position.set(dx, 0, dz);
+  // Every material the whole town is drawn with, made now and drawn in the scene from the first frame by a mesh with
+  // nothing to draw (PY_MATERIALS): a district built while he walks then finds its materials made, their sheets
+  // painted and their programs built behind the loading screen, where the first one built in play took 670 ms.
+  // (Each a small triangle well under the ground, laid and meshed as the kit lays and meshes everything, so that its
+  // program is the one the district's meshes are drawn with; never culled.)
+  const warmBlocks = tkBlocks(undefined, { near: false });
+  for (const name of PY_MATERIALS) warmBlocks.wide.tri(name, [0, -60, 0], [0.1, -60, 0.1], [0.1, -60, 0], [[0, 0], [0.1, 0.1], [0.1, 0]]);
+  const warm = tkMeshes(warmBlocks, materials, { tier });
+  warm.name = 'pyongyang-warm';
+  warm.traverse((object) => {
+    object.frustumCulled = false;
+  });
   const sky = tkSky({ horizon: PY_LIGHT.haze, zenith: 0x7fa3d0, cloud: 0.3, cloudColour: 0xf4f4f0, radius: 2200, sun: PY_LIGHT.sun, glow: 0.3 });
   // The gates' names on their boards, on the outer side under the upper eave: the west gate Bot'ongmun, the south
   // wall's Hamgumun (the user's call, 2026-11-25: the record's reading, the head of this file).
@@ -1876,7 +1990,7 @@ export function* buildPyongyangSteps(arena = null, { shift = [0, 0], key = 'pyon
     boards.push(named);
   });
   const moved = stir.make(materials, tier);
-  root.add(meshes, woodMeshes, moved.group, sky, ...boards);
+  root.add(meshes, woodMeshes, moved.group, sky, warm, ...boards);
   // The open air (env/): the day's sun, a continental winter's clear cold air (a visibility of about 25 km:
   // approximate), a third of the sky in cloud; in snow, the open air's snow showers ('flurries': a flurry out of each
   // cloud that passes, the low sun between them on the new snow); without it, its clear day. The ground's own
@@ -1979,35 +2093,83 @@ export function* buildPyongyangSteps(arena = null, { shift = [0, 0], key = 'pyon
     });
     lay.lay.min = [lay.lay.min[0] + dx, lay.lay.min[1] + dz];
   }
-  // (The baked shadow by the texel the whole town had at 4096, 8.5 cm, over what is held: PY_SHADOW_TEXEL.)
-  tkKeep(root, meshes, { look: PY_LOOK, sun: PY_LIGHT.sun, shadow: 0.6, sky, key, tier, shadowTexel: PY_SHADOW_TEXEL, mirrorAt: [-20 + dx, 1.6, dz], lay, north: [0, -1], air, stir: moved.tick, weather: (view) => ({ ...(PYONGYANG_WEATHER[view.weather?.town?.name] ?? PYONGYANG_WEATHER.snow), ...(view.weather?.town ?? null) }) });
   root.userData.lay = lay.lay;
   root.userData.scattered = scattered;
   // Holding more or fewer districts in full once built: a district let go is freed and drawn as its skyline (cheap,
   // at once); one taken up is drawn on its own as it was with the rest (pyDrawPlace with it alone held: the same seeded
   // drawing, the lie already baked) and meshed, its skyline then dropped. The solids are the whole place's whatever is
   // held (pyongyangSolids): walking through a gate never meets a missing floor.
+  const freeDistrict = (id) => {
+    if (!held.has(id)) return;
+    meshes.userData.drop(id);
+    meshes.userData.put(`${id}:skyline`, tkMeshes(pySkyline(id), materials, { tier }));
+    held.delete(id);
+  };
+  // (A district built while he walks sends its meshes to the graphics card a lot at a time before it is shown:
+  // pyUploadSteps.)
+  const uploader = new THREE.Group();
+  uploader.name = 'pyongyang-uploading';
+  root.add(uploader);
+  const buildDistrict = function* (id, { now = true } = {}) {
+    if (held.has(id) || id === 'E') return meshes.userData.parts.get(id) ?? null;
+    const one = pyBlocks(tier, new Set([id]), { backdrop: false });
+    // (Its moving things are the first build's: those of this drawing are not kept.)
+    yield* pyDrawPlace(one, null, plan, tier, pyStirFor(tkStir(3)), () => lay);
+    const made = yield* tkMeshesSteps(one.districts[id], materials, { tier, every: now ? Infinity : PY_UPLOAD.meshes });
+    if (!now && kept.view?.renderer) yield* pyUploadSteps(made, uploader, kept.view.renderer);
+    meshes.userData.put(id, made);
+    meshes.userData.drop(`${id}:skyline`);
+    held.add(id);
+    return made;
+  };
   const holdDistricts = function* (ids) {
     const want = new Set(ids.filter((id) => id !== 'E'));
-    for (const id of PY_DISTRICTS.ids) {
-      if (!held.has(id) || want.has(id)) continue;
-      meshes.userData.drop(id);
-      meshes.userData.put(`${id}:skyline`, tkMeshes(pySkyline(id), materials, { tier }));
-      held.delete(id);
-    }
+    for (const id of PY_DISTRICTS.ids) if (held.has(id) && !want.has(id)) freeDistrict(id);
     for (const id of PY_DISTRICTS.ids) {
       if (held.has(id) || !want.has(id)) continue;
-      const one = pyBlocks(tier, new Set([id]), { backdrop: false });
-      // (Its moving things are the first build's: those of this drawing are not kept.)
-      yield* pyDrawPlace(one, null, plan, tier, pyStirFor(tkStir(3)), () => lay);
-      meshes.userData.put(id, tkMeshes(one.districts[id], materials, { tier }));
-      meshes.userData.drop(`${id}:skyline`);
-      held.add(id);
+      yield* buildDistrict(id);
       yield;
     }
   };
-  root.userData.districts = { held: () => [...held], hold: holdDistricts };
-  root.userData.holdFor = (use) => holdDistricts(pyHoldFor(use, key));
+  // The roam's districts streamed (levelmode/sectionstream.js, PY_STREAM): what he stands in and what lies within
+  // reach of a gate ahead built a few milliseconds a frame, what lies behind let go to its skyline. He never waits at a
+  // gate (the user's call, 2026-11-25): the ground, the solids and the skyline are always there, and the detail fills in.
+  let stream = null;
+  let streamedAt = null;
+  const graph = sectionGraph({ sections: pyDistrictSections() });
+  const startStream = () => {
+    stream = createSectionStream({ graph, build: (id, { now }) => buildDistrict(id, { now }), free: freeDistrict, config: PY_STREAM });
+    for (const id of held) stream.adopt(id, meshes.userData.parts.get(id));
+  };
+  const stopStream = () => {
+    // (What it held stays held: the use that stops it says what it wants, holdDistricts.)
+    stream = null;
+  };
+  // (The baked shadow by the texel the whole town had at 4096, 8.5 cm, over what is held: PY_SHADOW_TEXEL.)
+  const kept = tkKeep(root, meshes, { look: PY_LOOK, sun: PY_LIGHT.sun, shadow: 0.6, sky, key, tier, shadowTexel: PY_SHADOW_TEXEL, mirrorAt: [-20 + dx, 1.6, dz], lay, north: [0, -1], air, stir: moved.tick, weather: (view) => ({ ...(PYONGYANG_WEATHER[view.weather?.town?.name] ?? PYONGYANG_WEATHER.snow), ...(view.weather?.town ?? null) }) });
+  const keptTick = root.userData.tick;
+  root.userData.tick = (time) => {
+    keptTick(time);
+    const view = kept.view;
+    if (!stream || !view || !root.visible) return;
+    const target = view.orbit?.target ?? view.camera.position;
+    const [x, z] = [target.x - dx, target.z - dz];
+    const dt = streamedAt === null ? 0 : Math.min(0.25, time - streamedAt);
+    streamedAt = time;
+    const here = pyDistrict(x, z);
+    stream.update(dt, { position: [x, target.y, z], active: here === 'E' ? [] : [here] });
+    stream.pump();
+  };
+  root.userData.districts = { held: () => [...held], hold: holdDistricts, stream: () => stream?.stats() ?? null };
+  // (A use: what it holds at once, behind the loading screen; the roam then streams the rest as he walks.)
+  root.userData.holdFor = function* (use) {
+    const roam = pyHoldFor(use, key) === PY_HOLDS.roam;
+    if (!roam) stopStream();
+    yield* holdDistricts(pyHoldFor(use, key));
+    if (roam && !stream) startStream();
+  };
+  // (Built for the roam, it streams from the first frame: render.js asks holdFor only of a place already built.)
+  if (!hold && pyHoldFor(arena, key) === PY_HOLDS.roam) startStream();
   root.userData.dispose = () => {
     materials.dispose();
     lay.textures.a.dispose();

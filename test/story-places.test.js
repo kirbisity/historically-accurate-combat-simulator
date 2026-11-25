@@ -17,7 +17,10 @@ const { tkgBuilder, tkgFrame, tkgRoof, tkgVault, tkgWall } = await import('../sr
 const { tkHouse, tkRow, tkTree, tkArchBridge, tkArchBridgeSolids, tkLaneGateSolids } = await import('../src/townkit/build.js');
 const { tkGatehouse, tkGatehouseSolids, tkPavilion, tkPavilionSolids, tkRampart, tkRampartSolids, tkRock, tkWorksStair, tkWorksStairSolid } = await import('../src/townkit/works.js');
 const { CANAL_TOWN, canalTownSolids } = await import('../src/places/canaltown.js');
-const { PYONGYANG_PLACE, PY_BARRICADE, PY_DISTRICTS, PY_HOLDS, PY_SOUTH_WALL, pyDistrict, pyHoldFor, pyongyangGround, pyongyangPlan, pyongyangSolids, pySkylineItems } = await import('../src/places/pyongyang.js');
+const { checkStage, activeSections } = await import('../src/levelmode/stage.js');
+const { sectionGraph } = await import('../src/levelmode/visibility.js');
+const { sectionsNear } = await import('../src/levelmode/sectionstream.js');
+const { PYONGYANG_PLACE, PY_BARRICADE, PY_DISTRICTS, PY_HOLDS, PY_SOUTH_WALL, PY_STREAM, pyDistrict, pyDistrictSections, pyHoldFor, pyongyangStage, pyongyangGround, pyongyangPlan, pyongyangSolids, pySkylineItems } = await import('../src/places/pyongyang.js');
 const { PY_CITY, PY_TOWN_FIGHT } = await import('../src/places/pyongyang-city.js');
 const { tkSkyline } = await import('../src/townkit/skyline.js');
 const { STORY_MUSTER_RADIUS, STORY_PLACES, storyPlaceWeather } = await import('../src/places/storyplaces.js');
@@ -321,4 +324,31 @@ test('pyongyang: the south wall and the barricade close the districts but at the
   // as the governor's compound's south wall, which stood 2 m into the broad street before the barricade.
   for (let xx = x - 6; xx <= x + 6; xx += 1) for (let zz = -7; zz <= PYONGYANG_1593.arena.halfZ; zz += 1) assert.equal(standing(terrain, xx, zz, 0), 0, `the broad street at [${xx}, ${zz}] is clear`);
   for (const [px, pz] of PY_BARRICADE.stands) assert.ok(Math.abs(pz) > PYONGYANG_1593.arena.halfZ, `a watch stand at [${px}, ${pz}] stands outside the strip`);
+});
+
+test('pyongyang: the districts are the drawing\'s sections, each portal at a gate joining two that touch, and the streamer reaches the next one from a gate\'s approach', () => {
+  const stage = pyongyangStage();
+  assert.deepEqual(checkStage(stage), []);
+  const sections = pyDistrictSections();
+  const box = (section) => [section.bounds.at[0] - section.bounds.size[0] / 2, section.bounds.at[0] + section.bounds.size[0] / 2, section.bounds.at[1] - section.bounds.size[1] / 2, section.bounds.at[1] + section.bounds.size[1] / 2];
+  for (const section of sections) {
+    // (Its bounds are the district's own ground: its middle is in it.)
+    assert.equal(pyDistrict(...section.bounds.at), section.id);
+    for (const portal of section.portals) {
+      const [a, b] = [box(section), box(sections.find((other) => other.id === portal.to))];
+      const touch = a[0] <= b[1] + 0.01 && b[0] <= a[1] + 0.01 && a[2] <= b[3] + 0.01 && b[2] <= a[3] + 0.01;
+      assert.ok(touch, `${section.id} and ${portal.to} touch`);
+    }
+  }
+  // The world's one section carries all the solids (whole wherever he is); the districts are the drawing's sections.
+  assert.equal(stage.sections.length, 1);
+  assert.deepEqual(stage.districts.map((section) => section.id), ['F', 'W', 'G', 'M', 'R']);
+  assert.deepEqual(checkStage({ ...stage, sections: [...stage.sections, ...stage.districts] }), []);
+  // From the gate square the barricade's gate is within the stream's lead: G is built ahead; from the middle of the
+  // field, nothing beyond W.
+  const graph = sectionGraph({ sections });
+  assert.ok(sectionsNear(graph, ['W'], [40, 0, -50], PY_STREAM.lead, PY_STREAM.hops).has('G'));
+  assert.ok(!sectionsNear(graph, ['F'], [-100, 0, 5], PY_STREAM.lead, PY_STREAM.hops).has('G'));
+  // On the west wall's walk he is in W and at F's portal: both active.
+  assert.deepEqual(activeSections({ sections }, [3.3, 4.5, 2]).sort(), ['F', 'W']);
 });

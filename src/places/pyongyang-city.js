@@ -35,6 +35,10 @@ import { TK_HANOK, tkBell, tkCompoundRuns, tkHall, tkHallSolids, tkRoofedGate, t
  */
 export const PY_TOWN_FIGHT = { at: [40, -50] };
 
+// How many of the town's things are drawn between two yields of pyCityDraw (a house of the full drawing is a few
+// milliseconds of work: a handful a step keeps a step near the streamer's few milliseconds a frame).
+const PY_DRAW_EVERY = 4;
+
 /** The x of the south wall's gates (places/pyongyang.js PY_SOUTH_WALL): Hamgumun on the market street, a lane gate at 120. */
 export const PY_SOUTH_GATES = [61, 120];
 
@@ -287,24 +291,35 @@ function pcHanok(spec, random) {
   };
 }
 
-/** Draw the town (pyCityPlan) into the place's blocks: `at(x, z)` the builder for a place. */
-export function pyCityDraw(blocks, city, groundAt) {
+/**
+ * Draw the town (pyCityPlan) into the place's blocks: `at(x, z)` the builder for a place. In steps (a generator: a yield
+ * after every `PY_DRAW_EVERY` houses, halls or walls), so that a district drawn while the town is walked (places/
+ * pyongyang.js) takes a few milliseconds of a frame at a time.
+ */
+export function* pyCityDraw(blocks, city, groundAt) {
+  let laid = 0;
+  const tally = () => (laid += 1) % PY_DRAW_EVERY === 0;
   for (const p of city.paving) tkPaving(blocks.wide, p.material, p.x[0], p.x[1], p.z[0], p.z[1], (p.y ?? groundAt((p.x[0] + p.x[1]) / 2, (p.z[0] + p.z[1]) / 2)) + 0.03, [0.86, 0.86, 0.84]);
   for (const house of city.houses) {
     const b = blocks.at(house.at[0], house.at[1]);
     if (house.footing) tkTerrace(b, tkgFrame(house.at[0], house.base - house.footing, house.at[1], house.yaw), { width: house.width + 0.9, depth: house.depth + 0.9, high: house.footing, steps: [{ side: 'front', at: 0, wide: 1.8 }] });
     if (house.kind === 'thatch') tkThatch(b, house);
     else tkHouse(b, house);
+    if (tally()) yield;
   }
   for (const hall of city.halls) tkHall(blocks.at(hall.at[0], hall.at[1]), tkgFrame(hall.at[0], hall.base, hall.at[1], hall.yaw), { ...hall, paint: hall.paint ?? undefined });
   for (const p of city.pavilions) tkTerracePavilion(blocks.at(p.at[0], p.at[1]), tkgFrame(p.at[0], p.base, p.at[1], p.yaw), p);
   for (const t of city.terraces) tkTerrace(blocks.at(t.at[0], t.at[1]), tkgFrame(t.at[0], t.base, t.at[1], t.yaw), t);
-  for (const w of city.walls) tkYardWall(blocks.at(...w.run[0], false, w.district), w.run[0], w.run[1], { material: w.material, high: w.high, base: w.base, thick: w.low ? 0.5 : TK_HANOK.yard.thick });
+  for (const w of city.walls) {
+    tkYardWall(blocks.at(...w.run[0], false, w.district), w.run[0], w.run[1], { material: w.material, high: w.high, base: w.base, thick: w.low ? 0.5 : TK_HANOK.yard.thick });
+    if (tally()) yield;
+  }
   for (const g of city.gates) tkRoofedGate(blocks.at(g.at[0], g.at[1]), tkgFrame(g.at[0], g.base, g.at[1], g.yaw), g.temple ? { way: 3.4, high: 4.2 } : {});
   for (const p of city.pagodas) tkStonePagoda(blocks.at(p.at[0], p.at[1]), p.at[0], p.y, p.at[1], p);
   for (const l of city.lanterns) tkStoneLantern(blocks.at(l.at[0], l.at[1]), l.at[0], l.y, l.at[1], l);
   for (const b of city.bells) tkBell(blocks.at(b.at[0], b.at[1]), tkgFrame(b.at[0], b.y, b.at[1], 0), b);
   for (const j of city.jars) {
+    if (tally()) yield;
     const builder = blocks.at(j.at[0], j.at[1]);
     const random = tkRandom(j.seed * 71 + 3);
     const cols = Math.ceil(Math.sqrt(j.count * 1.5));
