@@ -97,6 +97,11 @@ export const DETAIL_ARMOUR = {
   // its eyelets in the kit's gilt and its lace in the kit's lace (`masks`). Lace: a repeating tile.
   corsetSatin: { band: 2000, tile: [0.74, 0.33], drawn: true, fabric: true, whole: true, masks: 'fittings' },
   lace: { band: 2100, tile: 0.06, drawn: true, fabric: true },
+  // A tailor's figured and piled cloths, repeating tiles drawn in code: a waistcoat's silk brocade woven with paisley (boteh)
+  // in its own colour, the figure in satin floats over a twill ground (the Paisley shawls' and the 1830s-50s waistcoats'
+  // pine-cone, https://www.vam.ac.uk/articles/the-history-of-paisley); a coat collar's silk velvet, its cut pile laid one way.
+  paisley: { band: 2200, tile: 0.05, drawn: true, fabric: true },
+  velvet: { band: 2300, tile: 0.03, drawn: true, fabric: true },
 };
 const DETAIL_BANDS = Object.fromEntries(Object.entries(DETAIL_ARMOUR).map(([kind, spec]) => [spec.band, kind]));
 
@@ -444,6 +449,15 @@ export const CLOTH_MATERIALS = {
   rib: { family: 'knit', scale: 0.8 },
   // Silk satin: no figure and no weave to see, drawn smooth as `none` is (a design's own `stuff` names it).
   satin: null,
+  // A tailor's cloths (the suits and coats: loftbody.js LOFT.tailoring). Crepe (a woman's suiting, worsted crêpe with its
+  // pebbled twist) drawn as a fine plain weave; melton and broadcloth (a frock coat's: fulled wool, the weave felted over)
+  // as felt, finer; a hard shell's face (two-layer nylon over its membrane) as a fine ripstop; a knitted silk tie's coarse
+  // knit; velvet (its own tile where it is drawn whole: drawntiles.js) as a close felt where it is not.
+  crepe: { family: 'plain', scale: 0.7 },
+  melton: { family: 'felt', scale: 0.8 },
+  hardshell: { family: 'ripstop', scale: 0.8 },
+  knitSilk: { family: 'knit', scale: 2.4 },
+  velvet: { family: 'felt', scale: 0.35 },
   // Smooth: polyester satin (boxing trunks, Muay Thai shorts), sheer lace, lacquer, plastic, skin, metal.
   none: null,
 };
@@ -632,7 +646,58 @@ export const CLOTH_ROLES = {
   kit: 'bottom', trim2: 'bottom', mawashi: 'bottom', under: 'jersey', band: 'rib', belt: 'leather', rope: 'rope',
   armor: 'armor', pad: 'armor', cloth: 'armor', cloth2: 'armor', lace: 'armor', charge: 'armor', leather: 'leather', fur: 'fur',
   boot: 'feet', sock: 'rib',
+  // A tailored garment's parts (loftbody.js tailoredOn): the lapels and collar of the coat's own cloth, the waistcoat in
+  // worsted, the pocket square silk, a shell's lower panels its own cloth; buttons, zips and seams' shade smooth or the cloth's.
+  lapel: 'top', collar: 'top', vest: 'worsted', square: 'silk', seam: 'top', block: 'top', button: 'none', zip: 'none',
 };
+
+/**
+ * How cloth hangs and takes the wind, by what it is (loftbody.js looseness, clothsway.js): its weight (g/m²) and its
+ * Peirce bending length (cm: how far a strip of it reaches out flat before it droops; the cantilever test, ASTM D1388).
+ * Measured or typical figures: shirting cotton ~120 g/m², 1.5-2 cm; worsted suiting 240-280 g/m², ~2.5 cm; melton and
+ * overcoat broadcloth 450-600 g/m², 3-4 cm; worsted crêpe ~200 g/m², 1.5 cm; silk 50-80 g/m², ~1 cm; silk velvet ~300
+ * g/m², 2.5 cm; two-layer nylon hardshell ~150-180 g/m², ~3 cm (its laminate stiffens it); ripstop nylon ~70 g/m²; denim
+ * ~400 g/m², 3 cm; leather ~1 kg/m², 6 cm (Peirce, The handle of cloth, J. Textile Inst. 1930; Hearle et al., Structural
+ * Mechanics of Fibers, Yarns and Fabrics, 1969). A tailor's canvas behind a lapel or a padded shoulder: hair canvas and
+ * felt pad stitched in, ~10 cm: it holds its shape and does not flap. Anything not listed is `default` (a shirting cotton).
+ * `reference`: the cloth every figure is taken against (a material that drapes and catches the wind as the game's cloth
+ * did before this table: cotton).
+ */
+export const CLOTH_DRAPE = {
+  reference: [130, 2],
+  default: [130, 2],
+  linen: [180, 2.2], cotton: [130, 2], hemp: [220, 2.6], woolTabby: [260, 2.4], canvas: [500, 4.5], wool: [300, 2.6],
+  worsted: [260, 2.5], flannel: [300, 2.4], crepe: [200, 1.5], melton: [550, 3.6], velvet: [300, 2.5], broadcloth: [450, 3.2],
+  silk: [70, 1.1], satin: [110, 1.4], brocade: [180, 2.6], cloudSilk: [120, 1.8], knitSilk: [180, 1.4],
+  jersey: [180, 1.3], fleece: [280, 1.8], rib: [300, 1.6], denim: [400, 3], ripstop: [70, 1.7], cordura: [330, 3.2],
+  hardshell: [165, 3], felt: [600, 4], leather: [1000, 6], hide: [2000, 9], quilted: [900, 6], quiltedFine: [700, 5],
+  // (Interfaced: hair canvas and its felt behind a tailored lapel, a collar, a padded shoulder.)
+  canvassed: [700, 10],
+};
+/** The roles that are interfaced as tailored (CLOTH_DRAPE `canvassed`): a lapel and a coat's collar hold their shape. */
+export const INTERFACED_ROLES = new Set(['lapel', 'collar']);
+// How the cloth's figures make its movement (looseness): `bend` (cm) the bending length at which a cloth's swing is halved
+// against the reference's (a stiffer cloth carries its hem with the body; past it, by the square of the length, as a
+// cantilever's stiffness grows); `air` the power of the reference's weight over the cloth's its share of the wind takes
+// (the wind's push over the cloth's weight sets how far it is blown, but a garment held at its seams and sheltered by the
+// body saturates: a half power, so a cloth four times as light moves twice as far, not four times); `range` the least and
+// most of either share (no cloth is quite still or wholly free).
+export const DRAPE_RULE = { bend: 4, air: 0.5, range: [0.12, 2] };
+
+/**
+ * A material's share of the reference's movement: `swing` (by its bending length, DRAPE_RULE.bend) and `air` (by its
+ * weight, DRAPE_RULE.air); { swing: 1, air: 1 } for the reference.
+ */
+export function drapeOf(material, role = null) {
+  const [weight, bend] = (role && INTERFACED_ROLES.has(role) ? CLOTH_DRAPE.canvassed : CLOTH_DRAPE[material] ?? CLOTH_DRAPE.default);
+  const [refWeight, refBend] = CLOTH_DRAPE.reference;
+  const rule = DRAPE_RULE;
+  const clamp = (value) => Math.min(rule.range[1], Math.max(rule.range[0], value));
+  const swing = (1 + (refBend / rule.bend) ** 2) / (1 + (bend / rule.bend) ** 2);
+  const air = (refWeight / weight) ** rule.air;
+  // (Its stiffness is in `swing` alone: the shader takes the wind times the looseness, which carries the swing already.)
+  return { swing: clamp(swing), air: clamp(air) };
+}
 
 /**
  * The material (a CLOTH_MATERIALS key) a role is drawn in on a fighter: `look` his outfit's design (outfits.js outfitOf
@@ -650,6 +715,9 @@ export function clothMaterialOf(look, role, { faction = null, outfit = null } = 
     const whole = `armor.${armourKind}`;
     return CLOTH_BY_OUTFIT[outfit]?.[whole] ?? CLOTH_BY_FACTION[faction]?.[whole] ?? byKind?.['*'];
   }
+  // (A design's own stuff for a role of its top or bottom, `stuffs`: a knitted silk tie, a crêpe lapel.)
+  const own = look?.top?.stuffs?.[role] ?? look?.bottom?.stuffs?.[role];
+  if (own) return own;
   if (source in CLOTH_MATERIALS) return source;
   const kind = look?.[source]?.kind;
   if (!kind) return source === 'feet' ? 'leather' : 'cotton';

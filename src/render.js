@@ -2274,6 +2274,8 @@ function skinnedMesh(built, bones, colors, { indices = built.indices, material =
     geometry.setAttribute('skinWeight', new THREE.Float32BufferAttribute(built.skinWeight, 4));
     // How loose each point of the cloth hangs (clothsway.js); none on a crowd's body.
     if (built.sway) geometry.setAttribute('clothSway', new THREE.BufferAttribute(built.sway, 1));
+    // And each point's share of the wind by its cloth's weight (loftbody.js clothDrape).
+    if (built.sway && built.air) geometry.setAttribute('clothAir', new THREE.BufferAttribute(built.air, 1));
     // A hung sleeve's bag, which falls to the low side of the arm (clothsway.js; loftbody.js fallOf).
     if (built.sway && built.fall) {
       geometry.setAttribute('clothFallOff', new THREE.BufferAttribute(built.fall.off, 4));

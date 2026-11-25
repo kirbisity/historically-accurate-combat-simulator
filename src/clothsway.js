@@ -23,8 +23,12 @@ export const CLOTH_SWAY = {
   jump: 0.7,
   // Wind on worn cloth at clothwind.js `fullAt` m/s: the bow downwind and the flap on top of it (m, wholly loose cloth), the
   // flap's wavelength over the cloth (m), and how much of a move into the body is kept.
-  bow: 0.035,
-  flap: 0.02,
+  // (0.24 and 0.08 for the reference cloth, a shirting cotton, since each cloth takes its own share of the wind by its weight
+  // and its swing by its stiffness (loftbody.js clothDrape): a frock coat's melton hem bows some 7 cm in a full wind, a
+  // crepe blazer's hem near 20. At 0.035 and 0.02 for every cloth alike a coat's skirt in a gale stood as still as in calm
+  // air, though a gale's push on it (~90 Pa at 12 m/s) is some fifteen times its weight.)
+  bow: 0.24,
+  flap: 0.08,
   wavelength: 0.4,
   inward: 0.12,
   // Armour that gives (loftbody.js LOFT.armourGive: its points' looseness negative), as the Iron Pagoda's bard (horseview.js
@@ -144,6 +148,7 @@ export class ClothSwing {
 
 const SWAY_DECLARATIONS = (bones) => `
 attribute float clothSway;
+attribute float clothAir;
 attribute vec4 clothFallOff;
 attribute vec4 clothFallWay;
 vec3 clothTurned( vec3 v, vec3 axis, float angle ) {
@@ -225,9 +230,11 @@ ${normals ? `#ifndef FLAT_SHADED
 		// (The flap runs over the cloth as it lies on him at rest, downwind and down it, so a moving man's does not race.)
 		float clothPhase = 6.2832 * ( clothHz * uWindTime - ( dot( position.xz, uWindWay ) - position.y * 0.6 ) / ${f(spec.wavelength)} );
 		float clothGust = 0.75 + 0.25 * sin( 6.2832 * ( 0.31 * uWindTime - dot( transformed.xz, uWindWay ) / ${f(CLOTH_WIND.gustLength)} ) );
-		float clothAir = mix( 1.0, ${f(spec.armour.air)}, clothArmour ) * mix( 1.0, ${f(spec.soft.wind)}, clothSoftCloth );
-		clothMove += vec3( uWindWay.x, 0.0, uWindWay.y ) * ( ( ${f(spec.bow)} * clothGust + ${f(spec.flap)} * sin( clothPhase ) ) * uWindStrength * clothAir );
-		clothMove += vec3( - uWindWay.y, 0.0, uWindWay.x ) * ( ${f(spec.flap * 0.5)} * sin( clothPhase * 1.31 + 1.7 ) * uWindStrength * clothAir );
+		// (Cloth's own share of the wind by its weight and stiffness, loftbody.js clothDrape: 0 where the mesh carries none.)
+		float clothAirShare = clothAir > 0.0 ? clothAir : 1.0;
+		float clothAirAll = mix( clothAirShare, ${f(spec.armour.air)}, clothArmour ) * mix( 1.0, ${f(spec.soft.wind)}, clothSoftCloth );
+		clothMove += vec3( uWindWay.x, 0.0, uWindWay.y ) * ( ( ${f(spec.bow)} * clothGust + ${f(spec.flap)} * sin( clothPhase ) ) * uWindStrength * clothAirAll );
+		clothMove += vec3( - uWindWay.y, 0.0, uWindWay.x ) * ( ${f(spec.flap * 0.5)} * sin( clothPhase * 1.31 + 1.7 ) * uWindStrength * clothAirAll );
 		clothMove *= clothLoose;
 		mat4 clothSkin = bindMatrixInverse * ( boneMatX * skinWeight.x + boneMatY * skinWeight.y + boneMatZ * skinWeight.z + boneMatW * skinWeight.w ) * bindMatrix;
 		vec3 clothOut = normalize( ( clothSkin * vec4( normal, 0.0 ) ).xyz );
@@ -239,7 +246,7 @@ ${normals ? `#ifndef FLAT_SHADED
 		clothMove += clothOut * ( max( clothWave, 0.0 ) * ${f(spec.armour.ripple.amp)} * clothStir * clothLoose * clothArmour );
 		// The cloth's flutter (soft swing): by the wind and its own swing, a little even still; outward and back to the body.
 		float clothFlutter = sin( clothPhase * 1.7 + position.y * ${f(spec.soft.flutter.waves[0])} + atan( position.z, position.x ) * ${f(spec.soft.flutter.waves[1] * 0.15)} );
-		clothMove += clothOut * ( ( 0.5 + 0.5 * clothFlutter ) * ${f(spec.soft.flutter.amp)} * clothLoose * clothSoftCloth * clamp( uWindStrength + clothStir + ${f(spec.soft.flutter.rest)}, 0.0, 1.5 ) );
+		clothMove += clothOut * ( ( 0.5 + 0.5 * clothFlutter ) * ${f(spec.soft.flutter.amp)} * clothLoose * clothSoftCloth * clamp( uWindStrength * clothAirShare + clothStir + ${f(spec.soft.flutter.rest)}, 0.0, 1.5 ) );
 		// (Soaked, it clings.)
 		transformed += clothMove * mix( 1.0, ${f(spec.wet.free)}, uClothWet );
 	}
