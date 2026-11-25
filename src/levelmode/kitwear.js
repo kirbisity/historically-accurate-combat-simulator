@@ -270,10 +270,17 @@ function kwQuad(batch, cell, p, u, up, w, h, normal, tint = 1) {
  * (Runs a few metres long only: a bit of wall with no length gets nothing.)
  */
 export function kwDecorate(batch, section, levels) {
+  const steps = kwDecorateSteps(batch, section, levels);
+  while (!steps.next().done);
+}
+
+/** kwDecorate in steps (a yield before each wall run), for a section built a little at a time (levelmode/kit.js): the same decals in the same order. */
+export function* kwDecorateSteps(batch, section, levels) {
   const runs = (section.decor ?? []).filter((d) => d.kind === 'run' && !d.round);
   const torches = (section.decor ?? []).filter((d) => d.kind === 'prop' && d.what === 'torch');
   let index = 0;
   for (const run of runs) {
+    yield;
     index += 1;
     const [ax, az] = run.a;
     const dx = run.b[0] - ax;

@@ -143,9 +143,19 @@ export class KitBatch {
   }
 
   /** One mesh per material per chunk, into `group`. Returns the meshes. */
-  build(group, { name = 'kit', cast = false } = {}) {
+  build(group, options = {}) {
+    const steps = this.buildSteps(group, options);
+    for (;;) {
+      const next = steps.next();
+      if (next.done) return next.value;
+    }
+  }
+
+  /** `build` in steps, a yield after each mesh made (a section built a little at a time: levelmode/kit.js), the same meshes in the same order. */
+  *buildSteps(group, { name = 'kit', cast = false } = {}) {
     const meshes = [];
     for (const bucket of this.buckets.values()) {
+      if (meshes.length) yield;
       if (!bucket.position.length) continue;
       const geometry = new THREE.BufferGeometry();
       geometry.setAttribute('position', new THREE.Float32BufferAttribute(bucket.position, 3));
