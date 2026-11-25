@@ -204,6 +204,15 @@ export function installStory(hooks) {
   layer.hidden = true;
   document.body.append(layer);
 
+  // A button whose answer may build a battle or a place (a chapter begun, a card answered, the deploy's picks, a walk
+  // ended): done behind the game's loading screen (`hooks.loading`, main.js loadInto: painted first, the men raised a few
+  // a frame), named for the chapter it is in; at once where there is none. The test hooks call the same answers directly.
+  const behindLoad = (act, chapter = () => run?.chapter) => (...args) => {
+    if (!hooks.loading) return act(...args);
+    const shown = chapter();
+    return hooks.loading({ kicker: [word('title'), shown?.year ? word('year', shown.year) : null].filter(Boolean).join(' · '), title: shown?.title ? say(shown.title) : '' }, () => act(...args));
+  };
+
   // The language: story/language.js's (one place, to be pointed at the game's own setting, src/i18n.js).
   let language = storyGetLang();
   storyOnLang((next) => {
@@ -264,11 +273,11 @@ export function installStory(hooks) {
     const fallen = life?.dead && life.dead.kind !== 'lived';
     if (playable) {
       const chapter = CHAPTERS.find((each) => each.n === life.chapter) ?? CHAPTERS[0];
-      buttons.append(svEl('button', { type: 'button', className: 'sv-go main', textContent: `${word('continue')} · ${say(chapter.title)}`, onclick: () => beginChapter(chapter) }));
+      buttons.append(svEl('button', { type: 'button', className: 'sv-go main', textContent: `${word('continue')} · ${say(chapter.title)}`, onclick: behindLoad(() => beginChapter(chapter), () => chapter) }));
     } else if (fallen) {
-      buttons.append(svEl('button', { type: 'button', className: 'sv-go main', textContent: word('retry'), onclick: retry }));
+      buttons.append(svEl('button', { type: 'button', className: 'sv-go main', textContent: word('retry'), onclick: behindLoad(retry) }));
     }
-    if (CHAPTERS.length) buttons.append(svEl('button', { type: 'button', className: `sv-go${playable || fallen ? '' : ' main'}`, textContent: life ? word('anew') : word('begin'), onclick: beginAnew }));
+    if (CHAPTERS.length) buttons.append(svEl('button', { type: 'button', className: `sv-go${playable || fallen ? '' : ' main'}`, textContent: life ? word('anew') : word('begin'), onclick: behindLoad(beginAnew, () => CHAPTERS[0]) }));
     else buttons.append(svEl('p', { textContent: word('noChapters') }));
     buttons.append(svEl('button', { type: 'button', className: 'sv-go', textContent: word('back'), onclick: leaveToMenu }));
     const record = life?.record?.length ? svEl('p', { textContent: `${word('record')}: ${life.record.length}` }) : null;
@@ -352,7 +361,7 @@ export function installStory(hooks) {
     const choices = svEl('div', { className: 'sv-choices' });
     const options = card.choices?.length ? card.choices : [{ text: STORY_WORDS.next }];
     options.forEach((choice, index) => {
-      choices.append(svEl('button', { type: 'button', className: `sv-go${options.length === 1 ? ' main' : ''}`, textContent: say(choice.text), onclick: () => answer(index) }));
+      choices.append(svEl('button', { type: 'button', className: `sv-go${options.length === 1 ? ' main' : ''}`, textContent: say(choice.text), onclick: behindLoad(() => answer(index)) }));
     });
     show('card', svEl('div', { className: 'sv-card-wrap' }, svEl('div', { className: 'sv-card', dataset: { card: card.id ?? '' } }, kicker, svEl('p', { className: 'sv-text', textContent: say(card.text) }), choices)));
   }
@@ -384,7 +393,7 @@ export function installStory(hooks) {
     };
     const group = (label, options, chosen, pick) => {
       const row = svEl('div', { className: 'sv-seg', role: 'radiogroup' });
-      for (const option of options) row.append(svEl('button', { type: 'button', className: option.id === chosen ? 'on' : '', textContent: say(option.name), dataset: { id: option.id }, role: 'radio', ariaChecked: String(option.id === chosen), onclick: () => pick(option.id) }));
+      for (const option of options) row.append(svEl('button', { type: 'button', className: option.id === chosen ? 'on' : '', textContent: say(option.name), dataset: { id: option.id }, role: 'radio', ariaChecked: String(option.id === chosen), onclick: behindLoad(() => pick(option.id)) }));
       const note = options.find((option) => option.id === chosen)?.note;
       return svEl('div', { className: 'sv-group' }, svEl('div', { className: 'sv-label', textContent: label }), row, svEl('p', { className: 'sv-note', textContent: note ? say(note) : '' }));
     };
@@ -401,7 +410,7 @@ export function installStory(hooks) {
       ? group(words('formation'), offer.formations, drawn.formation, (id) => repick({ formation: id }))
       : offer.ordered ? svEl('div', { className: 'sv-group' }, svEl('div', { className: 'sv-label', textContent: words('formation') }), svEl('p', { className: 'sv-note', textContent: words('ordered', say(offer.ordered.name)) })) : null;
     const posts = offer.posts ? group(words('post'), storyDeployPostsIn({ options: offer.posts }, drawn.formation ?? offer.defaults.formation), drawn.post, (id) => repick({ post: id })) : null;
-    const go = svEl('button', { type: 'button', className: 'sv-go main', textContent: words('go'), onclick: () => deployDone(drawn) });
+    const go = svEl('button', { type: 'button', className: 'sv-go main', textContent: words('go'), onclick: behindLoad(() => deployDone(drawn)) });
     show('deploy', svEl('div', { className: 'sv-card-wrap' }, svEl('div', { className: 'sv-card sv-deploy', dataset: { card: 'deploy' } }, kicker, svEl('h2', { textContent: words('title') }), formations, posts, go)));
   }
 
@@ -503,7 +512,7 @@ export function installStory(hooks) {
 
   function drawRoam() {
     const before = roam.when === 'before';
-    const go = svEl('button', { type: 'button', className: 'sv-speed on', textContent: word(before ? 'roamGo' : 'next'), onclick: endRoam });
+    const go = svEl('button', { type: 'button', className: 'sv-speed on', textContent: word(before ? 'roamGo' : 'next'), onclick: behindLoad(endRoam) });
     show('roam', svEl('div', { className: 'sv-hud' }, svEl('b', { textContent: say(run.chapter.title) }), word(before ? 'roamBefore' : 'roamAfter'), go));
     layer.querySelector('.sv-lang').style.pointerEvents = 'auto';
   }
@@ -865,8 +874,8 @@ export function installStory(hooks) {
     const where = [say(page.where ?? chapter?.title), page.year ? word('year', page.year) : null, page.age ? word('age', page.age) : null].filter(Boolean).join(' · ');
     const lived = page.kind === 'lived';
     const buttons = svEl('div', { className: 'sv-buttons' },
-      lived ? null : svEl('button', { type: 'button', className: 'sv-go main', textContent: word('retry'), onclick: retry }),
-      svEl('button', { type: 'button', className: `sv-go${lived ? ' main' : ''}`, textContent: word('anew'), onclick: beginAnew }),
+      lived ? null : svEl('button', { type: 'button', className: 'sv-go main', textContent: word('retry'), onclick: behindLoad(retry) }),
+      svEl('button', { type: 'button', className: `sv-go${lived ? ' main' : ''}`, textContent: word('anew'), onclick: behindLoad(beginAnew, () => CHAPTERS[0]) }),
       svEl('button', { type: 'button', className: 'sv-go', textContent: word('menu'), onclick: leaveToMenu }));
     const article = svEl('article', { dataset: { ending: page.kind } },
       svEl('h1', { textContent: page.finale ? `${say(page.name)} · ${word('span', life?.hero?.born ?? STORY.born, page.year)}` : `${say(page.name)} · ${lived ? word('lived') : word('fell')}` }),

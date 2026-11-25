@@ -12,7 +12,7 @@ import { buildBodyMesh } from './bodymesh.js';
 import { dualQuaternionSkinning } from './dqskin.js';
 import { ClothSwing, swayCloth } from './clothsway.js';
 import { BASE_BODY, NECK_JOIN } from './basebody.js';
-import { buildLoftBody, TOPS } from './loftbody.js';
+import { buildLoftBody, runSteps, TOPS } from './loftbody.js';
 import { BODY_STYLE_KEYS, DEFAULT_BODY_STYLE, buildSkinMesh, buildSkinMeshSteps, cachedSkinMesh, readySkinTextures, skinTextureKey, skinTexturesNow, skinTexturesSteps, storeSkinMesh, styleSpec } from './bodystyles.js';
 import { bodyCheck } from './skinworker.js';
 import { applySkinTextures, skinTextureCache, storeSkinTextures } from './skintex.js';
@@ -26,7 +26,7 @@ import { Dangle } from './dangle.js';
 import { updateArmourWear } from './armourwearview.js';
 import { FACTIONS, HEADGEAR, factionOf, glovedFists, headgearOptions, outfitOf } from './outfits.js';
 import { WEAPONS } from './weapons.js';
-import { applyScenery } from './scenery.js';
+import { applyScenery, applyScenerySteps } from './scenery.js';
 import { orbitAboveGround } from './watchcam.js';
 import { arenaColosseum } from './props/arena.js';
 import { harbourPort } from './props/harbour.js';
@@ -143,6 +143,14 @@ export function createScene(canvas, { alpha = false } = {}) {
  * scene is built the first time it is needed; lighting goes with it.
  */
 export function setPlace(view, place, arena, weather = null) {
+  runSteps(setPlaceSteps(view, place, arena, weather));
+}
+
+/**
+ * setPlace in steps (a generator: main.js loadInto spreads them over frames behind the loading screen): a yield after each
+ * big piece (the place built, its open air's parts, the scenery prepared), the same work in the same order.
+ */
+export function* setPlaceSteps(view, place, arena, weather = null) {
   // Whether the level brought this weather (the open air of env/ honours a level's, and puts its own in place of PLACE_WEATHER's).
   const brought = weather !== null;
   // A place with weather of its own whenever a level brings none (PLACE_WEATHER: the open field's driven grey sky).
@@ -158,12 +166,16 @@ export function setPlace(view, place, arena, weather = null) {
   // that battle too, apart from the place the other levels there share.
   const dug = !home?.own && arena?.works?.ditches?.length ? arena : null;
   const swapped = swapFloor(view, place, floor ?? dug);
+  yield;
   view.floor = floor;
   if (!swapped && place === view.place && weather === (view.weather ?? null)) return;
   view.weatherBrought = brought;
   const builders = { ring: buildRing, subway: buildSubway, colosseum: buildColosseum, meadow: buildMeadow, stadium: buildStadium, town: buildTown, port: buildPort, sengoku: buildSengoku, canaltown: buildCanalTown, pyongyang: buildPyongyang, pyongyangtown: buildPyongyangTown, plain: buildPlain, field: buildField, coastFort: () => buildCoast({ fort: true }), coastVillage: () => buildCoast({ fort: false }), jiangnan: buildJiangnan, cajamarca: buildCajamarca, mobei: () => buildOpenPlain('mobei', arena), catalaunian: () => buildOpenPlain('catalaunian', arena), carrhae: () => buildOpenPlain('carrhae', arena), sarhu: () => buildOpenPlain('sarhu', arena), agincourt: buildAgincourt, cerignola: buildCerignola, lastgate: buildLastGateField, stage: buildStageSky, dunnottar: () => buildStormPlace({ buildRain }) };
   if (!view.places[place] && builders[place]) {
-    view.places[place] = builders[place](arena);
+    // (A builder with steps of its own, a town's, is built a step at a time: places/pyongyang.js buildPyongyangSteps.)
+    const builder = builders[place];
+    view.places[place] = builder.steps ? yield* builder.steps(arena) : builder(arena);
+    yield;
     // A place the open air draws (env/config.js PLACE_ENV) has what it built itself take that air's haze as the
     // land does (env/air.js envDress; a material is dressed once, and is as it was made with the open air off).
     if (PLACE_ENV[place]) {
@@ -191,8 +203,10 @@ export function setPlace(view, place, arena, weather = null) {
   // A level's own weather (scenarios.js `weather`): the same place is clear for the sandbox and for other levels.
   view.weather = weather;
   lightPlace(view, place);
-  applyScenery(view, place);
+  yield* applyScenerySteps(view, place);
+  yield;
   prepareScenery(view);
+  yield;
   applyWeather(view);
 }
 

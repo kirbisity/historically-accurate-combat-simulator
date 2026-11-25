@@ -42,6 +42,7 @@ import { probeLiteProject } from '../looks/probe-lite.js';
 import { PLACE_ARENAS, reapplyPlace } from '../render.js';
 import { placeWind, setWindOver } from '../wind.js';
 import { PHOTO_FACES, setPhotoFill } from '../photoface.js';
+import { runSteps } from '../loftbody.js';
 
 // What is chosen for the whole page: `enabled` (false: no place is drawn this way), `weather` a forced ENV_WEATHER
 // name or null, `tier` the quality tier in force, and the tier controller's running figures.
@@ -190,15 +191,25 @@ function envSettle(root, height) {
 }
 
 /** The variant's group for a place: sky, land, grass, trees and the air's drift, built once from its description. */
-export function envBuild({ place, view, spec }) {
+export function envBuild(options) {
+  return runSteps(envBuildSteps(options));
+}
+
+/** envBuild in steps (a generator: main.js loadInto spreads them over frames behind the loading screen), the same work. */
+export function* envBuildSteps({ place, view, spec }) {
   const group = new THREE.Group();
   group.userData.env = 'open-air';
-  envFill(group, place, view, spec, envPlaceIn(place, envWeatherOf(view, place)));
+  yield* envFillSteps(group, place, view, spec, envPlaceIn(place, envWeatherOf(view, place)));
   return group;
 }
 
 /** Make a place's open air into `group` from its description as it is now (again, if the place is described again: envApply). */
 function envFill(group, place, view, spec, own) {
+  runSteps(envFillSteps(group, place, view, spec, own));
+}
+
+/** envFill in steps: a yield between its big pieces (the trees planted, the near map, the land, the grass...), the same work in the same order. */
+function* envFillSteps(group, place, view, spec, own) {
   const arena = view.floor ?? PLACE_ARENAS[place];
   const sun = envSunWay(own.sun);
   group.userData.envMap?.dispose();
@@ -229,23 +240,28 @@ function envFill(group, place, view, spec, own) {
   // (The fought ground on the physics's own field, lie.js: the same triangles the fighters stand on.)
   const height = envHeightField(own.terrain, keepOut, envLieOf(place, arena));
   const footprints = envFootprints(view.places[place]);
+  yield;
   const trees = envPlantTrees({ place: own, height, sun, keepOut, footprints });
   // A battle's wood edges (its works' 'wood' walls), drawn in the place's own trees (worksview.js leaves them to the open air).
   trees.push(...envPlantWoodEdges({ place: own, walls: (worksOf(arena)?.walls ?? []).filter((wall) => wall.kind === 'wood'), height, sun }));
   const rocks = envPlantRocks({ place: own, height, sun, keepOut, footprints });
+  yield;
   const map = { value: envBuildNearMap({ place: own, height, sun, keepOut, floor: [arena.halfX, arena.halfZ], shadows: envTreeShadows(trees, sun).concat(envRockShadows(rocks, sun)), footprints }) };
   map.cover = { value: map.value.envCover };
   map.value.envSkyline = envBuildSkyline(trees, footprints);
   map.skyline = { value: map.value.envSkyline };
-  const parts = {
-    sky: envBuildSky(),
-    terrain: envBuildTerrain({ place: own, height, sun, map }),
-    grass: envBuildGrass({ place: own, map }),
-    trees: envBuildTrees({ place: own, trees }),
-    rocks: envBuildRocks({ place: own, rocks, height }),
-    particles: envBuildParticles(map, own.cover),
-    beams: envBuildBeams(own.openings ?? [], sun),
-  };
+  yield;
+  // (Built in the order the object's keys always gave them, a step each.)
+  const parts = { sky: envBuildSky() };
+  parts.terrain = envBuildTerrain({ place: own, height, sun, map });
+  yield;
+  parts.grass = envBuildGrass({ place: own, map });
+  yield;
+  parts.trees = envBuildTrees({ place: own, trees });
+  yield;
+  parts.rocks = envBuildRocks({ place: own, rocks, height });
+  parts.particles = envBuildParticles(map, own.cover);
+  parts.beams = envBuildBeams(own.openings ?? [], sun);
   group.add(parts.sky, parts.terrain, parts.grass, parts.trees, parts.rocks, parts.particles, parts.beams);
   group.userData.envParts = parts;
   group.userData.envHeight = height;

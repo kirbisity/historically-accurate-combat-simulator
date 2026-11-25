@@ -20,6 +20,7 @@ import { tkFbm, tkRandom } from '../townkit/tex.js';
 import { TK_HOUSE, tkFieldAt, tkFieldMesh, tkHouse, tkHouseSolid, tkJar, tkPaving, tkRow, tkTree } from '../townkit/build.js';
 import { tkBlocks, tkKeep, tkLayOf, tkMaterialsFor, tkMeshes, tkSky, tkSunWay, tkTier } from '../townkit/place.js';
 import { TK_LAY } from '../townkit/lay.js';
+import { runSteps } from '../loftbody.js';
 import { tkStir } from '../townkit/stir.js';
 import { TK_GLOW, TK_MATERIALS } from '../townkit/weather.js';
 import { TK_THINGS, tkArrows, tkBasket, tkBrazier, tkCampfire, tkCart, tkDrift, tkFirewood, tkIcicles, tkLadder, tkMantlet, tkPoles, tkSacks, tkScatter, tkStack, tkTub, tkTuft } from '../townkit/things.js';
@@ -766,6 +767,8 @@ export function pyongyangTownTerrain() {
 
 /** The place drawn for the town fight: moved as its terrain is (pyongyangTownTerrain). */
 export const buildPyongyangTown = () => buildPyongyang(null, { shift: [-PY_TOWN_FIGHT.at[0], -PY_TOWN_FIGHT.at[1]], key: 'pyongyangtown' });
+// (In steps, as render.js setPlaceSteps builds a place behind the loading screen: buildPyongyangSteps.)
+buildPyongyangTown.steps = () => buildPyongyangSteps(null, { shift: [-PY_TOWN_FIGHT.at[0], -PY_TOWN_FIGHT.at[1]], key: 'pyongyangtown' });
 
 export function pyongyangStage() {
   pyGrounded();
@@ -1359,7 +1362,17 @@ const PY_OAK = { kind: 'broad', tint: [0.95, 0.55, 0.3], spread: 0.55 };
  * other point of it (the town's square: PY_TOWN_FIGHT), with everything it tells the open air and the snow's lie moved alike;
  * `key` the place's own key then (render.js: 'pyongyangtown').
  */
-export function buildPyongyang(_arena = null, { shift = [0, 0], key = 'pyongyang' } = {}) {
+export function buildPyongyang(arena = null, options = {}) {
+  return runSteps(buildPyongyangSteps(arena, options));
+}
+buildPyongyang.steps = (arena) => buildPyongyangSteps(arena);
+
+/**
+ * buildPyongyang in steps (a generator: a yield after each big piece of the town, its walls, its streets, its lie, its
+ * dressing, its materials painted, its meshes), so the loading screen moves while it is built (main.js loadInto); the
+ * same work in the same order.
+ */
+export function* buildPyongyangSteps(_arena = null, { shift = [0, 0], key = 'pyongyang' } = {}) {
   const t = PYONGYANG_PLACE;
   const [dx, dz] = shift;
   const plan = pyongyangPlan();
@@ -1488,9 +1501,11 @@ export function buildPyongyang(_arena = null, { shift = [0, 0], key = 'pyongyang
   const pavilions = pyPavilions();
   const eave = tkPavilion(gate, pavilions.gate, { storeys: t.pavilion });
   tkPavilion(blocks.at(wall.x, t.wall.z[0]), pavilions.corner, { storeys: t.corner, board: false, overhang: 1.2 });
+  yield;
   // The town (places/pyongyang-city.js): its houses, halls, pavilions, terraces, walls, gates, pagoda, lanterns, paving;
   // its far part on east to the east wall (drawn only), and that wall from the hill's crest south toward the river.
   pyCityDraw(blocks, plan.city, (x, z) => tkFieldAt(plan.inside, x, z));
+  yield;
   pyFarTownDraw(blocks, pyFarTownPlan(pyFar), (builder, tree) => tkTree(builder, tree.at[0], tree.y, tree.at[1], { ...tree, ...(tree.kind === 'oak' ? PY_OAK : null), laden: PY_LADEN }));
   tkRampart(blocks.wide, Array.from({ length: 11 }, (_, k) => { const z = t.wall.z[0] + k * ((PY_FAR_TOWN.z[1] + 8 - t.wall.z[0]) / 10); const foot = Math.max(pyFar(PY_FAR_TOWN.wall, z), pyFoot(z)); return [PY_FAR_TOWN.wall, z, foot, foot + wall.high]; }), { ...wall, inner: (node) => node[2], masonry, seed: 12 });
   // (An oak keeps its dead leaves through a Korean winter: a broad crown in their brown.)
@@ -1521,11 +1536,13 @@ export function buildPyongyang(_arena = null, { shift = [0, 0], key = 'pyongyang
     ground: (x, z) => (z > t.outside.z[1] ? tkFieldAt(plan.south, x, z) : x <= wall.x ? tkFieldAt(plan.outside, x, z) : x < head ? pyFoot(z) : tkFieldAt(plan.inside, x, z)),
   });
 
+  yield;
   const stir = tkStir(3);
   const scattered = pyDress(blocks, stir, plan, lay, eave, tier);
   pyField(blocks, plan, tier);
   pyForeDraw(blocks, stir, plan, tier);
   pyReeds(blocks, plan);
+  yield;
 
   // (The river's ice is frozen, not open water: no pool's mirror. The wind scours lying snow off smooth ice into drifts
   // and bare patches more than off rough ground: it holds `snow` 0.6 of the ground's share (by eye against photographs
@@ -1534,7 +1551,9 @@ export function buildPyongyang(_arena = null, { shift = [0, 0], key = 'pyongyang
   // are dead stems: snow does not lie on their blades, only on the ground at their feet.)
   // (The stone and the timber as a northern winter has them: PY_WEATHERED.)
   const materials = tkMaterialsFor(tier, { extra: { ice: { sheet: 'plaster', colour: [0.72, 0.8, 0.84], blotch: 0.5, plain: true, snow: 0.6, rough: 0.15, scour: 1 }, reed: { ...TK_MATERIALS.tuft, snow: 0 }, bare: { sheet: 'earth', blotch: 1.4, snow: 0.12, dirt: [0, 0.5, 0.3, 0] }, ...PY_WEATHERED, track: { sheet: 'earth', blotch: 1.2, snow: t.trodden }, street: { sheet: 'cobble', snow: t.trodden * 1.3 } } });
+  yield;
   const meshes = tkMeshes(blocks, materials, { tier });
+  yield;
   const woodMeshes = tkMeshes(woods, materials, { tier });
   woodMeshes.name = 'pyongyang-woods';
   const root = new THREE.Group();

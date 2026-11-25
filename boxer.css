@@ -581,6 +581,28 @@ body:not([data-game="sandbox"]) .controls button { padding: 9px 16px; font-size:
 /* Building a big army's models a few a frame: a quiet note while it lasts. */
 #mustering { position: absolute; left: 50%; top: 42%; transform: translate(-50%, -50%); padding: 10px 18px; border-radius: var(--r-plate); background: var(--panel); border: 1px solid var(--line); font: 600 15px var(--body); pointer-events: none; }
 
+/* ---- The loading screen (loadscreen.js, main.js loadInto) -------------------------------------------------------------
+   Over everything from the choice of a fight to its first frame: the name of what is loading, its line, a bar moved by the
+   real stages of the work. It fades in after a beat (a load that is quick is never seen), and its glint and seal move by
+   transform and opacity alone, which the browser animates off the page's thread: they keep moving through a long step. */
+.loading { position: fixed; inset: 0; z-index: 80; display: grid; place-items: center; padding: calc(16px + env(safe-area-inset-top, 0px)) 16px calc(16px + env(safe-area-inset-bottom, 0px)); background: radial-gradient(ellipse at 50% 42%, #1b1813, rgb(var(--pit)) 72%); animation: loading-in 0.2s 0.08s var(--ease) both; cursor: progress; user-select: none; -webkit-user-select: none; }
+@keyframes loading-in { from { opacity: 0; } to { opacity: 1; } }
+.loading-plate { width: min(560px, 100%); display: grid; justify-items: center; gap: 12px; text-align: center; }
+.loading-seal { width: 46px; height: 46px; margin-bottom: 6px; border: 1px solid rgba(var(--gilt), 0.55); transform: rotate(45deg); position: relative; animation: loading-seal 2.4s linear infinite; }
+.loading-seal::after { content: ''; position: absolute; inset: 9px; border: 1px solid rgba(var(--gilt), 0.85); background: rgba(var(--gilt), 0.12); }
+@keyframes loading-seal { from { transform: rotate(45deg); } to { transform: rotate(405deg); } }
+.loading-kicker { font: 500 12px var(--mono); font-style: normal; letter-spacing: 0.22em; text-transform: uppercase; color: var(--muted); text-wrap: balance; }
+.loading-title { margin: 0; font: 700 clamp(30px, 6vw, 52px)/1.05 var(--title); letter-spacing: 0.04em; text-transform: uppercase; color: var(--gold); text-wrap: balance; overflow-wrap: anywhere; }
+.loading-line { margin: 0; max-width: 56ch; color: var(--soft); font-size: 14px; line-height: 1.5; text-wrap: pretty; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 4; overflow: hidden; }
+.loading-bar { position: relative; width: min(420px, 100%); height: 4px; margin-top: 10px; background: rgba(var(--ink), 0.1); box-shadow: inset 0 0 0 1px rgba(var(--ink), 0.16); overflow: hidden; }
+.loading-fill { position: absolute; inset: 0; background: linear-gradient(90deg, rgba(var(--gilt), 0.7), var(--gold)); transform-origin: left center; transform: scaleX(0); transition: transform 0.25s linear; }
+.loading-glint { position: absolute; top: 0; bottom: 0; left: 0; width: 30%; background: linear-gradient(90deg, transparent, rgba(var(--ink), 0.45), transparent); animation: loading-glint 1.3s var(--ease) infinite; }
+@keyframes loading-glint { from { transform: translateX(-100%); } to { transform: translateX(340%); } }
+.loading-stage { font: 500 12px var(--mono); letter-spacing: 0.08em; color: var(--muted); min-height: 1.4em; }
+/* While it is up nothing under it takes a tap (a second choice made during the load). */
+body.loading-on .screen, body.loading-on .fight-ui, body.loading-on .controls { pointer-events: none; }
+@media (prefers-reduced-motion: reduce) { .loading-seal, .loading-glint { animation-duration: 6s; } }
+
 /* ---- Fight mode (touch.js) ---------------------------------------------- */
 /* In the fight the cards at the top give way: the player's status low down, his man's over his head. */
 body.playing .hud .card { visibility: hidden; }
