@@ -2,7 +2,7 @@
 // draws it. The simulation runs at a fixed step whatever the frame rate.
 
 import { greyedHair } from './aging.js';
-import { getLang, LANG_NAMES, onLangChange, SEP, t, tname, toggleLang, translatePage } from './i18n.js';
+import { getLang, LANG_NAMES, onLangChange, pick, SEP, t, tname, toggleLang, translatePage } from './i18n.js';
 import { uiIconHtml } from './uiicons.js';
 import { logPart, logWords } from './i18n/names-log.js';
 import { buildBody, fighterFile, FRAMES, normaliseInputs, P, PRESETS, SEGMENTS } from './body.js';
@@ -14,7 +14,7 @@ import { armourSpotAt, wearArmour, wearWork } from './physics/armourwear.js';
 import { advance, armourPieceAt, capsules, opponentFor, collapseAt, cutOff, dropWeapon, concussionCapacity, createWorld, perform, placeFighter, placeOnFloor, point, reviveFighter, startCrawl, startJump, throwPunch, WORLD } from './physics.js';
 import { bleedingFast } from './maiming.js';
 import { DEFAULT_LOOK, LOOK_OPTIONS } from './face.js';
-import { activateLook, activateLookNow, activeLook, DEFAULT_LOOK_ID, OFFICIAL_LOOK_ID, flattenView, loadLook, lookById, lookIdFromSearch, lookList, LOOKS, rememberedLookId, rememberLook } from './looks.js';
+import { activateLook, activateLookNow, activeLook, DEFAULT_LOOK_ID, drawFrame, OFFICIAL_LOOK_ID, flattenView, loadLook, lookById, lookIdFromSearch, lookList, LOOKS, rememberedLookId, rememberLook } from './looks.js';
 import { installLooksBench } from './looksbench.js';
 import { randomCharacter, randomGladiator, varyCharacter } from './cast.js';
 import { ratingOf, WARRIORS } from './roster.js';
@@ -47,6 +47,9 @@ import { createPerilMarks } from './perilmark.js';
 import { createExecuteMarks } from './executemark.js';
 import { leadOf, musterLevel } from './muster.js';
 import { CUSTOM_BATTLE, customLevel } from './custombattle.js';
+import { runSteps } from './loftbody.js';
+import { createLoadProgress, LOAD, runStepsOver, stepsOf } from './loadsteps.js';
+import { createLoadScreen } from './loadscreen.js';
 import { tableOn } from './tableduel.js';
 import { CLOTH_COLORS, defaultHeadgear, FACTION_KEYS, factionOf, FACTIONS, finishOptions, firstDesignOf, HEADGEAR, headgearOptions, OUTFIT_KEYS, outfitOf, outfitSets, OUTFITS, helmChoices, helmSlotOf, pickableSets, PICKABLE_OUTFIT_KEYS, randomColors, setHelmSlot, withFinish, wornCard } from './outfits.js';
 import { setCardElement } from './setcard.js';
@@ -59,7 +62,7 @@ import { blastEvent, createBlastScreen, fragmentEvent, updateThrown } from './bl
 import { artilleryFired, artilleryHit, updateArtillery } from './artilleryview.js';
 import { DETAIL_MAPS } from './detailmaps.js';
 import { setHelmStyle } from './helmstyle.js';
-import { bareCrowdHead, BODY_STYLE, FULL_MODELS, BODY_STYLES, buildFighterView, clearCrowdTemplates, prefetchSkins, pumpSkinBuilds, setBodyStyle, setSkinQuality, SKIN_BUILD, skinBuildStats, PLACE_ARENAS, createScene, disposeFighterView, forgetPlaces, placeCamera, reapplyPlace, render, resize, selectCrowdDraw, setLayer, setPlace, showImpact, updateFighterView, updateProps, updateSpray, warmSevered } from './render.js';
+import { bareCrowdHead, BODY_STYLE, FULL_MODELS, BODY_STYLES, buildFighterView, clearCrowdTemplates, releaseUnusedCrowdTemplates, prefetchSkins, pumpSkinBuilds, setBodyStyle, setSkinQuality, SKIN_BUILD, skinBuildStats, PLACE_ARENAS, createScene, disposeFighterView, forgetPlaces, placeCamera, reapplyPlace, render, resize, selectCrowdDraw, setLayer, setPlace, setPlaceSteps, showImpact, updateFighterView, updateProps, updateSpray, warmSevered } from './render.js';
 import { buildHorseView, disposeHorseView, updateHorseView } from './horseview.js';
 import { releaseSkinTextures } from './skintex.js';
 import { placeMounted } from './physics/mounted.js';
@@ -124,6 +127,8 @@ import { tkWeatherNow } from './townkit/weather.js';
 import { createStoryPlaceMark } from './story/placemark.js';
 import { mountCameraTuner } from './camtuner.js';
 import { mountDeflectTuner } from './deflecttuner.js';
+import { memoryStats } from './memstats.js';
+import { watchContextLoss } from './contextloss.js';
 
 const STEP = 1 / 60;
 const $ = (selector) => document.querySelector(selector);
@@ -203,6 +208,8 @@ activateLookNow(startingLookId);
 }
 
 const scene = createScene($('#stage'));
+// The picture lost (the card reset, its memory taken back): said so, with a reload, the fight held (contextloss.js).
+watchContextLoss(scene.renderer.domElement, { onLost: () => { state.paused = true; } });
 if (activeLook().id !== DEFAULT_LOOK_ID) reapplyPlace(scene);
 
 // The sound (audio/engine.js): on from the first tap; the speaker button in the corner of every screen, the menus' clicks, the bench.
@@ -470,10 +477,15 @@ function shuffleColors(inputs) {
 }
 
 function newBout() {
+  runSteps(newBoutSteps());
+}
+
+/** newBout in steps (main.js loadInto spreads them over frames behind the loading screen): the same work in the same order. */
+function* newBoutSteps() {
   leaveStage();
   state.seed += 1;
   // Last Stand Squad: a run of its own (lastgate.js), the level and the squad picked on its screens.
-  if (state.game === 'lastgate') return newLastGateRun();
+  if (state.game === 'lastgate') return yield* newLastGateRunSteps();
   // A scenario is the same world on its own floor, with its own people.
   const scenario = levelNow();
   // Each side: its lead (the one the builder edits) and, in a team fight,
@@ -496,21 +508,28 @@ function newBout() {
   const arena = scenario?.arena ?? PLACE_ARENAS[place];
   // In a battle the man played is his side's general, drawn up in the middle of his arm (physics.js centreGeneral); the sandbox already stands its lead in the middle.
   const general = scenario && state.game !== 'tutorial' ? { corner: state.playSide, index: state.lead[state.playSide] ?? 0 } : null;
+  yield 'world';
   state.world = createWorld([...sides[0], ...sides[1]], { seed: state.seed, arena, rules: scenario?.rules, formation: scenario?.formation, place, climate: scenario?.climate, general });
   // A custom battle of more than CUSTOM_BATTLE tableFrom men: fought as a large one (tableduel.js tableOn).
   state.world.largeBattle = Boolean(scenario?.custom) && state.world.fighters.length > CUSTOM_BATTLE.tableFrom;
   // (Its circle of men in full starts whole, and shrinks if the steps cannot keep up: detailload.js, tick.)
   detailLoad = newDetailLoad();
-  presentWorld(place, arena, scenario);
+  yield* presentWorldSteps(place, arena, scenario);
   if (state.game === 'tutorial') placeYard();
 }
 
 /** The world just made, shown: its place built (`scenario`: its weather and camera, or null for the usual ringside view), the views, the HUD, the controls fresh. */
 function presentWorld(place, arena, scenario) {
+  runSteps(presentWorldSteps(place, arena, scenario));
+}
+
+/** presentWorld in steps: the place built a piece at a time (render.js setPlaceSteps), then the rest as one. */
+function* presentWorldSteps(place, arena, scenario) {
+  yield 'place';
   clearGore(scene);
-  setPlace(scene, place, arena, scenario?.weather);
+  yield* setPlaceSteps(scene, place, arena, scenario?.weather);
   fightMarks.reset();
-  fightMarks.warm();
+  warmMarks();
   cameraWalls = cameraRoom(place, arena);
   followCam.reset();
   // A level frames its own place; anything else starts from the usual ringside view.
@@ -519,6 +538,7 @@ function presentWorld(place, arena, scenario) {
   cameraNote = '';
   document.body.dataset.place = place;
   $('#place').closest('label').hidden = Boolean(scenario);
+  yield 'men';
   rebuildViews({ progressive: true });
   state.eventCursor = 0;
   state.finishedAt = null;
@@ -596,27 +616,33 @@ const lastGateBoard = createLastGateBoard(browserStorage());
  * into the run, played.
  */
 function enterLastGate(heroKey, setup = null) {
+  runSteps(enterLastGateSteps(heroKey, setup));
+}
+
+function* enterLastGateSteps(heroKey, setup = null) {
   setGame('lastgate', { text: t('fight.playAgain'), textKey: 'fight.playAgain', retry: true, run: () => newBout() });
   state.lastGateHero = heroKey;
   state.lastGateSetup = setup;
   state.scenario = null;
   state.muster = null;
   state.lead = { red: 0, blue: 0 };
-  newBout();
+  yield* newBoutSteps();
   state.sideAsked = true;
   takeSide('red');
 }
 
 /** A new run: the world as lastgate.js makes it, drawn in its misty place, the hero's men at their posts. */
-function newLastGateRun() {
+function* newLastGateRunSteps() {
   const setup = state.lastGateSetup;
+  yield 'world';
   state.world = createLastGate(state.lastGateHero, { seed: state.seed, ...(setup ? { men: setup.men, places: setup.places } : {}) });
   const arena = state.world.arena;
   const place = LAST_GATE.place;
+  yield 'place';
   clearGore(scene);
-  setPlace(scene, place, arena, LAST_GATE.weather);
+  yield* setPlaceSteps(scene, place, arena, LAST_GATE.weather);
   fightMarks.reset();
-  fightMarks.warm();
+  warmMarks();
   cameraWalls = cameraRoom(place, arena);
   followCam.reset();
   // Behind the gate, looking out into the mist.
@@ -670,8 +696,150 @@ function lastGateFrame(world) {
 const mustering = document.body.appendChild(Object.assign(document.createElement('div'), { id: 'mustering', hidden: true }));
 function showMustering() {
   const waiting = state.viewQueue?.length ?? 0;
+  // The army all built: the crowd templates none of its men is drawn from are let go (render.js releaseUnusedCrowdTemplates).
+  if (!waiting) releaseUnusedCrowdTemplates(scene);
   mustering.hidden = waiting === 0;
   if (waiting) mustering.textContent = t('fight.mustering', { done: state.views.length, total: state.views.length + waiting });
+}
+
+// ---- The loading screen (loadscreen.js; the steps: loadsteps.js) ---------------------------------------------------------
+
+const loadScreen = createLoadScreen(document.body);
+// The load in hand while the screen is up (one at a time: a second choice made during it is let go). `hold`: the frame
+// loop draws and steps nothing meanwhile (the screen covers the picture, and the world is not ready to be stepped);
+// `marks`: the fight marks' shader is compiled at its end (warmMarks), after the scene's own.
+let loading = null;
+// (A page in a hidden tab gets no frames: there the load goes on by timer, and is ready when the tab is looked at again.)
+const nextFrame = () => new Promise((done) => (document.hidden ? setTimeout(done, 0) : requestAnimationFrame(() => done())));
+
+/**
+ * Into play behind the loading screen, as a menu's button goes (menuGame): the screen is put up at once with `info` (its
+ * `title`, `kicker`, `line`: loadscreen.js show) and painted (LOAD.paintFrames), then `work` is done (a generator of steps,
+ * main.js's own entries: newBoutSteps and the rest; or a plain function, done as one step) about LOAD.budgetMs a frame;
+ * then, if it made a new world, its men are raised (the army a few a frame, as rebuildViews queued them), its shaders
+ * prepared (warmShaderSteps) and its first frame drawn behind the screen, and the screen lifts. The work is the same as
+ * the entry done at once, in the same order: only when each piece is done changes. `quiet`: no screen, only the paint
+ * first (the fight behind the menus, when a menu is put up over it: the menu is seen at once, the fight built after).
+ * Resolves to true when the load was done, false when one was already in hand.
+ */
+async function loadInto(info, work, { quiet = false } = {}) {
+  // (A load asked for from inside another's work, a rematch's own run going through the menus' way in: done there and then, under the screen already up.)
+  if (loading?.working) {
+    if (info && !quiet) loadScreen.retitle(info);
+    runSteps(stepsOf(work));
+    return true;
+  }
+  if (loading) return false;
+  const load = (loading = { hold: true, marks: false, working: false });
+  const progress = createLoadProgress();
+  const onStep = (stage) => {
+    if (quiet) return;
+    loadScreen.progress(LOAD.stages.some((entry) => entry.key === stage) ? progress.enter(stage) : progress.step());
+  };
+  const before = state.world;
+  if (!quiet) loadScreen.show(info ?? {});
+  try {
+    for (let frame = 0; frame < LOAD.paintFrames; frame += 1) await nextFrame();
+    load.working = true;
+    await runStepsOver(stepsOf(work), { nextFrame, onStep });
+    load.working = false;
+    if (!quiet && state.world && state.world !== before) await runStepsOver(readySteps(progress), { nextFrame });
+  } catch (error) {
+    console.error('HACS: the load failed (the game carries on)', error);
+  } finally {
+    if (load.marks) fightMarks.warm();
+    loading = null;
+    loadScreen.hide();
+  }
+  return true;
+}
+
+/** The fight marks' one shader compiled with the scene's lights (fightui/marker.js warm): now, or at the end of a load (it compiles the whole scene at once). */
+function warmMarks() {
+  if (loading) loading.marks = true;
+  else fightMarks.warm();
+}
+
+/** The last of a load, behind the screen: the men still queued raised (a few a frame), the shaders prepared, the first frame drawn. */
+function* readySteps(progress) {
+  const total = state.views.length + (state.viewQueue?.length ?? 0);
+  loadScreen.progress(progress.enter('men'));
+  while (state.viewQueue?.length) {
+    state.views.push(state.buildView(state.viewQueue.shift()));
+    loadScreen.progress(progress.count(state.views.length, total));
+    yield;
+  }
+  showMustering();
+  loadScreen.progress(progress.enter('shaders'));
+  yield;
+  // (The passes over the scene: a stage's castle lit and unlit, then everything; the bar goes on across them.)
+  const castle = Boolean(state.world.stage && stageView?.warmSteps);
+  const passes = castle ? 3 : 1;
+  let pass = 0;
+  const counted = (done, all) => loadScreen.progress(progress.count(done, all, (pass + done / all) / passes));
+  const passOf = function* passOf() {
+    yield* warmShaderSteps(counted);
+    pass += 1;
+  };
+  // A stage's castle first, every piece of it, with its torches lit and then not (levelmode/kit.js warmSteps): a few materials a frame.
+  if (castle) yield* stageView.warmSteps(passOf);
+  // (The views posed and everything the frame shows or hides set as it will be, nothing drawn, so the warm sees what play draws.)
+  draw(0, { render: false });
+  yield;
+  yield* passOf();
+  if (loading.marks) {
+    loading.marks = false;
+    fightMarks.warm(() => drawFrame(scene));
+  }
+  loadScreen.progress(progress.enter('frame'));
+  yield;
+  // (The frame as the loop would draw it, nothing stepped: a stage's castle builds its own shaders in it, levelmode/kit.js warm.)
+  draw(0);
+  yield;
+}
+
+/**
+ * The scene's shader programs built before the first frame, a few materials at a time: everything drawn now is hidden
+ * but one batch of materials (their meshes drawn whatever the camera sees, frustum culling off), and the frame is drawn
+ * as the look draws it (looks.js drawFrame: its passes and render targets, the shadows), so each program is compiled for
+ * the very targets and lights it is drawn with in play. The batch doubles while a draw is quick and halves when one is
+ * slow (LOAD.warm), so a frame holds about one budget of compiling. Only meshes with nothing under them are hidden (a
+ * light held by a mesh, a torch's, stays in the scene and the lights are as in play). Everything is as it was after.
+ * `onCount(done, all)`: the materials prepared so far.
+ */
+function* warmShaderSteps(onCount) {
+  const meshes = [];
+  scene.scene.traverseVisible((object) => {
+    if (object.material && !object.isLight && !object.children.length) meshes.push(object);
+  });
+  const batches = new Map();
+  for (const mesh of meshes) {
+    const key = [].concat(mesh.material).map((material) => material.uuid).join(' ');
+    if (!batches.has(key)) batches.set(key, []);
+    batches.get(key).push(mesh);
+  }
+  const groups = [...batches.values()];
+  const kept = meshes.map((mesh) => [mesh, mesh.frustumCulled]);
+  for (const mesh of meshes) mesh.visible = false;
+  try {
+    let size = 1;
+    let done = 0;
+    while (done < groups.length) {
+      const batch = groups.slice(done, done + size).flat();
+      for (const mesh of batch) Object.assign(mesh, { visible: true, frustumCulled: false });
+      const started = performance.now();
+      drawFrame(scene);
+      const took = performance.now() - started;
+      for (const mesh of batch) mesh.visible = false;
+      done = Math.min(groups.length, done + size);
+      onCount(done, groups.length);
+      if (took < LOAD.warm.fastMs) size *= 2;
+      else if (took > LOAD.warm.slowMs) size = Math.max(1, size >> 1);
+      yield;
+    }
+  } finally {
+    for (const [mesh, culled] of kept) Object.assign(mesh, { visible: true, frustumCulled: culled });
+  }
 }
 
 // ---- Loop -------------------------------------------------------------------
@@ -856,11 +1024,15 @@ resolution.onTier = (tier) => {
   stageView?.setQuality?.(tier);
   tkSetTier(tier);
 };
+// The page's first screen (index.html #boot), up until the game draws its first frame.
+let bootScreen = document.getElementById('boot');
 function frame(now) {
   // The next frame is asked for first: an error in this one must never stop the game.
   requestAnimationFrame(frame);
   // (Trailer capture: boxer.capture(true) hands the clock to boxer.playFrames, one frame per grab.)
   if (state.captureHeld) { last = now; return; }
+  // (A load in hand: the loading screen is over the picture and the world is not ready; the load drives its own frames.)
+  if (loading?.hold) { last = now; return; }
   const started = performance.now();
   // (The page's boxes are read afresh this frame, once each: screenbox.js. The canvas's first, before this frame has changed
   // anything on the page, while the layout the browser made for the last frame still holds and costs nothing to read.)
@@ -888,6 +1060,11 @@ function frame(now) {
     if (!state.paused && !state.viewQueue?.length) tick(dt * state.speed * fightPace());
     settleStoryFallen();
     draw(dt);
+    // The page's boot screen (index.html) away once the first frame is drawn under the menu.
+    if (bootScreen && state.world) {
+      bootScreen.remove();
+      bootScreen = null;
+    }
     // A fighter drawn in the plain loft while his V7 skin is built: a few ms of it a frame (render.js pumpSkinBuilds).
     pumpSkinBuilds(scene);
     // The sound of what the camera now shows (audio/engine.js: ~30 Hz of it).
@@ -1951,24 +2128,27 @@ onLangChange(() => {
 translatePage();
 showLangSwitch();
 // Restart: the bout from the beginning, running (not left paused).
+// (Behind the loading screen: a battle begun again is built again; one from a rest is quick, and the screen is never seen.)
 $('#restart').addEventListener('click', () => {
   // In a stage: from the last rest if one was reached (the button says so), else from the start.
   if (state.world.stage?.level) {
-    restartStage();
+    loadInto(stageLoadInfo(), () => restartStage());
     return;
   }
-  newBout();
-  state.paused = false;
-  labelKeyed($('#pause'), 'fight.pause');
+  loadInto(nextLoadInfo(), function* restart() {
+    yield* newBoutSteps();
+    state.paused = false;
+    labelKeyed($('#pause'), 'fight.pause');
+  });
 });
 // A tap on a battle's summary (not on its buttons) opens its whole tally; another folds it back to the brief.
 $('#banner').addEventListener('click', (event) => {
   if (!$('#banner').classList.contains('summary-mode') || event.target.closest('button')) return;
   $('#banner').classList.toggle('expanded');
 });
-$('#banner-again').addEventListener('click', () => (state.next ? state.next.run() : newBout()));
+$('#banner-again').addEventListener('click', () => loadInto(nextLoadInfo(), () => (state.next ? state.next.run() : newBoutSteps())));
 $('#banner-menu').addEventListener('click', () => goHome());
-$('#banner-retry').addEventListener('click', newBout);
+$('#banner-retry').addEventListener('click', () => loadInto(nextLoadInfo(), newBoutSteps));
 $('#open-menu').addEventListener('click', () => goHome());
 
 // The sandbox's tools sit in a panel behind the Sandbox button at the top: a tap opens it, another (or Esc, or a tap outside, or the choice of Watch / Play / Build) closes it.
@@ -2918,6 +3098,10 @@ function fillCornerForm(corner) {
  * tuning survives going back to the ring and returning.
  */
 function chooseLevel(key, setup = null) {
+  runSteps(chooseLevelSteps(key, setup));
+}
+
+function* chooseLevelSteps(key, setup = null) {
   if (!state.scenario) state.sandboxRosters = state.rosters;
   // A battle set up by the player (muster.js): his armies and the man he plays; else the level's own, its first men leading.
   state.muster = key && setup ? setup : null;
@@ -2935,7 +3119,7 @@ function chooseLevel(key, setup = null) {
   refreshBuilder();
   state.paused = false;
   labelKeyed($('#pause'), 'fight.pause');
-  newBout();
+  yield* newBoutSteps();
 }
 
 /** Rosters filled to size, the fighter being edited kept in range, both forms redrawn. */
@@ -3063,7 +3247,11 @@ function setGame(game, next = null) {
 }
 
 /** A one-on-one (or any sides) from the menus: given fighters, in a given place. */
-function match({ red, blue, place, game, next }) {
+function match(setup) {
+  runSteps(matchSteps(setup));
+}
+
+function* matchSteps({ red, blue, place, game, next }) {
   setGame(game, next);
   state.scenario = null;
   state.muster = null;
@@ -3072,7 +3260,7 @@ function match({ red, blue, place, game, next }) {
   state.teamSizes = { red: red.length, blue: blue.length };
   state.editing = { red: 0, blue: 0 };
   state.place = place;
-  newBout();
+  yield* newBoutSteps();
   if (game !== 'home') askSide();
 }
 
@@ -3126,18 +3314,26 @@ function takeSide(side) {
 
 /** The fight behind the menus: two random gladiators in the Colosseum, one after another. */
 function attract() {
+  runSteps(attractSteps());
+}
+
+function* attractSteps() {
   if (state.mode === 'play') $('#modes button[data-value="watch"]').click();
   // Back at the menus: the next part of the game entered asks for a side again.
   state.sideAsked = false;
   $('#side-pick').hidden = true;
-  match({ red: [randomGladiator()], blue: [randomGladiator()], place: 'colosseum', game: 'home', next: { text: t('fight.nextBout'), textKey: 'fight.nextBout', run: attract } });
+  yield* matchSteps({ red: [randomGladiator()], blue: [randomGladiator()], place: 'colosseum', game: 'home', next: { text: t('fight.nextBout'), textKey: 'fight.nextBout', run: attract } });
   Object.assign(scene.orbit, { distance: 4.6, pitch: 0.12 });
 }
 
 /** Into a battle: the level's own, or as set up (`setup`, muster.js); a setup that chose the man played goes straight to him. */
 function enterLevel(key, setup = null) {
+  runSteps(enterLevelSteps(key, setup));
+}
+
+function* enterLevelSteps(key, setup = null) {
   setGame('level', { text: t('fight.retry'), textKey: 'fight.retry', retry: true, run: () => chooseLevel(key, setup) });
-  chooseLevel(key, setup);
+  yield* chooseLevelSteps(key, setup);
   if (!setup?.lead) {
     askSide();
     return;
@@ -3169,7 +3365,8 @@ function enterStoryWorld(setup, { paused = false } = {}) {
   presentWorld(place, setup.options.arena, town ? { ...view, weather: { ...view.weather, town } } : view ?? null);
   state.sideAsked = true;
   takeSide(corner);
-  boxer.finishBuilding();
+  // (Behind the loading screen its men are raised by the load, a few a frame: loadInto.)
+  if (!loading) boxer.finishBuilding();
   state.paused = paused;
   return state.world;
 }
@@ -3328,7 +3525,7 @@ function enterStoryRoam(key, { inputs, weather = null, day = null, after = false
   clearGore(scene, { keepBlood: after });
   setPlace(scene, entry.place, PLACE_ARENAS[entry.place], weather ? { town: weather } : null);
   fightMarks.reset();
-  fightMarks.warm();
+  warmMarks();
   cameraWalls = stageCameraRoom(() => state.world.arena.terrain);
   followCam.reset();
   // (Behind him as he arrives: the orbit's yaw is the world's, his facing the stage's.)
@@ -3393,7 +3590,7 @@ function enterStoryRoam(key, { inputs, weather = null, day = null, after = false
   setWalking(true);
   state.walkRunning = false;
   renderHud();
-  boxer.finishBuilding();
+  if (!loading) boxer.finishBuilding();
   state.paused = false;
   const { terrain } = state.world.arena;
   return { world: state.world, muster: [entry.muster[0], entry.muster[2]], radius: STORY_MUSTER_RADIUS, floor: (x, z) => Math.max(0, floorAt(terrain, x, z)) };
@@ -3406,6 +3603,8 @@ const story = installStory({
   storage: browserStorage,
   stage: enterStoryWorld,
   roam: enterStoryRoam,
+  // A story button's answer behind the loading screen (a battle or a place built by it: enterStoryWorld, enterStoryRoam).
+  loading: (info, act) => loadInto(info, act),
   world: () => state.world,
   pause: (on) => {
     state.paused = Boolean(on);
@@ -3540,9 +3739,13 @@ function observeYard() {
 
 /** Into the training yard: the player plays the trainee at once (no side to choose), the card on its first step. */
 function enterTutorial() {
+  runSteps(enterTutorialSteps());
+}
+
+function* enterTutorialSteps() {
   state.sideAsked = true;
   $('#side-pick').hidden = true;
-  match({ red: [YARD.trainee], blue: [YARD.partner], place: YARD.place, game: 'tutorial', next: { text: t('fight.again'), textKey: 'fight.again', retry: true, run: enterTutorial } });
+  yield* matchSteps({ red: [YARD.trainee], blue: [YARD.partner], place: YARD.place, game: 'tutorial', next: { text: t('fight.again'), textKey: 'fight.again', retry: true, run: enterTutorial } });
   $('#modes button[data-value="play"]:not([data-side])').click();
   tutorial.start();
 }
@@ -3586,7 +3789,12 @@ function leaveStage() {
  * the sandbox's ghost walk, unseen by the garrison. `opening`: the title card over the storm first (the menu's way in; the
  * world holds still behind it, and play begins when it is tapped away); a replay from the finale skips the lore.
  */
-function enterStage(key, { opening = false, sandbox = null, ghost: asGhost = false, player = null } = {}) {
+function enterStage(key, options = {}) {
+  runSteps(enterStageSteps(key, options));
+}
+
+/** enterStage in steps (behind the loading screen: main.js loadInto), the same work in the same order. */
+function* enterStageSteps(key, { opening = false, sandbox = null, ghost: asGhost = false, player = null } = {}) {
   if (asGhost && !sandbox) sandbox = 'ghost';
   const stage = STAGES[key];
   if (!stage) throw new Error(`no stage called ${key}`);
@@ -3596,6 +3804,7 @@ function enterStage(key, { opening = false, sandbox = null, ghost: asGhost = fal
   state.stageOptions = { sandbox, player };
   state.scenario = null;
   state.seed += 1;
+  yield 'world';
   // The operative (a fixed preset), in his combat stance: the stick within the run threshold fights, past it runs (control.js).
   state.world = createLevelWorld(stage, player ? heroClean(player) : levelPreset('forger'), { seed: state.seed });
   // The sandbox (levelmode/sandbox.js): 'ghost' walk (the garrison never notices him, every door open: levelmode/awareness.js) or the 'real' run with his own character.
@@ -3605,12 +3814,14 @@ function enterStage(key, { opening = false, sandbox = null, ghost: asGhost = fal
   document.body.classList.toggle('ghost-walk', ghost);
   document.body.classList.toggle('sandbox-real', sandbox === 'real');
   if (sandbox) fillGhostGo();
+  yield 'place';
   clearGore(scene);
   // (A stage may be set in a place of its own: the storm of Dunnottar, levelmode/storm.js.)
   const place = stage.place ?? 'stage';
-  setPlace(scene, place, PLACE_ARENAS[place]);
+  yield* setPlaceSteps(scene, place, PLACE_ARENAS[place]);
   if (stageView) disposeStageView(stageView);
   stageView = createStageView(stage);
+  yield;
   stageView.setQuality?.(resolution.tier);
   scene.places[place].add(stageView.group);
   placeStageSea(scene.places[place], stage);
@@ -3627,7 +3838,7 @@ function enterStage(key, { opening = false, sandbox = null, ghost: asGhost = fal
     chooseStageLook(rememberedStageLook(ghost));
   }
   fightMarks.reset();
-  fightMarks.warm();
+  warmMarks();
   // The follow camera is held off the stage's walls and roofs (levelmode/kit.js).
   cameraWalls = stageCameraRoom(() => state.world.arena.terrain);
   followCam.reset();
@@ -3636,6 +3847,7 @@ function enterStage(key, { opening = false, sandbox = null, ghost: asGhost = fal
   cameraNote = '';
   document.body.dataset.place = place;
   $('#place').closest('label').hidden = true;
+  yield 'men';
   rebuildViews({ progressive: true });
   state.eventCursor = 0;
   state.finishedAt = null;
@@ -3748,6 +3960,10 @@ function endingCamera(dt) {
 
 /** The sandbox as it was left: its own fighters, sides and place. */
 function enterSandbox() {
+  runSteps(enterSandboxSteps());
+}
+
+function* enterSandboxSteps() {
   setGame('sandbox');
   const kept = state.sandbox ?? { rosters: { red: [normaliseInputs(structuredClone(PRESETS.heavy))], blue: [normaliseInputs(structuredClone(PRESETS.light))] }, teamSizes: { red: 1, blue: 1 }, place: 'ring' };
   state.scenario = null;
@@ -3758,7 +3974,7 @@ function enterSandbox() {
   state.editing = { red: 0, blue: 0 };
   $('#place').value = kept.place;
   refreshBuilder();
-  newBout();
+  yield* newBoutSteps();
 }
 
 // ---- Portraits: one fighter drawn alone, for the Deadliest Warrior cards ----------
@@ -4058,12 +4274,32 @@ tutorial = installTutorial($('#fight-ui'), {
   again: () => enterTutorial(),
 });
 tutorial.setDevice(fightControls.device);
-const menus = installMenus({
-  intro: (then) => playIntro(introStage, then), attract, match, sandbox: enterSandbox, level: enterLevel, tutorial: enterTutorial, preview, portrait, setPortrait: (kind, key) => portrait(`set:${kind}/${key}`, setModel(kind, key)),
-  // Level Mode: a stage from its card (levelmode/stages.js): its men built at once, the title card over the storm, the world held still behind it.
-  onStage: (key) => { enterStage(key, { opening: true }); boxer.finishBuilding(); },
+// What the loading screen says is loading (loadscreen.js show): a battle's name, its place and date, its blurb; a bout's
+// two men and what it is; a stage's chapter and name.
+const levelLoadInfo = (key, setup = null) => {
+  const level = key === CUSTOM_BATTLE.key ? { title: setup?.battle ? customLevel(setup.battle).title ?? CUSTOM_BATTLE.title : CUSTOM_BATTLE.title } : battleOf(key);
+  return { title: tname(level?.title ?? ''), kicker: level?.place ? tname(pick(level.place)) : '', line: level?.blurb ? pick(level.blurb) : '' };
+};
+const matchLoadInfo = ({ red, blue, label }) => ({ kicker: label ?? '', title: t('load.versus', { red: tname(red[0]?.name ?? ''), blue: tname(blue[0]?.name ?? '') }) });
+const stageLoadInfo = () => ({ kicker: tname(STAGE_ONE.chapter), title: tname(STAGE_ONE.title), line: tname(STAGE_ONE.lore[0]) });
+// The sync entries' own runs (a rematch's, a retry's: setGame `next.run`) behind the screen too, as one step each.
+const nextLoadInfo = () => (state.scenario ? levelLoadInfo(state.scenario, state.muster) : state.world?.stage ? stageLoadInfo() : { title: t('load.loading') });
+
+// What the menus call (also the tests' way in as the menus go: boxer.menuGame). Each way into play goes behind the loading
+// screen (loadInto); the fight behind the menus is built after the menu is up (quiet).
+const menuGame = {
+  intro: (then) => playIntro(introStage, then),
+  // (The first, as the page opens, at once: the page's start goes on with the world there.)
+  attract: () => (state.world ? loadInto(null, attractSteps, { quiet: true }) : attract()),
+  match: (setup) => loadInto(matchLoadInfo(setup), () => matchSteps(setup)),
+  sandbox: () => loadInto({ title: t('menu.home.sandbox.title') }, enterSandboxSteps),
+  level: (key, setup = null) => loadInto(levelLoadInfo(key, setup), () => enterLevelSteps(key, setup)),
+  tutorial: () => loadInto({ title: t('menu.levels.yard.title') }, enterTutorialSteps),
+  preview, portrait, setPortrait: (kind, key) => portrait(`set:${kind}/${key}`, setModel(kind, key)),
+  // Level Mode: a stage from its card (levelmode/stages.js): its men all built behind the loading screen, the title card over the storm, the world held still behind it.
+  onStage: (key) => loadInto(stageLoadInfo(), () => enterStageSteps(key, { opening: true })),
   // Last Stand Squad: the level and the squad picked, straight into the run; its board for the menu.
-  lastGate: enterLastGate,
+  lastGate: (hero, setup = null) => loadInto({ title: tname(LAST_GATE.title) }, () => enterLastGateSteps(hero, setup)),
   lastGateBoard,
   // Story mode (src/story/): its own screen over the fight behind the menus.
   story: () => story.open(),
@@ -4086,7 +4322,8 @@ const menus = installMenus({
   hitFeel: { settings: hitFeel.settings, save: () => saveHitFeel(hitFeelStorage, hitFeel.settings) },
   // The picture's quality (levelmode/quality.js), for the settings: the modes, the one held, and holding another.
   quality: { modes: QUALITY_MODES, get: () => qualityMode, set: (mode) => boxer.quality(mode) },
-});
+};
+const menus = installMenus(menuGame);
 // The sound bench straight from the address (?bench=sound).
 if (/[?&]bench=sound\b/.test(location.search)) soundBench.open();
 fit();
@@ -4309,6 +4546,8 @@ installLooksBench({
 // Test hook: step the world by seconds without the frame clock.
 const boxer = window.boxer = {
   state,
+  // The menus' own entries (menuGame: match, level, onStage, tutorial...), called as a menu's button calls them.
+  menuGame,
   // Story mode's test hooks (src/story/storyview.js): open, begin, answer(i), autoplay(on), endBattle, skipLine, state(), language(l).
   story: story.hooks,
   scene,
@@ -4581,6 +4820,8 @@ const boxer = window.boxer = {
     if (on !== undefined) crowdLod.enabled = Boolean(on);
     return crowdLod.enabled;
   },
+  // What the scene holds in memory (memstats.js): geometry and texture bytes, the biggest, a man's own by tier; three's own counts.
+  memory: (options) => ({ ...memoryStats(scene.scene, state.views, options), info: { ...scene.renderer.info.memory, programs: scene.renderer.info.programs?.length ?? 0 }, men: state.world?.fighters.length ?? 0 }),
   // Play `count` real frames of `dt` s each, as the page's own loop would (tests, profiling).
   playFrames: (count, dt = 1 / 60) => {
     for (let index = 0; index < count; index += 1) {

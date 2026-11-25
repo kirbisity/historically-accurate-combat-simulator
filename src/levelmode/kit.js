@@ -34,6 +34,7 @@ import { skyDirection } from './stagesky.js';
 import { ktDispose, ktMaterials, ktRandom, ktSetLod, ktWeather } from './kittex.js';
 import { QUALITY_LAMPS_MOST, TIER_NAMES, tierOf } from './quality.js';
 import { chooseSections, fogReach, holdSections, holdMan, manDrawn, manSeen, nearestBoxDistance, pastReachHeld, sectionGraph, seeThroughIds, VISIBILITY } from './visibility.js';
+import { runSteps } from '../loftbody.js';
 
 /** The real lights the torches are lent (quality.js: the best tier's count; a tier lights fewer). */
 const KIT_LAMPS = QUALITY_LAMPS_MOST;
@@ -1473,6 +1474,18 @@ export function createCastleView(stage) {
    */
   view.warm = (draw) => {
     if (state.warmed) return;
+    runSteps(view.warmSteps(function* drawOnce() {
+      draw();
+    }));
+  };
+
+  /**
+   * The same warm in steps (behind the loading screen, main.js loadInto): `drawSteps()` a generator that draws the
+   * castle as it is now, as many frames as it likes (main.js warmShaderSteps: a few materials a frame); once with the
+   * torches lit and once without, then everything as it was.
+   */
+  view.warmSteps = function* warmSteps(drawSteps) {
+    if (state.warmed) return;
     state.warmed = true;
     const kept = [];
     group.traverse((object) => {
@@ -1488,7 +1501,7 @@ export function createCastleView(stage) {
     const lit = Math.min(pool.length, state.q.lamps ?? pool.length);
     for (const on of [true, false]) {
       pool.forEach((light, k) => { light.visible = on && k < lit; });
-      draw();
+      yield* drawSteps();
     }
     for (const [object, culled, visible] of kept) Object.assign(object, { frustumCulled: culled, visible });
     for (const [holder, visible] of holders) holder.visible = visible;

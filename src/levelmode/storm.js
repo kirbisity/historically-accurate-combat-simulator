@@ -464,7 +464,8 @@ export function buildStormPlace({ buildRain }) {
   sea.material.onBeforeCompile = (shader, renderer) => {
     seaPatch(shader, renderer);
     // Past the fog's far end the water is the fog's colour and nothing else: it is not shaded (the sea is the dearest pixel of the picture, and out toward the horizon most of it).
-    shader.fragmentShader = shader.fragmentShader.replace('void main() {', 'void main() {\n#ifdef USE_FOG\n  if (fogDepth > fogFar) {\n    gl_FragColor = vec4(fogColor, 1.0);\n    return;\n  }\n#endif');
+    // (A linear fog's far end: compiled under the open air's exponential fog, as a hidden stage can be, the water is shaded as the rest.)
+    shader.fragmentShader = shader.fragmentShader.replace('void main() {', 'void main() {\n#if defined( USE_FOG ) && !defined( FOG_EXP2 )\n  if (fogDepth > fogFar) {\n    gl_FragColor = vec4(fogColor, 1.0);\n    return;\n  }\n#endif');
     shader.fragmentShader = shader.fragmentShader.replace(
       'vec3 mapN = texture2D( normalMap, vUv ).xyz * 2.0 - 1.0;',
       `vec3 mapN = texture2D( normalMap, vUv ).xyz * 2.0 - 1.0;
