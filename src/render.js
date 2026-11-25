@@ -170,6 +170,10 @@ export function* setPlaceSteps(view, place, arena, weather = null) {
   const dug = !home?.own && arena?.works?.ditches?.length ? arena : null;
   const swapped = swapFloor(view, place, floor ?? dug);
   yield;
+  // A place built in parts holds in full what this use of it needs and lets the rest go to its skyline (places/
+  // pyongyang.js: its districts; a battle on the walls holds the field and the west gate quarter, the walk every
+  // district), whether it was built for this use or kept from another.
+  if (view.places[place]?.userData.holdFor) yield* view.places[place].userData.holdFor(arena);
   view.floor = floor;
   if (!swapped && place === view.place && weather === (view.weather ?? null)) return;
   view.weatherBrought = brought;
@@ -239,6 +243,11 @@ const PLACE_KEPT_MB = { low: 160, high: Infinity };
 // 2 to 3 s from the press instead of 1 to 1.5 s, its longest frame no longer than before; M1 Pro, measured 2026-11-25).
 // `keptOn`: the tiers that keep it anyway.
 export const MENU_BACKDROP = { place: 'colosseum', keptOn: [] };
+// The places that are one place built twice under two keys (places/pyongyang.js: 'pyongyangtown' is Pyongyang moved so
+// that Battle Mode's town fight is about the world's origin, and holds only the west gate quarter in full): one shown,
+// the other is let go rather than kept hidden, so the town is never held twice. They cannot share one group: a key is
+// a place of its own to the open air and the looks (its light, wind, shift and the air's description of its ground).
+const PLACE_TWINS = { pyongyang: 'pyongyangtown', pyongyangtown: 'pyongyang' };
 
 /** What a place holds on the card (MB): its geometry and the textures its materials use, each counted once. */
 function placeMb(group) {
@@ -276,7 +285,9 @@ function releaseOldPlaces(view, shown) {
   const backdrop = (key) => key.split('@')[0] === MENU_BACKDROP.place && !MENU_BACKDROP.keptOn.includes(tkTier());
   // (The backdrop's turn in the kept places is not passed on to an older one: the place just left is the one worth keeping.)
   const kept = hidden.slice(0, PLACES_KEPT);
-  for (const key of [...kept.filter((key) => backdrop(key) || tooBig(key)), ...hidden.slice(PLACES_KEPT)]) {
+  // (The same town built under another key, moved for another use, is not kept beside it: PLACE_TWINS.)
+  const twin = (key) => PLACE_TWINS[shown] === key;
+  for (const key of [...kept.filter((key) => backdrop(key) || tooBig(key) || twin(key)), ...hidden.slice(PLACES_KEPT)]) {
     disposePlace(view, view.places[key]);
     view.places[key] = null;
     if (!key.includes('@') && view.floors) delete view.floors[key];

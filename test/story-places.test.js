@@ -279,6 +279,9 @@ test('pyongyang: every plan item stands in exactly one district, the one its anc
   // The uses: Battle Mode's town fight lies wholly inside W, chapter 3 and the custom strip hold F and W.
   const [fx, fz] = PY_TOWN_FIGHT.at;
   for (const x of [fx - 26, fx + 26]) for (const z of [fz - 15, fz + 15]) assert.equal(pyDistrict(x, z), 'W', `the town fight's corner [${x}, ${z}] is in W`);
+  assert.deepEqual(pyHoldFor(null, 'pyongyangtown'), PY_HOLDS.town);
+  assert.deepEqual(pyHoldFor(PYONGYANG_1593.arena), PY_HOLDS.battle);
+  assert.deepEqual(pyHoldFor({ own: true }), PY_HOLDS.roam);
   assert.ok(!PY_HOLDS.roam.includes('E'), 'the east town is never held: its skyline only');
 });
 

@@ -421,10 +421,13 @@ export function tkKeep(root, meshes, { sun, shadow = 0.8, sky = null, rain = nul
     // The baked shadow is one map shared with the castle stage: taken again if another place's bake replaced it
     // (looked for every 64 frames) or the sun has moved (the bake knows the sun it was thrown from).
     const taken = open ? TK_PLACE.sun.openShadow : shadow;
-    if (ktShadow.uKitShadowInfo.value?.x !== taken || state.checked !== view.renderer.info.render.frame >> 6 || state.baked !== dir.x + dir.z) {
+    // (And again when what casts has changed: a place built in parts holding more or less, `meshes.userData.version`.)
+    const version = meshes.userData.version ?? 0;
+    if (ktShadow.uKitShadowInfo.value?.x !== taken || state.checked !== view.renderer.info.render.frame >> 6 || state.baked !== dir.x + dir.z || state.version !== version) {
       state.checked = view.renderer.info.render.frame >> 6;
       state.baked = dir.x + dir.z;
-      ktShadowBake(view.renderer, root, meshes.userData.casters, [dir.x, dir.y, dir.z], taken, key, tier === 'low' ? TK_PLACE.sun.baked / 2 : TK_PLACE.sun.baked);
+      state.version = version;
+      ktShadowBake(view.renderer, root, meshes.userData.casters, [dir.x, dir.y, dir.z], taken, `${key}#${version}`, tier === 'low' ? TK_PLACE.sun.baked / 2 : TK_PLACE.sun.baked);
     }
     if (state.mirrored !== (open ? `air:${view.env.weather.name}` : 'own')) takeMirror(view, open);
     else if (state.mirror && tkWeather.uTkEnv.value !== state.mirror.texture && (open ? state.mirror.userData.float : true) && tier !== 'low') {

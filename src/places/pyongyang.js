@@ -1501,8 +1501,9 @@ const PY_OAK = { kind: 'broad', tint: [0.95, 0.55, 0.3], spread: 0.55 };
 export const PY_HOLDS = { town: ['W'], battle: ['F', 'W'], roam: ['F', 'W', 'G', 'M', 'R'] };
 
 /** The districts a use holds in full (PY_HOLDS): the town fight by its key; a battle by its own arena (the roam's is the place's own, `own`). */
-export function pyHoldFor(_arena, _key = 'pyongyang') {
-  return PY_HOLDS.roam;
+export function pyHoldFor(arena, key = 'pyongyang') {
+  if (key === 'pyongyangtown') return PY_HOLDS.town;
+  return arena && !arena.own ? PY_HOLDS.battle : PY_HOLDS.roam;
 }
 
 // A builder that keeps nothing (tkgBuilder's verbs, each doing nothing): what a district not held is drawn into, so
