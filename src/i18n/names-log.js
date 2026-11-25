@@ -84,6 +84,7 @@ const LOG_PATTERNS_ZH = [
   [/^pulls the pin of a (.+)$/, (m) => `拔掉${logWords(m[1])}的引信`],
   [/^puts on (.+)$/, (m) => `穿上${logWords(m[1])}`],
   [/^switches to (.+)$/, (m) => `换成${logWords(m[1])}`],
+  [/^the (.+)'s (shaft|blade) (snapped|bent|cracked|hacked through)$/, (m) => `${logWords(m[1])}的${m[2] === 'shaft' ? '杆' : '刃'}${{ snapped: '断了', bent: '弯了', cracked: '裂了', 'hacked through': '被砍断' }[m[3]]}`],
   [/^the (.+) shattered$/, (m) => `${logWords(m[1])}碎了`],
   [/^the (.+) splits apart$/, (m) => `${logWords(m[1])}裂开了`],
   [/^the (.+) split$/, (m) => `${logWords(m[1])}裂了`],

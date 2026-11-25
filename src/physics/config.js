@@ -1425,7 +1425,32 @@ export const WORLD = {
     // and the man knocked back give some 6 cm (a war spear's shaft then bears ~240 J square on plate: a hard two-handed
     // thrust, 150-170 J, snaps the odd weak one); into a shield, `shield`: the point in the board and the arm and the man
     // behind it giving ~12 cm.
-    stop: { flesh: 0.25, plate: 0.06, proof: 0.8, shield: 0.12 },
+    stop: { flesh: 0.25, plate: 0.06, proof: 0.8, shield: 0.12, bone: 0.03 },
+    // `bone`: a point that meets bone under the flesh (a rib, the skull, a long bone on its line: physics.js pointOnBone) is
+    // stopped there, over the flesh in front of the bone (physics/blunt.js bluntFlesh: a few mm over the skull and the
+    // shin, 2-3 cm over the ribs of a lean man) and this much more: the bone's own give, the rib cage's spring and the head
+    // or the limb knocked back with it. Through a gap between the ribs it goes on into flesh (`flesh`).
+    // The rib cage's bars where a point meets them (m): the ribs ~1.5-2 cm broad, their spaces ~1.5-2 cm (Gray's Anatomy;
+    // the intercostal spaces widest in front); a rib is a rounded bar, and a point stops on its crown, the middle ~8 mm of
+    // it (`broad`), sliding off its rounded edges into the space beside it: by where it lands, about one square thrust in
+    // four into the chest.
+    ribs: { pitch: 0.035, broad: 0.008 },
+    // A long bone is round as a rib is: a point meets it square only over its crown, this share of its radius either side
+    // of the line through its middle (as a rib's ~8 mm crown of its ~18 mm breadth); off it, it skids round the bone into
+    // the flesh beside it, as off a breastplate's curve.
+    crown: 0.45,
+    // What a bone holds a point with before the point breaks into it (N): a rib's thin cortex, cracked as a rib is under a
+    // few hundred newtons (isolated human ribs bent fail at ~0.1-0.4 kN: Kemper et al., Stapp Car Crash Journal 49, 2005;
+    // from memory, unverified; braced in the cage by its neighbours, the top of that); the skull's vault, which turns knife points and breaks their tips off (forensic stab
+    // studies; an estimate of ~2 kN); a long bone's cortex, 5-8 mm of compact bone, ~4 kN. A spear's or a lance's shaft
+    // drives at its few kN and goes through them; a rapier's blade bows at a few hundred newtons and is stopped on them.
+    bones: { rib: 400, skull: 2000, long: 4000 },
+    // A blade driven on its point is a column (physics/wear.js bladeColumn). `section`: the reference sword's
+    // (WORLD.wear.blade: an arming sword's) at the middle of its blade, across its flat and through it (m): ~4 cm by 5.5 mm
+    // on the Oakeshott type XII and XIV swords measured (Oakeshott, *Records of the Medieval Sword*, 1991); a blade with
+    // no section of its own (weapons.js `build.section`) is this scaled by its radius. It bows at ~2 kN, far past any
+    // thrust a man makes on it; a rapier's slender blade at a few hundred newtons.
+    point: { section: [0.04, 0.0055] },
     // A blow across a shaft breaks it at this share of what it carries along its length: a pole bends between the hands
     // (ash's ~100 MPa over a 3.6 cm section is ~450 N·m: a kN or two at the blow, over the few cm it bows: some hundreds of J).
     across: 0.3,

@@ -25,6 +25,29 @@ function pieceScatter(key, modulus) {
   return (-Math.log(1 - pieceDraw(key)) / Math.LN2) ** (1 / modulus);
 }
 
+/**
+ * A blade driven on its point is a column held at the hand (WORLD.wear.point): it buckles at Euler's π²EI/L² (its section's
+ * least second moment, over its length out of the hand) and bows, bearing about that force as its point is pressed on,
+ * and it snaps (or, soft, takes a set: its metal's `fails`) once the bow's bend stresses its steel past what it `yields`:
+ * at a sideways bow a = σL²/(π²Ec), its ends drawn together by π²a²/4L, the work it took over that P·π²a²/4L. A broad
+ * sword's flat section is stiff enough that no thrust a man makes bows it; a rapier's slender one bows on any hard stop,
+ * and what it then takes before it goes is its steel's σ² over E, the work of its whole length bent. A piece's own
+ * strength (`scatter`, the Weibull draw) is its steel's σ: the bow's work goes as its square; Euler's force is E's and
+ * hardly varies.
+ */
+function bladeColumn(spec, build, metal, scatter) {
+  const rule = WORLD.wear.point;
+  // The section at the middle of the blade (m, across its flat and through it): its own (`build.section`), else the
+  // reference sword's scaled by its radius.
+  const [width, thick] = build.section ?? rule.section.map((size) => size * (spec.radius / WORLD.wear.blade.radius));
+  const length = spec.length;
+  const second = (width * thick ** 3) / 12;
+  const buckle = (Math.PI ** 2 * metal.modulus * second) / length ** 2;
+  const sigma = metal.yields * scatter;
+  const sway = (sigma * length ** 2) / (Math.PI ** 2 * metal.modulus * (thick / 2));
+  return { buckle, bow: buckle * ((Math.PI ** 2 * sway ** 2) / (4 * length)) };
+}
+
 /** The wear of a weapon in `fighter`'s hands: begun the first time it takes anything. */
 export function wearOf(weapon, fighter, time) {
   if (weapon.wear) return weapon.wear;
@@ -43,6 +66,7 @@ export function wearOf(weapon, fighter, time) {
   const free = shaft ? freeShaft(spec, build) : null;
   const column = free ? Math.max(1, shaftSize * (rule.column / free) ** 2) : 1;
   const shaftBend = shaft ? WORLD.mount.brace.shaft * shaft.strength * shaftSize ** 3 * shaftScatter : Infinity;
+  const bowed = blade ? bladeColumn(spec, build, blade, bladeScatter) : null;
   weapon.wear = {
     build,
     // The edge's width, × fresh.
@@ -51,6 +75,10 @@ export function wearOf(weapon, fighter, time) {
     blade: 0,
     bladeStrength: blade ? blade.strength * bladeSize * bladeScatter : Infinity,
     bladeCapacity: blade ? blade.capacity * bladeSize * bladeScatter : Infinity,
+    // Driven on its point, the blade as a column (bladeColumn): the force it bows at (N), and the work its bow takes before
+    // the bend snaps it (J).
+    bladeBuckle: bowed?.buckle ?? Infinity,
+    bladeBow: bowed?.bow ?? Infinity,
     // What the shaft carries along its length driving a point into flesh (J), and the edge-on work hacked into it so far, of what
     // it takes to go through.
     shaftStrength: shaftBend * column,
@@ -126,6 +154,42 @@ export function driveShaft(weapon, fighter, time, joules, stop) {
   if (!wear.build.shaft) return { carried: joules, snapped: false };
   const bears = wear.shaftStrength * (stop / WORLD.wear.stop.flesh);
   return joules > bears ? { carried: bears, snapped: true } : { carried: joules, snapped: false };
+}
+
+/**
+ * A point driven home along a blade, stopped over `stop` m: the blade bears its bow's force over that distance and the
+ * work of the bow itself (bladeColumn), and past that it snaps (or bends) there. Returns what it carried (J), whether it
+ * broke, and how (its metal's `fails`).
+ */
+export function driveBlade(weapon, fighter, time, joules, stop) {
+  const wear = wearOf(weapon, fighter, time);
+  if (!wear.build.blade || wear.build.shaft) return { carried: joules, snapped: false };
+  const bears = wear.bladeBuckle * stop + wear.bladeBow;
+  return joules > bears ? { carried: bears, snapped: true, reason: MATERIALS[wear.build.blade].blade.fails } : { carried: joules, snapped: false };
+}
+
+/**
+ * A point driven home and stopped over `stop` m, on whatever carries it: a shaft (driveShaft) or a blade (driveBlade).
+ * Past what covers him it may meet a `bone` (physics.js pointOnBone: how far it stops the point, `stop`, and the force it
+ * `holds` against): what drives the point harder than that (a shaft along its length, WORLD.mount.brace.shaft over the
+ * flesh's stop; a blade at the force it bows at) breaks into the bone and goes on in, as into flesh; a slenderer blade
+ * bows against it and is stopped there. Returns what it carried, and what broke (`part`, `reason`) if it did.
+ */
+export function drivePoint(weapon, fighter, time, joules, stop, bone = null) {
+  const wear = wearOf(weapon, fighter, time);
+  const drives = wear.build.shaft ? wear.shaftStrength / WORLD.wear.stop.flesh : wear.bladeBuckle;
+  const onBone = Boolean(bone) && bone.holds > drives;
+  // A blade's slender point going on into flesh is held back only by the flesh's own resistance (a few tens to a hundred
+  // or two newtons through skin and muscle: stab tests, physics/lodge.js), under the force it bows at: it is not stopped
+  // in the flesh's quarter metre as a shaft driven with a man's weight behind it is, but as far as its blade goes in.
+  if (!wear.build.shaft && !onBone && stop >= WORLD.wear.stop.flesh) stop = Math.max(stop, weapon.spec.length);
+  if (onBone) stop = Math.min(stop, bone.stop);
+  if (wear.build.shaft) {
+    const drive = driveShaft(weapon, fighter, time, joules, stop);
+    return drive.snapped ? { ...drive, part: 'shaft', reason: 'snapped' } : drive;
+  }
+  const drive = driveBlade(weapon, fighter, time, joules, stop);
+  return drive.snapped ? { ...drive, part: 'blade' } : drive;
 }
 
 /** How far a point's drive is stopped in on what it met (WORLD.wear.stop): flesh it goes into, or plate it cannot. */

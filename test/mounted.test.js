@@ -194,27 +194,22 @@ test('barding keeps out the edge: the same cut at a horse\'s chest bleeds a bare
   assert.ok(plate.hit.cut < 1e-6, `plate: ${plate.hit.cut}`);
 });
 
-test('the couched lance breaks only on heavy armour: on an unarmoured man it goes in and is kept in hand; on plate (not into a gap) it shatters, nothing left to pick up, and the sidearm is drawn', () => {
+test('the couched lance breaks on a solid hit on plate (not into a gap): its stump dropped, the splinters on the ground, the sidearm drawn; into a bare man it goes in', () => {
   const saddle = ATTACKERS[1];
   const runs = (target) => [0, 1, 2, 3, 4, 5, 6, 7].map((seed) => firstBlow(saddle[1], target, 3000 + seed, saddle[2])).filter(Boolean);
-  const shattered = (hit) => hit.effects.some((effect) => effect === 'the lance shattered');
+  const broke = (w) => w.events.some((event) => event.kind === 'weaponBroke' && event.weapon === 'lance');
   const bare = runs('street');
   assert.ok(bare.length >= 2, `landed ${bare.length}`);
-  for (const { hit, attacker } of bare) {
-    assert.ok(!shattered(hit), `${hit.energy.toFixed(0)} J into a bare man, kept`);
-    assert.equal(attacker.weapon?.kind, 'lance');
-    assert.ok(attacker.weapon.held);
-  }
-  assert.ok(bare.some(({ hit }) => hit.energy >= WEAPONS.lance.shatters.joules), 'as hard as would break it on plate');
+  for (const { hit } of bare) assert.ok(hit.pierce > 25, `${hit.energy.toFixed(0)} J into a bare man: ${hit.effects.join(', ')}`);
   const plate = runs('knight');
-  const broke = plate.filter(({ hit }) => shattered(hit));
-  assert.ok(broke.length >= 1, `shattered on plate in ${broke.length} of ${plate.length}`);
-  for (const { hit, attacker, world: w } of plate) {
-    const gap = hit.effects.includes('into a gap in the armour');
-    assert.equal(shattered(hit), !gap && hit.energy >= WEAPONS.lance.shatters.joules, hit.effects.join(', '));
-    if (!shattered(hit)) continue;
+  const solid = plate.filter(({ hit }) => !hit.effects.includes('into a gap in the armour') && hit.energy >= 500);
+  assert.ok(solid.length >= 1, `${solid.length} solid hits of ${plate.length}`);
+  for (const { hit, attacker, world: w } of solid) {
+    assert.ok(broke(w), `${hit.energy.toFixed(0)} J on plate: ${hit.effects.join(', ')}`);
+    assert.ok(hit.effects.includes("the lance's shaft snapped"));
     assert.notEqual(attacker.weapon?.kind, 'lance', 'the sidearm drawn');
     assert.ok(!w.debris.some((piece) => piece.weapon === 'lance'), 'no lance left whole on the ground');
+    assert.ok(w.debris.filter((piece) => piece.kind === 'splinter' && piece.owner === attacker.id).length === 2, 'its head end and its stump');
   }
 });
 

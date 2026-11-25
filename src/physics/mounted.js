@@ -18,8 +18,8 @@ import { BARDING, bardingAt, breedOf, HORSE_LOAD, mountOf } from '../horses.js';
 import { DOG_JUMP } from '../robotdogs.js';
 import { tiltToward, vec, yawRotate, twoBoneIK } from '../pose.js';
 import { BLADES, bleedRate, bleedToLose, contactShare, harmMix, pointThrough, pointWidthOf, cuttingWidth, shieldContact, sliceGain } from '../weapons.js';
-import { armourHardness, bluntEdge, driveShaft, dullEdge, stopIn } from './wear.js';
-import { afoot, knockOut, bladeFor, bladeStrike, breakWeapon, closestBetween, crashBetween, dropWeapon, crashHardness, crashHarm, crashOf, fall, fighterParty, placeFighter, groundBrace, handVelocityOf, heldBlades, point, poiseOf, shakenLoose, shieldDisc, shieldHarm, shieldParty, shattersOn, stagger, strainGrip, strikeLiveUntil, strokeOf, wholeVelocity } from '../physics.js';
+import { armourHardness, bluntEdge, drivePoint, dullEdge, stopIn } from './wear.js';
+import { afoot, knockOut, bladeFor, bladeStrike, breakWeapon, closestBetween, crashBetween, crashHardness, crashHarm, crashOf, fall, fighterParty, placeFighter, groundBrace, handVelocityOf, heldBlades, point, poiseOf, shakenLoose, shieldDisc, shieldHarm, shieldParty, stagger, strainGrip, strikeLiveUntil, strokeOf, wholeVelocity } from '../physics.js';
 import { WORLD } from './config.js';
 import { crowdNear } from '../crowdgrid.js';
 import { footingOn, partUnder, treadOn } from './footing.js';
@@ -1390,10 +1390,15 @@ function hitHorse(world, attacker, weapon, punch, horse, capsule, closest) {
     mix.cut = 0;
     mix.pierce = 0;
   }
-  // A point driven home carries no more than its shaft bears before it gives (a set point into a charging horse: the brace's
-  // `shaft`, at the war spear's; physics/wear.js driveShaft): past it the shaft snaps, and the rest of the blow goes into
-  // the breaking and the man thrown back, not into the horse. (A lance's own rule is `shatters`, below.)
-  const driven = spec.mode === 'thrust' && mix.pierce > 0 && !wspec.shatters ? driveShaft(weapon, attacker, world.time, blow, stopIn(protection)) : null;
+  // A point driven home carries no more than its shaft (or its blade) bears before it gives (a set point into a charging
+  // horse: the brace's `shaft`, at the war spear's; physics/wear.js drivePoint): past it the shaft snaps, and the rest of
+  // the blow goes into the breaking and the man thrown back, not into the horse. A lance on plate barding is stopped dead
+  // and mostly breaks, as on a man's plate.
+  // A point that goes through the barding is not stopped on it (as on a man's plate: the user's call, 2026-11-09).
+  const pointDraw = mix.pierce > 0 ? world.random() : 0;
+  const pointWidth = mix.cut > 0 ? cuttingWidth(pointWidthOf(wspec), protection.cut) : pointWidthOf(wspec);
+  const throughBard = mix.pierce > 0 && pointThrough(blow, protection.pierce, pointDraw, pointWidth) > 0;
+  const driven = spec.mode === 'thrust' && mix.pierce > 0 ? drivePoint(weapon, attacker, world.time, blow, throughBard ? WORLD.wear.stop.flesh : stopIn(protection)) : null;
   const energy = driven ? driven.carried : blow;
   // The edge dulls on barding harder than hide (physics/wear.js).
   dullEdge(weapon, attacker, world.time, energy * mix.cut / Math.max(1e-6, mix.blunt + mix.cut + mix.pierce), armourHardness(protection));
@@ -1401,7 +1406,7 @@ function hitHorse(world, attacker, weapon, punch, horse, capsule, closest) {
   const cut = energy * mix.cut * (1 - (protection.cut ?? 0)) * sharp * (mix.cut > 0 ? sliceGain(wspec, relative, weapon.dir, distance, protection) : 1);
   // A point through the barding only past its puncture (weapons.js pointThrough), as through a man's armour; stopped, it lands
   // only as its blow.
-  const through = mix.pierce > 0 ? pointThrough(energy, protection.pierce, world.random(), mix.cut > 0 ? cuttingWidth(pointWidthOf(wspec), protection.cut) : pointWidthOf(wspec)) : 0;
+  const through = mix.pierce > 0 ? pointThrough(energy, protection.pierce, pointDraw, pointWidth) : 0;
   const pierce = energy * mix.pierce * sharp * through;
   const blunt = energy * mix.blunt * (1 - (protection.blunt ?? 0) * (1 - (wspec.crush ?? 0)));
   // (An edge always glances off plate; a point that bites square does not.)
@@ -1418,16 +1423,13 @@ function hitHorse(world, attacker, weapon, punch, horse, capsule, closest) {
   harmHorse(world, horse, capsule, { blunt, cut, pierce }, event, attacker);
   // The blow pushes the horse back, by its momentum over the laden horse's mass.
   event.pushed = jolt(world, horse, vec.scale(normal, -impulse / ladenMass(world, horse)), 'brought down by the blows');
-  // The blade is jarred by what it met, and the arm takes the blow back; a lance (`shatters`) breaks on heavy barding, else is kept.
-  const shattered = shattersOn(weapon, spec.mode, protection, energy);
-  if (shattered) event.effects.push(`the ${wspec.label.toLowerCase()} shattered`);
-  else if (driven?.snapped) event.effects.push(`the ${wspec.label.toLowerCase()}'s shaft snapped`);
-  else if (!wspec.shatters) strainGrip(world, attacker, impulse * (glanced ? 0.3 : 0.15), [0, 0, 0], weapon);
+  // The blade is jarred by what it met (one held fast, a couched lance, along its shaft into the arm), and the arm takes the blow back.
+  if (driven?.snapped) event.effects.push(`the ${wspec.label.toLowerCase()}'s ${driven.part} ${driven.reason}`);
+  else if (!wspec.heldFast) strainGrip(world, attacker, impulse * (glanced ? 0.3 : 0.15), [0, 0, 0], weapon);
   const recoil = [[main, 1], [P[`${weapon.main}Elbow`], 0.7], [P[`${weapon.main}Shoulder`], 0.35]];
   world.pendingImpulses.push({ fighter: attacker, shares: recoil, direction: normal, impulse: impulse * (1 + WORLD.weaponTransferRestitution.edge) / (1 + WORLD.restitution) });
   world.events.push(event);
-  if (shattered) dropWeapon(world, attacker, 'shattered');
-  else if (driven?.snapped) breakWeapon(world, attacker, weapon, 'shaft', 'snapped', contactPoint);
+  if (driven?.snapped) breakWeapon(world, attacker, weapon, driven.part, driven.reason, null);
   // Heard: the blow on the horse (on its barding, or its hide), and an edge or a point in it makes it scream.
   if (world.ear) {
     const striker = mix.cut + mix.pierce <= mix.blunt ? 'blunt' : mix.pierce > mix.cut ? 'point' : 'blade';

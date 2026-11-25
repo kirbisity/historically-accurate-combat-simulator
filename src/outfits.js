@@ -2149,7 +2149,7 @@ export const OUTFITS = {
     // Iron lamellar to the knee and helmet: ~14 kg on an 80 kg man; and the steel arm guards (MING_ARM_GUARD, a pair ~1.5 kg:
     // the Ming horseman's, was 0.176 without them).
     extraMass: 0.195,
-    // Pierce 0.85, iron lamellar (PIERCE_SCALE; the lacing is its gaps); heavy enough that a lance breaks on it (weapons.js `shatters`).
+    // Pierce 0.85, iron lamellar (PIERCE_SCALE; the lacing is its gaps); heavy enough that a lance is stopped dead on it and breaks (physics/wear.js stopIn, driveShaft).
     // The arms in polished steel guards (MING_ARM_GUARD: the Ming horse at Byeokjegwan; the limbs' share of a ball 0.2, was 0.15, as the elite's).
     protection: { blunt: 0.5, cut: 0.88, pierce: 0.85, bullet: { head: 0.3, torso: 0.35, limb: 0.2 }, regions: { UpperArm: MING_ARM_GUARD, Forearm: MING_ARM_GUARD } },
     // Laced armour (BLADES.gaps `lacing`): a point parts the lacing between the lamellae a little anywhere but the solid plates.
