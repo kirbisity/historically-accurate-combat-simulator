@@ -74,6 +74,44 @@ export const PYONGYANG_PLACE = {
   river: { z: [150, 200, 520, 600], ice: -2.2, field: { x: [-149, 61], to: 640 }, reeds: { from: 0.45, to: 0.9, every: 2.6, stems: [3, 8], high: [1.1, 2.2] } },
 };
 
+// The place in districts, so that only the part a use needs is built in full and the rest is drawn as its skyline
+// (the user's call, 2026-11-25: walled districts with gates; inside each, the far streets and the roofs over the walls
+// drawn light). Each district is cut where a wall stands or will stand, read off the record where it has one
+// (scratchpad plan, PLAN.txt section 4):
+//   F  the field before the west wall (x < `west`): the approach the columns cross;
+//   W  the west gate quarter, inside the west wall (the wall itself and its gate, the gate square, the avenue and the
+//      broad street as far as the W-G line, the market street's north end, and the hill's slope above them);
+//   G  the governor's quarter east of the W-G line (`wg`), to the walked town's east edge, and the hill above it;
+//   M  the middle city south of the south wall (`south`): one district (the user's call, 2026-11-25);
+//   R  the river: the bank, the ice and the far bank (z over `river`);
+//   E  the east town beyond the walked streets (x over `east`): drawn only, as its skyline (the user's call, 2026-11-25).
+// The north hill is not a district of its own: no wall or ridge hides it from the streets below (its slope rises
+// straight behind the avenue's north shops), so it is held whenever the street under it is, and is cut between W and G
+// by the same W-G line, which the barricade carries on up the slope to the north wall (the user's call, 2026-11-25:
+// the Japanese earthwork at the hill's foot is not built). What is drawn whole for every use, the backdrop: the
+// ground's fields, the far country and its woods, the sky, the town's paving, and the walls between districts (the
+// north, east and south walls, the barricade). A thing belongs to the district its anchor stands in (a house's middle,
+// a wall run's middle).
+export const PY_DISTRICTS = { ids: ['F', 'W', 'G', 'M', 'R', 'E'], west: 1, wg: 87, south: 40, river: 130, east: 148 };
+
+/** The district (PY_DISTRICTS) a point of the place stands in. */
+export function pyDistrict(x, z) {
+  const d = PY_DISTRICTS;
+  if (z > d.river) return 'R';
+  if (x < d.west) return 'F';
+  if (x > d.east) return 'E';
+  if (z >= d.south) return 'M';
+  return x < d.wg ? 'W' : 'G';
+}
+
+/** Where a plan item stands, for its district: its `at`, the middle of its wall `run`, or of its paving's box. */
+const pyAnchor = (item) => item.at ?? (item.run ? [(item.run[0][0] + item.run[1][0]) / 2, (item.run[0][1] + item.run[1][1]) / 2] : [(item.x[0] + item.x[1]) / 2, (item.z[0] + item.z[1]) / 2]);
+
+/** Each item of the lists given its `district` (PY_DISTRICTS), by where it stands. */
+function pyTagDistricts(...lists) {
+  for (const list of lists) for (const item of list) item.district ??= pyDistrict(...pyAnchor(item));
+}
+
 const pySmooth = (a, b, x) => {
   const t = Math.max(0, Math.min(1, (x - a) / (b - a)));
   return t * t * (3 - 2 * t);
@@ -191,6 +229,8 @@ export function pyongyangPlan() {
   const crags = pyCrags(fore, trees);
   const keep = [...crags.map((stone) => [...stone.at, stone.size * 0.6]), ...[fore.stele, fore.ruin].filter(Boolean).map((thing) => [...thing.at, 6])];
   const outcrops = [...crags, ...pyOutcrops(trees, rocks, keep)];
+  // (Every item of the plan in its district: PY_DISTRICTS. The paving is the backdrop's: drawn whole for every use.)
+  pyTagDistricts(city.houses, city.halls, city.pavilions, city.terraces, city.walls, city.gates, city.lanterns, city.jars, city.pagodas, city.bells, trees, rocks, outcrops);
   pyPlanMade = { wall, outside, inside, south, runs, gaps, houses, city, trees, rocks, outcrops, fore, gateFrame, head, east: head + t.inside.cells * step, edge: PY_CITY.east };
   return pyPlanMade;
 }
@@ -1358,6 +1398,50 @@ const PY_WEATHERED = {
 const PY_OAK = { kind: 'broad', tint: [0.95, 0.55, 0.3], spread: 0.55 };
 
 /**
+ * The place's builders by district (PY_DISTRICTS): one tkBlocks for each district and one for the backdrop. `at(x, z,
+ * plain, district)` is the builder for what stands at (x, z), in the district it stands in unless `district` is given;
+ * `in(id)` a district's own blocks; `wide` the backdrop's builder for what is too large for a block (the ground, the
+ * far country). `all()` every builder (for the lie, which is baked from the whole place).
+ */
+function pyBlocks(tier) {
+  const near = tier !== 'low';
+  const districts = Object.fromEntries(PY_DISTRICTS.ids.map((id) => [id, tkBlocks(undefined, { near })]));
+  const backdrop = tkBlocks(undefined, { near });
+  return {
+    districts,
+    backdrop,
+    at: (x, z, plain = false, district = null) => districts[district ?? pyDistrict(x, z)].at(x, z, plain),
+    in: (id) => districts[id],
+    wide: backdrop.wide,
+    all: () => [...backdrop.all(), ...Object.values(districts).flatMap((blocks) => [...blocks.all(), blocks.wide])],
+  };
+}
+
+/**
+ * The place's meshes by district (tkMeshes for each of pyBlocks's, the backdrop's too), in one group that is kept as
+ * tkKeep keeps a single tkMeshes group: its `detail(focus)` and `triangles()` go over every district's, and its
+ * `casters` are every district's still meshes. Each district's group is named `pyongyang:<id>` (the backdrop's
+ * `pyongyang:backdrop`) and kept in `userData.districts`.
+ */
+function pyDistrictMeshes(blocks, materials, tier) {
+  const group = new THREE.Group();
+  group.name = 'pyongyang-districts';
+  const districts = {};
+  for (const [id, each] of [['backdrop', blocks.backdrop], ...Object.entries(blocks.districts)]) {
+    districts[id] = tkMeshes(each, materials, { tier });
+    districts[id].name = `pyongyang:${id}`;
+    group.add(districts[id]);
+  }
+  group.userData.districts = districts;
+  group.userData.detail = (focus) => {
+    for (const each of Object.values(districts)) each.userData.detail(focus);
+  };
+  group.userData.triangles = () => Object.values(districts).reduce((sum, each) => sum + each.userData.triangles(), 0);
+  Object.defineProperty(group.userData, 'casters', { get: () => Object.values(districts).flatMap((each) => each.userData.casters), enumerable: true });
+  return group;
+}
+
+/**
  * The place drawn. `shift` ([dx, dz], m): the whole place moved by it, for a battle fought about the world's origin at some
  * other point of it (the town's square: PY_TOWN_FIGHT), with everything it tells the open air and the snow's lie moved alike;
  * `key` the place's own key then (render.js: 'pyongyangtown').
@@ -1378,7 +1462,8 @@ export function* buildPyongyangSteps(_arena = null, { shift = [0, 0], key = 'pyo
   const plan = pyongyangPlan();
   const { wall } = plan;
   const tier = tkTier();
-  const blocks = tkBlocks(undefined, { near: tier !== 'low' });
+  // (Each district in blocks of its own, and the backdrop: pyBlocks.)
+  const blocks = pyBlocks(tier);
   // (The far woods by tiles of their own: PY_WOODS.tile.)
   const woods = tkBlocks(PY_WOODS.tile, { near: tier !== 'low' });
   // The ground: the two fields, tinted (the road to the gate and the trodden strip darker; the bank's earth), and the far country.
@@ -1520,7 +1605,7 @@ export function* buildPyongyangSteps(_arena = null, { shift = [0, 0], key = 'pyo
       for (let k = 0; k + 1 < lane.length; k += 1) {
         const [a, b, c, d] = [trod(x, lane[k]), trod(x, lane[k + 1]), trod(x - PY_ROAD.step, lane[k + 1]), trod(x - PY_ROAD.step, lane[k])];
         // (Anticlockwise seen from above.)
-        blocks.wide.quad('track', a, d, c, b, { uvs: [a, d, c, b].map((at) => [at[0], at[2]]), colour });
+        blocks.in('F').wide.quad('track', a, d, c, b, { uvs: [a, d, c, b].map((at) => [at[0], at[2]]), colour });
       }
     }
   };
@@ -1552,7 +1637,7 @@ export function* buildPyongyangSteps(_arena = null, { shift = [0, 0], key = 'pyo
   // (The stone and the timber as a northern winter has them: PY_WEATHERED.)
   const materials = tkMaterialsFor(tier, { extra: { ice: { sheet: 'plaster', colour: [0.72, 0.8, 0.84], blotch: 0.5, plain: true, snow: 0.6, rough: 0.15, scour: 1 }, reed: { ...TK_MATERIALS.tuft, snow: 0 }, bare: { sheet: 'earth', blotch: 1.4, snow: 0.12, dirt: [0, 0.5, 0.3, 0] }, ...PY_WEATHERED, track: { sheet: 'earth', blotch: 1.2, snow: t.trodden }, street: { sheet: 'cobble', snow: t.trodden * 1.3 } } });
   yield;
-  const meshes = tkMeshes(blocks, materials, { tier });
+  const meshes = pyDistrictMeshes(blocks, materials, tier);
   yield;
   const woodMeshes = tkMeshes(woods, materials, { tier });
   woodMeshes.name = 'pyongyang-woods';

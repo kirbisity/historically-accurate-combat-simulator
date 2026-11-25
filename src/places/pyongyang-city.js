@@ -281,7 +281,7 @@ export function pyCityDraw(blocks, city, groundAt) {
   for (const hall of city.halls) tkHall(blocks.at(hall.at[0], hall.at[1]), tkgFrame(hall.at[0], hall.base, hall.at[1], hall.yaw), { ...hall, paint: hall.paint ?? undefined });
   for (const p of city.pavilions) tkTerracePavilion(blocks.at(p.at[0], p.at[1]), tkgFrame(p.at[0], p.base, p.at[1], p.yaw), p);
   for (const t of city.terraces) tkTerrace(blocks.at(t.at[0], t.at[1]), tkgFrame(t.at[0], t.base, t.at[1], t.yaw), t);
-  for (const w of city.walls) tkYardWall(blocks.at(...w.run[0]), w.run[0], w.run[1], { material: w.material, high: w.high, base: w.base, thick: w.low ? 0.5 : TK_HANOK.yard.thick });
+  for (const w of city.walls) tkYardWall(blocks.at(...w.run[0], false, w.district), w.run[0], w.run[1], { material: w.material, high: w.high, base: w.base, thick: w.low ? 0.5 : TK_HANOK.yard.thick });
   for (const g of city.gates) tkRoofedGate(blocks.at(g.at[0], g.at[1]), tkgFrame(g.at[0], g.base, g.at[1], g.yaw), g.temple ? { way: 3.4, high: 4.2 } : {});
   for (const p of city.pagodas) tkStonePagoda(blocks.at(p.at[0], p.at[1]), p.at[0], p.y, p.at[1], p);
   for (const l of city.lanterns) tkStoneLantern(blocks.at(l.at[0], l.at[1]), l.at[0], l.y, l.at[1], l);
