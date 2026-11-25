@@ -2508,8 +2508,8 @@ export function paintHealth(bar, fighter, ghost = false) {
 
 /**
  * The couched charge: true while it has the fighter (running in, or the
- * blow under way). Once its blow is over the lance is kept (it breaks only
- * on heavy armour: physics.js shattersOn, the sidearm drawn then as for any
+ * blow under way). Once its blow is over the lance is kept (it breaks mostly
+ * on plate it cannot go into: physics/wear.js driveShaft, the sidearm drawn then as for any
  * lost weapon) and fought with at the point, as the style says.
  */
 function couchedCharge(world, fighter, opponent, style, distance) {

@@ -1,9 +1,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { PRESETS } from '../src/body.js';
-import { breakShield, breakWeapon, createWorld } from '../src/physics.js';
+import { advance, boutWinner, breakShield, breakWeapon, createWorld } from '../src/physics.js';
+import { thinkAll } from '../src/ai.js';
 import { WORLD } from '../src/physics/config.js';
-import { bluntEdge, driveShaft, dullEdge, hackShield, keenness, stopIn, strainBlade, strikeShaft } from '../src/physics/wear.js';
+import { bluntEdge, drivePoint, driveShaft, dullEdge, hackShield, keenness, stopIn, strainBlade, strikeShaft } from '../src/physics/wear.js';
 import { buildOf, createWeapon, MATERIALS, SHIELDS, WEAPONS } from '../src/weapons.js';
 
 const build = (kind) => buildOf(WEAPONS[kind], WORLD.wear.shaftFrom);
@@ -92,6 +93,46 @@ test('a spear shaft carries the set brace figure into flesh, far less stopped on
   assert.ok(lance.weapon.wear.shaftStrength > 2 * median);
 });
 
+test('a couched lance breaks on most solid hits on plate, is mostly kept in flesh, and never breaks at a run on foot', () => {
+  const lances = pieces('lance', 1000);
+  const heavy = pieces('manchuLance', 1000);
+  const plate = stopIn({ pierce: 0.95, deflects: true });
+  const share = (all, joules, stop) => all.filter(({ weapon, fighter }) => drivePoint(weapon, fighter, 0, joules, stop).snapped).length / all.length;
+  // A charge at the gallop square onto a breastplate, 500-2,000 J: nearly every one.
+  assert.ok(share(lances, 500, plate) > 0.9, `${share(lances, 500, plate)} at 500 J`);
+  // A trot's 300 J: some of them; at a run on foot, ~100 J, next to none.
+  const trot = share(lances, 300, plate);
+  assert.ok(trot > 0.2 && trot < 0.9, `${trot} at 300 J`);
+  assert.ok(share(lances, 100, plate) < 0.01);
+  // Into an unarmoured man it goes in, and most are kept to be couched again.
+  assert.ok(share(lances, 700, WORLD.wear.stop.flesh) < 0.15, `${share(lances, 700, WORLD.wear.stop.flesh)} in flesh`);
+  // The banners' heavy spear, thick and unthinned, breaks only under a full charge.
+  assert.ok(share(heavy, 300, plate) < 0.1 && share(heavy, 1000, plate) > 0.9);
+  // A broken lance's point carried in only what the shaft bore.
+  const { weapon, fighter } = lances[0];
+  const drive = drivePoint(weapon, fighter, 0, 2000, plate);
+  assert.ok(drive.snapped && drive.part === 'shaft' && drive.carried < 600);
+});
+
+test('a rapier blade bows on a thrust stopped hard on bone and snaps now and then; in flesh, or a broad sword\'s, it does not', () => {
+  const rapiers = pieces('rapier', 1000);
+  const flesh = WORLD.wear.stop.flesh;
+  const rib = { stop: 0.05, holds: WORLD.wear.bones.rib };
+  const share = (all, joules, stop, bone) => all.filter(({ weapon, fighter }) => drivePoint(weapon, fighter, 0, joules, stop, bone).snapped).length / all.length;
+  // An ordinary thrust (~10-30 J) on a rib: never; a hard lunge's (~90 J) on it: often; the same into flesh between the ribs: never.
+  assert.ok(share(rapiers, 25, flesh, rib) < 0.005);
+  assert.ok(share(rapiers, 90, flesh, rib) > 0.3, `${share(rapiers, 90, flesh, rib)} at 90 J on a rib`);
+  assert.ok(share(rapiers, 90, flesh, null) < 0.01);
+  // It bows at a few hundred newtons, under what a rib holds: the rib stops it. A broad sword drives through the rib.
+  const [rapier] = rapiers;
+  assert.ok(rapier.weapon.wear.bladeBuckle < WORLD.wear.bones.rib && rapier.weapon.wear.bladeBuckle > 100, `${rapier.weapon.wear.bladeBuckle} N`);
+  const swords = pieces('armingSword', 1000);
+  assert.ok(share(swords, 150, flesh, rib) === 0);
+  // A wooden haft or a mace has no blade to bow.
+  const [mace] = pieces('flangedMace', 1);
+  assert.equal(drivePoint(mace.weapon, mace.fighter, 0, 1e4, 0.01).snapped, false);
+});
+
 test('a shaft driven along its length is a column: a short or langeted one stronger, a long one keeps its section', () => {
   const medianAlong = (kind) => {
     const all = pieces(kind, 401).map(({ weapon, fighter }) => {
@@ -146,6 +187,24 @@ test('a wooden shield splits in ten to thirty heavy blows; a steel one does not'
   assert.ok(blowsToSplit('germanic', 200, { blunt: 1, cut: 0, pierce: 0 }, 3) > blowsToSplit('germanic', 200, axe, 3));
 });
 
+test('a wooden or wicker shield under a kanabo or a great sword splits within a long fight\'s blows; a duel\'s few do not', () => {
+  // A full kanabo blow taken on the board ~200 J (blunt), an odachi's ~150 J (edge-led); a long fight puts some 20-60 of
+  // them on a shield, a short duel a handful.
+  const kanabo = { blunt: 1, cut: 0, pierce: 0 };
+  const odachi = { cut: 1, blunt: 0.4, pierce: 0 };
+  const blowsToSplit = (kind, joules, mix, id) => {
+    const shield = shieldOf(kind);
+    let blows = 1;
+    while (blows < 500 && !hackShield(shield, { id }, 0, joules, mix)) blows += 1;
+    return blows;
+  };
+  for (const [kind, joules, mix] of [['roundShield', 200, kanabo], ['kalkan', 200, kanabo], ['roundShield', 150, odachi], ['heater', 150, odachi]]) {
+    const counts = Array.from({ length: 101 }, (_, id) => blowsToSplit(kind, joules, mix, id)).sort((x, y) => x - y);
+    assert.ok(counts[50] >= 8 && counts[50] <= 60, `${kind}: ${counts[50]} blows`);
+    assert.ok(counts[0] >= 4, `${kind}: the weakest board took ${counts[0]}`);
+  }
+});
+
 test('broken in his hands: a weaponBroke event, the pieces on the floor, and it is gone from his hands', () => {
   const world = createWorld([{ ...PRESETS.yari }, { ...PRESETS.contender }], { seed: 3 });
   const [man] = world.fighters;
@@ -168,4 +227,16 @@ test('broken in his hands: a weaponBroke event, the pieces on the floor, and it 
   const split = shielded.events.find((e) => e.kind === 'shieldBroke');
   assert.ok(split && split.shield === 'scutum' && split.fighter === legionary.id);
   assert.ok(!shielded.debris.some((piece) => piece.kind === 'shield'), 'no whole shield to take up again');
+});
+
+test('in ordinary duels blunt weapons and broad swords do not break', () => {
+  // A minute and a half each: the war hammer on plate, the katana on lamellar, the long sword on plate.
+  for (const [a, b] of [['warhammer', 'knight'], ['samurai', 'samurai'], ['knight', 'knight']]) {
+    for (let seed = 900; seed < 903; seed += 1) {
+      const world = createWorld([structuredClone(PRESETS[a]), structuredClone(PRESETS[b])], { seed });
+      for (let elapsed = 0; elapsed < 90 && !boutWinner(world); elapsed += 0.5) advance(world, 0.5, (w, dt) => thinkAll(w, dt));
+      const broke = world.events.filter((event) => event.kind === 'weaponBroke');
+      assert.equal(broke.length, 0, `${a} v ${b}, seed ${seed}: ${broke.map((event) => event.effects.join(', ')).join('; ')}`);
+    }
+  }
 });

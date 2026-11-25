@@ -504,12 +504,17 @@ export const WEAPONS = {
     pointFrom: 0.78, label: 'Lance', hands: 'two', length: 2.45, strikeFrom: 1.3, handle: 0.85, spacing: 0.45, mass: 5.2, balance: 0.18, radius: 0.026, pointWidth: 0.025, vamplate: 0.13,
     harm: { thrust: { pierce: 1.6, blunt: 0.35, cut: 0.02 }, swing: { blunt: 0.9 } },
     contactSeconds: 0.005, rotation: 0.4, wrist: { omega: 7, zeta: 0.9 }, threat: 4, grip: 0.8,
-    // The ash shaft breaks only on heavy armour (physics.js shattersOn): its point met by armour proof against it to `pierce`
-    // or more (plate 0.85–0.95, heavy lamellar 0.72–0.8; mail alone ~0.6, a brigandine, leather and cloth less), with `joules`
-    // or more taken up (a couched charge from the saddle: 500–2,000 J; on foot at a run, 40–160 J: it never breaks a lance).
-    // Anything else (flesh, light armour, a shield) it goes into or skids off whole, and is kept, its jar taken up along the
-    // shaft by the rest and the arm (no grip strain), to be couched again.
-    shatters: { pierce: 0.7, joules: 250 },
+    // Its ash breaks where it is thinnest: the swell at the grip (its `radius`) tapers ahead of the vamplate to ~3.5-4 cm
+    // behind the head (`shaftRadius`: the war lances and the tilting lances with their coronels, Royal Armouries; Clephan,
+    // *The Tournament*, 1919: the jousts were scored by lances broken, most good strikes breaking them). Driven on its point
+    // square onto plate it cannot go into, it is stopped dead and bears ~280 J (physics/wear.js driveShaft): a couched
+    // charge's 500-2,000 J breaks nearly every one, a trot's 250-400 J about half, and one at a run on foot (40-160 J)
+    // none; into flesh or through a gap it bears ~1,200 J and is mostly kept; a point that skids off the plate, as a glancing
+    // lance did, breaks nothing. Broken, the rider is left with its stump, and drops it for his sidearm.
+    build: { shaftRadius: 0.019 },
+    // Held against the rest and the burr, its jar is taken up along the shaft by the arm and the body, not out of the hand
+    // (no grip strain).
+    heldFast: true,
   },
   // The banners' heavy spear (长枪, the Qing's qiang; the Bayara's, Nurhaci's guard's at Sarhu, 1619), between the war spear
   // (`longSpear`) and the knight's lance: a horseman's spear fought as well on foot. A shaft of white-wax wood (白蜡杆,
@@ -523,10 +528,10 @@ export const WEAPONS = {
   // tip, keener per joule than the war spear's leaf (`pierce` 1.6, the lance's narrow war point's, over the spear's 1.5;
   // the weight behind it is in the blow's mass, not here); its long edges cut a little when swung. Its grip between the
   // spear's and the lance's (`grip`); slower to turn than the spear, quicker than the lance (`wrist`).
-  // It breaks less easily than the lance (`shatters`): its springy shaft, shorter and unhollowed, takes up a charge's jar
-  // by bending, and snaps only on armour a point cannot go into at all (plate, `pierce` 0.85 and over: not on the heaviest
-  // lamellar, 0.72-0.8, or on mail) and only under a full charge's blow (`joules` 500: a gallop's couched point, 500-2,000
-  // J, not a trot's or anything on foot). A foot spear never breaks.
+  // It breaks less easily than the lance: its springy shaft, thick and unthinned ahead of the hand, takes up a charge's
+  // jar by bending (MATERIALS.waxwood), and snaps (physics/wear.js driveShaft) only on armour a point cannot go into at all
+  // (stopped dead: plate, or lamellar proof to WORLD.wear.stop.proof) and then mostly under a full charge's blow (it bears
+  // ~530 J there: a gallop's couched point, 500-2,000 J, not a trot's or anything on foot).
   // (`pointWidth` 0.03: a narrow leaf head ~3 cm; PUNCTURE.)
   manchuLance: {
     pointFrom: 0, label: 'Heavy spear', hands: 'two', length: 2.05, strikeFrom: 1.6, handle: 0.85, spacing: 0.45, mass: 3.4, balance: 0.5, radius: 0.021, pointWidth: 0.03,
@@ -534,9 +539,10 @@ export const WEAPONS = {
     contactSeconds: 0.005, rotation: 0.45, wrist: { omega: 10, zeta: 0.88 }, threat: 4, art: 'artSpear', grip: 0.7,
     // The iron head's length along the shaft (m), as drawn (weaponview.js) and struck: `strikeFrom` to the tip.
     head: 0.45,
-    shatters: { pierce: 0.85, joules: 500 },
     // Its white-wax wood shaft bends and springs back (MATERIALS.waxwood).
     build: { shaft: 'waxwood' },
+    // Couched as the lance is, its jar taken up along it (no grip strain).
+    heldFast: true,
   },
   // The yari, as the ashigaru carried it: the war spear's long straight head
   // with a cross blade (jūmonji) below the point. The side blades cut and
@@ -785,6 +791,13 @@ export const WEAPONS = {
     label: 'Rapier', hands: 'one', length: 1.05, strikeFrom: 0.1, handle: 0.14, mass: 1.15, balance: 0.1, radius: 0.008,
     harm: { thrust: { pierce: 1.6, cut: 0.08, blunt: 0.03 }, swing: { cut: 0.4, blunt: 0.05 } },
     contactSeconds: 0.003, rotation: 0.5, wrist: { omega: 26, zeta: 0.8 }, threat: 3.8,
+    // Its slender blade at the middle, across and through (m): ~2.2-2.5 cm at the ricasso narrowing to ~1 cm near the point,
+    // 5-8 mm thick in its hexagonal or diamond section (the blades in Norman, *The Rapier and Small-Sword*, 1980; from memory,
+    // unverified): ~1.4 cm by 5.5 mm in the middle, as a flat bar (a diamond's is less stiff, a hexagon's more). Driven on
+    // its point it bows at ~350 N, and a hard lunge stopped square on a rib, the skull or plate bows it to breaking now and
+    // then (physics/wear.js driveBlade; into flesh it goes on whole): fencers kept spare blades, and the duelling accounts
+    // tell of blades snapped in a man. Calibrated to a few duels in a hundred.
+    build: { section: [0.014, 0.0055] },
   },
   // The macuahuitl: a flat oak club edged both sides with obsidian blades,
   // about 70 cm. Obsidian is sharper than steel but its flakes are small and
@@ -1291,11 +1304,16 @@ WEAPONS.halberdEtched = { ...WEAPONS.halberd, label: 'Etched halberd', etched: t
  *   and do not split (no `board`).
  */
 export const MATERIALS = {
-  steel: { hardness: 1, dulls: 0.001, blade: { strength: 1200, scatter: 8, capacity: 40000, fails: 'snapped' } },
-  // Bloomery iron and the uneven early steels of antiquity: softer, it turns and bends sooner.
-  iron: { hardness: 0.7, dulls: 0.0022, blade: { strength: 500, scatter: 4, capacity: 9000, fails: 'bent' } },
-  // Tin bronze: work-hardened at the edge but soft behind it; it bends.
-  bronze: { hardness: 0.6, dulls: 0.0025, blade: { strength: 600, scatter: 5, capacity: 7000, fails: 'bent' } },
+  // A blade's `modulus` (E, Pa) and what its metal `yields` at (σ, Pa: past it hardened steel snaps, soft metal takes a
+  // set), for its bow driven on its point (physics/wear.js bladeColumn). Spring-tempered high-carbon steel: E ~200 GPa,
+  // σ ~1.2-1.8 GPa (ASM Handbook vol. 1, spring steels; the hardness of the better quenched blades in Williams, *The Sword
+  // and the Crucible*, 2012, Hv 400-550, is of that order; both from memory, unverified).
+  steel: { hardness: 1, dulls: 0.001, blade: { strength: 1200, scatter: 8, capacity: 40000, fails: 'snapped', modulus: 200e9, yields: 1.5e9 } },
+  // Bloomery iron and the uneven early steels of antiquity: softer, it turns and bends sooner (σ of slag-laden low-carbon
+  // iron ~250-400 MPa: the Hv 100-200 of most blades in Pleiner, *The Celtic Sword*, 1993; from memory, unverified).
+  iron: { hardness: 0.7, dulls: 0.0022, blade: { strength: 500, scatter: 4, capacity: 9000, fails: 'bent', modulus: 190e9, yields: 0.35e9 } },
+  // Tin bronze: work-hardened at the edge but soft behind it; it bends (E ~110 GPa, σ ~0.4 GPa worked).
+  bronze: { hardness: 0.6, dulls: 0.0025, blade: { strength: 600, scatter: 5, capacity: 7000, fails: 'bent', modulus: 110e9, yields: 0.4e9 } },
   // Hardwood (ash, oak, hickory): the shaft the brace figure is set against. Its bending (SHAFT_FLEX): white ash, E ~12 GPa
   // along the grain, ~670 kg/m³ (USDA Wood Handbook, 2010: as WORLD.wear.column takes it), solid (`bore` 0).
   hardwood: { hardness: 0.1, shaft: { strength: 1, scatter: 6, chop: 600, modulus: 12e9, density: 670, bore: 0 } },
@@ -1342,9 +1360,9 @@ export function buildOf(spec, shaftFrom) {
   const edge = own.edge !== undefined ? own.edge : edged ? 'steel' : null;
   const shaft = own.shaft !== undefined ? own.shaft : hafted ? 'hardwood' : null;
   const blade = own.blade !== undefined ? own.blade : edge && !shaft ? edge : null;
-  return { edge, blade, shaft, shaftRadius: own.shaftRadius ?? spec.radius, langets: own.langets ?? 0 };
+  return { edge, blade, shaft, shaftRadius: own.shaftRadius ?? spec.radius, langets: own.langets ?? 0, section: own.section ?? null };
 }
-const NO_BUILD = { edge: null, blade: null, shaft: null, shaftRadius: 0, langets: 0 };
+const NO_BUILD = { edge: null, blade: null, shaft: null, shaftRadius: 0, langets: 0, section: null };
 
 /**
  * How far (m) ahead of the front hand a shaft's head begins: its socket (a long head's own `head` length back from the tip,

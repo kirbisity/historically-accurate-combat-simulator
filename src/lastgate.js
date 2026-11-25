@@ -7,8 +7,8 @@
 // Four levels (LAST_GATE_MODES), each its own people, its own champion and its own ladder of foes:
 // - 1 Japan, The Rice Riot: a samurai in tōsei gusoku with the ōdachi; the ikki climbs from starved peasants to ashigaru,
 //   rōnin, sōhei (warrior monks) and samurai;
-// - 2 Europe, The Jacquerie: a knight in full plate on his destrier with the lance (it breaks only on heavy armour:
-//   weapons.js `shatters`; here it is kept, couched again and again); from the starved to the rebel peasant, the spear
+// - 2 Europe, The Jacquerie: a knight in full plate on his destrier with the lance (it breaks mostly on plate:
+//   physics/wear.js driveShaft; here it is mostly kept, couched again and again); from the starved to the rebel peasant, the spear
 //   footman, the man-at-arms, the knight and the hammer knight;
 // - 3 China, The Red Turbans: a Mongol horse archer in iron lamellar with the composite bow, his arrows kept up from the
 //   gate's stores (never out of them), the mace for close work; from the starved to the Ming garrison (spear, dao), the

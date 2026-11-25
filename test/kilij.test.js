@@ -9,9 +9,10 @@ import { STYLES } from '../src/moves.js';
 import { OUTFITS, gearTraits } from '../src/outfits.js';
 import { COVERINGS } from '../src/audio/sfx/impact.js';
 import { battleOf } from '../src/scenarios.js';
-import { advance, createWorld, seededRandom, shattersOn } from '../src/physics.js';
+import { advance, createWorld, seededRandom } from '../src/physics.js';
+import { drivePoint, stopIn } from '../src/physics/wear.js';
 import { thinkAll } from '../src/ai.js';
-import { BLADES, WEAPONS, sliceGain } from '../src/weapons.js';
+import { BLADES, WEAPONS, createWeapon, sliceGain } from '../src/weapons.js';
 import { handling } from '../src/handling.js';
 import { strikeAt } from '../tools/weapon-strikes.js';
 
@@ -80,15 +81,11 @@ test('the banners\' heavy spear: between the war spear and the lance in weight, 
   assert.ok(Math.abs(manchuLance.length - manchuLance.strikeFrom - manchuLance.head) < 1e-9, "the head as drawn is the head that strikes");
   assert.ok(manchuLance.harm.thrust.pierce > longSpear.harm.thrust.pierce, 'a keener point');
   assert.ok(manchuLance.grip > longSpear.grip && manchuLance.grip < lance.grip);
-  // Tougher than the lance: it breaks only on harder armour and a heavier blow; the foot spear never does.
-  assert.ok(!longSpear.shatters);
-  assert.ok(manchuLance.shatters.pierce > lance.shatters.pierce && manchuLance.shatters.joules > lance.shatters.joules);
-  const held = (spec) => ({ spec });
-  const plate = { pierce: 0.95 };
-  const lamellar = { pierce: 0.78 };
-  assert.ok(shattersOn(held(lance), 'thrust', plate, 300) && !shattersOn(held(manchuLance), 'thrust', plate, 300), 'a trot\'s blow on plate breaks the lance, not the heavy spear');
-  assert.ok(shattersOn(held(manchuLance), 'thrust', plate, 1200), 'a gallop\'s on plate breaks it');
-  assert.ok(shattersOn(held(lance), 'thrust', lamellar, 1200) && !shattersOn(held(manchuLance), 'thrust', lamellar, 1200), 'on heavy lamellar only the lance breaks');
+  // Tougher than the lance: it breaks only under a heavier blow on armour it cannot go into (physics/wear.js drivePoint).
+  const plate = stopIn({ pierce: 0.95, deflects: true });
+  const share = (kind, joules) => Array.from({ length: 400 }, (_, id) => drivePoint(createWeapon(kind), { id }, 0, joules, plate).snapped).filter(Boolean).length / 400;
+  assert.ok(share('lance', 300) > 0.3 && share('manchuLance', 300) < 0.1, "a trot's blow on plate breaks the lance, not the heavy spear");
+  assert.ok(share('manchuLance', 1200) > 0.9, "a gallop's on plate breaks it");
 });
 
 test('the Bayara carry the heavy spear by default, on foot and from the saddle; the bow is still theirs to choose', () => {
