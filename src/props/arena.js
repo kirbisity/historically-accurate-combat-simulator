@@ -13,6 +13,8 @@
 
 /* global THREE */
 
+import { packForCard } from '../meshpack.js';
+
 // ---- the kit -----------------------------------------------------------------------
 
 /** A seeded generator, 0..1 (mulberry32): the stone looks the same every time it is built. */
@@ -181,6 +183,23 @@ export function arenaPainted(name, paint) {
   return ARENA_PAINTED.get(name);
 }
 
+/**
+ * Let the painted surfaces go (render.js, when a place is freed): kept, they held the Colosseum's stone and wood on the
+ * page through every fight after the menu's backdrop was freed (about 25 MB of pixels, measured 2026-11-25). A place still
+ * built keeps its own; the next build paints them again (render.js MENU_BACKDROP: behind the menu, a few hundred ms).
+ */
+export function arenaForgetPainted() {
+  ARENA_PAINTED.clear();
+}
+
+/** The Colosseum's surfaces painted one a step (a few hundred ms in all): its build spread over frames (render.js buildColosseum.steps). */
+export function* arenaPaintSteps() {
+  for (const paint of [arenaTravertine, arenaMarble, arenaInscription, arenaWood, arenaLinen]) {
+    paint();
+    yield;
+  }
+}
+
 const ARENA_WHITE = [1, 1, 1];
 
 /**
@@ -277,10 +296,14 @@ export function arenaBuilder() {
       geometry.computeBoundingSphere();
       return geometry;
     },
-    /** The merged mesh (null when nothing was added), casting and taking shadows. */
+    /**
+     * The merged mesh (null when nothing was added), casting and taking shadows. Its geometry is the place's own (nothing
+     * else holds it, nothing reads it back): packed for the card and let go on the page but its positions (meshpack.js),
+     * the Colosseum's stands being half a million vertices.
+     */
     mesh(material, { cast = true } = {}) {
       if (!positions.length) return null;
-      const mesh = new THREE.Mesh(builder.geometry(), material);
+      const mesh = new THREE.Mesh(packForCard(builder.geometry()), material);
       mesh.castShadow = cast;
       mesh.receiveShadow = true;
       return mesh;
