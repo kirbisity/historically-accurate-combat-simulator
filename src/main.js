@@ -1608,6 +1608,8 @@ function drawWorld(dt, drawIt = true) {
   const cameraDt = state.paused ? 0 : dt;
   if (followed) followCamera(followed, cameraDt);
   else if (!sheet) watchCamera(world, pelvisMid, cameraDt);
+  // (Where his man stands, for a place drawn by where the player is: places/pyongyang.js's districts, streamed.)
+  scene.focusAt = followed ? [followed.root[0], 0, followed.root[1]] : null;
   // The orbit's look point is each camera's own (the follow camera's, the watching camera's springs, a design sheet's framing): placed as it is.
   // Never under the floor: the orbit rises over what it looks at instead (a drag down, a zoom out, a slope, a fall). (A stage's floors are its terrain's, which the arm below knows.)
   placeCamera(scene, null, { ground: !sheet && !world.stage, dt: cameraDt });

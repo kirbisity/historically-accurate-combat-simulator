@@ -2152,12 +2152,15 @@ export function* buildPyongyangSteps(arena = null, { shift = [0, 0], key = 'pyon
     keptTick(time);
     const view = kept.view;
     if (!stream || !view || !root.visible) return;
-    const target = view.orbit?.target ?? view.camera.position;
-    const [x, z] = [target.x - dx, target.z - dz];
+    // (Where his man stands: main.js drawWorld's `focusAt`; not the camera's eased target, which starts where the last
+    // view left it.)
+    const focus = view.focusAt;
+    if (!focus) return;
+    const [x, z] = [focus[0] - dx, focus[2] - dz];
     const dt = streamedAt === null ? 0 : Math.min(0.25, time - streamedAt);
     streamedAt = time;
     const here = pyDistrict(x, z);
-    stream.update(dt, { position: [x, target.y, z], active: here === 'E' ? [] : [here] });
+    stream.update(dt, { position: [x, focus[1] ?? 0, z], active: here === 'E' ? [] : [here] });
     stream.pump();
   };
   root.userData.districts = { held: () => [...held], hold: holdDistricts, stream: () => stream?.stats() ?? null };
