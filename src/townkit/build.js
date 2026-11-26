@@ -226,6 +226,9 @@ export const tkFieldAt = (field, x, z) => fieldHeight(field.heights, field.cells
  * crown). Shapes by eye from the references: a camphor's broad dome on a short bole, a willow's curtains, a Korean
  * red pine's bent trunk with a few flat pads and a flat top.
  */
+// A lean tree's sprays (tkTree `lean`): half of them, each this much larger across, so the crown reads as full from 30 m.
+const TK_LEAN_SPRAY = 1.35;
+
 export const TK_TREES = {
   broad: { bark: [0.56, 0.5, 0.43], lean: 0.06, top: 0.5, boughs: [7, 0.55, 1], reach: [0.55, 1], rise: [0.2, 0.5], forks: 2, cards: [5, 0.11], flat: 0.25, sheet: 'foliage' },
   willow: { bark: [0.5, 0.46, 0.4], lean: 0.08, top: 0.55, boughs: [7, 0.6, 1], reach: [0.5, 0.9], rise: [0.25, 0.45], forks: 1, cards: [4, 0.1], flat: 0.2, sheet: 'foliage', curtain: [0.3, 0.5] },
@@ -256,7 +259,7 @@ export function tkTree(builder, x, y, z, { kind = 'broad', high = 7, seed = 1, s
       builder.tube('bark', [frame(...bend(k / cuts)), frame(...bend((k + 1) / cuts))], ra * (k ? 1 : 1.3), girth * (1 - (0.6 * (k + 1)) / cuts), { colour: form.bark });
     }
   }
-  const spray = (centre, size, colour) => {
+  const spray = (centre, size, colour, drawn = true) => {
     // A spray of leaves: a card of the whole sheet, turned and flipped at random, level by the kind's `flat`.
     const yaw = random() * Math.PI * 2;
     const tilt = (1 - form.flat) * (random() - 0.5) * 2.4 + form.flat * (Math.PI / 2 + (random() - 0.5) * 0.5);
@@ -268,11 +271,11 @@ export function tkTree(builder, x, y, z, { kind = 'broad', high = 7, seed = 1, s
     const out = [centre[0] - x, (centre[1] - y - trunkTop) * 1.5 + size, centre[2] - z];
     const length = Math.hypot(...out) || 1;
     const normal = out.map((value) => value / length);
-    builder.quad(form.sheet, at(-1, -1), at(1, -1), at(1, 1), at(-1, 1), { uvs: [[u0, 0], [u1, 0], [u1, 1], [u0, 1]], colour, normals: [normal, normal, normal, normal] });
+    if (drawn) builder.quad(form.sheet, at(-1, -1), at(1, -1), at(1, 1), at(-1, 1), { uvs: [[u0, 0], [u1, 0], [u1, 1], [u0, 1]], colour, normals: [normal, normal, normal, normal] });
     // (`laden`: { share, material, size, lift }: snow lying on a level pad, as a card of its own a little over it,
     // `size` of the pad and on `material`, which holds the snow, facing straight up: its underside stays the
     // needles'. Only on pads that lie near level and on `share` of them; none is drawn, nor any die cast, without it.)
-    if (laden && form.flat > 0.5 && random() < laden.share) {
+    if (laden && form.flat > 0.5 && random() < laden.share && drawn) {
       const lift = laden.lift * size;
       const top = (sx, sy) => { const p = at(sx * laden.size, sy * laden.size); return [p[0], p[1] + lift, p[2]]; };
       const up = [0, 1, 0];
@@ -295,7 +298,9 @@ export function tkTree(builder, x, y, z, { kind = 'broad', high = 7, seed = 1, s
           uvs: [[0, 0], [1, 0], [1, 1], [0, 1]], colour: tkbScale(shade, 1.15), normals: [[0, 1, 0], [0, 1, 0], [0, 1, 0], [0, 1, 0]],
         });
       }
-      spray(centre, size, shade);
+      // (Lean: every other spray left out, its draws taken all the same, the rest a third larger to fill the crown.)
+      if (lean) spray(centre, c % 2 ? size : size * TK_LEAN_SPRAY, shade, c % 2 === 0);
+      else spray(centre, size, shade);
     }
   };
   const [boughs, low, top] = form.boughs;

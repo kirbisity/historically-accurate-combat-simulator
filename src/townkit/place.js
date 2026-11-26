@@ -116,8 +116,12 @@ export function tkMeshes(blocks, materials, options = {}) {
   for (let next = steps.next(); ; next = steps.next()) if (next.done) return next.value;
 }
 
-/** tkMeshes in steps (a generator: a yield after every `every` meshes made, for a part of a place built while it is played: places/pyongyang.js). Returns the group. */
-export function* tkMeshesSteps(blocks, materials, { tier = 'high', every = Infinity } = {}) {
+/**
+ * tkMeshes in steps (a generator: a yield after every `every` meshes made, for a part of a place built while it is
+ * played: places/pyongyang.js). `wideCasts`: what is laid in the wide builder throws the baked shadow too (a district's
+ * skyline, all of it wide, standing where the district's own shadow fell). Returns the group.
+ */
+export function* tkMeshesSteps(blocks, materials, { tier = 'high', every = Infinity, wideCasts = false } = {}) {
   const group = new THREE.Group();
   const switched = [];
   const casters = [];
@@ -133,7 +137,7 @@ export function* tkMeshesSteps(blocks, materials, { tier = 'high', every = Infin
       // (Not the camera's to take: occluders.js. Its positions are let go once on the card, tkGeometry.)
       if (batch.level === 'near') mesh.userData.nearDetail = true;
       group.add(mesh);
-      if (batch.level === 'all' && !wide && batch.material !== 'water') casters.push(mesh);
+      if (batch.level === 'all' && (!wide || wideCasts) && batch.material !== 'water') casters.push(mesh);
       if (batch.level !== 'all') {
         mesh.visible = batch.level === 'far';
         switched.push({ mesh, level: batch.level, centre: mesh.geometry.boundingSphere.center, radius: mesh.geometry.boundingSphere.radius });

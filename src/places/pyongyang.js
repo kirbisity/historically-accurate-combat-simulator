@@ -940,11 +940,10 @@ export function pyongyangStage() {
  * W's way to F is two portals: the gate's passage, through which the field is seen down the avenue (the stream's
  * lead), and the wall's line with the hill's upper slopes (PY_FIELD_SEEN), from which it is seen over the wall: from
  * the streets the wall hides it (the field's boulders, camps and trees: its ground is the backdrop's), so F is held
- * there only near them. F's portal to W, along the wall's line, is the same `closer` from W's side, and `always` from
- * F's: the west wall and its gate tower face the whole field, and W's skyline draws the gate as a block with no
- * passage and a plain roof, plain to see at any distance across the field (compared from the roam's start 100 m out,
- * 2026-11-25), so W is held wherever he is before the wall (it was let go 5 s after the roam began and taken up again
- * 60 m from the wall, the gate changing before his eyes).
+ * there only near them. F's portal to W, along the wall's line, is the same `closer` from W's side, and the stream's
+ * lead from F's (`outward`: from W's side only W's own `closer` portal holds F): W's skyline draws the west gate's tower as the full drawing does (its stone, arch and passage, its
+ * pavilion's roofs: townkit/skyline.js), so the field need no longer hold W wherever he stands before the wall (it
+ * did, 2026-11-25, when the skyline's gate was a plain block).
  */
 export function pyDistrictSections() {
   const box = (x0, x1, z0, z1) => ({ at: [(x0 + x1) / 2, (z0 + z1) / 2], size: [x1 - x0, z1 - z0] });
@@ -954,7 +953,7 @@ export function pyDistrictSections() {
   const gate = (x, z, wide, deep) => box(x - wide / 2, x + wide / 2, z - deep / 2, z + deep / 2);
   const [gateZ, hill] = [PYONGYANG_PLACE.gate.z, PY_FIELD_SEEN.hill];
   return [
-    { id: 'F', name: 'Before the west wall', bounds: box(-150, d.west, north, d.river), portals: [{ to: 'W', area: box(-6, 15, -122, 125), always: true, closer: PY_FIELD_SEEN.closer }, { to: 'R', area: box(-150, d.west, d.river - 4, d.river + 4) }] },
+    { id: 'F', name: 'Before the west wall', bounds: box(-150, d.west, north, d.river), portals: [{ to: 'W', area: box(-6, 15, -122, 125), outward: true }, { to: 'R', area: box(-150, d.west, d.river - 4, d.river + 4) }] },
     { id: 'W', name: 'The west gate quarter', bounds: box(d.west, d.wg, north, d.south), portals: [{ to: 'F', area: box(-6, 15, gateZ - 8, gateZ + 8) }, { to: 'F', area: [box(-6, 15, -122, 125), box(d.west, d.wg, north, hill)], closer: PY_FIELD_SEEN.closer }, { to: 'G', area: [gate(d.wg, -50, 8, 9), gate(d.wg, 0, 8, 20)] }, { to: 'M', area: [gate(south[0].x, d.south, 10, 16), box(d.west, 15, d.south - 8, d.south + 2)] }] },
     { id: 'G', name: 'The governor\'s quarter', bounds: box(d.wg, d.east, north, d.south), portals: [{ to: 'M', area: gate(south[1].x, d.south, 8, 14) }] },
     { id: 'M', name: 'The middle city', bounds: box(d.west, d.east, d.south, d.river), portals: [{ to: 'R', area: box(d.west, d.east, d.river - 4, d.river + 2) }] },
@@ -968,19 +967,21 @@ export function pyDistrictSections() {
 // hill, not from the streets a block in, where the wall and its bank stand between (the broad street 21 to 49 m in
 // drawn with F held and not, the same picture, 2026-11-25); it was held from 75 m in, the whole west half of the
 // quarter, 15.5 MB.
-const PY_FIELD_SEEN = { hill: -85, closer: 40 };
+const PY_FIELD_SEEN = { hill: -85, closer: 20 };
 
 // The roam's section streamer (levelmode/sectionstream.js SECTION_STREAM, this place's own: Dunnottar's is left as it
 // is). `lead` m: a district beyond a gate is built from this near it. A district is 0.35 to 0.45 s of drawing and
 // meshing and some 40 frames of sending to the graphics card, built in steps of under 14 ms at the streamer's 3 ms a
-// frame: 1.6 to 2 s (measured 2026-11-25, M1 Pro); run at 5 m/s that is 8 to 10 m, so a district is taken up some 50 m
-// before he reaches it. Its skyline differs from it in full to the eye at 40 to 60 m (the trees, a pavilion's roof, the
-// west gate's tower: the two compared from the ways in, 2026-11-25), so the lead is not cut. `keep` m (6 more than the lead, with `linger` s):
-// a district behind is let go once every gate into it is this far and this long ago, so that a turn back at a gate frees
-// nothing; it was 80, and a district was held 20 m beyond any distance it was built from. `hops` 1: each district
+// frame: 1.6 to 2 s (measured 2026-11-25, M1 Pro); run at 5 m/s that is 8 to 10 m, so a district is taken up some 30 m
+// before he reaches it. Its skyline now matches it in full from 30 to 40 m on (the full drawing's own roofs, trees and
+// gate tower, townkit/skyline.js: the two compared from the ways in, 2026-11-26, pyfar/pop sheets), where at 60 it was
+// cut no further because they differed at 40 to 60 m (the trees, a pavilion's roof, the west gate's tower). `keep` m
+// (8 more than the lead, with `linger` s): a district behind is let go once every gate into it is this far and this
+// long ago, so that a turn back at a gate frees nothing; it was 80, and a district was held 20 m beyond any distance
+// it was built from. `hops` 1: each district
 // is reached by a gate of the one he is in, never through a passage between (Dunnottar's second hop), and a second
 // hop held the field from the middle city through the west gate quarter, behind two walls.
-export const PY_STREAM = { lead: 60, keep: 66, linger: 5, hops: 1 };
+export const PY_STREAM = { lead: 40, keep: 48, linger: 5, hops: 1 };
 
 // The near detail held only near him (townkit/near.js TK_NEAR's figures, over the kit's own): see TK_NEAR.
 export const PY_NEAR = {};
@@ -1739,9 +1740,9 @@ function pyDistrictMeshes(blocks, skylines, materials, tier) {
   const group = new THREE.Group();
   group.name = 'pyongyang-districts';
   const parts = new Map();
-  // (Only a part that throws the baked shadow counts as a change of it: a district let go leaves its shadow in the
-  // map, where its skyline stands much as it did, rather than the map being drawn again, some 250 ms at the town's
-  // size on an M1, at each gate he walks through.)
+  // (Only a part that throws the baked shadow counts as a change of it. A skyline throws it too, so the map is drawn
+  // again at each swap, the district let go standing in it as its skyline: a shadow kept from the full drawing went
+  // when the next district was taken up and the map drawn without it.)
   const drop = (name) => {
     const made = parts.get(name);
     if (!made) return;
@@ -1766,7 +1767,8 @@ function pyDistrictMeshes(blocks, skylines, materials, tier) {
   Object.defineProperty(group.userData, 'casters', { get: () => [...parts.values()].flatMap((made) => made.userData.casters), enumerable: true });
   put('backdrop', tkMeshes(blocks.backdrop, materials, { tier }));
   for (const [id, each] of Object.entries(blocks.districts)) put(id, tkMeshes(each, materials, { tier }));
-  for (const [id, each] of Object.entries(skylines)) put(`${id}:skyline`, tkMeshes(each, materials, { tier }));
+  // (A skyline throws the baked shadow as its district did: the gate tower's shadow on the field stays where it was.)
+  for (const [id, each] of Object.entries(skylines)) put(`${id}:skyline`, tkMeshes(each, materials, { tier, wideCasts: true }));
   return group;
 }
 
@@ -2182,7 +2184,7 @@ export function* buildPyongyangSteps(arena = null, { shift = [0, 0], key = 'pyon
     if (!held.has(id)) return;
     near.drop(id);
     meshes.userData.drop(id);
-    meshes.userData.put(`${id}:skyline`, tkMeshes(pySkyline(id), materials, { tier }));
+    meshes.userData.put(`${id}:skyline`, tkMeshes(pySkyline(id), materials, { tier, wideCasts: true }));
     held.delete(id);
   };
   // (A district built while he walks sends its meshes to the graphics card a lot at a time before it is shown:

@@ -44,6 +44,20 @@ const tksUnit = (a) => {
 };
 
 /**
+ * A ridge or a hip's crest along `points`: its two sides as a tent `wide` across and `high` over the line (from 30 m
+ * its ends and underside are never seen: a sweep's, four faces and two ends, twice the triangles).
+ */
+function tksCrest(builder, material, points, wide, high, colour) {
+  for (let k = 0; k + 1 < points.length; k += 1) {
+    const [a, b] = [points[k], points[k + 1]];
+    const side = tksUnit(tksCross(tksSub(b, a), [0, 1, 0]));
+    const at = (p, s, h) => [p[0] + side[0] * s * wide / 2, p[1] + h, p[2] + side[2] * s * wide / 2];
+    builder.quad(material, at(a, 1, 0), at(b, 1, 0), at(b, 0, high), at(a, 0, high), { colour });
+    builder.quad(material, at(b, -1, 0), at(a, -1, 0), at(a, 0, high), at(b, 0, high), { colour });
+  }
+}
+
+/**
  * A tiled roof (tkgRoof's spec: kind, width, depth, eave, rise, overhang, verge, sag, lift, liftRun, breakAt, inner,
  * tint, tiles, ridge, gableMaterial, gableColour) in `frame`, cut coarse: each slope in strips broken where it turns
  * (its hips, the run of each turned-up corner, halved) and rows down its hollow (TK_SKYLINE), lit by the slope's own
@@ -73,21 +87,29 @@ export function tkSkylineRoof(builder, frame, spec) {
     const half = slope.half;
     const breaks = new Set([-half, half]);
     for (let k = 1; k < s.strips; k += 1) breaks.add(-half + (2 * half * k) / s.strips);
-    if (spec.lift) for (const sign of [-1, 1]) for (const share of end ? [0.5] : [1, 0.5]) breaks.add(sign * (half - liftRun * share));
-    for (let k = 0; k <= 40; k += 1) {
-      // (A hip's start: where `start(u)` stops being flat, found by stepping along the eave.)
-      const u0 = -half + (2 * half * k) / 40;
-      const u1 = -half + (2 * half * (k + 1)) / 40;
-      if (k < 40 && (slope.start(u0) === 0 || slope.start(u0) === slope.from) !== (slope.start(u1) === 0 || slope.start(u1) === slope.from)) breaks.add(slope.start(u0) === 0 || slope.start(u0) === slope.from ? u0 : u1);
+    if (spec.lift) for (const sign of [-1, 1]) for (const share of end ? [0.5] : [1, 0.4]) breaks.add(sign * (half - liftRun * share));
+    // (Where the line the slope starts from turns: a hip leaving the ridge, the gable's knee; found by stepping along
+    // the eave and taking each step where the line's own slope changes. A strip across a turn would cut it off.)
+    const steps = 64;
+    const startAt = (k) => Math.min(1, slope.start(-half + (2 * half * k) / steps));
+    for (let k = 2; k + 2 <= steps; k += 1) {
+      if (Math.abs(startAt(k + 1) - 2 * startAt(k) + startAt(k - 1)) < 1e-6) continue;
+      // (The turn itself: where the line through the two steps before meets the line through the two after.)
+      const [before, after] = [startAt(k - 1) - startAt(k - 2), startAt(k + 2) - startAt(k + 1)];
+      const at = Math.abs(before - after) < 1e-9 ? k : (startAt(k + 1) - (k + 1) * after - startAt(k - 1) + (k - 1) * before) / (before - after);
+      breaks.add(-half + (2 * half * Math.max(k - 1, Math.min(k + 1, at))) / steps);
     }
+    // (A hip-and-gable's front and back slopes step from the ridge down to the gable's knee at the gable: a break there,
+    // each strip's head taken just inside its own ends.)
+    if (slopes.gable && !end) for (const sign of [-1, 1]) breaks.add(sign * slopes.gable.half);
     const us = [...breaks].filter((u) => u >= -half && u <= half).sort((a, b) => a - b).filter((u, i, list) => i === 0 || u - list[i - 1] > 0.05);
     const tuck = Math.min(slope.run * (1 - slope.from) - 0.02, (spec.overhang ?? 0.6) + 0.35);
     const vIn = 1 - tuck / slope.run;
     const board = timber.map((value) => value * 0.8);
     for (let k = 0; k + 1 < us.length; k += 1) {
       const [ua, ub] = [us[k], us[k + 1]];
-      const va0 = Math.min(1, slope.start(ua));
-      const vb0 = Math.min(1, slope.start(ub));
+      const va0 = Math.min(1, slope.start(ua + 1e-4));
+      const vb0 = Math.min(1, slope.start(ub - 1e-4));
       if (va0 >= 1 && vb0 >= 1) continue;
       const cut = end ? 1 : rows;
       for (let r = 0; r < cut; r += 1) {
@@ -100,10 +122,19 @@ export function tkSkylineRoof(builder, frame, spec) {
         const order = tksCross(tksSub(points[1], points[0]), tksSub(points[3], points[0]))[1] >= 0 ? [0, 1, 2, 3] : [1, 0, 3, 2];
         builder.quad(tiles, ...order.map((index) => points[index]), { uvs: order.map((index) => uvs[index]), colour: tint, normals: order.map((index) => normals[index]) });
       }
+      // The eave's edge: the tiles' thickness, dark, following the eave's turn up at the corners (tkgRoof's).
+      {
+        const [a, b] = [world(slope.point(ua, 1)), world(slope.point(ub, 1))];
+        const edge = [[a[0], a[1] - 0.07, a[2]], [b[0], b[1] - 0.07, b[2]], b, a];
+        const out = tksCross(tksSub(edge[1], edge[0]), [0, 1, 0]);
+        const outward = tksSub(world(slope.point(0, 1)), world(slope.point(0, 0.5)));
+        const order = out[0] * outward[0] + out[2] * outward[2] >= 0 ? [0, 1, 2, 3] : [1, 0, 3, 2];
+        builder.quad(tiles, ...order.map((index) => edge[index]), { uvs: order.map((index) => [index === 0 || index === 3 ? ua : ub, index < 2 ? 0 : 0.07]), colour: tint.map((value) => value * 0.6) });
+      }
       // The underside of the eave: its boards, back to the wall plate, dark (tkgRoof's soffit).
-      if (slope.start(ua) > vIn && slope.start(ub) > vIn) continue;
+      if (va0 > vIn && vb0 > vIn) continue;
       const under = (u, v) => world(slope.point(u, v)).map((value, axis) => (axis === 1 ? value - 0.07 : value));
-      const corners = [under(ua, 1), under(ub, 1), under(ub, Math.max(vIn, slope.start(ub))), under(ua, Math.max(vIn, slope.start(ua)))];
+      const corners = [under(ua, 1), under(ub, 1), under(ub, Math.max(vIn, vb0)), under(ua, Math.max(vIn, va0))];
       const order = tksCross(tksSub(corners[1], corners[0]), tksSub(corners[3], corners[0]))[1] <= 0 ? [0, 1, 2, 3] : [1, 0, 3, 2];
       builder.quad('timber', ...order.map((index) => corners[index]), { uvs: order.map((index) => [[0, ua], [0, ub], [tuck, ub], [tuck, ua]][index]), colour: board.map((value) => value * 0.8) });
     }
@@ -113,7 +144,7 @@ export function tkSkylineRoof(builder, frame, spec) {
   const top = spec.eave + spec.rise;
   if (slopes.ridge > 0) {
     const line = [-1, -0.75, 0.75, 1].map((t) => world([t * slopes.ridge, top - 0.02 + ridgeSpec.lift * Math.abs(t) ** 4, 0]));
-    builder.sweep(ridgeSpec.material, line, ridgeSpec.wide, ridgeSpec.high, { colour: ridgeSpec.colour, under: false });
+    tksCrest(builder, ridgeSpec.material, line, ridgeSpec.wide, ridgeSpec.high, ridgeSpec.colour);
   }
   if (slopes.kind === 'hip' || slopes.kind === 'hipgable') {
     // (Each hip from where it leaves the ridge, or the gable's knee, to its eave corner, on the front and back slopes.)
@@ -123,7 +154,7 @@ export function tkSkylineRoof(builder, frame, spec) {
         let u0 = u1;
         while (Math.abs(u0) > 0 && slope.start(u0 - sign * 0.05) > 0) u0 -= sign * 0.05;
         const line = [u0, u1].map((u) => world(slope.point(u, Math.min(1, slope.start(u)))));
-        builder.sweep(ridgeSpec.material, line, ridgeSpec.wide * 0.85, ridgeSpec.high * 0.8, { colour: ridgeSpec.colour, sink: 0.02, under: false });
+        tksCrest(builder, ridgeSpec.material, line, ridgeSpec.wide * 0.85, ridgeSpec.high * 0.8, ridgeSpec.colour);
       }
     }
   }
@@ -180,6 +211,9 @@ export function tkSkylineHouse(builder, house) {
       builder.tri(wall, end(-d / 2, eave, 0), end(d / 2, eave, 0), end(0, peak, 0), [[0, 0], [d, 0], [d / 2, rise]], paint);
     }
   }
+  // (Closed under the eaves at the wall's head, as the full drawing's wall plate and boards close it: seen from under a
+  // neighbour's eaves no sky shows through.)
+  builder.level('timber', frame, -w / 2, w / 2, -d / 2, d / 2, eave, { colour: tksScale(timber, 0.45), under: true });
   tkSkylineRoof(builder, frame, { ...roof, width: w, depth: d, eave, rise, ridge: { lift: house.firewall ? 0 : 0.14, ...roof.ridge } });
 }
 
@@ -214,6 +248,7 @@ export function tkSkylinePavilion(builder, frame, { storeys, bay = 2.7, column =
       builder.box('timber', frame, -above.width / 2 - 0.2, above.width / 2 + 0.2, up - 0.22, up, -above.depth / 2 - 0.2, above.depth / 2 + 0.2, { colour: paint.rafter, skip: 'bottom top' });
       y = up;
     } else {
+      builder.level('timber', frame, -w / 2, w / 2, -d / 2, d / 2, head - 0.1, { colour: tksScale(paint.rafter, 0.6), under: true });
       tkSkylineRoof(builder, frame, { kind: 'hipgable', width: w, depth: d, eave: head, rise: (d / 2 + overhang) * 0.72, overhang, sag: 0.42, lift: lift * 1.3, breakAt: 0.5, tint, timber: paint.rafter, ridge: { high: 0.42, wide: 0.3, lift: 0.3 } });
       y = head;
     }

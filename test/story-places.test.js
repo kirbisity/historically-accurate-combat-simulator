@@ -345,14 +345,17 @@ test('pyongyang: the districts are the drawing\'s sections, each portal at a gat
   assert.equal(stage.sections.length, 1);
   assert.deepEqual(stage.districts.map((section) => section.id), ['F', 'W', 'G', 'M', 'R']);
   assert.deepEqual(checkStage({ ...stage, sections: [...stage.sections, ...stage.districts] }), []);
-  // From the gate square the barricade's gate is within the stream's lead: G is built ahead; from the middle of the
-  // field, nothing beyond W.
+  // On the avenue, 40 m short of the barricade's gate, G is built ahead (not from the gate square: its skyline is the
+  // picture from there); from the middle of the field, nothing beyond W.
   const graph = sectionGraph({ sections });
-  assert.ok(sectionsNear(graph, ['W'], [40, 0, -50], PY_STREAM.lead, PY_STREAM.hops).has('G'));
+  assert.ok(sectionsNear(graph, ['W'], [50, 0, -50], PY_STREAM.lead, PY_STREAM.hops).has('G'));
+  assert.ok(!sectionsNear(graph, ['W'], [30, 0, -50], PY_STREAM.lead, PY_STREAM.hops).has('G'));
   assert.ok(!sectionsNear(graph, ['F'], [-100, 0, 5], PY_STREAM.lead, PY_STREAM.hops).has('G'));
-  // The west gate quarter from anywhere on the field; the field from the quarter through its gate, from its wall and its
-  // hill, not from the streets the wall hides it from.
-  assert.ok(sectionsNear(graph, ['F'], [-140, 0, 120], PY_STREAM.lead, PY_STREAM.hops).has('W'));
+  // The west gate quarter from the field once he nears the wall (its skyline draws the gate tower as it is: not from
+  // the roam's start 100 m out); the field from the quarter through its gate, from its wall and its hill, not from the
+  // streets the wall hides it from.
+  assert.ok(sectionsNear(graph, ['F'], [-30, 0, 5], PY_STREAM.lead, PY_STREAM.hops).has('W'));
+  assert.ok(!sectionsNear(graph, ['F'], [-100, 0, 5], PY_STREAM.keep, PY_STREAM.hops).has('W'));
   assert.ok(sectionsNear(graph, ['W'], [40, 0, -50], PY_STREAM.lead, PY_STREAM.hops).has('F'));
   assert.ok(sectionsNear(graph, ['W'], [5, 0, 60], PY_STREAM.lead, PY_STREAM.hops).has('F'));
   assert.ok(sectionsNear(graph, ['W'], [40, 0, -110], PY_STREAM.lead, PY_STREAM.hops).has('F'));
