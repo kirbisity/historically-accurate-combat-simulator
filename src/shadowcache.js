@@ -32,9 +32,11 @@
 export const SHADOW_CACHE = {
   on: true,
   // How far past the live map the cache reaches on each side, as a share of the live map's side: the live box may
-  // wander that far before the cache is drawn again. A quarter: the camera walks a quarter of the box (8 m of the
-  // town's 32, 2 m of the fight's finer 8) between draws, for a cache of 1.5 times the side (2.25 times the texels).
-  margin: 0.25,
+  // wander that far before the cache is drawn again. An eighth: the camera walks an eighth of the box (4 m of the
+  // town's 32, 1 m of the fight's finer 8) between draws, for a cache of 1.25 times the side, about 1.6 times the
+  // live map's memory (10 MB beside a 1024 map, 39 MB beside a 2048 one); a quarter drew a little less often for
+  // 2.25 times the memory, which the page's memory can less well afford than a redraw every second or so.
+  margin: 0.125,
   // Frames a mesh must keep still before it joins the cache: a gate swinging or a cart rolling moves on frames in a
   // row, and each change of what is cached costs a draw of the whole cache.
   settle: 30,
@@ -43,8 +45,13 @@ export const SHADOW_CACHE = {
   // Fewest passes between draws of the cache made only to take in newly settled meshes (a change that must be
   // taken out is never kept waiting).
   joinEvery: 60,
-  // Passes a light's cache is kept with nothing to hold before its map is freed.
-  idleFree: 600,
+  // Fewest triangles the still meshes must hold between them for a cache to be made: it costs a map a quarter again as
+  // wide as the live one (some 10 MB beside a 1024 map, a light), and a blit a frame, so a few fences and a cart are
+  // drawn live as before. 20000: a field's few props stay live; an arena's stands (140000) or a fort's walls are cached.
+  least: 20000,
+  // Passes a light's cache is kept with nothing to hold before its map is freed: two seconds or so, so a place
+  // left, or a cache brought under `least`, gives its memory back soon, while one flickering in and out is not made anew each time.
+  idleFree: 120,
   // How far apart (in texels) the live box and the cache's may sit off the whole-texel lattice and still be
   // copied: the boxes are put on it exactly, so this is only for the rounding of their sums.
   texelTolerance: 1e-3,
@@ -83,19 +90,22 @@ export function installShadowCache(view) {
     // The meshes watched (mesh -> record) and the version of the set that is cached (any change: every cache redrawn).
     records: new Map(),
     cached: [],
+    triangles: 0,
     version: 0,
     lastScan: -Infinity,
     lastPlace: null,
     lights: new Map(),
     stats: { passes: 0, draws: 0, copies: 0, cached: 0, watched: 0, why: {} },
     enabled: true,
+    // (Tests: one pass drawn as three draws it with the caches kept, to compare a shifted copy with the whole.)
+    aside: false,
   };
   view.shadowCache = state;
-  state.statsNow = () => ({ ...state.stats, cached: state.cached.length, watched: state.records.size, lights: [...state.lights.values()].map((entry) => ({ size: entry.light?.shadow.map ? [entry.light.shadow.map.width, entry.light.shadow.map.height] : null, built: entry.built })) });
+  state.statsNow = () => ({ ...state.stats, cached: state.cached.length, triangles: state.triangles, watched: state.records.size, lights: [...state.lights.values()].map((entry) => ({ size: entry.light?.shadow.map ? [entry.light.shadow.map.width, entry.light.shadow.map.height] : null, built: entry.built })) });
   renderer.domElement.addEventListener?.('webglcontextlost', () => shadowCacheForget(state));
   shadowMap.shadowCacheWrapped = true;
   shadowMap.render = function shadowCacheRender(lights, scene, camera) {
-    if (!SHADOW_CACHE.on || !state.enabled || scene !== view.scene || !this.enabled || this.type === THREE.VSMShadowMap || !lights.length || (this.autoUpdate === false && this.needsUpdate === false)) {
+    if (!SHADOW_CACHE.on || !state.enabled || state.aside || scene !== view.scene || !this.enabled || this.type === THREE.VSMShadowMap || !lights.length || (this.autoUpdate === false && this.needsUpdate === false)) {
       if (state.lights.size && (!SHADOW_CACHE.on || !state.enabled)) shadowCacheForget(state);
       return threeRender.call(this, lights, scene, camera);
     }
@@ -145,8 +155,19 @@ function shadowCacheForget(state) {
   state.lights.clear();
   for (const record of state.records.values()) record.cached = false;
   state.cached = [];
+  state.triangles = 0;
   state.version += 1;
 }
+
+/** The triangles a mesh puts into a shadow map (each copy of an instanced one). */
+function shadowCacheTriangles(mesh) {
+  const geometry = mesh.geometry;
+  const count = geometry.index ? geometry.index.count : geometry.attributes.position?.count ?? 0;
+  return Math.floor(Math.min(count, geometry.drawRange.count) / 3) * (mesh.isInstancedMesh ? mesh.count : 1);
+}
+
+/** Whether what is cached is worth a cache (SHADOW_CACHE.least). */
+const shadowCacheWorth = (state) => state.cached.length > 0 && state.triangles >= SHADOW_CACHE.least;
 
 /** Whether a mesh may be cached at all: one that casts, with nothing under it that could move on its own. */
 function shadowCacheEligible(mesh) {
@@ -227,10 +248,11 @@ function shadowCacheWatch(state, view) {
   }
   if (changedSet || joinDue) {
     state.cached = [...state.records.values()].filter((record) => record.cached);
+    state.triangles = state.cached.reduce((sum, record) => sum + shadowCacheTriangles(record.mesh), 0);
     state.version += 1;
   }
-  // (A light's cache with nothing in it: freed after a while, so a place without still casters costs nothing.)
-  if (!state.cached.length) {
+  // (A light's cache with too little in it: freed after a while, so a place without still casters costs nothing.)
+  if (!shadowCacheWorth(state)) {
     for (const [light, entry] of state.lights) {
       if (state.passes - entry.used > SHADOW_CACHE.idleFree) {
         entry.light.shadow.map?.dispose();
@@ -247,7 +269,7 @@ function shadowCacheWatch(state, view) {
  */
 function shadowCacheReady(state, renderer, light) {
   const shadow = light.shadow;
-  if (!state.cached.length || !light.isDirectionalLight || !shadow || (shadow.autoUpdate === false && shadow.needsUpdate === false)) return false;
+  if (!shadowCacheWorth(state) || !light.isDirectionalLight || !shadow || (shadow.autoUpdate === false && shadow.needsUpdate === false)) return false;
   if (!shadow.camera.isOrthographicCamera || shadow.camera.zoom !== 1 || shadow.getViewportCount() !== 1) return false;
   let entry = state.lights.get(light);
   if (!entry) {
