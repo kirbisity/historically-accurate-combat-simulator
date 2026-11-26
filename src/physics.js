@@ -43,6 +43,7 @@ import { climateOf, freshHeat, heatMark, heatRecovery, heatStrength, stepHeat } 
 import { recoverUnder, stepNausea } from './physics/afflictions.js';
 import { bowShotCost, strokeHeft, swingEffort } from './physics/effort.js';
 import { bigDeflect, breakOpen, deflecting, deflectsWith, deflectWindow, guardHold, noteGuard } from './physics/deflect.js';
+import { guardCatch } from './physics/hilt.js';
 import { jumpBlocked, jumpLanding, jumpOf } from './physics/jump.js';
 import { bendShare, BLUNT, bluntPart, faceThrough, guardGives, guardMeets } from './physics/blunt.js';
 import { formUp, placeWings, WINGS } from './formation.js';
@@ -1481,7 +1482,7 @@ function weaponIntent(world, fighter, intent) {
   intent.twoHanded = !oneHanded;
   // (At the half-sword, physics.js halfGripped: the off hand on the middle of the blade, where it lies now.)
   weapon.half = !oneHanded && halfGripped(fighter, weapon);
-  if (!oneHanded) intent[`${weapon.off}Hand`] = vec.add(target.hand, vec.scale(target.dir, offHandAlong(weapon.spec, weapon.half) * offHandSide(weapon)));
+  if (!oneHanded) intent[`${weapon.off}Hand`] = vec.add(target.hand, vec.scale(target.dir, offHandAlong(weapon.spec, weapon.half, stroke?.spec) * offHandSide(weapon)));
   const alone = oneHanded && !off && !fighter.shield && !fighter.net?.held && !weapon.spec.ranged;
   if (alone) heldOut(fighter, weapon, intent, style, stroke, blocker === weapon);
   // A lunge: the free arm flung back behind him as a counterweight, out and back with the stroke.
@@ -1824,7 +1825,8 @@ function updateWeapon(fighter, h, weapon = fighter.weapon) {
     // slides through the front hand: it holds the line wherever along the
     // shaft it is (short of the head), so a thrust driven by the rear hand
     // is not dragged back by a front arm that cannot reach any further.
-    let along = offHandAlong(spec, weapon.half);
+    // (A move with the off hand up on the ricasso keeps it there while it lasts: weapons.js offHandAlong.)
+    let along = offHandAlong(spec, weapon.half, strokeOf(fighter, weapon)?.spec);
     if (spec.leadAhead) {
       const reached = vec.dot(vec.sub(point(fighter.x, off), point(fighter.x, main)), dir);
       // (A staff is all shaft, both ends free: the front hand on whichever side of the other it is, short of either end.)
@@ -10384,6 +10386,22 @@ function clashBlades(world, first, second) {
 }
 
 /**
+ * A blade (`other`'s segment, `from`-`to`, its `radius`) caught on a weapon's guard (physics/hilt.js guardCatch), as the
+ * meeting clashWeapons would have found along the lines: the closest points, their parameters on the two segments it uses
+ * (the guarded blade's from half its striking start, so the bar's `s` is below 0), the offset, distance and reach.
+ * `second`: the guarded weapon is the clash's second blade, so the pair is reported the other way round.
+ */
+function hiltMeeting(fighter, weapon, from, to, radius, second) {
+  if (!weapon.spec.crossGuard) return null;
+  const caught = guardCatch(weapon.spec, point(fighter.x, P[`${weapon.main}Hand`]), weapon.dir, from, to, radius);
+  if (!caught) return null;
+  const start = weapon.spec.strikeFrom * 0.5;
+  const s = (caught.along - start) / Math.max(1e-6, weapon.spec.length - start);
+  const closest = second ? { onFirst: caught.onSecond, onSecond: caught.onFirst, s: caught.t, t: s } : { onFirst: caught.onFirst, onSecond: caught.onSecond, s, t: caught.t };
+  return { closest, offset: vec.sub(closest.onFirst, closest.onSecond), distance: caught.distance, reach: caught.reach };
+}
+
+/**
  * Two weapons meet. They cannot pass through each other; met hard enough,
  * they bang apart, each strike stopped where it was, each grip jarred. A
  * blade that was not striking stopping one that was has parried it (a
@@ -10401,10 +10419,16 @@ function clashWeapons(world, first, second, a = first.weapon, b = second.weapon)
   };
   const [a1, a2] = ends(first, a);
   const [b1, b2] = ends(second, b);
-  const closest = closestBetween(a1, a2, b1, b2);
-  const offset = vec.sub(closest.onFirst, closest.onSecond);
-  const distance = vec.length(offset);
-  const reach = a.spec.radius + b.spec.radius;
+  let closest = closestBetween(a1, a2, b1, b2);
+  let offset = vec.sub(closest.onFirst, closest.onSecond);
+  let distance = vec.length(offset);
+  let reach = a.spec.radius + b.spec.radius;
+  let caught = null;
+  // Missed along their lines, one may still be caught on the other's cross or hooks near the hands (physics/hilt.js).
+  if (distance >= reach) {
+    caught = hiltMeeting(first, a, b1, b2, b.spec.radius, false) ?? hiltMeeting(second, b, a1, a2, a.spec.radius, true);
+    if (caught) ({ closest, offset, distance, reach } = caught);
+  }
   const key = `${first.id}${a === first.offWeapon ? 'o' : ''}:${second.id}${b === second.offWeapon ? 'o' : ''}`;
   // (A wolf-brush's branches against a blade: apart, a touch to come is a new one; physics/brush.js.)
   const brush = a.spec.brush || b.spec.brush;
@@ -10483,7 +10507,7 @@ function clashWeapons(world, first, second, a = first.weapon, b = second.weapon)
   // across the other as they met (`slide`, m/s: the way its edge scrapes, and the sparks it tears off fly). Read by nothing here.)
   const parts = [weaponPart(a, one.along), weaponPart(b, two.along)];
   const slide = vec.length(one.velocity) >= vec.length(two.velocity) ? vec.sub(one.velocity, two.velocity) : vec.sub(two.velocity, one.velocity);
-  world.events.push({ time: world.time, kind: 'clash', fighter: first.id, other: second.id, point: met, normal, impulse, parts, slide, deflect: deflected || undefined, effects: ['blades meet'] });
+  world.events.push({ time: world.time, kind: 'clash', fighter: first.id, other: second.id, point: met, normal, impulse, parts, slide, deflect: deflected || undefined, hilt: caught ? true : undefined, effects: ['blades meet'] });
   // Heard: how fast they met, what of each (an edge, a haft, a head), and whether a point was turned along the blade (a scrape).
   // (The man played's deflect, and whether big: WORLD.deflect.big; its own sound, audio/sfx/sampled.js.)
   const deflectedBy = deflected ? parried[0] : null;

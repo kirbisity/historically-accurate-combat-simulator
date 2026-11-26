@@ -94,6 +94,7 @@ export const UNIT_NAMES = {
   judo: 'Judoka',
   mingEliteInfantry: 'Ming Elite Infantry',
   halberdier: 'Halberdier',
+  doppelsoeldner: 'Doppelsöldner',
   mingEliteSpear: 'Qi Long Spearman',
   mingDangpa: 'Dangpa Soldier',
   mingEliteGun: 'Ming Elite Musketeer',
@@ -178,6 +179,9 @@ export const WARRIORS = [
   warrior('hammer', 'Gunnar Holt', PRESETS.warhammer),
   // A foot soldier of the 1500s with the halberd (the Swiss and the Landsknechts, the tercios): the brigandine and kettle hat.
   warrior('halberdier', 'Ulrich Brandt', PRESETS.spear, { name: 'Ulrich Brandt', style: 'halberd', heightCm: 172, outfit: { kind: 'footman', design: 0 }, accessories: [] }),
+  // A Landsknecht Doppelsöldner of the 1520s-40s with the zweihander, in his breastplate and slashed clothes (outfits.js
+  // landsknecht): the halberdier's build, so the weapons are the difference between them.
+  warrior('doppelsoeldner', 'Jörg Gruber', PRESETS.doppelsoeldner),
   warrior('oyoroi', 'Takeda Shingen', PRESETS.samurai),
   // The Japanese flagship: Deadliest Warrior opens the faction on him (`flagship`), whatever his rating.
   { ...warrior('tametomo', 'Minamoto no Tametomo', PRESETS.tametomo), flagship: true, legend: { order: 3, kicker: { en: 'Great-armour samurai', zh: '大铠武士' }, line: { en: 'The great archer of the Hōgen war, in ō-yoroi: the long yumi, then the blade.', zh: '保元之乱的大弓手，身披大铠：先放长弓，再拔刀。' } } },

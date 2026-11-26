@@ -893,6 +893,41 @@ export function buildWeaponMesh(kind, envMap, colour = '#b3161b') {
       group.add(guard, pommel, cylinder(0.015, 0.016, -spec.handle + 0.02, 0.03, leather));
       break;
     }
+    case 'zweihander': {
+      // The Landsknecht's two-hand sword (weapons.js zweihander; the Cleveland, Joanneum and Royal Armouries swords): past the
+      // ricasso a long straight blade of flattened diamond section tapering to a narrow point; the ricasso unsharpened, bound
+      // in leather for the off hand, ending in the two parrying hooks that stand out ~7 cm to each side; the great straight
+      // cross with its tips turned a little towards the point and a side ring looping out over each flat; a long grip swelling
+      // at its middle, bound in leather, and a pear-shaped pommel.
+      const guard = spec.crossGuard;
+      const hooksAt = guard.hooks.at;
+      group.add(bladeMesh(bladeGeometry(hooksAt, spec.length - hooksAt, 0.05, 0.009, 0.34), polished));
+      group.add(bladeMesh(bladeGeometry(guard.cross.at, hooksAt - guard.cross.at + 0.01, 0.036, 0.011, 0.001), polished));
+      group.add(cylinder(0.0165, 0.0165, guard.cross.at + 0.03, hooksAt - 0.03, leather, 10));
+      for (const side of [1, -1]) {
+        const hook = new THREE.Mesh(new THREE.BoxGeometry(0.009, 0.012, guard.hooks.half), steel);
+        hook.position.set(0, hooksAt - 0.006, side * (0.018 + guard.hooks.half / 2));
+        hook.rotation.x = side * -0.45;
+        const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.007, 0.006, guard.cross.half, 8), steel);
+        arm.rotation.x = Math.PI / 2;
+        arm.position.set(0, guard.cross.at, side * (guard.cross.half / 2 + 0.01));
+        const tip = new THREE.Mesh(new THREE.SphereGeometry(0.011, 8, 6), steel);
+        tip.position.set(0, guard.cross.at + 0.02, side * (guard.cross.half + 0.01));
+        const ring = new THREE.Mesh(new THREE.TorusGeometry(0.04, 0.0055, 6, 16), steel);
+        // (In the plane of the blade's axis and its flats: it loops out over the flat, square to the cross.)
+        ring.position.set(side * 0.045, guard.cross.at + 0.01, 0);
+        group.add(hook, arm, tip, ring);
+      }
+      const block = new THREE.Mesh(new THREE.BoxGeometry(0.028, 0.03, 0.05), steel);
+      block.position.y = guard.cross.at;
+      group.add(block);
+      group.add(cylinder(0.016, 0.019, -spec.handle * 0.5, 0.0, leather, 10), cylinder(0.019, 0.016, -spec.handle + 0.05, -spec.handle * 0.5, leather, 10));
+      const pommel = new THREE.Mesh(new THREE.SphereGeometry(0.03, 12, 10), steel);
+      pommel.scale.set(1, 1.35, 1);
+      pommel.position.y = -spec.handle + 0.02;
+      group.add(pommel);
+      break;
+    }
     case 'wakizashi':
     case 'odachi':
     case 'katana': {

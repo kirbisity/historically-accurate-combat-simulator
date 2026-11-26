@@ -31,6 +31,9 @@ import { ARM_LENGTHS, FRAMES } from './body.js';
 export const WARDROBE = {
   // How far (m, for a 1.8 m man) a sabaton's point runs on past the foot.
   sabatonPoint: 0.06,
+  // The Landsknecht's beret (`barett`): its plate's radius (head radii: the portraits' and the clips' twice the head's width),
+  // squashed front to back by `squash`, its slits round the brim, tipped `tilt` rad over to his left.
+  barett: { plate: 2.0, squash: 0.9, slits: 14, tilt: 0.22 },
   // Steel: how metal and how polished; the reflection map is a gradient
   // sky (cheap — one texture, built once — and enough to read as steel).
   steel: { metalness: 0.9, roughness: 0.26 },
@@ -1061,6 +1064,44 @@ export function buildHeadgear(body, head, colors, steel, cornerHex, { lowDetail 
       plume.position.set(-0.3 * r, 0.9 * r, 0.9 * r);
       plume.rotation.x = -0.9;
       group.add(crown, brim, plume);
+      break;
+    }
+    case 'barett': {
+      // The Landsknecht's beret (Barett, Tellerbarett, the 1520s-40s): a great flat plate of felt or cloth twice the head's width,
+      // worn tipped over one side; its brim slashed all round, the second colour (`trim`) showing in each slit, a knot of it on
+      // the crown; a white ostrich plume (`plume`) laid along the brim from the side and curling over the back. Its band sits
+      // on the head; the plate stands out over the ears.
+      const spec = WARDROBE.barett;
+      const hat = new THREE.Group();
+      const band = new THREE.Mesh(new THREE.CylinderGeometry(0.98 * r, 1.02 * r, 0.32 * r, 22), cloth);
+      band.position.y = 0.12 * r;
+      const plate = new THREE.Mesh(new THREE.CylinderGeometry(spec.plate * r, spec.plate * 0.96 * r, 0.2 * r, 36), cloth);
+      plate.scale.set(1, 1, spec.squash);
+      plate.position.y = 0.34 * r;
+      const crown = new THREE.Mesh(new THREE.SphereGeometry(0.95 * r, 18, 8, 0, Math.PI * 2, 0, Math.PI / 2), cloth);
+      crown.scale.y = 0.38;
+      crown.position.y = 0.43 * r;
+      hat.add(band, plate, crown);
+      const trim = surface(new THREE.Color(head.trim ?? 0xd9a21c).getHex(), { roughness: 0.7 });
+      for (let slit = 0; slit < spec.slits; slit += 1) {
+        const angle = (slit / spec.slits) * Math.PI * 2;
+        const out = (spec.plate - 0.32) * r;
+        const cut = new THREE.Mesh(new THREE.BoxGeometry(0.42 * r, 0.03 * r, 0.09 * r), trim);
+        cut.position.set(Math.cos(angle) * out, 0.445 * r, Math.sin(angle) * out * spec.squash);
+        cut.rotation.y = -angle;
+        hat.add(cut);
+      }
+      for (const [x, z] of [[0.45, 0.35], [0.1, 0.55], [-0.2, 0.2]]) {
+        const knot = new THREE.Mesh(new THREE.SphereGeometry(0.13 * r, 8, 6), trim);
+        knot.scale.set(1.4, 0.55, 0.8);
+        knot.position.set(x * r, 0.55 * r, z * r);
+        hat.add(knot);
+      }
+      hat.add(hatPlume(r, [[0.3, 0.5, 1.2], [-0.2, 0.75, 1.75], [-0.95, 0.9, 1.6], [-1.6, 0.7, 1.1], [-1.9, 0.35, 0.6]], 0.42, surface(new THREE.Color(head.plume ?? 0xf2efe6).getHex(), { roughness: 0.9 })));
+      hat.position.set(0.05 * r, 0.78 * r, -0.12 * r);
+      hat.rotation.set(-spec.tilt, 0, -0.06);
+      group.add(hat);
+      hidesHair = false;
       break;
     }
     case 'tiltHat': {

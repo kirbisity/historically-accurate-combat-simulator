@@ -1154,6 +1154,35 @@ export const WEAPONS = {
     harm: { swing: { cut: 1.4, blunt: 0.6 }, thrust: { pierce: 0.65, cut: 0.15, blunt: 0.2 } },
     contactSeconds: 0.005, rotation: 0.85, wrist: { omega: 14, zeta: 0.82 }, threat: 4.9, art: 'artIai',
   },
+  // The zweihander (Bidenhänder, Schlachtschwert): the Landsknecht Doppelsöldner's two-hand sword of the 16th c. Its measures
+  // are the surviving war swords': the Cleveland Museum of Art's German two-hand sword of 1550-1600 (1919.70) is 170.5 cm
+  // overall with a 125.6 cm blade and weighs 2.98 kg; the Royal Armouries' run 2.3 kg (IX.991, dated 1529) to 3.35 kg (IX.926,
+  // c. 1550), the Saint Louis Art Museum's Lucerne sword of 1617 3.5 kg; the Joanneum's in Graz up to two metres. Here the
+  // Cleveland sword: 1.28 m ahead of the main hand (the blade, the right hand just behind the cross), 0.42 m behind it (the
+  // ~40 cm grip and the pommel), 3.0 kg. Its balance ~15 cm before the cross (an estimate: a heavy cross, hooks and pommel
+  // against a blade that tapers hard to a narrow point; reproductions after originals balance 10-20 cm out), so its mass sits
+  // by the hands, not out at a head as a halberd's does (0.17 m from the hand against the halberd's 0.75): about two fifths
+  // of the halberd's turning inertia about the shoulder (physics/effort.js weaponInertia, 2.6 against 6.6 kg·m² at an arm's
+  // reach), so it comes round and stops quicker, and its deflect window is the longer (physics/deflect.js deflectWindow).
+  // The first ~28 cm of the blade is the ricasso (`strikeFrom`): unsharpened, leather-wrapped, gripped by the off hand for
+  // close work and the short thrust (moves.js `offAlong`); past it the edge runs the remaining ~1 m to the point, most of
+  // the sword's length, where a halberd cuts only with its head's last half metre.
+  // Its hilt (`crossGuard`, physics/hilt.js): a straight cross of ~56 cm (`cross`, half of it: 0.28; the Cleveland and Joanneum
+  // swords' crosses 50-60 cm), with side rings, and the parrying hooks (Parierhaken) at the end of the ricasso, ~7 cm out to
+  // each side (`hooks`). A blade that comes past the edge near the hands is caught on them rather than running on to the
+  // fingers or the head (the Joanneum: "the crossguard prevented the opponent's blade from sliding down the wielder's blade").
+  // Its edge is the long sword's (a flattened diamond section, the same European cutting geometry, only longer and broader):
+  // the long sword's harm per joule (cut 1, blunt 0.5; the thrust's narrow point pierce 1). It cuts or bruises more than the
+  // long sword only by what it brings: twice the mass and more of it moving faster at the contact.
+  zweihander: {
+    label: 'Zweihander', hands: 'two', length: 1.28, strikeFrom: 0.28, handle: 0.42, spacing: 0.32, mass: 3.0, balance: 0.17, radius: 0.013,
+    // (`ricasso`: the leather-wrapped length before the hooks the off hand can hold, m from the main hand.)
+    ricasso: 0.25,
+    harm: { swing: { cut: 1, blunt: 0.5 }, thrust: { pierce: 1, cut: 0.15, blunt: 0.15 } },
+    // Its wrist between the ōdachi's (14, inertia ~2.2) and the halberd's (11, ~6.6): ∝ 1/√ of its inertia from the ōdachi's.
+    contactSeconds: 0.005, rotation: 0.85, wrist: { omega: 13, zeta: 0.82 }, threat: 4.9, art: 'artPommel',
+    crossGuard: { cross: { at: 0.03, half: 0.28 }, hooks: { at: 0.27, half: 0.07 } },
+  },
   // A wooden baseball bat (~84 cm, ~0.9 kg), swung two-handed: all its
   // harm blunt, its weight out in the barrel.
   bat: {
@@ -2234,8 +2263,11 @@ export function bulletRegion(capsuleKey) {
  * half-sword (`half`, a weapon with a `halfSword` grip): round the middle of
  * the blade, out ahead of the guard hand.
  */
-export function offHandAlong(spec, half = false) {
+export function offHandAlong(spec, half = false, move = null) {
   if (half && spec.halfSword) return spec.halfSword.along * spec.length;
+  // A move made with the off hand up on the blade (`offAlong`, m along it from the main hand: the zweihander's left hand on
+  // the leather of the ricasso for the close thrust) holds it there, no further out than the weapon's unsharpened `ricasso`.
+  if (move?.offAlong !== undefined && spec.ricasso) return Math.min(move.offAlong, spec.ricasso);
   return spec.leadAhead || spec.supportAhead ? spec.spacing : -spec.spacing;
 }
 

@@ -342,6 +342,9 @@ export const LOFT = {
   // A brigandine's rivet heads: three rows to a ring, each `size` of its column
   // across (and as tall, along the piece), a hair proud of the cloth.
   studs: { rowsPerRing: 3, size: 0.3, tall: 0.07, lift: 0.012 },
+  // The Landsknecht's slashed cloth (slashesOn): the slits, panes and lozenges stand this far off the piece (of its girth), so
+  // that a flat face over a puffed curve does not sink into it.
+  slashes: { lift: 0.03 },
   // A coat's skirt split into two leg panels with the front panel over the split (`legs`, legPanelsOn): the skirt drawn
   // `fine` times as many sides round (so the splits are cut narrow), the front panel `finer` times, standing `stand` (share
   // of the radius) out over the skirt; the bindings `wide` (rad round) and, across a panel's top, `deep` (places along).
@@ -1282,6 +1285,16 @@ function computeNormals(positions, indices) {
 // roles: rows (by ring), mail (rings in a weave), rivets (dots on a base),
 // a front panel, or heraldry (the design's surcoat field).
 const MAIL = { mail: true };
+// The Landsknecht's slashed cloth (slashesOn), its puffs' paints: the sword arm's sleeve black slashed over yellow (`dark`), the
+// other arm's yellow slashed with black (`light`), the right leg's Pluderhose in lozenges (`lozenged`), the left's in hanging
+// panes over the yellow lining (`paned`), the left leg's hose striped (`hose`: the hose colours, `lace` and `charge`).
+const LANDSKNECHT = {
+  dark: { slashes: { count: 5, rows: 1, width: 0.32, length: 0.7, role: 'cloth2' }, base: 'cloth' },
+  light: { slashes: { count: 5, rows: 1, width: 0.45, length: 0.7, role: 'cloth' }, base: 'cloth2' },
+  lozenged: { lozenges: { count: 5, rows: 1.2, role: 'cloth2' }, base: 'cloth' },
+  paned: { panes: { count: 8, width: 0.45, role: 'cloth' }, base: 'cloth2' },
+  hose: { panes: { count: 6, width: 0.5, role: 'charge' }, base: 'lace' },
+};
 // Japanese laced rows (kozane in kebiki-odoshi): drawn with the kozane's maps where those are drawn (`kozane`).
 const LACED = { rows: ['steel', 'lace'], kozane: true };
 // Suneate and kote (the Japanese shin guard and armoured sleeve): cloth with iron splints down it (shino), tied on with cords.
@@ -1741,6 +1754,30 @@ export const ARMOR_KINDS = {
   // A foot soldier's mail shirt: to the hips, sleeves to the elbow.
   haubergeon: {
     trunk: [-0.12, 1.0, 1.12, MAIL], skirt: [0.3, 0.3, 1.14, MAIL], collar: 'mail', upperArm: [-0.3, 0.5, 1.15, MAIL],
+  },
+  // A Landsknecht (outfits.js landsknecht): the polished breastplate down to a short fauld and tassets over the belly, and
+  // the slashed clothes as pieces of their own over the shirt and hose: the sleeves puffed in two bands on the upper arm and
+  // two on the forearm, black slashed over yellow on the sword arm, yellow slashed over black on the other; the Pluderhosen
+  // puffed out to just below the knee, the right leg in lozenges of black and yellow, the left in long hanging panes of the
+  // ground colour with the yellow lining puffed out between them; the left leg's hose striped red and blue (`lace`, `charge`).
+  // The puffs are each a ring of cloth stood well off the limb (`inflate` 1.4-1.6, the gigot's puff ~1.85), narrowing where
+  // a band ties them in.
+  landsknecht: {
+    trunk: [0.1, 0.96, 1.22, 'steel'], rigidBreastplate: [0.32, 0.96],
+    skirt: [0.3, 0.36, 1.24, { rows: ['steel', 'steel2'] }],
+    upperArm: {
+      r: [[-0.3, 0.44, 1.7, LANDSKNECHT.dark], [0.44, 0.53, 1.16, 'cloth'], [0.53, 1.04, 1.56, LANDSKNECHT.dark]],
+      l: [[-0.3, 0.44, 1.7, LANDSKNECHT.light], [0.44, 0.53, 1.16, 'cloth2'], [0.53, 1.04, 1.56, LANDSKNECHT.light]],
+    },
+    forearm: {
+      r: [[-0.04, 0.46, 1.5, LANDSKNECHT.dark], [0.46, 0.54, 1.12, 'cloth'], [0.54, -0.06, 1.36, LANDSKNECHT.dark]],
+      l: [[-0.04, 0.46, 1.5, LANDSKNECHT.light], [0.46, 0.54, 1.12, 'cloth2'], [0.54, -0.06, 1.36, LANDSKNECHT.light]],
+    },
+    thigh: {
+      r: [[-0.12, 0.56, 1.78, LANDSKNECHT.lozenged], [0.56, 0.64, 1.28, 'cloth'], [0.64, 1.1, 1.64, LANDSKNECHT.lozenged], [1.08, 1.16, 1.14, 'cloth2']],
+      l: [[-0.12, 0.56, 1.78, LANDSKNECHT.paned], [0.56, 0.64, 1.28, 'cloth'], [0.64, 1.1, 1.64, LANDSKNECHT.paned], [1.08, 1.16, 1.14, 'cloth2']],
+    },
+    shin: { l: [0.04, 0.94, 1.03, LANDSKNECHT.hose] },
   },
   // A foot soldier's breastplate and backplate, a short fauld, knee cops: nothing on the arms.
   breastplate: {
@@ -2579,6 +2616,58 @@ function studsOn(mesh, rings, inflate, paint, bones, { within = null } = {}) {
         [place - spec.tall, angle - half, out], [place - spec.tall, angle + half, out],
         [place + spec.tall, angle + half, out], [place + spec.tall, angle - half, out],
       ], 'gold', bones);
+    }
+  }
+}
+
+/**
+ * The Landsknecht's slashed cloth over a piece (its paint's `slashes`, `panes`, `lozenges`; LOFT kits `landsknecht`): the
+ * lining's colour (`role`) shown through the cuts in the cloth (the piece's own colour, `base`), each cut its own faces over the
+ * piece. (Painted into the loft's vertex colours instead, a slit one vertex wide bled its bright lining over half the piece:
+ * a colour blended between vertices is blended in linear light, so yellow beside black reads mostly yellow.)
+ * - `slashes`: { count round, rows (per ring of the piece), width (share of a column), length (share of a row), role }: short
+ *   slits in rows, each row's set half a column round from the last's, as they were cut;
+ * - `panes`: { count, width, role }: the cuts run the piece's whole length (the hanging panes of Pluderhosen, the lining
+ *   puffed out between them; the stripes of a pieced hose);
+ * - `lozenges`: { count round, rows per ring, role }: a lozenge of the role in every cell, alternate rows half a cell round,
+ *   point to point (a harlequin leg: the cloth makes the lozenges between).
+ */
+function slashesOn(mesh, rings, inflate, paint, bones) {
+  const out = inflate + LOFT.slashes.lift;
+  const last = rings.length - 1;
+  const quad = (from, to, left, right, role) => addPatch(mesh, rings, [[from, left, out], [from, right, out], [to, right, out], [to, left, out]], role, bones);
+  if (paint.slashes) {
+    const { count, rows, width, length, role } = paint.slashes;
+    const total = Math.max(1, Math.round(last * rows));
+    const half = (Math.PI / count) * width;
+    const tall = (last / total) * length * 0.5;
+    for (let row = 0; row < total; row += 1) {
+      const middle = ((row + 0.5) / total) * last;
+      for (let column = 0; column < count; column += 1) {
+        const angle = ((column + (row % 2) * 0.5) / count) * Math.PI * 2;
+        quad(middle - tall, middle + tall, angle - half, angle + half, role);
+      }
+    }
+  }
+  if (paint.panes) {
+    const { count, width, role } = paint.panes;
+    const half = (Math.PI / count) * width;
+    for (let column = 0; column < count; column += 1) {
+      const angle = (column / count) * Math.PI * 2;
+      for (let ring = 0; ring < last; ring += 1) quad(ring, ring + 1, angle - half, angle + half, role);
+    }
+  }
+  if (paint.lozenges) {
+    const { count, rows, role } = paint.lozenges;
+    const total = Math.max(1, Math.round(last * rows));
+    const half = Math.PI / count;
+    const tall = (last / total) * 0.5;
+    for (let row = 0; row < total; row += 1) {
+      const middle = ((row + 0.5) / total) * last;
+      for (let column = 0; column < count; column += 1) {
+        const angle = ((column + (row % 2) * 0.5) / count) * Math.PI * 2;
+        addPatch(mesh, rings, [[middle - tall, angle, out], [middle, angle + half, out], [middle + tall, angle, out], [middle, angle - half, out]], role, bones);
+      }
     }
   }
 }
@@ -5565,6 +5654,7 @@ export function* buildLoftBodySteps(body, { faceted = false, lowDetail = false, 
     if (paint?.apron && !lowDetail) apronOn(mesh, rings, inflate, paint, boned);
     if (paint?.bands && !lowDetail) bandsOn(mesh, rings, inflate, paint, boned);
     if (paint?.placket && !lowDetail) placketOn(mesh, rings, inflate, paint, boned);
+    if ((paint?.slashes || paint?.panes || paint?.lozenges) && !lowDetail) slashesOn(mesh, rings, inflate, paint, boned);
   };
   // Lamellar: rows of lacquered scales, laced between rows and down each column.
   const laced = (ring, angle, index) => (index % 3 === 2 ? 'lace' : 'steel');
