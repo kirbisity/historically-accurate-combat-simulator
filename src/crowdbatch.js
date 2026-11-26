@@ -37,9 +37,12 @@ export const CROWD_BATCH = {
 const ROW_TEXELS = BONES.length * 4;
 
 /**
- * The look a batch shares: a crowd template's key without what a distance hides. Height and build stay in steps (the far
- * body's girth); the side, the outfit and its colours stay (they are what tells the men apart at any distance). Hair and
- * beard go for a man with a helmet (the helmet is what shows), and stay for a bare-headed one.
+ * The look a batch shares: a crowd template's key without what a distance hides. Height goes (each man's bones stretch the
+ * batch's body to his own lengths, as a template's do); build stays in the template's steps (the far body's girth); the
+ * side, the outfit and its colours stay (they are what tells the men apart at any distance). Hair and beard go for a man
+ * with a helmet (the helmet is what shows), and stay for a bare-headed one. Measured 2026-11-26: the story's Sarhu (87 crowd
+ * men, each his own template) is 43 batches, Pyongyang (88) 23, a custom battle of 500 eight; what keeps a story's apart is
+ * its men's paint, each a little different (armythemes.js), which only a template of its own carries.
  */
 export function batchKey(fighterView) {
   const fighter = fighterView.fighter;
@@ -47,7 +50,7 @@ export function batchKey(fighterView) {
   const { hairColor, eyeColor, skinTone, hairStyle, facialHair, ...kept } = look;
   const helmed = Boolean(fighterView.template?.bare);
   const hair = helmed ? null : [hairStyle, facialHair, hairColor];
-  return JSON.stringify([fighter.corner, Math.round(heightCm / 6), Math.round(fighter.body.composition.bmi / 3), kept, hair, rest]);
+  return JSON.stringify([fighter.corner, Math.round(fighter.body.composition.bmi / 3), kept, hair, rest]);
 }
 
 /** Whether a man may be drawn in a batch at all: a crowd man drawn whole, in skin, with his helmet as baked. */
@@ -56,9 +59,32 @@ function batchable(fighterView) {
     && !fighterView.trunkSplit && !fighterView.headDetached && !fighterView.bareHead && !fighterView.fighter.halves);
 }
 
-/** The batches' state on a view: the bone texture, the batches by key, the men drawn in them this frame. */
+/**
+ * The batches' state on a view: the bone texture, the batches by key, the men drawn in them this frame, and whose each row
+ * of the texture is (`owners`; a man keeps his row while his view lives, so a row he has not been posed into again since is
+ * not written again: `free` holds the rows of views let go).
+ */
 function bodiesOf(view) {
-  return (view.crowdBodies ??= { batches: new Map(), props: new Map(), men: [], rows: 0, texture: null, uniforms: { uCrowdBones: { value: null }, uCrowdBonesSize: { value: new THREE.Vector2(ROW_TEXELS, 1) } }, frame: 0 });
+  return (view.crowdBodies ??= { batches: new Map(), props: new Map(), men: [], owners: [], free: [], rows: 0, texture: null, uniforms: { uCrowdBones: { value: null }, uCrowdBonesSize: { value: new THREE.Vector2(ROW_TEXELS, 1) } }, frame: 0 });
+}
+
+/** A man's row of the bone texture: his own while his view lives. */
+function rowFor(state, fighterView) {
+  if (fighterView.batchRow !== undefined && state.owners[fighterView.batchRow] === fighterView) return fighterView.batchRow;
+  const row = state.free.length ? state.free.pop() : state.owners.length;
+  state.owners[row] = fighterView;
+  fighterView.batchRow = row;
+  fighterView.batchPosed = null;
+  return row;
+}
+
+/** The rows of views let go (a man rebuilt, an army gone) given back. */
+function freeRows(state) {
+  state.owners.forEach((owner, row) => {
+    if (!owner?.disposed) return;
+    state.owners[row] = null;
+    state.free.push(row);
+  });
 }
 
 /** The start of a frame's choosing (render.js selectCrowdDraw): no man in a batch yet. */
@@ -75,6 +101,8 @@ export function batchMan(view, fighterView, draw, distance, safe) {
   const on = CROWD_BATCH.on && !safe && !draw.culled && batchable(fighterView)
     && distance > (draw.batched ? CROWD_BATCH.distance - CROWD_BATCH.margin : CROWD_BATCH.distance);
   if (draw.batched !== on && fighterView.head?.group) fighterView.head.group.visible = !on;
+  // (Back in a batch: his row is written afresh, whatever pose it last held.)
+  if (on && !draw.batched) fighterView.batchPosed = null;
   draw.batched = on;
   if (on) bodiesOf(view).men.push(fighterView);
   return on;
@@ -276,12 +304,14 @@ export function disposeCrowdBodies(view) {
   view.crowdBodies = null;
 }
 
-/** The bone texture with room for `men` rows. */
+/** The bone texture with room for `men` rows (the rows already written carried over). */
 function ensureRows(state, men) {
   if (state.rows >= men && state.texture) return;
   state.rows = Math.max(CROWD_BATCH.rowsStep, Math.ceil(men / CROWD_BATCH.rowsStep) * CROWD_BATCH.rowsStep);
+  const data = new Float32Array(ROW_TEXELS * state.rows * 4);
+  if (state.texture) data.set(state.texture.image.data);
   state.texture?.dispose();
-  state.texture = new THREE.DataTexture(new Float32Array(ROW_TEXELS * state.rows * 4), ROW_TEXELS, state.rows, THREE.RGBAFormat, THREE.FloatType);
+  state.texture = new THREE.DataTexture(data, ROW_TEXELS, state.rows, THREE.RGBAFormat, THREE.FloatType);
   state.texture.magFilter = THREE.NearestFilter;
   state.texture.minFilter = THREE.NearestFilter;
   state.texture.generateMipmaps = false;
@@ -298,6 +328,7 @@ function inversesFor(fighterView, template) {
   const array = new Float32Array(BONES.length * 16);
   inverses.forEach((inverse, bone) => inverse.toArray(array, bone * 16));
   fighterView.batchInverses = { template, array };
+  fighterView.batchPosed = null;
   return array;
 }
 
@@ -318,7 +349,20 @@ function tintFor(fighterView, batch, linear) {
 }
 
 const batchSkinning = new THREE.Matrix4();
-const batchInverse = new THREE.Matrix4();
+
+/**
+ * `a` times the matrix at `b[at..at+16]`, written at `out[to..to+16]` (column-major, as three keeps them): a man's bone by
+ * its inverse, written straight into his row. (Through three's Matrix4 it was 9 ms a frame for 445 men, by the profile.)
+ */
+function multiplyInto(out, to, a, b, at) {
+  for (let column = 0; column < 4; column += 1) {
+    const b0 = b[at + column * 4];
+    const b1 = b[at + column * 4 + 1];
+    const b2 = b[at + column * 4 + 2];
+    const b3 = b[at + column * 4 + 3];
+    for (let row = 0; row < 4; row += 1) out[to + column * 4 + row] = a[row] * b0 + a[4 + row] * b1 + a[8 + row] * b2 + a[12 + row] * b3;
+  }
+}
 const batchPlaced = new THREE.Matrix4();
 const batchSized = new THREE.Matrix4();
 
@@ -333,10 +377,11 @@ export function fillCrowdBodies(view, paint) {
   state.frame += 1;
   for (const batch of state.batches.values()) batch.count = 0;
   for (const batch of state.props.values()) batch.count = 0;
+  if (state.frame % 60 === 0) freeRows(state);
   const men = state.men.filter((fighterView) => fighterView.group.visible && fighterView.layers.skin.visible && !fighterView.disposed);
-  if (men.length) ensureRows(state, men.length);
-  const data = state.texture?.image.data;
-  men.forEach((fighterView, slot) => {
+  let written = false;
+  for (const fighterView of men) {
+    const slot = rowFor(state, fighterView);
     const key = (fighterView.batchKey ??= batchKey(fighterView));
     let batch = state.batches.get(key);
     // (A batch whose template no man is drawn from any more is made again from this man's: its arrays may be let go.)
@@ -350,18 +395,22 @@ export function fillCrowdBodies(view, paint) {
       state.batches.set(key, batch);
     }
     const inverses = inversesFor(fighterView, batch.template);
-    const row = slot * ROW_TEXELS * 4;
-    for (let bone = 0; bone < BONES.length; bone += 1) {
-      batchInverse.fromArray(inverses, bone * 16);
-      batchSkinning.multiplyMatrices(fighterView.bones[bone].matrixWorld, batchInverse).toArray(data, row + bone * 16);
+    // His row written only when he has been posed since (a proxy is posed every other frame, a man lying still not at all).
+    if (fighterView.batchPosed !== fighterView.frames) {
+      ensureRows(state, state.owners.length);
+      const data = state.texture.image.data;
+      const row = slot * ROW_TEXELS * 4;
+      for (let bone = 0; bone < BONES.length; bone += 1) multiplyInto(data, row + bone * 16, fighterView.bones[bone].matrixWorld.elements, inverses, bone * 16);
+      fighterView.batchPosed = fighterView.frames;
+      written = true;
     }
     if (batch.count === batch.capacity) growBatch(batch);
     batch.slots.array[batch.count] = slot;
     batch.tints.array.set(tintFor(fighterView, batch, Boolean(batch.materials[0].userData.linearised)), batch.count * 3);
     batch.count += 1;
     for (const prop of fighterView.headProps ?? []) addProp(view, state, key, fighterView, prop);
-  });
-  if (state.texture && men.length) state.texture.needsUpdate = true;
+  }
+  if (written) state.texture.needsUpdate = true;
   for (const [key, batch] of state.batches) {
     for (const mesh of batch.meshes) {
       mesh.visible = batch.count > 0;
