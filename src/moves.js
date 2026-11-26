@@ -2236,7 +2236,7 @@ Object.assign(MOVES, {
   zweiOberhauLinks: { kind: 'strike', limb: 'rHand', path: 'blade', refWeapon: 'zweihander', mode: 'swing', grip: 'two', from: { hand: [0.04, 0.95, 0.14], dir: [-0.55, 0.6, 0.6] }, mid: [0.9, 0.15, -0.1], to: { hand: [0.27, 0.42, -0.22], dir: [0.4, -0.75, -0.55] }, windup: 0.2, extendUntil: 0.46, duration: 0.9, twist: 0.45, lean: 0.14, shift: 0.08, cost: 0.04, mass: { arm: 0.6, body: 0.04 }, rotation: 0.85, zones: ['body', 'head'], reach: 'weapon', contactAt: 0.72 },
   zweiMittelhau: { kind: 'strike', limb: 'rHand', path: 'blade', refWeapon: 'zweihander', mode: 'swing', grip: 'two', sweep: true, from: { hand: [0.02, 0.72, -0.32], dir: [-0.35, 0.15, -0.95] }, mid: [1, 0.05, 0], to: { hand: [0.2, 0.66, 0.3], dir: [0.1, 0.05, 1] }, windup: 0.2, extendUntil: 0.48, duration: 0.95, twist: -0.9, lean: 0.07, shift: 0.06, cost: 0.042, mass: { arm: 0.65, body: 0.05 }, rotation: 0.85, zones: ['body', 'head'], reach: 'weapon', contactAt: 0.72 },
   zweiUnterhau: { kind: 'strike', limb: 'rHand', path: 'blade', refWeapon: 'zweihander', mode: 'swing', grip: 'two', from: { hand: [0.12, 0.4, -0.24], dir: [0.3, -0.6, -0.7] }, mid: [0.9, 0.1, 0], to: { hand: [0.12, 0.9, 0.14], dir: [0.3, 0.8, 0.5] }, windup: 0.18, extendUntil: 0.44, duration: 0.85, twist: 0.35, lean: 0.05, shift: 0.05, cost: 0.036, mass: { arm: 0.6, body: 0.035 }, rotation: 0.85, zones: ['body'], reach: 'weapon', contactAt: 0.7 },
-  zweiStich: { kind: 'strike', limb: 'rHand', path: 'blade', refWeapon: 'zweihander', mode: 'thrust', grip: 'two', from: { hand: [0.08, 0.55, -0.04], dir: [1, 0.2, 0] }, windup: 0.1, extendUntil: 0.38, duration: 0.65, twist: -0.25, lean: 0.18, shift: 0.12, depth: 0.3, step: 2.0, cost: 0.03, mass: { arm: 0.65, body: 0.06 }, rotation: 0.6, zones: ['body', 'head'], reach: 'weapon' },
+  zweiStich: { kind: 'strike', limb: 'rHand', path: 'blade', refWeapon: 'zweihander', mode: 'thrust', grip: 'two', from: { hand: [0.26, 0.55, -0.04], dir: [1, 0.2, 0] }, windup: 0.1, extendUntil: 0.38, duration: 0.65, twist: -0.25, lean: 0.18, shift: 0.12, depth: 0.3, step: 2.0, cost: 0.03, mass: { arm: 0.65, body: 0.06 }, rotation: 0.6, zones: ['body', 'head'], reach: 'weapon' },
   ricassoStich: { kind: 'strike', limb: 'rHand', path: 'blade', refWeapon: 'zweihander', mode: 'thrust', grip: 'two', offAlong: 0.2, from: { hand: [-0.12, 0.56, -0.1], dir: [1, 0.35, 0] }, windup: 0.12, extendUntil: 0.36, duration: 0.62, twist: -0.35, lean: 0.24, shift: 0.14, depth: 0.25, step: 1.4, cost: 0.03, mass: { arm: 0.75, body: 0.1 }, rotation: 0.5, zones: ['body', 'head'], reach: 'close' },
 });
 // The Doppelsöldner's zweihander (weapons.js zweihander): a drilled swordsman's ways, as the long sword's (its share of blocks,
@@ -2245,11 +2245,15 @@ Object.assign(MOVES, {
 // (zweiOberhau into zweiOberhauLinks) the commonest chain. Nothing here is set to make it block better: it blocks as often
 // as the long sword's man chooses to, and whether the block holds is the blade's and the hilt's (physics.js clashWeapons,
 // physics/hilt.js, physics/deflect.js). Rests between cuts a little longer than the long sword's (`tempo` 1.1 to its 1).
+// The hilt in that guard, and the thrust's chamber (zweiStich `from`), are held a quarter of his height before him, not at the
+// long sword's 0.15-0.17: the left hand is 0.32 m behind the right on the zweihander's grip (weapons.js `spacing`), and with the
+// hilt any nearer the pommel would lie in his own hips; the body pushed that hand off the grip (measured in bouts: the hands a
+// median 8 cm apart along the sword and 11 cm off its line, the sword held as in one hand), where now it is on the pommel.
 STYLES.zweihander = {
   label: 'Zweihander', weapon: 'zweihander', fallback: 'mix',
   cadence: { work: 1.3, move: 0.7, burst: 0.65, mobility: 0.55 },
   stance: { blade: 0.42, crouch: 0.06, width: 1.25, lean: 0.06, guardHeight: 0 },
-  weaponGuard: { hand: [0.15, 0.55, -0.05], dir: [1, 0.5, 0.03] },
+  weaponGuard: { hand: [0.25, 0.55, -0.05], dir: [1, 0.5, 0.03] },
   idle: { bounce: 0.15, sway: 0.4, rock: 0.3 },
   attacks: { zweiOberhau: 0.28, zweiOberhauLinks: 0.1, zweiMittelhau: 0.24, zweiUnterhau: 0.1, zweiStich: 0.2, ricassoStich: 0.08 },
   combos: { 'zweiOberhau zweiOberhauLinks': 0.35, 'zweiMittelhau zweiOberhau': 0.2, 'zweiStich zweiOberhau': 0.2, 'zweiUnterhau zweiOberhau': 0.15, 'zweiOberhauLinks zweiOberhau': 0.1 },
