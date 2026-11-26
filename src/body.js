@@ -275,14 +275,14 @@ export const PRESETS = {
   },
   // An archer: the bow, side-on and keeping away; the wakizashi when closed with.
   bow: {
-    name: 'Nasu no Yoichi', style: 'bow', sex: 'male', heightCm: 160, frame: 'medium', age: 24, exercise: 0.7, calories: 3150,
+    name: 'Nasu no Yoichi', style: 'bow', sex: 'male', heightCm: 166, frame: 'medium', age: 24, exercise: 0.7, calories: 3390,
     outfit: { kind: 'samurai', design: 2 }, accessories: [],
     look: { skinTone: 'lightTan', hairStyle: 'topknot', hairColor: '#120d0a', facialHair: 'none', eyeColor: 'brown' },
   },
   // An ashigaru archer: the yumi (WEAPONS.yumi) from the line, his short sword when closed with (STYLES.archerYumi). Not
   // dealt at random (`undealt`): the casts and battles stay as they were.
   archerYumi: {
-    name: 'Sakuzaemon', style: 'archerYumi', sex: 'male', heightCm: 157, frame: 'medium', age: 30, exercise: 0.5, calories: 2500, undealt: true,
+    name: 'Sakuzaemon', style: 'archerYumi', sex: 'male', heightCm: 164, frame: 'medium', age: 30, exercise: 0.5, calories: 2730, undealt: true,
     outfit: { kind: 'ashigaru', design: 1 }, accessories: [],
     look: { skinTone: 'lightTan', hairStyle: 'topknot', hairColor: '#120d0a', facialHair: 'stubble', eyeColor: 'brown' },
   },
@@ -295,14 +295,14 @@ export const PRESETS = {
   },
   // A Swiss pikeman of the Italian wars: the 5 m pike, a breastplate and a kettle hat, a short sword for the press.
   pike: {
-    name: 'Ueli Stauffacher', style: 'pike', sex: 'male', heightCm: 170, frame: 'large', age: 29, exercise: 0.8, calories: 3900,
+    name: 'Ueli Stauffacher', style: 'pike', sex: 'male', heightCm: 171, frame: 'large', age: 29, exercise: 0.8, calories: 3945,
     outfit: { kind: 'footman', design: 3 }, accessories: [],
     look: { skinTone: 'light', hairStyle: 'cleanShort', hairColor: '#8a6a3a', facialHair: 'beard', eyeColor: 'grey' },
   },
   // A teppō gunner of the Saika: an ashigaru's kit, the matchlock, a
   // wakizashi (the kit's sidearm) for when they close.
   matchlock: {
-    name: 'Suzuki Magoichi', style: 'matchlock', sex: 'male', heightCm: 165, frame: 'medium', age: 31, exercise: 0.6, calories: 3000,
+    name: 'Suzuki Magoichi', style: 'matchlock', sex: 'male', heightCm: 168, frame: 'medium', age: 31, exercise: 0.6, calories: 3110,
     outfit: { kind: 'ashigaru', design: 0 }, accessories: [],
     look: { skinTone: 'lightTan', hairStyle: 'topknot', hairColor: '#120d0a', facialHair: 'stubble', eyeColor: 'brown' },
   },
@@ -381,7 +381,7 @@ export const PRESETS = {
   },
   // Chen Fake, the Chen-style tai chi master: slight, old, rooted.
   taichi: {
-    name: 'Chen Fake', style: 'taichi', sex: 'male', heightCm: 170, frame: 'medium', age: 52, exercise: 0.55, calories: 3250,
+    name: 'Chen Fake', style: 'taichi', sex: 'male', heightCm: 171, frame: 'medium', age: 52, exercise: 0.55, calories: 3290,
     outfit: { kind: 'kungfu', design: 0 }, accessories: [],
     look: { skinTone: 'lightTan', hairStyle: 'cleanShort', hairColor: '#4a4a48', facialHair: 'beard', eyeColor: 'brown' },
   },
@@ -407,7 +407,7 @@ export const PRESETS = {
   // Short and sturdy, built like the oni his armour shows: a wide frame,
   // a heavy body carrying fat over muscle, and the slower for it.
   kanabo: {
-    name: 'Kojima Yatarō', style: 'kanabo', sex: 'male', heightCm: 165, frame: 'large', age: 36, exercise: 0.7, calories: 4710,
+    name: 'Kojima Yatarō', style: 'kanabo', sex: 'male', heightCm: 168, frame: 'large', age: 36, exercise: 0.7, calories: 4885,
     outfit: { kind: 'samuraiTosei', design: 5 }, accessories: [],
     look: { skinTone: 'lightTan', hairStyle: 'topknot', hairColor: '#120d0a', facialHair: 'beard', eyeColor: 'brown' },
   },
@@ -423,7 +423,7 @@ export const PRESETS = {
   },
   kheshig: {
     // The Khan's guard rode as heavy archers first: a quick volley, then in with the sabre (his own, carried with the leather lamellar).
-    name: 'Subutai', style: 'kheshigBow', hero: true, sex: 'male', heightCm: 165, frame: 'large', age: 44, exercise: 0.65, calories: 3925,
+    name: 'Subutai', style: 'kheshigBow', hero: true, sex: 'male', heightCm: 168, frame: 'large', age: 44, exercise: 0.65, calories: 4070,
     outfit: { kind: 'steppeMedium', design: 0 }, accessories: [], sidearm: 'saber',
     look: { skinTone: 'lightTan', hairStyle: 'long', hairColor: '#120d0a', facialHair: 'mustache', eyeColor: 'brown' },
   },
@@ -437,7 +437,7 @@ export const PRESETS = {
   // names); Li Ling, the Han general whose five thousand foot crossbowmen
   // held off the Xiongnu for days in 99 BC, with the jian at his side.
   crossbow: {
-    name: 'Ottone Doria', style: 'crossbow', sex: 'male', heightCm: 170, frame: 'medium', age: 34, exercise: 0.6, calories: 3700,
+    name: 'Ottone Doria', style: 'crossbow', sex: 'male', heightCm: 171, frame: 'medium', age: 34, exercise: 0.6, calories: 3745,
     outfit: { kind: 'footman', design: 0 }, accessories: [],
     look: { skinTone: 'lightTan', hairStyle: 'cleanShort', hairColor: '#2a1a10', facialHair: 'stubble', eyeColor: 'brown' },
   },
@@ -447,7 +447,7 @@ export const PRESETS = {
     look: { skinTone: 'lightTan', hairStyle: 'bun', hairColor: '#120d0a', facialHair: 'none', eyeColor: 'brown' },
   },
   hanCrossbow: {
-    name: 'Li Ling', style: 'nu', sex: 'male', heightCm: 169, frame: 'medium', age: 35, exercise: 0.7, calories: 3750,
+    name: 'Li Ling', style: 'nu', sex: 'male', heightCm: 170, frame: 'medium', age: 35, exercise: 0.7, calories: 3795,
     outfit: { kind: 'hanSoldier', design: 0 }, accessories: [],
     look: { skinTone: 'lightTan', hairStyle: 'bun', hairColor: '#120d0a', facialHair: 'mustache', eyeColor: 'brown' },
   },
@@ -466,7 +466,7 @@ export const PRESETS = {
   // (OUTFITS.samuraiTosei's nanbanDo set), the yari a mounted lord fought with; the katana at his belt. Mid-thirties, a
   // samurai's build.
   nanbanLord: {
-    name: 'Takayama Ukon', style: 'yari', sex: 'male', heightCm: 162, frame: 'medium', age: 35, exercise: 0.7, calories: 3500,
+    name: 'Takayama Ukon', style: 'yari', sex: 'male', heightCm: 167, frame: 'medium', age: 35, exercise: 0.7, calories: 3720,
     outfit: { kind: 'samuraiTosei', design: 8 }, accessories: [],
     look: { skinTone: 'lightTan', hairStyle: 'sakayaki', hairColor: '#120d0a', facialHair: 'mustache', eyeColor: 'brown', faceRegion: 'japan' },
   },
@@ -492,22 +492,22 @@ export const PRESETS = {
   // emperor at Tumu (1449); Mandukhai Khatun, who led the Mongols in armour in
   // the 1470s–90s; an Oirat archer and a lancer.
   maceShield: {
-    name: 'Esen Taishi', style: 'maceShield', sex: 'male', heightCm: 167, frame: 'large', age: 42, exercise: 0.6, calories: 3950,
+    name: 'Esen Taishi', style: 'maceShield', sex: 'male', heightCm: 170, frame: 'large', age: 42, exercise: 0.6, calories: 4095,
     outfit: { kind: 'steppeMedium', design: 2 }, accessories: [],
     look: { skinTone: 'lightTan', hairStyle: 'long', hairColor: '#120d0a', facialHair: 'beard', eyeColor: 'brown' },
   },
   saber: {
-    name: 'Mandukhai Khatun', style: 'saberShield', sex: 'female', heightCm: 158, frame: 'large', age: 30, exercise: 0.7, calories: 3250,
+    name: 'Mandukhai Khatun', style: 'saberShield', sex: 'female', heightCm: 159, frame: 'large', age: 30, exercise: 0.7, calories: 3290,
     outfit: { kind: 'kheshig', design: 1 }, accessories: [],
     look: { skinTone: 'lightTan', hairStyle: 'long', hairColor: '#120d0a', facialHair: 'none', eyeColor: 'brown' },
   },
   steppeBow: {
-    name: 'Bayar', style: 'steppeBow', sex: 'male', heightCm: 164, frame: 'large', age: 26, exercise: 0.7, calories: 3950,
+    name: 'Bayar', style: 'steppeBow', sex: 'male', heightCm: 168, frame: 'large', age: 26, exercise: 0.7, calories: 4145,
     outfit: { kind: 'steppeLight', design: 0 }, accessories: [],
     look: { skinTone: 'lightTan', hairStyle: 'long', hairColor: '#120d0a', facialHair: 'none', eyeColor: 'brown' },
   },
   saberShield: {
-    name: 'Ganbold', style: 'kheshigBow', sex: 'male', heightCm: 165, frame: 'large', age: 29, exercise: 0.65, calories: 3875,
+    name: 'Ganbold', style: 'kheshigBow', sex: 'male', heightCm: 168, frame: 'large', age: 29, exercise: 0.65, calories: 4015,
     outfit: { kind: 'kheshig', design: 0 }, accessories: [], sidearm: 'mace',
     look: { skinTone: 'lightTan', hairStyle: 'long', hairColor: '#120d0a', facialHair: 'mustache', eyeColor: 'brown' },
   },
@@ -568,12 +568,12 @@ export const PRESETS = {
     look: { skinTone: 'lightTan', hairStyle: 'cleanShort', hairColor: '#2a1d14', facialHair: 'beard', eyeColor: 'brown' },
   },
   macuahuitl: {
-    name: 'Cuauhtémoc', style: 'macuahuitl', hero: true, sex: 'male', heightCm: 162, frame: 'medium', age: 25, exercise: 0.77, calories: 3775,
+    name: 'Cuauhtémoc', style: 'macuahuitl', hero: true, sex: 'male', heightCm: 167, frame: 'medium', age: 25, exercise: 0.77, calories: 4010,
     outfit: { kind: 'mexicaElite', design: 1 }, accessories: [],
     look: { skinTone: 'tan', hairStyle: 'midLong', hairColor: '#120d0a', facialHair: 'none', eyeColor: 'brown' },
   },
   tepoztopilli: {
-    name: 'Ocelotl', style: 'tepoztopilli', sex: 'male', heightCm: 161, frame: 'medium', age: 27, exercise: 0.77, calories: 3725,
+    name: 'Ocelotl', style: 'tepoztopilli', sex: 'male', heightCm: 166, frame: 'medium', age: 27, exercise: 0.77, calories: 3960,
     outfit: { kind: 'mexicaElite', design: 0 }, accessories: [],
     look: { skinTone: 'tan', hairStyle: 'midLong', hairColor: '#120d0a', facialHair: 'none', eyeColor: 'brown' },
   },
@@ -620,7 +620,7 @@ export const PRESETS = {
   // a little over the recruit's ~168 cm (the army's 5 ft 6 in standard, a fusilier regiment's man somewhat above it),
   // hardened by drill and the march, on the ration and what his pay bought (~3800 kcal); drilled to the bayonet (0.55).
   lineInfantry: {
-    name: 'Pte. Joseph Wood', style: 'flintlock', sex: 'male', heightCm: 171, frame: 'medium', age: 24, exercise: 0.8, calories: 3800, skill: 0.55,
+    name: 'Pte. Joseph Wood', style: 'flintlock', sex: 'male', heightCm: 172, frame: 'medium', age: 24, exercise: 0.8, calories: 3845, skill: 0.55,
     outfit: { kind: 'lineInfantry', design: 0 }, accessories: [],
     look: { skinTone: 'light', hairStyle: 'cleanShort', hairColor: '#4a3020', facialHair: 'none', eyeColor: 'blue' },
   },
@@ -706,7 +706,7 @@ export const PRESETS = {
   // fallen in the Teutoburg Forest (AD 9) aged 53, his tombstone showing
   // him in his mail, phalerae and torcs. Romans of the legions ran ~1.68 m.
   legionary: {
-    name: 'Gaius Valerius Crispus', style: 'legionary', sex: 'male', heightCm: 170, frame: 'medium', age: 28, exercise: 0.75, calories: 4050,
+    name: 'Gaius Valerius Crispus', style: 'legionary', sex: 'male', heightCm: 171, frame: 'medium', age: 28, exercise: 0.75, calories: 4100,
     outfit: { kind: 'legionary', design: 0 }, accessories: [],
     look: { skinTone: 'lightTan', hairStyle: 'buzz', hairColor: '#2a1a10', facialHair: 'none', eyeColor: 'brown' },
   },
@@ -720,7 +720,7 @@ export const PRESETS = {
   // arming sword. She leads: on a side with a standard she bears it, as she
   // bore her white banner herself.
   joan: {
-    name: 'Joan of Arc', style: 'joan', hero: true, sex: 'female', heightCm: 158, frame: 'medium', age: 18, exercise: 0.75, calories: 2700, leads: true, standardColour: '#f1ece0',
+    name: 'Joan of Arc', style: 'joan', hero: true, sex: 'female', heightCm: 159, frame: 'medium', age: 18, exercise: 0.75, calories: 2735, leads: true, standardColour: '#f1ece0',
     outfit: { kind: 'joan', design: 0 }, accessories: [],
     look: { skinTone: 'light', hairStyle: 'cleanShort', hairColor: '#3a2416', facialHair: 'none', eyeColor: 'brown' },
   },
@@ -737,12 +737,12 @@ export const PRESETS = {
   // strength the chronicles made legend; ō-yoroi, the yumi, and the ōdachi
   // when a man came close.
   tametomo: {
-    name: 'Minamoto no Tametomo', style: 'yumi', hero: true, sex: 'male', heightCm: 168, frame: 'large', age: 18, exercise: 0.74, calories: 3950,
+    name: 'Minamoto no Tametomo', style: 'yumi', hero: true, sex: 'male', heightCm: 170, frame: 'large', age: 18, exercise: 0.74, calories: 4045,
     outfit: { kind: 'oyoroi', design: 0 }, accessories: ['crest'],
     look: { skinTone: 'lightTan', hairStyle: 'topknot', hairColor: '#120d0a', facialHair: 'stubble', eyeColor: 'brown' },
   },
   samurai: {
-    name: 'Takeda Shingen', style: 'katana', sex: 'male', heightCm: 163, frame: 'medium', age: 34, exercise: 0.74, calories: 3650,
+    name: 'Takeda Shingen', style: 'katana', sex: 'male', heightCm: 168, frame: 'medium', age: 34, exercise: 0.74, calories: 3875,
     outfit: { kind: 'samurai', design: 1 }, accessories: ['crest'],
     look: { skinTone: 'lightTan', hairStyle: 'topknot', hairColor: '#120d0a', facialHair: 'mustache', eyeColor: 'brown' },
   },
@@ -785,7 +785,7 @@ export const PRESETS = {
   },
   // A peasant up in arms with his hay fork (the rebels are built on him).
   spear: {
-    name: 'Hob Miller', style: 'pitchfork', sex: 'male', heightCm: 170, frame: 'medium', age: 30, exercise: 0.5, calories: 3050,
+    name: 'Hob Miller', style: 'pitchfork', sex: 'male', heightCm: 171, frame: 'medium', age: 30, exercise: 0.5, calories: 3085,
     outfit: { kind: 'commoner', design: 0 }, accessories: ['headWrap'],
     look: { skinTone: 'tan', hairStyle: 'cleanShort', hairColor: '#2a1a10', facialHair: 'stubble', eyeColor: 'hazel' },
   },
@@ -794,13 +794,13 @@ export const PRESETS = {
   // a third of his strength gone with the fat (aging.js starvation), little wind; next to no drill (`skill`, a levy's). Nothing
   // here makes him weak but his body. Not dealt at random (`undealt`): the casts and battles stay as they were.
   starved: {
-    name: 'Starved Rebel', style: 'pitchfork', sex: 'male', heightCm: 170, frame: 'medium', age: 26, exercise: 0.2, calories: 1669, skill: 0.12, undealt: true,
+    name: 'Starved Rebel', style: 'pitchfork', sex: 'male', heightCm: 171, frame: 'medium', age: 26, exercise: 0.2, calories: 1690, skill: 0.12, undealt: true,
     outfit: { kind: 'rags', design: 0, tear: { seed: 3, amount: 0.85, sleeve: 'l' } }, accessories: [],
     look: { skinTone: 'light', hairStyle: 'midLong', hairColor: '#4a3a2a', facialHair: 'beard', eyeColor: 'grey' },
   },
   // An ashigaru spearman with his yari: Hob Miller's build, a foot soldier's drill.
   yari: {
-    name: 'Gonbei', style: 'yari', sex: 'male', heightCm: 157, frame: 'medium', age: 30, exercise: 0.5, calories: 2500,
+    name: 'Gonbei', style: 'yari', sex: 'male', heightCm: 164, frame: 'medium', age: 30, exercise: 0.5, calories: 2730,
     outfit: { kind: 'ashigaru', design: 0 }, accessories: [],
     look: { skinTone: 'tan', hairStyle: 'cleanShort', hairColor: '#2a1a10', facialHair: 'stubble', eyeColor: 'hazel' },
   },

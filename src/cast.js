@@ -455,7 +455,7 @@ export function incaMan(random = Math.random, style = 'unskilled', rank = 'commo
 // thirty, well made and somewhat stout, grave; in the royal tocapu and the
 // mascapaicha (the incaNoble kit's Sapa Inca design). He leads his people
 // (`leads`): they keep round him, and his fall is theirs.
-const ATAHUALPA = { age: 30, heightCm: 165, weightKg: 72, design: 4 };
+const ATAHUALPA = { age: 30, heightCm: 168, weightKg: 75, design: 4 };
 
 /** Atahualpa, the Sapa Inca: unarmed among his lords. */
 export function atahualpa(random = Math.random) {
@@ -615,15 +615,15 @@ export function footSoldier(random = Math.random, style = 'spear') {
  * better and trained more.
  */
 const ANCIENT_BUILD = {
-  xiongnu: { rider: { heightCm: 165, weightKg: 62, exercise: 0.76 } },
-  hun: { rider: { heightCm: 166, weightKg: 63, exercise: 0.76 }, noble: { heightCm: 168, weightKg: 67, exercise: 0.8 } },
-  lateRoman: { soldier: { heightCm: 169, weightKg: 66, exercise: 0.72 } },
+  xiongnu: { rider: { heightCm: 168, weightKg: 64, exercise: 0.76 } },
+  hun: { rider: { heightCm: 169, weightKg: 65, exercise: 0.76 }, noble: { heightCm: 168, weightKg: 67, exercise: 0.8 } },
+  lateRoman: { soldier: { heightCm: 170, weightKg: 67, exercise: 0.72 } },
   goth: { warrior: { heightCm: 172, weightKg: 68, exercise: 0.66 }, noble: { heightCm: 174, weightKg: 72, exercise: 0.76 } },
-  parthian: { archer: { heightCm: 167, weightKg: 63, exercise: 0.74 }, cataphract: { heightCm: 170, weightKg: 70, exercise: 0.8 } },
+  parthian: { archer: { heightCm: 170, weightKg: 65, exercise: 0.74 }, cataphract: { heightCm: 170, weightKg: 70, exercise: 0.8 } },
 };
 
 // The legionary of the Republic: the Empire's legionary (PRESETS.legionary), shorter by the century and a half, in Crassus's kit.
-const REPUBLICAN_LEGIONARY = { ...PRESETS.legionary, name: 'Publius Octavius', heightCm: 167, calories: 3950, outfit: { kind: 'republicanLegionary', design: 0 } };
+const REPUBLICAN_LEGIONARY = { ...PRESETS.legionary, name: 'Publius Octavius', heightCm: 170, calories: 4095, outfit: { kind: 'republicanLegionary', design: 0 } };
 
 /** A man of one of these peoples: `base` varied, a name from `names` (or a first name and a second), in his kit, at his people's build, his looks drawn from `look`'s choices. */
 function ancientMan(random, base, names, kind, style, build, { mounted = false, look = {} } = {}) {

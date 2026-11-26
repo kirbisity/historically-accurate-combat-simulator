@@ -20,9 +20,9 @@ const FOLK_POINTS = PARTICLES.length;
 // Who they are (age, height cm, hair, clothes): the town's people as the story's sets make them; a man of the south
 // ~163 cm (as the sets' men), a woman ~150 cm (STORY_SET.womanHeight), children by age (STORY_SET.childHeight).
 const FOLK_WHO = {
-  man: { sex: 'male', age: 34, heightCm: 163, hair: 'topknot' },
+  man: { sex: 'male', age: 34, heightCm: 168, hair: 'topknot' },
   woman: { sex: 'female', age: 30, heightCm: STORY_SET.womanHeight, hair: 'bun' },
-  old: { sex: 'male', age: 62, heightCm: 160, hair: 'topknot' },
+  old: { sex: 'male', age: 62, heightCm: 166, hair: 'topknot' },
   boy: { sex: 'male', age: 10, hair: 'topknot' },
   girl: { sex: 'female', age: 9, hair: 'bun' },
 };

@@ -32,7 +32,7 @@ export const LEVEL_PRESETS = {
   // all (the man-at-arms is for a poleaxe taken from a fallen guard, about even).
   // Tier 1: levy spearmen, little armour, little drill (underfed conscripts, 62 kg: the operative wins nearly every duel with one).
   dunnottarSoldier: {
-    name: 'Dunnottar levy', style: 'spear', sex: 'male', heightCm: 168, frame: 'small', age: 27, exercise: 0.06, calories: 1984, skill: 0.04,
+    name: 'Dunnottar levy', style: 'spear', sex: 'male', heightCm: 170, frame: 'small', age: 27, exercise: 0.06, calories: 2030, skill: 0.04,
     outfit: { kind: 'levy', design: 0 }, accessories: [],
     look: { skinTone: 'light', hairStyle: 'cleanShort', hairColor: '#5a4a3a', facialHair: 'stubble', eyeColor: 'blue' },
   },
@@ -43,7 +43,7 @@ export const LEVEL_PRESETS = {
     look: { skinTone: 'light', hairStyle: 'buzz', hairColor: '#4a3020', facialHair: 'beard', eyeColor: 'brown' },
   },
   dunnottarCrossbow: {
-    name: 'Dunnottar crossbowman', style: 'crossbow', sex: 'male', heightCm: 170, frame: 'medium', age: 30, exercise: 0.3, calories: 2737, skill: 0.2,
+    name: 'Dunnottar crossbowman', style: 'crossbow', sex: 'male', heightCm: 171, frame: 'medium', age: 30, exercise: 0.3, calories: 2770, skill: 0.2,
     outfit: { kind: 'footman', design: 2 }, accessories: [],
     look: { skinTone: 'lightTan', hairStyle: 'cleanShort', hairColor: '#2a1a10', facialHair: 'mustache', eyeColor: 'brown' },
   },
@@ -94,7 +94,7 @@ export const LEVEL_PRESETS = {
   // ---- Prisoners of the vault (the Forgers free them) --------------------------------------
   // Ragged, underfed, a pick or what came to hand.
   cabyMiner: {
-    name: 'Caby miner', style: 'warhammer', sex: 'male', heightCm: 168, frame: 'medium', age: 38, exercise: 0.6, calories: 2884, skill: 0.35,
+    name: 'Caby miner', style: 'warhammer', sex: 'male', heightCm: 170, frame: 'medium', age: 38, exercise: 0.6, calories: 2955, skill: 0.35,
     outfit: { kind: 'commoner', design: 0, colors: { top: '#7a6f5c', bottom: '#3a332a' } }, accessories: ['headWrap'],
     look: { skinTone: 'light', hairStyle: 'midLong', hairColor: '#2a1a10', facialHair: 'beard', eyeColor: 'brown' },
   },
@@ -106,7 +106,7 @@ export const LEVEL_PRESETS = {
   // The vault's prisoners who are no fighters any more: starved, in rags torn open at the back, nothing in their hands (the style that covers
   // up). They kneel where they are kept and weep (levelmode/awareness.js `mourn`), and one is chained to the wall and whipped (`torment`).
   vaultPrisoner: {
-    name: 'Prisoner', style: 'passive', sex: 'male', heightCm: 170, frame: 'medium', age: 34, exercise: 0.15, calories: 1750, skill: 0.1,
+    name: 'Prisoner', style: 'passive', sex: 'male', heightCm: 171, frame: 'medium', age: 34, exercise: 0.15, calories: 1770, skill: 0.1,
     outfit: { kind: 'rags', design: 0, tear: { seed: 5, amount: 0.8, sleeve: 'r' } }, accessories: [],
     look: { skinTone: 'light', hairStyle: 'midLong', hairColor: '#3a2a1c', facialHair: 'beard', eyeColor: 'brown' },
   },
@@ -127,7 +127,7 @@ export const LEVEL_PRESETS = {
   // is outmatched by nearly anyone (ai.js confidence), and fear and his wounds break him (ai.js `panic`) as they do a levy.
   // A stage that wants a crowd of them deals each from cast.js `starvedRebel` and sets it as the spawn's `inputs`.
   starvedRebel: {
-    name: 'Starved rebel', style: 'pitchfork', sex: 'male', heightCm: 170, frame: 'medium', age: 26, exercise: 0.2, calories: 1669, skill: 0.12,
+    name: 'Starved rebel', style: 'pitchfork', sex: 'male', heightCm: 171, frame: 'medium', age: 26, exercise: 0.2, calories: 1690, skill: 0.12,
     outfit: { kind: 'rags', design: 0, tear: { seed: 3, amount: 0.85, sleeve: 'l' } }, accessories: [],
     look: { skinTone: 'light', hairStyle: 'midLong', hairColor: '#4a3a2a', facialHair: 'beard', eyeColor: 'grey' },
   },

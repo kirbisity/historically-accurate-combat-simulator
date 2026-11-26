@@ -9,6 +9,10 @@
 // better fed, harder drilled; `{}` the people's own ordinary man). A rank may also give, as they are: `skill` (body.js),
 // `spread` (of height and weight, builtLike), and `mix` ([share, a difference from the rank], cast.js builtLike) with
 // `ages` bands.
+// Seen by today's eye (the user's call, 2026-11-26: "163 cm is outside modern people's imagination"): every short
+// stature in the game's data (these peoples, the named presets, the casts, the townsfolk) is set halfway from the
+// records' figure up to 172 cm for a man (160 cm for a woman), its weight and diet scaled with it as the square of the
+// height so each build keeps its shape; the records' figures stay in the notes. A user's own fighter is as he set him.
 export const PEOPLES = {
   // Ming China, c. 1600: Ming burials of northern Han men give a stature about 164-166 cm (northern Ming-Qing series
   // generally 162-167); the soldier's ration about a sheng and a half of grain a day (about 1 kg: ~3000 kcal) with
@@ -18,7 +22,7 @@ export const PEOPLES = {
   // the records' size read too small to today's eye. Brought back down to the records' upper middle on the user's call
   // (2026-11-08, "slightly tune down"): 164 cm, the weight at his height (65 × (164/166)²).
   ming: {
-    heightCm: 164, weightKg: 63, calories: 3000, exercise: 0.5,
+    heightCm: 168, weightKg: 66, calories: 3150, exercise: 0.5,
     ranks: {
       garrison: {},
       // The regulars in brigandine: paid men, picked a little for size, drilled.
@@ -30,7 +34,7 @@ export const PEOPLES = {
   // Southern Han (Zhejiang, Fujian): a little shorter and lighter than northern men (southern Ming-Qing series about
   // 161-164 cm); the weisuo the same little-drilled garrison as the north's (ming `exercise`).
   mingSouth: {
-    heightCm: 163, weightKg: 59, exercise: 0.5,
+    heightCm: 168, weightKg: 63, exercise: 0.5,
     ranks: {
       garrison: {},
       brigandine: { heightCm: 2, weightKg: 3, exercise: 0.15 },
@@ -90,7 +94,7 @@ export const PEOPLES = {
   // builds first given them (177-182 cm), a few centimetres down. Down again on the user's call (2026-11-08, "slightly
   // tune down"): 168 cm, the top of the records' range, the weight at his height (81 × (168/171)²).
   jurchen: {
-    heightCm: 168, weightKg: 78, calories: 4300, exercise: 0.85,
+    heightCm: 170, weightKg: 80, calories: 4405, exercise: 0.85,
     ranks: {
       // The company (niru) sent its able-bodied men to war, not all of them: a little above the people.
       banner: { heightCm: 2, weightKg: 2, exercise: 0.05 },
@@ -103,7 +107,7 @@ export const PEOPLES = {
   // and daimyo remains a few cm above the townsmen); the rōnin lean and hard, living by the sword; the sōhei fed, hard
   // worked, drilled past an ashigaru but short of a samurai's lifetime (`skill`).
   japanese: {
-    heightCm: 157, weightKg: 55, exercise: 0.6,
+    heightCm: 164, weightKg: 60, exercise: 0.6,
     ranks: {
       ashigaru: {},
       samurai: { heightCm: 3, weightKg: 3, exercise: 0.1 },
@@ -117,7 +121,7 @@ export const PEOPLES = {
   // work. The men who crossed to the Indies were picked and hardened (veterans of Italy, hidalgos raised to arms): a
   // little above the Castilian mean (selection by hardiness, not by height), toughened by years of war (`exercise`).
   spanish: {
-    heightCm: 165, weightKg: 66, exercise: 0.6,
+    heightCm: 168, weightKg: 68, exercise: 0.6,
     ranks: {
       // Set well above the Castilian mean by the user's choice (2026-11-03, "taller and stronger"), kept as chosen.
       soldier: { heightCm: 7, weightKg: 6, exercise: 0.24 },
@@ -128,7 +132,7 @@ export const PEOPLES = {
   // The Mexica a few centimetres shorter than the Castilians (Tlatelolco and Valley of Mexico series about 160-163 cm),
   // lean, trained for war from youth in the telpochcalli; the jaguar and eagle orders a little bigger and harder.
   mexica: {
-    heightCm: 160, weightKg: 58, exercise: 0.72,
+    heightCm: 166, weightKg: 62, exercise: 0.72,
     ranks: {
       warrior: {},
       elite: { heightCm: 2, weightKg: 2, exercise: 0.1 },
@@ -139,7 +143,7 @@ export const PEOPLES = {
   // the roads under the mit'a; the litter's bearers (the Lucanas) were picked for it. The lords of the Inca's lineage ate
   // better and were trained to arms in their youth (the warachikuy): a little taller and fitter.
   inca: {
-    heightCm: 157, weightKg: 62, exercise: 0.7,
+    heightCm: 164, weightKg: 68, exercise: 0.7,
     ranks: {
       commoner: {},
       noble: { heightCm: 3, weightKg: 3, exercise: 0.04 },
@@ -148,7 +152,7 @@ export const PEOPLES = {
   // The Hospitallers at Rhodes: western Europeans of c. 1500 (French, Spanish, Italian, English series about
   // 166-170 cm). Their sergeants and gunners men of the commons; the knights nobles, fed and trained from boyhood.
   hospitaller: {
-    heightCm: 167, weightKg: 66, exercise: 0.65,
+    heightCm: 170, weightKg: 68, exercise: 0.65,
     ranks: {
       sergeant: {},
       knight: { heightCm: 3, weightKg: 5, exercise: 0.1 },
@@ -170,7 +174,7 @@ export const PEOPLES = {
   // Medieval Mongol and Oirat men, from skeletons about 163-167 cm, lean and hard. Steppe men: short and squat, heavy
   // for their height (riders' bodies, fed on meat and milk); the heavier the kit, the bigger and less lithe the man.
   steppe: {
-    heightCm: 164, weightKg: 74, exercise: 0.7,
+    heightCm: 168, weightKg: 78, exercise: 0.7,
     ranks: {
       light: {},
       medium: { heightCm: 1, weightKg: 4, exercise: -0.04 },
@@ -180,7 +184,7 @@ export const PEOPLES = {
   // Dutch soldiers of the 1660s, among Europe's taller men then (Dutch conscripts and skeletons of the 1600s about
   // 166-170 cm).
   dutch: {
-    heightCm: 168, weightKg: 65, exercise: 0.6,
+    heightCm: 170, weightKg: 67, exercise: 0.6,
     ranks: {
       soldier: {},
       officer: { heightCm: 2, weightKg: 3 },
@@ -189,7 +193,7 @@ export const PEOPLES = {
   // English archers of the fifteenth century, from the Mary Rose's bowmen and the Towton grave: ~171 cm, heavy-boned and
   // strong in the shoulders from a boyhood at the butts; the men-at-arms, fed and trained to arms, about the same.
   english: {
-    heightCm: 171, weightKg: 70, exercise: 0.86,
+    heightCm: 172, weightKg: 71, exercise: 0.86,
     ranks: {
       archer: {},
       manAtArms: { heightCm: 1, weightKg: 4, exercise: -0.06 },
@@ -198,7 +202,7 @@ export const PEOPLES = {
   // The French of 1415 and 1503: the Gascon and Picard foot, smaller men of the commons (~167 cm); the men-at-arms
   // nobles, fed and trained to arms, as tall as the English ones.
   french: {
-    heightCm: 167, weightKg: 64, exercise: 0.62,
+    heightCm: 170, weightKg: 66, exercise: 0.62,
     ranks: {
       foot: {},
       knight: { heightCm: 4, weightKg: 9, exercise: 0.16 },
@@ -206,8 +210,8 @@ export const PEOPLES = {
   },
   // The Swiss and the Landsknechts of 1500 a little shorter than the English (~168 cm), hardened by years of
   // campaigning; the Swiss the harder drilled.
-  swiss: { heightCm: 168, weightKg: 67, exercise: 0.8, ranks: { pike: {} } },
-  landsknecht: { heightCm: 168, weightKg: 67, exercise: 0.74, ranks: { pike: {} } },
+  swiss: { heightCm: 170, weightKg: 69, exercise: 0.8, ranks: { pike: {} } },
+  landsknecht: { heightCm: 170, weightKg: 69, exercise: 0.74, ranks: { pike: {} } },
 };
 
 // Rounded so a sum lands on the figure it states (0.5 + 0.18 is 0.68, not 0.6799...).

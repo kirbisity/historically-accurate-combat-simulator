@@ -133,7 +133,7 @@ function setFamilyInputs(life, who, year) {
   if (who === 'wife') return { ...setCivilian(random, { sex: 'female', age, heightCm: STORY_SET.womanHeight, clothes: STORY_SET.clothes.woman, hair: 'bun' }), name };
   if (who === 'son') return { ...setCivilian(random, { sex: 'male', age, heightCm: age < 16 ? storyChildHeight(age) : 162, clothes: STORY_SET.clothes.boy, hair: 'topknot' }), name };
   if (who === 'daughter') return { ...setCivilian(random, { sex: 'female', age, heightCm: storyChildHeight(age), clothes: STORY_SET.clothes.girl, hair: 'bun' }), name };
-  return { ...setCivilian(random, { age, heightCm: 160, clothes: STORY_SET.clothes.old }), name };
+  return { ...setCivilian(random, { age, heightCm: 166, clothes: STORY_SET.clothes.old }), name };
 }
 
 /** A role's man (no one the life names): an officer, a soldier of the ranks, the condemned, a northern trooper, … */
@@ -154,9 +154,9 @@ function setRoleInputs(role, random, { year }) {
     case 'jinSoldier': return bannerman(random, 'spear');
     case 'refugee': return normaliseInputs({ ...starvedRebel(random), style: 'unskilled' });
     case 'digger': return normaliseInputs({ ...starvedRebel(random), style: 'unskilled', calories: undefined, bodyFat: 0.1 });
-    case 'oldMan': return setCivilian(random, { age: 63, heightCm: 160, clothes: STORY_SET.clothes.old });
-    case 'oldWoman': return setCivilian(random, { sex: 'female', age: 58, heightCm: 147, clothes: STORY_SET.clothes.old, hair: 'bun' });
-    case 'official': return setCivilian(random, { age: 46, heightCm: 167, clothes: STORY_SET.clothes.official, hair: 'topknot' });
+    case 'oldMan': return setCivilian(random, { age: 63, heightCm: 166, clothes: STORY_SET.clothes.old });
+    case 'oldWoman': return setCivilian(random, { sex: 'female', age: 58, heightCm: 154, clothes: STORY_SET.clothes.old, hair: 'bun' });
+    case 'official': return setCivilian(random, { age: 46, heightCm: 170, clothes: STORY_SET.clothes.official, hair: 'topknot' });
     case 'boy': return setCivilian(random, { age: 9, heightCm: storyChildHeight(9), clothes: STORY_SET.clothes.boy, hair: 'topknot' });
     default: return mingSoldier(random, 'spear', 'garrison', { people: year < 1600 ? 'mingSouth' : 'ming' });
   }

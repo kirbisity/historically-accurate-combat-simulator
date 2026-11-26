@@ -178,7 +178,7 @@ export const WARRIORS = [
   // Genoa's crossbowmen were hired professionals, contracted company by company (a professional's skill, 0.45; harder
   // worked than the preset's 0.6, at 0.7).
   warrior('crossbowman', 'Ottone Doria', PRESETS.crossbow, { skill: 0.45, exercise: 0.7 }),
-  warrior('tosei', 'Date Masamune', PRESETS.samurai, { name: 'Date Masamune', heightCm: 160, calories: 3525, outfit: { kind: 'samuraiTosei', design: 2 }, accessories: ['crest'] }),
+  warrior('tosei', 'Date Masamune', PRESETS.samurai, { name: 'Date Masamune', heightCm: 166, calories: 3795, outfit: { kind: 'samuraiTosei', design: 2 }, accessories: ['crest'] }),
   warrior('nanban', 'Takayama Ukon', PRESETS.nanbanLord),
   warrior('hammer', 'Gunnar Holt', PRESETS.warhammer),
   // A foot soldier of the 1500s with the halberd (the Swiss and the Landsknechts, the tercios): the brigandine and kettle hat.
@@ -193,7 +193,7 @@ export const WARRIORS = [
   warrior('sohei', 'Musashibō Benkei', PRESETS.sohei),
   warrior('odachi', 'Makara Naotaka', PRESETS.odachi),
   // The English foot of the 15th century as their people's build (peoples.js english: 171 cm, hard-worked 0.86).
-  warrior('footSpear', 'Will Ward', PRESETS.contender, { name: 'Will Ward', heightCm: 171, calories: 4050, exercise: 0.86, sex: 'male', style: 'spear', outfit: { kind: 'footman', design: 0 }, accessories: [] }),
+  warrior('footSpear', 'Will Ward', PRESETS.contender, { name: 'Will Ward', heightCm: 172, calories: 4100, exercise: 0.86, sex: 'male', style: 'spear', outfit: { kind: 'footman', design: 0 }, accessories: [] }),
   warrior('archer', 'Nasu no Yoichi', PRESETS.bow),
   warrior('teppo', 'Suzuki Magoichi', PRESETS.matchlock),
   warrior('mingGuandao', 'Liu Ting', PRESETS.guandao),
@@ -231,7 +231,7 @@ export const WARRIORS = [
   warrior('vocPikeman', 'Jan de Vries', PRESETS.knight, { name: 'Jan de Vries', exercise: 0.66, heightCm: 175, calories: 4025, style: 'spear', outfit: { kind: 'conquistadorPlate', design: 3 }, accessories: [] }),
   { ...warrior('eagle', 'Cuauhtémoc', PRESETS.macuahuitl), legend: { order: 11, kicker: { en: 'The Last Emperor', zh: '最后的皇帝' }, line: { en: 'The last tlatoani of Tenochtitlan: the obsidian-edged macuahuitl and a feathered shield.', zh: '特诺奇蒂特兰最后的君主：黑曜石剑棍，一面羽毛盾。' } } },
   warrior('jaguar', 'Ocelotl', PRESETS.tepoztopilli),
-  warrior('mexica', 'Yaotl', PRESETS.contender, { name: 'Yaotl', heightCm: 160, calories: 3200, exercise: 0.75, sex: 'male', style: 'macuahuitl', outfit: { kind: 'mexicaWarrior', design: 0 }, accessories: [], look: { skinTone: 'medium', hairStyle: 'midLong', hairColor: '#120d0a', facialHair: 'none', eyeColor: 'brown' } }),
+  warrior('mexica', 'Yaotl', PRESETS.contender, { name: 'Yaotl', heightCm: 166, calories: 3445, exercise: 0.75, sex: 'male', style: 'macuahuitl', outfit: { kind: 'mexicaWarrior', design: 0 }, accessories: [], look: { skinTone: 'medium', hairStyle: 'midLong', hairColor: '#120d0a', facialHair: 'none', eyeColor: 'brown' } }),
   warrior('taekwondo', 'Kim Min-jun', PRESETS.taekwondo),
   warrior('judo', 'Saigo Shiro', PRESETS.judo),
   // Qi Jiguang's men (outfits.js mingEliteInfantry): the sleeved brigandine, the steel guard on the front arm, the langxian.
@@ -243,8 +243,8 @@ export const WARRIORS = [
   warrior('mingEliteGun', 'Wu Weizhong', PRESETS.guandao, { name: 'Wu Weizhong', style: 'matchlock', outfit: { kind: 'mingElite', design: 1 } }),
   // Koxinga's iron men (outfits.js ironMan): their own scale and iron face; Chen Ze, who led them at Baxemboy (1661), with the
   // zhanmadao, and Ma Xin with the dao and the Ming round shield (was a great rattan shield of his own: the user's call, 2026-11-23, it looked wrong); southern men picked for strength (peoples.js mingSouth ironMan).
-  warrior('ironManBlade', 'Chen Ze', PRESETS.guandao, { name: 'Chen Ze', style: 'zhanmadao', heightCm: 171, frame: 'large', age: 34, outfit: { kind: 'ironMan', design: 0 } }),
-  warrior('ironManShield', 'Ma Xin', PRESETS.guandao, { name: 'Ma Xin', style: 'swordShield', heightCm: 171, frame: 'large', age: 30, outfit: { kind: 'ironMan', design: 1 } }),
+  warrior('ironManBlade', 'Chen Ze', PRESETS.guandao, { name: 'Chen Ze', style: 'zhanmadao', heightCm: 172, frame: 'large', age: 34, outfit: { kind: 'ironMan', design: 0 } }),
+  warrior('ironManShield', 'Ma Xin', PRESETS.guandao, { name: 'Ma Xin', style: 'swordShield', heightCm: 172, frame: 'large', age: 30, outfit: { kind: 'ironMan', design: 1 } }),
   warrior('mingShield', 'Chen Bao', PRESETS.swordShield),
   warrior('mingBrigSpear', 'Sun Qi', PRESETS.swordShield, { name: 'Sun Qi', style: 'spear', outfit: { kind: 'mingBrigandine', design: 2 } }),
   warrior('mingGun', 'Zhao Liu', PRESETS.mingMatchlock),
@@ -261,9 +261,9 @@ export const WARRIORS = [
   warrior('arquebus', 'Hans Brenner', PRESETS.contender, { name: 'Hans Brenner', calories: 4050, exercise: 0.75, sex: 'male', style: 'matchlock', outfit: { kind: 'footman', design: 1 }, accessories: [] }),
   // A longbowman trained at the butts from boyhood by statute (the Archery Acts): a professional's skill (0.45), his people's
   // build (peoples.js english).
-  warrior('footBow', 'Tom Fletcher', PRESETS.contender, { name: 'Tom Fletcher', heightCm: 171, calories: 4050, exercise: 0.86, skill: 0.45, sex: 'male', style: 'bow', outfit: { kind: 'footman', design: 2 }, accessories: [] }),
+  warrior('footBow', 'Tom Fletcher', PRESETS.contender, { name: 'Tom Fletcher', heightCm: 172, calories: 4100, exercise: 0.86, skill: 0.45, sex: 'male', style: 'bow', outfit: { kind: 'footman', design: 2 }, accessories: [] }),
   warrior('ashigaruSpear', 'Gonbei', PRESETS.yari),
-  warrior('ashigaruBow', 'Sakuzaemon', PRESETS.spear, { name: 'Sakuzaemon', heightCm: 157, calories: 2500, style: 'archerYumi', outfit: { kind: 'ashigaru', design: 1 }, accessories: [] }),
+  warrior('ashigaruBow', 'Sakuzaemon', PRESETS.spear, { name: 'Sakuzaemon', heightCm: 164, calories: 2730, style: 'archerYumi', outfit: { kind: 'ashigaru', design: 1 }, accessories: [] }),
   warrior('hoplomachus', 'Priscus', PRESETS.hoplomachus),
   warrior('murmillo', 'Verus', PRESETS.murmillo),
   warrior('secutor', 'Flamma', PRESETS.secutor),
