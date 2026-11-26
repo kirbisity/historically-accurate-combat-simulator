@@ -617,9 +617,10 @@ export const PRESETS = {
   // A modern infantry rifleman: the M4 (the AR-15 family), the combat uniform, helmet and plate carrier, and one frag
   // grenade (his kit's: outfits.js infantry). A young soldier of ordinary size, fit from the army's training, ~78 kg.
   // A British line infantryman of the 1830s-40s (the 18th Royal Irish and the 26th Cameronians at Canton and Amoy, 1841):
-  // the recruit's ~168 cm (the army's 5 ft 6 in standard), hardened by drill and the march, on the ration's ~3400 kcal.
+  // a little over the recruit's ~168 cm (the army's 5 ft 6 in standard, a fusilier regiment's man somewhat above it),
+  // hardened by drill and the march, on the ration and what his pay bought (~3800 kcal); drilled to the bayonet (0.55).
   lineInfantry: {
-    name: 'Pte. Joseph Wood', style: 'flintlock', sex: 'male', heightCm: 168, frame: 'medium', age: 24, exercise: 0.75, calories: 3400,
+    name: 'Pte. Joseph Wood', style: 'flintlock', sex: 'male', heightCm: 171, frame: 'medium', age: 24, exercise: 0.8, calories: 3800, skill: 0.55,
     outfit: { kind: 'lineInfantry', design: 0 }, accessories: [],
     look: { skinTone: 'light', hairStyle: 'cleanShort', hairColor: '#4a3020', facialHair: 'none', eyeColor: 'blue' },
   },
@@ -629,10 +630,11 @@ export const PRESETS = {
     outfit: { kind: 'cuirassier', design: 0 }, accessories: [],
     look: { skinTone: 'light', hairStyle: 'cleanShort', hairColor: '#2a1a10', facialHair: 'handlebar', eyeColor: 'brown' },
   },
-  // A Green Standard soldier of Guangdong, 1841: a southern Han man (peoples.js mingSouth), the ration in arrears, the
-  // garrison's little drill.
+  // A Green Standard soldier of Guangdong, 1841: a southern Han man (peoples.js mingSouth), undernourished: the ration in
+  // arrears and pocketed by his officers, opium among the camps (the Lianzhou campaign of 1832 lost, its troops' smoking
+  // blamed), too weak, it was said, to draw a bow; the garrison's little drill (0.25).
   greenStandard: {
-    name: 'Huang Fu', style: 'matchlock', sex: 'male', heightCm: PEOPLES.mingSouth.heightCm, frame: 'medium', age: 30, exercise: 0.55, calories: 2800,
+    name: 'Huang Fu', style: 'matchlock', sex: 'male', heightCm: PEOPLES.mingSouth.heightCm, frame: 'medium', age: 30, exercise: 0.2, calories: 1800, skill: 0.25,
     outfit: { kind: 'greenStandard', design: 0 }, accessories: [],
     look: { skinTone: 'lightTan', hairStyle: 'buzz', hairColor: '#120d0a', facialHair: 'mustache', eyeColor: 'brown', faceRegion: 'china' },
   },
