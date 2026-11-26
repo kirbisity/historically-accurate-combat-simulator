@@ -78,8 +78,10 @@ export const nearestBoxDistance = (boxes, x, y, z) => boxes.reduce((best, box) =
 // ---- the sections ------------------------------------------------------------------------------------------
 
 /**
- * A stage's sections as a graph: `{ ids, bounds: { id: [boxes] }, links: [{ a, b, boxes }], near: { id: [link] }, activeOnly: Set }`; a section with `activeOnly` (the crypt) is painted in detail only while it is active, never as seen through a portal. A link is a portal (the hand-over area where
- * two sections meet); it is followed either way, since the opening that lets the man out of a room lets the room's light in.
+ * A stage's sections as a graph: `{ ids, bounds: { id: [boxes] }, links: [{ a, b, boxes, always }], near: { id: [link] }, activeOnly: Set }`; a section with `activeOnly` (the crypt) is painted in detail only while it is active, never as seen through a portal. A link is a portal (the hand-over area where
+ * two sections meet); it is followed either way, since the opening that lets the man out of a room lets the room's light in. A portal
+ * `always` (a section whose face is seen from anywhere in the one the portal is of: a town's wall and gate over the open field before it)
+ * has the section beyond wanted from anywhere in its own, however far (levelmode/sectionstream.js sectionsNear).
  */
 export function sectionGraph(stage, { margin = VISIBILITY.margin, openingMargin = VISIBILITY.openingMargin } = {}) {
   const sea = Number.isFinite(stage.sea) ? stage.sea : -30;
@@ -95,7 +97,7 @@ export function sectionGraph(stage, { margin = VISIBILITY.margin, openingMargin 
   for (const section of stage.sections) {
     for (const portal of section.portals ?? []) {
       if (!bounds[portal.to]) continue;
-      const link = { a: section.id, b: portal.to, boxes: regionBoxes(portal.area, { margin: openingMargin, low: sea }) };
+      const link = { a: section.id, b: portal.to, boxes: regionBoxes(portal.area, { margin: openingMargin, low: sea }), ...(portal.always ? { always: true } : null) };
       links.push(link);
       near[link.a].push(link);
       near[link.b].push(link);
