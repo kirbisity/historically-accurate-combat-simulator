@@ -9,6 +9,8 @@
 // Each piece is laid at a level of detail: 'all' (always drawn), 'near' (only close to the camera: the tiles' real
 // rolls, rafters, lattice bars) or 'far' (only when distant: what stands in for the near pieces).
 
+import { TK_TAPE } from './tex.js';
+
 /** Tuning shared by the makers. Each is a typical figure for the thing, read off the reference photographs. */
 export const TK_GEO = {
   // A roof's tile rows: the pitch between cover-tile rolls (m) and a cover tile's radius; a tile's exposed length down the slope.
@@ -91,12 +93,81 @@ function tkgBatch(material, level) {
   };
 }
 
+// What the near detail's recorder is doing (tkgNearRecorder): `busy` while a piece is taken or played back (a piece's
+// own 'near' pieces inside it are then laid as they come, not taken apart); `box` [x0, z0, x1, z1] grown by every
+// corner laid while one is taken; `drop`: those corners are not kept; `into(material)`: the batch every corner goes to
+// while pieces are played back.
+const TKG_NEAR = { busy: false, box: null, drop: false, into: null };
+
+/**
+ * A recorder of a drawing's near detail (the tiles' rolls, the rafters, the jars, the scatter: what is laid at the
+ * 'near' level), for a place too large to hold all of its near detail at once: every piece is taken as the drawing
+ * lays it (its maker, `work`, kept as it is, with the draws it takes of the seeded generators taped: tex.js TK_TAPE),
+ * by the block it is laid in (`key`, the builder's: tkBlocks) and the ground it covers (`box`), and can be laid again
+ * later, alone, exactly as it was (tkgNearReplay), where the player comes near. The drawing goes on as it would
+ * have: the pieces take their draws as they did, so everything after them is laid the same. `drop`: the pieces'
+ * corners are not kept by the builders (made later, only where wanted); else they are kept as well (the whole of
+ * the near detail made now, as a builder without a recorder makes it, and the pieces kept to be made again).
+ * `entries`: { key, work, tape (Uint32Array, or null for a piece that drew nothing), box } in the order laid.
+ */
+export function tkgNearRecorder({ drop = true } = {}) {
+  const entries = [];
+  return {
+    drop,
+    entries,
+    take(builder, work, key) {
+      const tape = [];
+      const box = [Infinity, Infinity, -Infinity, -Infinity];
+      const was = builder.lod;
+      Object.assign(TKG_NEAR, { busy: true, box, drop });
+      TK_TAPE.into = tape;
+      builder.lod = 'near';
+      try {
+        work();
+      } finally {
+        builder.lod = was;
+        TK_TAPE.into = null;
+        Object.assign(TKG_NEAR, { busy: false, box: null, drop: false });
+      }
+      if (box[0] <= box[2]) entries.push({ key, work, tape: tape.length ? Uint32Array.from(tape) : null, box });
+    },
+  };
+}
+
+const TKG_NO_DRAWS = new Uint32Array(0);
+
+/**
+ * Lay again the near pieces `entries` (tkgNearRecorder's, in the order they were laid), each with the draws it took
+ * then, into `batches` (a Map from material to batch, added to: a block's pieces laid a few at a time). Returns it;
+ * its values are batches at the 'near' level, as a builder's `batches()` gives them.
+ */
+export function tkgNearReplay(entries, batches = new Map()) {
+  const into = (material) => {
+    let made = batches.get(material);
+    if (!made) batches.set(material, (made = tkgBatch(material, 'near')));
+    return made;
+  };
+  Object.assign(TKG_NEAR, { busy: true, into });
+  try {
+    for (const entry of entries) {
+      TK_TAPE.from = entry.tape ?? TKG_NO_DRAWS;
+      TK_TAPE.at = 0;
+      entry.work();
+    }
+  } finally {
+    TK_TAPE.from = null;
+    Object.assign(TKG_NEAR, { busy: false, into: null });
+  }
+  return batches;
+}
+
 /**
  * The builder. `quad`, `tri` and the shapes below add to the batch named `${material}|${level}`; `batches()` gives each
  * as `{ material, level, position, normal, uv, colour }` (Float32Arrays of what is laid so far; UVs in metres).
  * `near: false`: what is laid at the 'near' level (the fine detail a weak device never shows) is not made at all.
+ * `record` (tkgNearRecorder): what is laid at the 'near' level is taken by it, under `key`.
  */
-export function tkgBuilder({ near = true } = {}) {
+export function tkgBuilder({ near = true, record = null, key = null } = {}) {
   const batches = new Map();
   const batch = (material, level = 'all') => {
     const key = `${material}|${level}`;
@@ -110,6 +181,10 @@ export function tkgBuilder({ near = true } = {}) {
     /** Lay what `work` adds at `level`. */
     at(level, work) {
       if (level === 'near' && !near) return;
+      if (level === 'near' && record && !TKG_NEAR.busy) {
+        record.take(builder, work, key);
+        return;
+      }
       const before = builder.lod;
       builder.lod = level;
       work();
@@ -117,7 +192,17 @@ export function tkgBuilder({ near = true } = {}) {
     },
     /** A triangle a, b, c (anticlockwise seen from its face), with UVs (metres) and colours per corner (or one colour). */
     tri(material, a, b, c, uvs, colour = TKG_WHITE, normals = null) {
-      const into = batch(material, builder.lod);
+      if (TKG_NEAR.box) {
+        const box = TKG_NEAR.box;
+        for (const p of [a, b, c]) {
+          if (p[0] < box[0]) box[0] = p[0];
+          if (p[2] < box[1]) box[1] = p[2];
+          if (p[0] > box[2]) box[2] = p[0];
+          if (p[2] > box[3]) box[3] = p[2];
+        }
+        if (TKG_NEAR.drop) return;
+      }
+      const into = TKG_NEAR.into ? TKG_NEAR.into(material) : batch(material, builder.lod);
       const flat = normals ? null : tkgUnit(tkgCross(tkgSub(b, a), tkgSub(c, a)));
       const corners = [a, b, c];
       for (let k = 0; k < 3; k += 1) {

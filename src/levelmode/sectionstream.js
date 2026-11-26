@@ -60,6 +60,8 @@ export function sectionsNear(graph, active, position, reach, hops = SECTION_STRE
     for (const id of frontier) {
       for (const link of graph.near[id] ?? []) {
         const other = link.a === id ? link.b : link.a;
+        // (A portal followed only out of its own section, `outward`: visibility.js sectionGraph.)
+        if (link.outward && link.a !== id) continue;
         const distance = nearestBoxDistance(link.boxes, x, y, z);
         // (Or seen from all of the section it leads out of, the portal `always`; or only from nearer, `closer`: visibility.js sectionGraph.)
         if (distance > reach - (link.closer ?? 0) && !(link.always && link.a === id)) continue;

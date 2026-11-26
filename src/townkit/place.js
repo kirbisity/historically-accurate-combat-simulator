@@ -59,17 +59,18 @@ export function tkSetTier(tier) {
 
 /**
  * Builders by block of ground: `at(x, z)` is the builder for whatever stands at world (x, z). `near: false` (the low tier):
- * the fine detail is never made. `free()` lets the corners go once the meshes are made (tkMeshes).
+ * the fine detail is never made. `record` (geo.js tkgNearRecorder): the fine detail is taken by it, each piece under its
+ * block's key ('column,row'; the wide builder's 'wide'). `free()` lets the corners go once the meshes are made (tkMeshes).
  */
-export function tkBlocks(cell = TK_PLACE.block, { near = true } = {}) {
+export function tkBlocks(cell = TK_PLACE.block, { near = true, record = null } = {}) {
   const blocks = new Map();
-  const wide = tkgBuilder({ near });
+  const wide = tkgBuilder({ near, record, key: 'wide' });
   return {
     cell,
     /** `plain`: for a thing no walker comes near: its fine detail is never made. */
     at(x, z, plain = false) {
       const key = `${Math.floor(x / cell)},${Math.floor(z / cell)}`;
-      if (!blocks.has(key)) blocks.set(key, tkgBuilder({ near }));
+      if (!blocks.has(key)) blocks.set(key, tkgBuilder({ near, record, key }));
       const builder = blocks.get(key);
       return plain ? { ...builder, at: (level, work) => (level === 'near' ? undefined : builder.at(level, work)) } : builder;
     },
@@ -115,8 +116,12 @@ export function tkMeshes(blocks, materials, options = {}) {
   for (let next = steps.next(); ; next = steps.next()) if (next.done) return next.value;
 }
 
-/** tkMeshes in steps (a generator: a yield after every `every` meshes made, for a part of a place built while it is played: places/pyongyang.js). Returns the group. */
-export function* tkMeshesSteps(blocks, materials, { tier = 'high', every = Infinity } = {}) {
+/**
+ * tkMeshes in steps (a generator: a yield after every `every` meshes made, for a part of a place built while it is
+ * played: places/pyongyang.js). `wideCasts`: what is laid in the wide builder throws the baked shadow too (a district's
+ * skyline, all of it wide, standing where the district's own shadow fell). Returns the group.
+ */
+export function* tkMeshesSteps(blocks, materials, { tier = 'high', every = Infinity, wideCasts = false } = {}) {
   const group = new THREE.Group();
   const switched = [];
   const casters = [];
@@ -132,7 +137,7 @@ export function* tkMeshesSteps(blocks, materials, { tier = 'high', every = Infin
       // (Not the camera's to take: occluders.js. Its positions are let go once on the card, tkGeometry.)
       if (batch.level === 'near') mesh.userData.nearDetail = true;
       group.add(mesh);
-      if (batch.level === 'all' && !wide && batch.material !== 'water') casters.push(mesh);
+      if (batch.level === 'all' && (!wide || wideCasts) && batch.material !== 'water') casters.push(mesh);
       if (batch.level !== 'all') {
         mesh.visible = batch.level === 'far';
         switched.push({ mesh, level: batch.level, centre: mesh.geometry.boundingSphere.center, radius: mesh.geometry.boundingSphere.radius });
@@ -182,6 +187,22 @@ export function* tkMeshesSteps(blocks, materials, { tier = 'high', every = Infin
     return count;
   };
   return group;
+}
+
+/**
+ * A mesh of near detail made apart from its place's meshes (a batch of geo.js tkgNearReplay's), marked as near detail
+ * (the camera's room never reads it: occluders.js), its vertices let go once sent to the graphics card; the batch's
+ * corners are let go. null for an empty batch.
+ */
+export function tkNearMesh(batch, materials) {
+  if (!batch.position.length) return null;
+  const mesh = new THREE.Mesh(tkGeometry(batch), materials.get(batch.material));
+  mesh.receiveShadow = true;
+  mesh.matrixAutoUpdate = false;
+  mesh.name = `townkit:${batch.material}:near`;
+  mesh.userData.nearDetail = true;
+  batch.free();
+  return mesh;
 }
 
 /** The unit vector toward a sun at `azimuth` (rad: 0 toward +x, a quarter turn toward +z) and `elevation` (degrees over the horizon): the open air's own measure (env/air.js envSunWay). */
@@ -428,6 +449,8 @@ export function tkKeep(root, meshes, { sun, shadow = 0.8, sky = null, rain = nul
     const reach = Math.min(30, ahead.y < -0.05 ? camera.position.y / -ahead.y : 30);
     focus.copy(camera.position).addScaledVector(ahead, reach);
     meshes.userData.detail(focus);
+    // (Where the fine detail was shown about: the place's own near layer, if it has one, shows its blocks by it.)
+    root.userData.detailFocus = focus;
     if (sky) sky.position.copy(camera.position);
     if (rain) {
       rain.visible = !open && tkWeather.uTkRain.value > 0.01;

@@ -83,7 +83,9 @@ export const nearestBoxDistance = (boxes, x, y, z) => boxes.reduce((best, box) =
  * `always` (a section whose face is seen from anywhere in the one the portal is of: a town's wall and gate over the open field before it)
  * has the section beyond wanted from anywhere in its own, however far; one `closer` (m: through which little of the section beyond is
  * seen, a wall's walk over a field the wall hides from the streets) has it wanted only that much nearer than the stream's reach
- * (levelmode/sectionstream.js sectionsNear).
+ * (levelmode/sectionstream.js sectionsNear); one `outward` is followed only out of the section it is of (a field's long wall line, over
+ * which the field sees the town's gate tower from the stream's reach, where the town sees the field over the wall only from nearer,
+ * by a portal of its own).
  */
 export function sectionGraph(stage, { margin = VISIBILITY.margin, openingMargin = VISIBILITY.openingMargin } = {}) {
   const sea = Number.isFinite(stage.sea) ? stage.sea : -30;
@@ -99,7 +101,7 @@ export function sectionGraph(stage, { margin = VISIBILITY.margin, openingMargin 
   for (const section of stage.sections) {
     for (const portal of section.portals ?? []) {
       if (!bounds[portal.to]) continue;
-      const link = { a: section.id, b: portal.to, boxes: regionBoxes(portal.area, { margin: openingMargin, low: sea }), ...(portal.always ? { always: true } : null), ...(portal.closer ? { closer: portal.closer } : null) };
+      const link = { a: section.id, b: portal.to, boxes: regionBoxes(portal.area, { margin: openingMargin, low: sea }), ...(portal.always ? { always: true } : null), ...(portal.closer ? { closer: portal.closer } : null), ...(portal.outward ? { outward: true } : null) };
       links.push(link);
       near[link.a].push(link);
       near[link.b].push(link);
