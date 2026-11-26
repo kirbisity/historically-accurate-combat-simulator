@@ -895,7 +895,7 @@ function thinkEachMan(world, dt, playerIds) {
     const far = !fighter.ghost && !shooter && staggered && !exchanging && !seen && !fighter.mount && !STYLES[fighter.style]?.ranged && farFromFoes(world, fighter);
     const every = fighter.ghost && !fighter.mount ? TABLE_DUEL.ghostEvery : shooter ? TABLE_DUEL.shooterEvery : !staggered || fighter.mount || exchanging ? 0 : seen ? AI.idleThinkEvery : far ? TABLE_DUEL.farEvery : AI.perceive.idleEvery;
     if (every === 0) {
-      // Cleared, so that once he is staggered he takes up his own beat.
+      // Cleared, so that once he is staggered he takes up his own beat, in his slot (owedBeforeSlot).
       fighter.aiOwed = undefined;
       if (headcount) headcount.thinking = fighter;
       think(world, fighter, dt);
@@ -904,9 +904,11 @@ function thinkEachMan(world, dt, playerIds) {
       if (headcount) recountHead(fighter);
       continue;
     }
-    // Each on his own beat (offset by his id), so the thinking is spread over the steps.
-    fighter.aiOwed = (fighter.aiOwed ?? (fighter.id % Math.max(1, Math.round(every / dt))) * dt) + dt;
-    if (fighter.aiOwed < every - 1e-9) continue;
+    // Each on his own beat, in his own slot of it (thinkSlot), so each step thinks for its share of the men on each beat.
+    // Come from thinking every step, he is owed as if his last think had been a beat before his slot (his first think on the
+    // beat is over a whole beat, as ever); from another beat, what he was owed carries over.
+    fighter.aiOwed = (fighter.aiOwed ?? owedBeforeSlot(world, fighter, every, dt)) + dt;
+    if (!thinkSlot(world, fighter, every, dt) && fighter.aiOwed < every - 1e-9) continue;
     if (headcount) headcount.thinking = fighter;
     think(world, fighter, fighter.aiOwed);
     keepPlace(world, fighter);
@@ -914,6 +916,25 @@ function thinkEachMan(world, dt, playerIds) {
     if (headcount) recountHead(fighter);
     fighter.aiOwed = 0;
   }
+}
+
+/**
+ * Whether this step is his slot on a beat of `every` s: the steps of the beat are dealt out among the men by id, the same slot
+ * whichever beat he comes from, so a step thinks for its share of each beat's men however many change beat together (a
+ * company going to the ghosts on one look, a line coming within reach). Where a man's next think counted from his last (as
+ * it did), the men who changed beat on one step kept thinking on one step: Sarhu at 600 men had steps with two dozen ghosts'
+ * thinks and steps with none, 3 to 13 ms of think on a 0.5 s beat. (A man come from a slower beat, late for this one, thinks
+ * at once, then keeps his slot.)
+ */
+function thinkSlot(world, fighter, every, dt) {
+  const steps = Math.max(1, Math.round(every / dt));
+  return ((world.steps ?? 0) + fighter.id) % steps === 0;
+}
+
+/** What a man taking up a beat now is owed: a beat, less a step, less the steps to his slot (so at his slot he is owed the beat). */
+function owedBeforeSlot(world, fighter, every, dt) {
+  const steps = Math.max(1, Math.round(every / dt));
+  return (((world.steps ?? 0) + fighter.id + steps - 1) % steps) * dt;
 }
 
 /**
