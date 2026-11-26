@@ -388,3 +388,23 @@ A ringing in the ears (2026-11-10, ScreenRecording_11-10-2026_19-17-27_1.mov, a 
 `loop-ring.mp3` (11880 bytes), 0.25-2.30 s, a 1.8 s period, its tail crossfaded into its head at
 equal power over 0.25 s (its partials beat: the ends are not in phase), 40 kb/s. samples.js `RING_LOOP`; engine.js plays it faint
 under a blast's deafening (DEAFEN) and when the man played is dazed or staggered (STUN), the mix thick under it.
+
+
+## The ninth batch (2026-11-26): a weapon on a wooden shaft
+
+One screen recording of 2026-11-26, no labels on screen: a blade against a wooden staff, two kinds of sound in turn. The sharp knocks
+(a rise under 10 ms) are the blow into the wood, the swells (~0.2 s rising, brighter) the blade drawn along it. Cut as the takes above
+(the transient or the swell's start first, the tail faded where it falls 45 dB under its peak, peak -1 dBFS, 32 kHz mono 40 kb/s); the
+fifth knock (4.76 s) is cut off by the recording's end and left out. These replace the wooden shield's knock pitched up that a haft
+played (and the synth's chop under it before that): a meeting on a shaft is played from these only, silent until they decode.
+7 files, 17 KB.
+
+| File | Source recording | Time (s) | On-screen label | Trim (s) | Bytes | Used for |
+|---|---|---|---|---|---|---|
+| hafthit-1.mp3 | ScreenRecording_11-26-2026_00-53-47_1.mov | 0.846-1.245 | (none: told apart by shape, a sharp knock or a swell) | 0.046 | 2340 | clash: a weapon knocking into a wooden shaft (a spear's or polearm's shaft, a staff, a gun's stock, a bow) |
+| hafthit-2.mp3 | ScreenRecording_11-26-2026_00-53-47_1.mov | 1.421-1.795 | (none: told apart by shape, a sharp knock or a swell) | 0.051 | 2160 | clash: a weapon knocking into a wooden shaft (a spear's or polearm's shaft, a staff, a gun's stock, a bow) |
+| hafthit-3.mp3 | ScreenRecording_11-26-2026_00-53-47_1.mov | 2.806-3.245 | (none: told apart by shape, a sharp knock or a swell) | 0.046 | 2520 | clash: a weapon knocking into a wooden shaft (a spear's or polearm's shaft, a staff, a gun's stock, a bow) |
+| hafthit-4.mp3 | ScreenRecording_11-26-2026_00-53-47_1.mov | 3.391-3.795 | (none: told apart by shape, a sharp knock or a swell) | 0.061 | 2340 | clash: a weapon knocking into a wooden shaft (a spear's or polearm's shaft, a staff, a gun's stock, a bow) |
+| haftslide-1.mp3 | ScreenRecording_11-26-2026_00-53-47_1.mov | 0.136-0.545 | (none: told apart by shape, a sharp knock or a swell) | 0.056 | 2340 | clash: a blade drawn along a wooden shaft where the two bind and slide; after the knock when a blow is turned aside on it |
+| haftslide-2.mp3 | ScreenRecording_11-26-2026_00-53-47_1.mov | 1.946-2.445 | (none: told apart by shape, a sharp knock or a swell) | 0.046 | 2700 | clash: a blade drawn along a wooden shaft where the two bind and slide; after the knock when a blow is turned aside on it |
+| haftslide-3.mp3 | ScreenRecording_11-26-2026_00-53-47_1.mov | 3.920-4.445 | (none: told apart by shape, a sharp knock or a swell) | 0.000 | 2880 | clash: a blade drawn along a wooden shaft where the two bind and slide; after the knock when a blow is turned aside on it |

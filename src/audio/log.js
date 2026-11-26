@@ -16,6 +16,8 @@
 import { P } from '../body.js';
 import { HELMETS, outfitOf } from '../outfits.js';
 import { protectionAt } from '../physics.js';
+import { WORLD } from '../physics/config.js';
+import { buildOf } from '../weapons.js';
 import { surfaceAt, surfaceUnder } from './surface.js';
 
 /** How many events the log keeps: a reader more than this far behind has lost the oldest. */
@@ -67,7 +69,7 @@ const BARE_BELOW = 0.12;
  */
 export const ARMOUR_COVERING = {
   // (The nanban dō: a European breastplate traded east and laced into a samurai's harness.)
-  plate: 'plate', breastplate: 'plate', conquistador: 'plate', segmentata: 'plate', toseiDo: 'plate', okegawa: 'plate', robot: 'plate', nanbanDo: 'plate',
+  plate: 'plate', breastplate: 'plate', cuirass: 'plate', conquistador: 'plate', segmentata: 'plate', toseiDo: 'plate', okegawa: 'plate', robot: 'plate', nanbanDo: 'plate',
   // (The hamata: the Republic's legionary's mail shirt.)
   hamata: 'mail', templar: 'mail', haubergeon: 'mail', hauberk: 'mail', centurion: 'mail', krug: 'mail', krugDisc: 'mail', bekhter: 'mail', cumanMail: 'mail', mailMirror: 'mail',
   lamellar: 'lamellar', oyoroi: 'lamellar', doMaru: 'lamellar', doMaruSode: 'lamellar', hanLamellar: 'lamellar', mingLamellar: 'lamellar', mingEliteLamellar: 'lamellar',
@@ -84,13 +86,15 @@ export const ARMOUR_COVERING = {
   // Cloth, fur or a corset in the armour's place: no armour (a blow meets the man; his steps carry no kit).
   deel: null, girdle: null, mingVest: null, wuxiaRobe: null, uncu: null, uncuChecks: null, uncuTocapu: null, uncuRoyal: null,
   corset: null, overbust: null, overbustSleeved: null, silverback: null,
+  // (The line's crossbelts over a wool coat, the Qing soldier's cotton jacket, the hunter's hides.)
+  crossbelts: null, qingHaoyi: null, hides: 'leather',
 };
 
 /** What each helm (outfits.js HELMETS, by the design's `head.kind`) is made of: iron and bronze ring as plate; the rest by their stuff. */
 export const HELM_COVERING = {
   bascinet: 'plate', stechhelm: 'plate', greatHelm: 'plate', kettleHat: 'plate', kabuto: 'plate', jingasa: 'plate', arenaHelm: 'plate', mingHat: 'plate',
   mingHelm: 'plate', qingHelm: 'plate', pagodaHelm: 'plate', hanHelm: 'plate', galea: 'plate', steppeHelm: 'plate', chichak: 'plate', ayyubidHelm: 'plate', morion: 'plate',
-  cabasset: 'plate', potHelmet: 'plate', robotHead: 'plate', montefortino: 'plate', ridgeHelm: 'plate', spangenhelm: 'plate',
+  cabasset: 'plate', potHelmet: 'plate', cuirassierHelm: 'plate', robotHead: 'plate', montefortino: 'plate', ridgeHelm: 'plate', spangenhelm: 'plate',
   riotHelmet: 'leather', opsHelmet: 'leather', lionHead: 'leather',
   jaguarHelm: 'wood', eagleHelm: 'wood',
   turban: 'padded', bork: 'padded', bashlyk: 'padded',
@@ -141,12 +145,18 @@ export function weaponStriker(mix) {
 }
 
 /**
- * The part of a weapon two weapons met at, `along` m from the hand: its shaft or grip short of where it strikes from (a haft), else its
- * head: an edge or a point (blade) or a weight (blunt).
+ * The part of a weapon two weapons met at, `along` m from the hand: wood (`haft`: a spear's or a polearm's shaft, the whole of a staff
+ * or a wooden club, a gun's stock, a bow or a crossbow), else its head: an edge or a point (blade) or a weight (blunt). A sword's grip and guard short of
+ * its blade are steel, a weight, not wood.
  */
 export function weaponPart(weapon, along) {
   const spec = weapon.spec;
-  if (along < spec.strikeFrom) return 'haft';
+  const build = buildOf(spec, WORLD.wear.shaftFrom);
+  // (A club of wood, a bat, a macuahuitl's body: wood from end to end.)
+  if (spec.build?.wooden) return 'haft';
+  // (A staff is all pole, its striking length behind the hands: all of it wood.)
+  if (build.shaft && !build.edge && spec.strikeFrom < 0) return 'haft';
+  if (along < spec.strikeFrom) return build.shaft || spec.ranged || spec.bow ? 'haft' : 'blunt';
   const harm = spec.harm ?? {};
   return (harm.swing?.cut ?? 0) > 0 || (harm.thrust?.pierce ?? 0) > 0 || (harm.thrust?.cut ?? 0) > 0 ? 'blade' : 'blunt';
 }

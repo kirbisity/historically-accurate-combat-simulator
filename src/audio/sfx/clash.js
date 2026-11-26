@@ -36,7 +36,8 @@ export function clashParams(event) {
     ratios.forEach((ratio, index) => modes.push({ f: kind.base * ratio * (1 + (Math.random() - 0.5) * 0.06), decay: kind.decay / (1 + index * 0.6), amp: index ? sfxClamp(brightness / 8000, 0.15, 0.9) / index : 1 }));
   }
   const wood = !metal(a) || !metal(b) ? (metal(a) ? b : a) : null;
-  return { level, brightness, modes, wood: wood ? { base: wood.base, decay: wood.decay } : null, scrape: event.slide ? sfxClamp(0.12 + speed * 0.03, 0.12, 0.5) : 0, energy, speed };
+  // (`shaft`: the wood is a weapon's shaft, not a shield's boards; `both`: wood met wood, two shafts.)
+  return { level, brightness, modes, wood: wood ? { base: wood.base, decay: wood.decay, shaft: event.a === 'haft' || event.b === 'haft', both: !metal(a) && !metal(b) } : null, scrape: event.slide ? sfxClamp(0.12 + speed * 0.03, 0.12, 0.5) : 0, energy, speed };
 }
 
 /** Play a clash into `out`. Returns the end time. */

@@ -536,6 +536,51 @@ function shade(hex, share) {
 // Conquistadors: the doublet, the breeches, the helmet (morion, cabasset, pot helmet).
 // The conquistadors' cabasset is drawn in its measured design (helmforms.js DESIGN_FORMS.cabassetSpanish); the comb morion by its own measures (wardrobe.js MORION).
 const helmDesign = (helmet) => (helmet === 'cabasset' ? { design: 'spanish' } : {});
+// The line infantryman: the coatee in the coat's colour, its facings down the front, at the collar and the cuffs; the
+// crossbelts over it; trousers or breeches; the shako with the company's pompom.
+function lineDesign(label, coat, facing, trousers, pompom) {
+  return {
+    label,
+    top: { kind: 'longsleeve', color: coat },
+    bottom: { kind: 'pants', color: trousers, fallFront: true },
+    armor: { kind: 'crossbelts', color: coat, cloth: coat, cloth2: facing, leather: '#ece8dc', gold: '#c9a24a' },
+    head: { kind: 'shako', color: '#141414', gold: '#c9a24a', plume: pompom },
+    feet: { kind: 'dressShoe', color: '#141414' },
+  };
+}
+// The cuirassier: the coat's sleeves under the cuirass, white breeches, the great boots; the cuirass and helmet in their
+// metal (bright iron, the carabinier's brass-faced, the Russian black-lacquered), the mane's colour.
+function cuirassierDesign(label, coat, cuirass, helmet, mane) {
+  return {
+    label,
+    top: { kind: 'longsleeve', color: coat },
+    bottom: { kind: 'pants', color: '#e8e4d8' },
+    armor: { kind: 'cuirass', color: cuirass, leather: '#1c1a18', gold: '#c9a24a' },
+    head: { kind: 'cuirassierHelm', color: helmet, gold: '#c9a24a', mane, plume: '#a8161a' },
+    feet: { kind: 'ridingBoot', color: '#141414' },
+  };
+}
+// The Green Standard soldier: the jacket in his corps' colour, bound in another, the white disc on its breast; the robe's
+// sleeves undyed; the summer hat with its red fringe; black cloth boots.
+function greenStandardDesign(label, jacket, border) {
+  return {
+    label,
+    top: { kind: 'longsleeve', color: '#d6cbb2' },
+    bottom: { kind: 'pants', color: '#1c1b1d' },
+    armor: { kind: 'qingHaoyi', color: jacket, cloth: jacket, cloth2: border, lace: '#ece8dc' },
+    head: { kind: 'qingHat', color: '#c8a868', fringe: '#a8161a' },
+    feet: { kind: 'clothBoot', color: '#141414' },
+  };
+}
+// The hunter: the tunic of hide edged in fur, hide leggings, moccasins.
+function hidesDesign(label, hide, fur) {
+  return {
+    label,
+    bottom: { kind: 'pants', color: hide, stuff: 'hide' },
+    armor: { kind: 'hides', color: hide, cloth: hide, cloth2: fur, leather: shade(hide, 0.6) },
+    feet: { kind: 'turnshoe', color: shade(hide, 0.7) },
+  };
+}
 function conquistadorDesign(label, doublet, breeches, helmet, sash = null) {
   return { label, top: { kind: 'longsleeve', color: doublet }, bottom: { kind: 'pants', color: breeches }, armor: { kind: 'conquistador', color: '#a7adb6', mail: '#8d9097', cloth: doublet, cloth2: sash ?? doublet }, head: { kind: helmet, color: '#a7adb6', ...helmDesign(helmet) }, feet: { kind: 'compactBoot', color: '#2a1d14' } };
 }
@@ -1690,6 +1735,101 @@ export const OUTFITS = {
     protection: { ...ARENA.scale, bullet: { head: 0.4, torso: 0.3, limb: 0.1 }, regions: { head: ARENA.smoothHelm, limb: ARENA.bare, rUpperArm: ARENA.manica, rForearm: ARENA.manica, lForearm: ARENA.tube, lUpperArm: ARENA.manica, Shank: ARENA.greave } },
     courage: 0.3,
     designs: GLADIATOR_LOOKS.map((look) => gladiatorDesign('scissor', look, { kind: 'arenaHelm', style: 'scissor' })),
+  },
+  // The line infantryman of the Napoleonic wars and after (Britain's to the 1840s, the Opium War's): a wool coat cut high in
+  // front with tails behind, the regiment's facings at the collar, two pipeclayed crossbelts, a felt shako; no armour at all.
+  // A drilled soldier (`skill` a regular's, 0.4: the drill was the musket's, the bayonet exercise a few weeks of it) and a
+  // steady one (`courage` 0.45: the line stood under fire in close order, the square held against horse).
+  lineInfantry: {
+    skill: 0.4,
+    faction: 'napoleonic',
+    label: 'Line infantry', movement: 'good', fists: 'bare',
+    // Coat, crossbelts, cartridge box, shako: ~4 kg on a 68 kg man (his pack left in the rear for the fight).
+    extraMass: 0.06,
+    // Wool broadcloth: a little of a blow spread, an edge slowed; the shako's felt over the crown, little more.
+    protection: { blunt: 0.12, cut: 0.15, pierce: 0.06, regions: { head: { blunt: 0.2, cut: 0.25, pierce: 0.08 } } },
+    courage: 0.45,
+    designs: [
+      lineDesign('British line, buff facings', '#a8201e', '#d8c08a', '#4a4a50', '#e8e4da'),
+      lineDesign('British line, blue facings', '#a8201e', '#1f2f6a', '#4a4a50', '#e8e4da'),
+      lineDesign('French line, 1812', '#1f2f6a', '#a8201e', '#e8e4da', '#a8161a'),
+      lineDesign('Prussian musketeer', '#1c2440', '#a8201e', '#3a3a40', '#e8e4da'),
+      lineDesign('Russian line', '#1f3a2a', '#a8201e', '#e8e4da', '#1c1c20'),
+    ],
+  },
+  // The cuirassier (the French heavy horse of 1804-1815, the Russian and the Saxon after them): a cuirass of breast and back
+  // to the waist, a steel helmet with a crest and mane, a wool coat, breeches and the great boots; the straight heavy sword.
+  // Big men on big horses (the French took recruits of 1.76 m and over), picked and drilled for the charge (`skill` 0.55).
+  cuirassier: {
+    skill: 0.55,
+    // Rides (the heavy horse's big remounts: Norman and German horses of ~1.6 m).
+    horse: 'warhorse',
+    faction: 'napoleonic', plated: true,
+    label: 'Cuirassier', movement: 'good', fists: 'bare',
+    // The cuirass's breast is rounded: a blow or a ball not square on it glances.
+    breastplate: 0.85,
+    // Proof (`bulletRating`, the breast and the helmet: weapons.js bulletRatingAt) to ~1 kJ: the an XI breast was proved
+    // against a musket ball at long range (its front ~3 mm of iron, the back ~2 mm), and one fired close went through
+    // (the carabinier's cuirass of Waterloo in the Musée de l'Armée, holed by a cannonball, and the many holed by balls).
+    bulletRating: 1000,
+    // Cuirass ~7 kg, helmet ~1.5 kg, the boots ~2.5 kg: ~11 kg on an 80 kg man.
+    extraMass: 0.14,
+    protection: {
+      blunt: 0.55, cut: 1, pierce: 0.95, bullet: { head: 0.4, torso: 0.6, limb: 0 },
+      regions: {
+        head: { blunt: 0.5, cut: 0.9, pierce: 0.8 },
+        torso: { blunt: 0.55, cut: 1, pierce: 0.95, deflects: true },
+        // (The coat's sleeves; the breeches and the boots' thick leather: worn, not armour pieces in the table.)
+        UpperArm: { blunt: 0.12, cut: 0.15, pierce: 0.06, worn: true },
+        Forearm: { blunt: 0.12, cut: 0.15, pierce: 0.06, worn: true },
+        Thigh: { blunt: 0.12, cut: 0.2, pierce: 0.08, worn: true },
+        Shank: { blunt: 0.2, cut: 0.4, pierce: 0.2, worn: true },
+      },
+    },
+    courage: 0.5,
+    designs: [
+      cuirassierDesign('French cuirassier, 1812', '#1f2f6a', '#c8ccd2', '#c8ccd2', '#0e0c0b'),
+      cuirassierDesign('French carabinier, 1812', '#e8e4da', '#c9a24a', '#c9a24a', '#a8161a'),
+      cuirassierDesign('Russian cuirassier, 1812', '#e8e4da', '#26262a', '#26262a', '#0e0c0b'),
+    ],
+  },
+  // The Green Standard (绿营): the Qing's standing army of Han Chinese, garrisons over every province, the most of the men who
+  // fought the British in 1840-42: a cotton jacket over the robe, the corps' character on a white disc on its breast, the
+  // summer hat; the matchlock (鸟枪) and the waist sabre. Ill-paid and seldom drilled by the 1830s (`skill` 0.3, `courage`
+  // 0.25: the British accounts of Chuenpi and Amoy, the Qing memorials).
+  greenStandard: {
+    skill: 0.3,
+    faction: 'manchu',
+    label: 'Green Standard', movement: 'good', fists: 'bare',
+    sidearm: 'dao',
+    // The jacket and the hat: ~2 kg on a 60 kg man.
+    extraMass: 0.033,
+    protection: { blunt: 0.1, cut: 0.12, pierce: 0.05 },
+    courage: 0.25,
+    designs: [
+      greenStandardDesign('Blue jacket, red border', '#22356a', '#9a1f1a'),
+      greenStandardDesign('Red jacket, black border', '#9a1f1a', '#1c1c20'),
+      greenStandardDesign('Yellow jacket, red border', '#b8922e', '#9a1f1a'),
+      greenStandardDesign('Black jacket, red border', '#1c1c20', '#9a1f1a'),
+    ],
+  },
+  // The hunter of the Upper Palaeolithic (Europe, ~30,000-15,000 years ago): tailored hides and furs, the spear-thrower and
+  // its darts, the stone-tipped spear. A hunter's lifelong skill with the spear but no drill for war (`skill` 0.45); he has
+  // closed with mammoth, bison and bear (`courage` 0.5).
+  hides: {
+    skill: 0.45,
+    faction: 'primates',
+    label: 'Hunter — hides', movement: 'excellent', fists: 'bare',
+    // Tunic, leggings and moccasins of hide: ~3 kg on a 70 kg man.
+    extraMass: 0.045,
+    // Hide is tougher than wool against an edge: a little of a cut stopped, little of a blow or a point.
+    protection: { blunt: 0.1, cut: 0.2, pierce: 0.08 },
+    courage: 0.5,
+    designs: [
+      hidesDesign('Deer hide', '#8a6a48', '#4a3a2a'),
+      hidesDesign('Reindeer hide', '#a08a6a', '#e0d8c8'),
+      hidesDesign('Dark hide', '#5a4030', '#2a2420'),
+    ],
   },
   // Ming garrison: a hemp vest and a cloth head wrap, no armour (the weisuo
   // levy of the 16th century, unpaid and ill-kept); quick on his feet.
@@ -3400,7 +3540,7 @@ export const FACTIONS = {
   inca: { label: 'Inca', glyph: 'sun', strangers: ['horse', 'gun'], blurb: { en: 'Atahualpa\'s people at Cajamarca: lords and attendants in the woven uncu, the llautu round the head, the champi star mace.', zh: '阿塔瓦尔帕在卡哈马卡的人：贵族和随从穿织纹长衫，头缠彩绳，手里是星锤。' } },
   chinese: { label: 'Chinese', glyph: 'pagoda', standard: { weapon: 'lingQi', colour: '#c0392b' }, lamellarCord: '#9e1a1c', blurb: { en: 'Ming soldiers: garrison spearmen, brigandine sword-and-shield men and gunners, elite guandao; the Iron Pagoda of legend.', zh: '明军：卫所枪兵，穿布面甲的刀盾手与铳手，使关刀的精锐；还有传说里的铁浮屠。' } },
   // The Later Jin's Eight Banners (the Qing's after 1636): led under the plain yellow banner, Nurhaci's own.
-  manchu: { label: 'Eight Banners', glyph: 'pennon', standard: { weapon: 'banner', colour: '#d9a524' }, lamellarCord: '#9e1a1c', blurb: { en: 'The Later Jin of Nurhaci: banner men in studded coats of plates under the black helmet, with the heavy Manchu bow, saber, spear and guandao; the Bayara guard on horse.', zh: '努尔哈赤的后金：旗兵戴黑盔，披钉甲，使满洲大弓、马刀、长枪、大刀；马上是巴牙喇护军。' } },
+  manchu: { label: 'Eight Banners', glyph: 'pennon', standard: { weapon: 'banner', colour: '#d9a524' }, lamellarCord: '#9e1a1c', blurb: { en: 'The Later Jin of Nurhaci: banner men in studded coats of plates under the black helmet, with the heavy Manchu bow, saber, spear and guandao; the Bayara guard on horse. Two centuries on, the Qing\'s Green Standard of the Opium War, with the matchlock and the sabre.', zh: '努尔哈赤的后金：旗兵戴黑盔，披钉甲，使满洲大弓、马刀、长枪、大刀；马上是巴牙喇护军。两百年后，鸦片战争里清朝的绿营兵，使鸟枪和腰刀。' } },
   steppe: { label: 'Steppe', glyph: 'horse', standard: { weapon: 'tug' }, lamellarCord: '#e9e2d0', blurb: { en: 'Mongol, Oirat and Timurid warriors: archers in the deel, hardened leather lamellar, sabre, mace and composite bow; the Khan\'s kheshig in gilt scale; the Cumans of the Kipchak steppe in plated mail and the masked helmet.', zh: '蒙古、瓦剌与帖木儿的战士：穿蒙古袍的弓手，硬皮札甲，马刀、骨朵、复合弓；大汗的怯薛披鎏金鳞甲；钦察草原的库曼人，甲片缀锁甲，戴铁面盔。' } },
   // Keyed `ottomans` (saves and levels name it); it holds the Turkish and Kurdish sultanates both, Saladin's Ayyubids of the 1100s and the Ottomans after them.
   ottomans: { label: 'Sultanates', glyph: 'moon', standard: { weapon: 'sancak', colour: '#2e6b3a' }, blurb: { en: 'Saladin\'s Ayyubids and the Ottoman Turks: Saladin in kazaghand and turbaned helmet; the Sultan\'s azaps, Janissaries with yatagan and gun, heavy men in mail-and-plate; an alp of Osman\'s gazis of legend.', zh: '萨拉丁的阿尤布王朝与奥斯曼土耳其：萨拉丁锁甲外罩棉甲，头戴缠头盔；苏丹的阿扎普，挎弯刀扛火枪的耶尼切里，锁甲缀板的重骑；还有传说中奥斯曼麾下的一名加齐勇士。' } },
@@ -3413,7 +3553,10 @@ export const FACTIONS = {
   parthians: { label: 'Parthia', glyph: 'bow', standard: { weapon: 'tug' }, blurb: { en: 'The Parthian horse of Carrhae: cataphracts, man and horse in iron scale, with the kontos; horse archers in tunic and felt cap with the composite bow.', zh: '卡莱之战的帕提亚骑兵：人马俱披铁鳞的重骑兵，持长骑枪；穿短袍戴毡帽的骑射手，拿复合弓。' } },
   romans: { label: 'Rome', glyph: 'shield', standard: { weapon: 'vexillum', colour: '#9a1a1a' }, blurb: { en: 'The legions of the early Empire: legionaries in segmented iron with scutum and gladius, their centurions in mail and medals; the red vexillum.', zh: '帝国初年的军团：军团兵披环片甲，持大方盾短剑；百夫长披锁甲挂勋章；一面红色军旗。' } },
   law: { label: 'Law', glyph: 'beacon', blurb: { en: 'Police, SWAT, special forces and the infantry: the baton, the service pistol, the shotgun, the AR-15 and the grenade; firefighters in aluminized proximity and fire-entry suits.', zh: '警察、特警、特种部队和步兵：警棍、配枪、霰弹枪、AR-15、手雷；还有穿镀铝隔热服、进火服的消防员。' } },
-  primates: { label: 'Apes & Monkeys', glyph: 'ape', blurb: { en: 'Not men: a silverback gorilla, a chimpanzee, a chacma baboon and a rhesus macaque, fighting as their kinds fight: the charge, the grab, the clubbing arm and the bite.', zh: '不是人：一头银背大猩猩、一只黑猩猩、一只豚尾狒狒、一只猕猴，各按各的本性打：冲撞、抓扯、抡胳膊、下嘴咬。' } },
+  // The armies of the Napoleonic wars and the decades after (to the Opium War): the line's musket and bayonet, the cuirassier.
+  napoleonic: { label: 'Napoleonic', glyph: 'crown', standard: { weapon: 'banner', colour: '#1f2f6a' }, blurb: { en: 'The armies of 1800-1845: line infantry in coats and shakos with the flintlock musket and bayonet; the cuirassier in breast and back, on a big horse, with the heavy straight sword.', zh: '1800至1845年的军队：穿军服、戴高筒军帽的线列步兵，使燧发枪和刺刀；披胸背甲、骑高头大马、使重型直剑的胸甲骑兵。' } },
+  // The primates: the apes and monkeys, and the hunter of the Upper Palaeolithic who opens the human timeline beside them.
+  primates: { label: 'Primates', glyph: 'ape', blurb: { en: 'Apes, monkeys and the first hunters: a silverback gorilla, a chimpanzee, a chacma baboon and a rhesus macaque, fighting as their kinds fight (the charge, the grab, the clubbing arm and the bite), and an Ice Age hunter with the spear-thrower and the stone-tipped spear.', zh: '猿猴与最早的猎人：一头银背大猩猩、一只黑猩猩、一只豚尾狒狒、一只猕猴，各按各的本性打（冲撞、抓扯、抡胳膊、下嘴咬），还有一个冰河时代的猎人，使投矛器和石尖矛。' } },
   machines: { label: 'Machines', glyph: 'robot', blurb: { en: 'Machines, and a man in one: a full-size and a mini humanoid robot, a combat bot whose forearms are an AR-15 and a shotgun, three robot dogs (a Go2, Spot with its arm, a Vision 60 with a rifle turret), and a soldier in a powered exoskeleton.', zh: '机器，和机器里的一个人：全尺寸与迷你两种人形机器人，前臂是AR-15和霰弹枪的战斗机器人，三条机器狗（Go2、带机械臂的Spot、背步枪炮塔的Vision 60），还有一个穿动力外骨骼的兵。' } },
 };
 export const FACTION_KEYS = Object.keys(FACTIONS);

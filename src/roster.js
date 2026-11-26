@@ -94,6 +94,10 @@ export const UNIT_NAMES = {
   judo: 'Judoka',
   mingEliteInfantry: 'Ming Elite Infantry',
   halberdier: 'Halberdier',
+  lineInfantry: 'Fusilier',
+  cuirassier: 'Cuirassier',
+  greenStandard: 'Qing Musketeer',
+  hunter: 'Hunter',
   doppelsoeldner: 'Doppelsöldner',
   mingEliteSpear: 'Qi Long Spearman',
   mingDangpa: 'Dangpa Soldier',
@@ -252,6 +256,8 @@ export const WARRIORS = [
   warrior('bannerArcher', 'Hūsun', PRESETS.bannerBow),
   warrior('bannerGuandao', 'Baturu', PRESETS.bannerGuandao),
   warrior('bannerSpear', 'Ilan', PRESETS.bannerBow, { name: 'Ilan', style: 'spear', outfit: { kind: 'bannerArmour', design: 6 } }),
+  // The Qing's Green Standard of the Opium War (1840-42): the matchlock, the waist sabre at his side.
+  warrior('greenStandard', 'Huang Fu', PRESETS.greenStandard),
   warrior('arquebus', 'Hans Brenner', PRESETS.contender, { name: 'Hans Brenner', calories: 4050, exercise: 0.75, sex: 'male', style: 'matchlock', outfit: { kind: 'footman', design: 1 }, accessories: [] }),
   // A longbowman trained at the butts from boyhood by statute (the Archery Acts): a professional's skill (0.45), his people's
   // build (peoples.js english).
@@ -271,6 +277,9 @@ export const WARRIORS = [
   warrior('centurion', 'Marcus Caelius', PRESETS.centurion),
   warrior('peasant', 'Hob Miller', PRESETS.spear),
   warrior('starved', 'Starved Rebel', PRESETS.starved),
+  // The Napoleonic wars and after: the line infantryman with the flintlock and bayonet (the faction's flagship), the cuirassier.
+  { ...warrior('lineInfantry', 'Pte. Joseph Wood', PRESETS.lineInfantry), flagship: true },
+  warrior('cuirassier', 'Jean Lefort', PRESETS.cuirassier),
   warrior('pistol', 'Sgt. Dana Cole', PRESETS.handgun),
   warrior('ladyAshford', 'Lady Ashford', PRESETS.revolver),
   warrior('lordAshford', 'Lord Ashford', PRESETS.rapier),
@@ -288,6 +297,8 @@ export const WARRIORS = [
   warrior('knife', 'Ryo Kanda', PRESETS.knife),
   // Apes and monkeys. The faction opens on the silverback (`flagship`).
   { ...warrior('gorilla', 'Silverback', PRESETS.gorilla), flagship: true },
+  // The hunter of the Upper Palaeolithic, beside the apes: the spear-thrower's darts, then the stone-tipped spear.
+  warrior('hunter', 'Ice Age hunter', PRESETS.hunter),
   warrior('chimp', 'Chimpanzee', PRESETS.chimp),
   warrior('baboon', 'Chacma baboon', PRESETS.baboon),
   warrior('macaque', 'Rhesus macaque', PRESETS.macaque),

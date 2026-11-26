@@ -418,7 +418,7 @@ export function loose(world, fighter, bolt = null) {
   if (!bolt) spendMissile(world, fighter, weapon);
   // The arrow leaves the bow with the bow's own way over the ground (a horse's gallop, a man's step) as well as its cast.
   const carried = overGround(fighter);
-  world.arrows.push({ id: world.arrows.length, owner: fighter.id, x: vec.add(grip, vec.scale(dir, bolt ? 0.3 : 0.08)), v: vec.add(vec.scale(dir, speed), carried), speed, energy, kg: laid.projectile.kg, projectile: laid.projectile, bolt: Boolean(bolt), thrown: Boolean(bolt?.thrown), length: bolt?.length, bounce: bolt?.bounce, age: 0, landed: false, done: false });
+  world.arrows.push({ id: world.arrows.length, owner: fighter.id, x: vec.add(grip, vec.scale(dir, bolt ? 0.3 : 0.08)), v: vec.add(vec.scale(dir, speed), carried), speed, energy, kg: laid.projectile.kg, projectile: laid.projectile, bolt: Boolean(bolt), thrown: Boolean(bolt?.thrown), dart: Boolean(bolt?.dart), length: bolt?.length, bounce: bolt?.bounce, age: 0, landed: false, done: false });
   world.events.push({ time: world.time, kind: 'loosed', attacker: fighter.id, effects: [] });
   // Heard: the string let go (a bow's, or a crossbow's heavier snap).
   if (world.ear) soundEvent(world, 'shot', { at: grip, kind: bolt ? 'crossbow' : 'bow', who: fighter.id });

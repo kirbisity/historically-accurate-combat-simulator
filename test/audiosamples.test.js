@@ -13,6 +13,8 @@ import { buildBody, normaliseInputs, PRESETS } from '../src/body.js';
 import { advance, createWorld, placeFighter, throwPunch } from '../src/physics.js';
 import { machineFxCreate, machineFxHear } from '../src/machinefx.js';
 import { OUTFITS } from '../src/outfits.js';
+import { weaponPart } from '../src/audio/log.js';
+import { WEAPONS } from '../src/weapons.js';
 import { EAR, levelAtEar, thinningKeeps } from '../src/audio/ear.js';
 import { ARMOUR_COVERING, armourOf, coveringAt } from '../src/audio/log.js';
 import { gainOfLevel } from '../src/audio/synth.js';
@@ -64,7 +66,7 @@ test('the events a recording fits play it; the rest are left to the synth', () =
   assert.equal(plan({ type: 'swing', speed: 22, length: 1, mass: 1.3, head: 'blade' }).set, 'bladeswing');
   assert.equal(plan({ type: 'shot', kind: 'matchlock' }).set, 'gunshot');
   assert.equal(plan({ type: 'shot', kind: 'bow' }).set, 'bow');
-  for (const set of ['clash', 'slice', 'bonehit', 'break', 'gore', 'bones', 'armourstep', 'clatter', 'maceswing', 'gunshot', 'step-heel', 'helmet', 'woodshield', 'punch', 'fistswing', 'thunder']) assert.ok(SAMPLE_SETS[set]?.length, set);
+  for (const set of ['clash', 'slice', 'bonehit', 'break', 'gore', 'bones', 'armourstep', 'clatter', 'maceswing', 'gunshot', 'step-heel', 'helmet', 'woodshield', 'hafthit', 'haftslide', 'punch', 'fistswing', 'thunder']) assert.ok(SAMPLE_SETS[set]?.length, set);
 });
 
 test('a harder event plays longer and louder; a heavier weapon lower', () => {
@@ -162,10 +164,13 @@ test('the third batch: heels, a helmet, a wooden shield, punches, the fist\'s wh
   assert.equal(plan({ type: 'hit', energy: 150, striker: 'blade', covering: 'wood', part: 'shield' }).set, 'woodshield');
   assert.equal(plan({ type: 'hit', energy: 80, striker: 'body', covering: 'wood', part: 'shield' }).set, 'woodshield');
   assert.equal(plan({ type: 'clash', speed: 10, a: 'blade', b: 'shield' }).set, 'woodshield');
+  // A weapon met on a wooden shaft: the recorded knock, or the blade drawn along it where they bind; never the synth's chop.
   const haft = plan({ type: 'clash', speed: 10, a: 'blade', b: 'haft' });
-  const boards = plan({ type: 'clash', speed: 10, a: 'blade', b: 'shield' });
-  assert.equal(haft.set, 'woodshield');
-  assert.ok(haft.rate > boards.rate && haft.seconds < boards.seconds, 'a haft higher and shorter than a shield');
+  assert.equal(haft.set, 'hafthit');
+  assert.ok(haft.sampledOnly && !haft.synth);
+  assert.equal(plan({ type: 'clash', speed: 4, a: 'blunt', b: 'haft', slide: true }).set, 'haftslide');
+  assert.deepEqual(plan({ type: 'clash', speed: 10, a: 'blade', b: 'haft', deflect: true }).extra.map((layer) => layer.set), ['haftslide'], 'turned aside: the knock, then the glance along the wood');
+  assert.ok(plan({ type: 'clash', speed: 10, a: 'haft', b: 'haft' }).seconds < haft.seconds, 'two shafts knock shorter');
   for (const striker of ['fist', 'foot', 'knee', 'elbow']) assert.equal(plan({ type: 'hit', energy: 60, striker, covering: 'flesh', part: 'head' }).set, 'punch', striker);
   assert.equal(plan({ type: 'hit', energy: 60, striker: 'fist', covering: 'padded', part: 'trunk' }).set, 'punch');
   assert.ok(plan({ type: 'hit', energy: 60, striker: 'foot', covering: 'flesh' }).rate < plan({ type: 'hit', energy: 60, striker: 'fist', covering: 'flesh' }).rate, 'a kick lower than a punch');
@@ -685,4 +690,26 @@ test('an armour moving is heard at its own level, not the floor\'s: as loud on g
     return gainOfLevel(params.level) * samplePlan('horse', params, event, half).extra[0].trim;
   };
   assert.ok(Math.abs(hoof('grass') / hoof('stone') - 1) < 0.01, 'the bard as loud on grass as on stone');
+});
+
+test('a meeting on a wooden shaft is silent until its recording decodes, never the synth', () => {
+  let synth = 0;
+  const family = { ...SOUND_FAMILIES.clash, play: () => { synth += 1; return 0; } };
+  const bank = { pick: () => null };
+  playWithSamples(bank, { out: null }, family, { type: 'clash', speed: 10, a: 'blade', b: 'haft' }, SOUND_FAMILIES.clash.params({ type: 'clash', speed: 10, a: 'blade', b: 'haft' }), 0, 1);
+  assert.equal(synth, 0);
+  playWithSamples(bank, { out: null }, family, { type: 'clash', speed: 10, a: 'blade', b: 'blade' }, SOUND_FAMILIES.clash.params({ type: 'clash', speed: 10, a: 'blade', b: 'blade' }), 0, 1);
+  assert.equal(synth, 1, 'steel on steel still has the synth until its takes load');
+});
+
+test('the wood of a weapon is its shaft, a staff, a gun\'s stock or a bow; a sword\'s grip and guard are steel', () => {
+  const at = (kind, along) => weaponPart({ spec: WEAPONS[kind] }, along);
+  assert.equal(at('spear', 0.5), 'haft');
+  assert.equal(at('spear', 1.2), 'blade');
+  assert.equal(at('staff', 0.3), 'haft');
+  assert.equal(at('warhammer', 0.6), 'haft');
+  assert.equal(at('flintlock', 0.6), 'haft');
+  assert.equal(at('flintlock', 1.3), 'blade', 'the bayonet');
+  assert.equal(at('longsword', 0.05), 'blunt');
+  for (const club of ['kanabo', 'bat', 'macuahuitl']) assert.equal(at(club, WEAPONS[club].length * 0.8), 'haft', club);
 });

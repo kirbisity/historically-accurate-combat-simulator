@@ -76,10 +76,10 @@ test('the Vision 60 keeps off and shoots; its turret carries the 6.5 Creedmoor',
 const PRIMATES = ['macaque', 'baboon', 'chimp'];
 const DOGS = ['dogGo2', 'dogSpot', 'dogVision60'];
 
-test('the beasts\' faction is split in two: the apes and monkeys, and the machines (the exoskeleton soldier with them)', () => {
+test('the beasts\' faction is split in two: the primates (the apes and monkeys, and the Ice Age hunter beside them), and the machines (the exoskeleton soldier with them)', () => {
   assert.ok(!FACTIONS.specials && FACTION_KEYS.includes('primates') && FACTION_KEYS.includes('machines'));
   const of = (faction) => WARRIORS.filter((warrior) => warrior.faction === faction).map((warrior) => warrior.key).sort();
-  assert.deepEqual(of('primates'), ['baboon', 'chimp', 'gorilla', 'macaque']);
+  assert.deepEqual(of('primates'), ['baboon', 'chimp', 'gorilla', 'hunter', 'macaque']);
   assert.deepEqual(of('machines'), ['combatBot', 'dogGo2', 'dogSpot', 'dogVision60', 'exoArmoured', 'humanoid', 'miniHumanoid']);
   for (const faction of ['primates', 'machines']) assert.equal(WARRIORS.filter((warrior) => warrior.faction === faction && warrior.flagship).length, 1, `${faction}: one flagship`);
   for (const key of [...PRIMATES, ...DOGS]) assert.ok(RATINGS.characters[key]?.score > 0, `${key} rated`);

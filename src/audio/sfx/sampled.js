@@ -54,6 +54,32 @@ export function blowTail(plan, s) {
   return { ...plan, seconds: plan.seconds === null ? null : plan.seconds * sampleLerp(BLOW_TAIL.light, BLOW_TAIL.heavy, k), fade: plan.fade * sampleLerp(BLOW_TAIL.fadeLight, BLOW_TAIL.fadeHeavy, k) };
 }
 
+/**
+ * A weapon on a wooden shaft (the user's recording of 2026-11-26): `hit` the knock into the wood, `slide` a blade drawn along it
+ * (each: trim at the soft and the hard end, its length at either, s), `wood` the knock of two shafts (its pitch and length, × the
+ * hit's); a deflect on the shaft the knock and the slide after it. Played from its recordings only (`sampledOnly`): silent until they decode.
+ */
+export const HAFT_SOUND = {
+  hit: { trim: [0.7, 1.2], seconds: [0.16, 0.4], fade: [0.04, 0.14] },
+  slide: { trim: [0.6, 1.05], seconds: [0.22, 0.5], fade: [0.06, 0.16] },
+  wood: { rate: 1.15, seconds: 0.7 },
+  // A deflect on the shaft: the slide this far (s) after the knock, at this share of its trim.
+  deflectDelay: 0.04, deflectSlide: 0.75,
+};
+/** A clash on a wooden shaft's plan (HAFT_SOUND): the slide where they bind, else the knock, `s` the meeting's strength 0..1. */
+function haftPlan(params, event, s, jitter) {
+  const spec = params.scrape > 0 ? HAFT_SOUND.slide : HAFT_SOUND.hit;
+  const both = params.wood.both && !(params.scrape > 0);
+  const rate = sampleMassRate(event.mass) * (both ? HAFT_SOUND.wood.rate : 1) * jitter();
+  const seconds = sampleLerp(spec.seconds[0], spec.seconds[1], s) * (both ? HAFT_SOUND.wood.seconds : 1);
+  const plan = { set: params.scrape > 0 ? 'haftslide' : 'hafthit', trim: sampleLerp(spec.trim[0], spec.trim[1], s), rate, seconds, fade: sampleLerp(spec.fade[0], spec.fade[1], s), skip: 0, synth: null, synthGain: 0, sampledOnly: true };
+  if (params.scrape > 0) return plan;
+  // A blow turned aside on the shaft (a deflect): the knock, then the blade glancing off along the wood.
+  const slide = HAFT_SOUND.slide;
+  const glance = event.deflect && !both ? { extra: [{ set: 'haftslide', trim: HAFT_SOUND.deflectSlide * sampleLerp(slide.trim[0], slide.trim[1], s), rate, seconds: sampleLerp(slide.seconds[0], slide.seconds[1], s), fade: sampleLerp(slide.fade[0], slide.fade[1], s), skip: 0, delay: HAFT_SOUND.deflectDelay }] } : {};
+  return { ...blowTail(plan, s), ...glance };
+}
+
 // A deflect's clash: the weapons' own clash at `rate` of its pitch (about four semitones down), `trim` times louder, rung `seconds` longer.
 const DEFLECT_SOUND = { rate: 0.8, trim: 2.3, seconds: 1.4 };
 // The man played's deflect and big deflect (the recordings `set`, at `trim`), the meeting's energy (J) from soft to hard across
@@ -360,7 +386,11 @@ export function samplePlan(type, params, event = {}, random = Math.random) {
     }
     case 'clash': {
       const s = sampleStrength(params.speed, 1, 20);
-      // Steel into wood: a wooden shield's boards knocked; a haft (thinner, its first mode higher) the same take a little higher and shorter.
+      // A weapon met on a wooden shaft (a spear's, a polearm's, a staff, a gun's stock): the recorded knock into the wood, or the blade
+      // drawn along it where the two bind and slide; a harder meeting louder and longer, a heavier weapon lower. Wood on wood (two
+      // shafts) the knock duller and shorter. Only the recording: never the synth's chop (HAFT_SOUND).
+      if (params.wood?.shaft) return haftPlan(params, event, s, jitter);
+      // Steel into wood: a wooden shield's boards knocked.
       if (params.wood) {
         return blowTail({ set: 'woodshield', trim: sampleLerp(0.75, 1.15, s), rate: sfxClamp((params.wood.base / 300) ** 0.5, 0.9, 1.3) * jitter(), seconds: sampleLerp(0.1, 0.3, s) * (300 / params.wood.base), fade: sampleLerp(0.04, 0.12, s), skip: 0, synth: null, synthGain: 0 }, s);
       }
@@ -669,7 +699,8 @@ export function playWithSamples(bank, voice, family, event, params, when, gain) 
   const plan = bank ? samplePlan(event.type, params, event) : null;
   const take = plan ? bank.pick(plan.set) : null;
   // (A family played only from its recordings, the cries: nothing until they have loaded.)
-  if (!take) return family.sampledOnly ? when : family.play(voice, voice.out, params, when, gain);
+  // (A plan played only from its recordings, a meeting on a wooden shaft: the same.)
+  if (!take) return family.sampledOnly || plan?.sampledOnly ? when : family.play(voice, voice.out, params, when, gain);
   let end = playLayers(bank, voice, plan, playSample(voice, voice.out, take, plan, when, gain), when, gain);
   if (plan.synth) end = Math.max(end, family.play(voice, voice.out, plan.synth, when, gain * plan.synthGain));
   return end;

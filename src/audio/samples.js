@@ -47,6 +47,10 @@ export const SAMPLE_SETS = {
   'step-heel': Array.from({ length: 6 }, (_, index) => `step-heel-${index + 1}`),
   helmet: ['helmet-1'],
   woodshield: ['woodshield-1'],
+  // A weapon meeting a wooden shaft (a spear's, a polearm's, a staff, a gun's stock; the user's clip of 2026-11-26): a blow
+  // knocking into the wood, and a blade drawn along it as it is turned aside.
+  hafthit: ['hafthit-1', 'hafthit-2', 'hafthit-3', 'hafthit-4'],
+  haftslide: ['haftslide-1', 'haftslide-2', 'haftslide-3'],
   punch: Array.from({ length: 7 }, (_, index) => `punch-${index + 1}`),
   fistswing: Array.from({ length: 5 }, (_, index) => `fistswing-${index + 1}`),
   // Thunder near (the crack and its roll; the 11-10 batch: a crack and roll, and that crack crossfaded into a long low rumble), and far

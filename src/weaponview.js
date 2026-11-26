@@ -11,7 +11,7 @@ import { gripDrawing } from './physics/polegrip.js';
 import { unpackedComponent } from './meshpack.js';
 import { BONE } from './rig.js';
 import { disposeObject, doubleSided, outlineFor, surface, unskinnedCopy } from './toon.js';
-import { ARROW, SHIELDS, WEAPONS } from './weapons.js';
+import { ARROW, DART, SHIELDS, WEAPONS } from './weapons.js';
 import { arrowSightScale } from './arrowsight.js';
 import { outfitOf } from './outfits.js';
 import { featherDevice, steelMaterial } from './wardrobe.js';
@@ -1457,6 +1457,48 @@ export function buildWeaponMesh(kind, envMap, colour = '#b3161b') {
       const knob = new THREE.Mesh(new THREE.SphereGeometry(0.02, 10, 8), plait);
       knob.position.y = -spec.handle - 0.01;
       group.add(knob);
+      break;
+    }
+    case 'heavySword': {
+      // The cuirassier's sword (an XIII): a long straight blade with two fullers, a brass basket of four branches over the
+      // hand, a leather grip bound in brass wire, a brass pommel cap.
+      group.add(bladeMesh(bladeGeometry(0.03, spec.length - 0.03, 0.036, 0.008, 0.12), polished));
+      for (const side of [1, -1]) {
+        const fuller = new THREE.Mesh(new THREE.BoxGeometry(0.003, spec.length * 0.7, 0.006), dark);
+        fuller.position.set(side * 0.0045, 0.04 + spec.length * 0.36, 0.006);
+        fuller.userData.blade = true;
+        group.add(fuller);
+      }
+      const cup = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.012, 0.11), brass);
+      cup.position.y = 0.02;
+      for (const [offset, tilt] of [[0.035, 0.2], [0.05, 0.4]]) {
+        const branch = new THREE.Mesh(new THREE.TorusGeometry(0.075, 0.004, 4, 12, Math.PI), brass);
+        branch.rotation.set(0, Math.PI / 2, -Math.PI / 2 + tilt);
+        branch.position.set(0, -spec.handle / 2 + 0.01, offset - 0.015);
+        branch.scale.set(1, (spec.handle + 0.02) / 0.15, 1);
+        group.add(branch);
+      }
+      const pommel = new THREE.Mesh(new THREE.SphereGeometry(0.019, 10, 8), brass);
+      pommel.position.y = -spec.handle - 0.008;
+      group.add(cup, pommel, cylinder(0.014, 0.015, -spec.handle, 0.012, leather));
+      break;
+    }
+    case 'stoneSpear': {
+      // The hunter's spear: a straight shaft of spruce, the split end bound with sinew over a leaf-shaped flint point.
+      group.add(cylinder(0.015, 0.017, -spec.handle, spec.length - 0.12, surface(0x9a7a50, { roughness: 0.8 }), 8));
+      group.add(bladeMesh(bladeGeometry(spec.length - 0.13, 0.13, 0.035, 0.008, 0.08), surface(0x6e6a64, { roughness: 0.5 })));
+      group.add(cylinder(0.019, 0.019, spec.length - 0.2, spec.length - 0.12, surface(0x6a5a44, { roughness: 0.9 }), 8));
+      break;
+    }
+    case 'atlatl': {
+      // The spear-thrower (a board of antler or wood with a hook at its far end) held behind the hand, the dart's butt in the
+      // hook and the dart along it, forward over the hand to its point.
+      const board = cylinder(0.012, 0.016, -0.5, 0.04, surface(0xb8a68a, { roughness: 0.6 }), 6);
+      const hook = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.03, 0.03), surface(0xb8a68a, { roughness: 0.6 }));
+      hook.position.set(0, -0.5, 0.02);
+      const dart = dartParts(new THREE.Group(), -0.5, DART.length - 0.5);
+      dart.position.z = 0.025;
+      group.add(board, hook, dart);
       break;
     }
     case 'armingSword': {
@@ -2985,6 +3027,28 @@ function pilumParts(group, from, to) {
   return group;
 }
 
+/**
+ * The spear-thrower's dart along `from`..`to` (m, +y the point): a thin shaft of wood, a bevelled foreshaft bound in sinew,
+ * a leaf-shaped flint point, two split feathers at the butt.
+ */
+function dartParts(group, from, to) {
+  const length = to - from;
+  const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.0065, 0.0075, length - 0.1, 6), surface(0xa8865a, { roughness: 0.75 }));
+  shaft.position.y = from + (length - 0.1) / 2;
+  const binding = new THREE.Mesh(new THREE.CylinderGeometry(0.0085, 0.0085, 0.05, 6), surface(0x6a5a44, { roughness: 0.9 }));
+  binding.position.y = to - 0.12;
+  const point = bladeMesh(bladeGeometry(to - 0.1, 0.1, 0.028, 0.006, 0.06), surface(0x6e6a64, { roughness: 0.5 }));
+  const feathers = surface(0x5a4a3a, { roughness: 0.95 });
+  for (const turn of [0, Math.PI / 2]) {
+    const vane = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.14, 0.002), feathers);
+    vane.position.y = from + 0.1;
+    vane.rotation.y = turn;
+    group.add(vane);
+  }
+  group.add(shaft, binding, point);
+  return group;
+}
+
 function arrowMesh(length = ARROW.length, bolt = false, thrown = false) {
   // A pilum thrown: the whole javelin in flight.
   if (thrown) return pilumParts(new THREE.Group(), 0, length);
@@ -3037,7 +3101,7 @@ export function updateArrows(view, world) {
     live.add(arrow);
     let mesh = drawn.get(arrow);
     if (!mesh) {
-      mesh = arrowMesh(arrow.length ?? ARROW.length, arrow.bolt, arrow.thrown);
+      mesh = arrow.dart ? dartParts(new THREE.Group(), 0, arrow.length ?? DART.length) : arrowMesh(arrow.length ?? ARROW.length, arrow.bolt, arrow.thrown);
       view.scene.add(mesh);
       drawn.set(arrow, mesh);
     }

@@ -1326,6 +1326,20 @@ const CUMAN_LAMES = {
   columns: [[0.3, 0.19], [-0.3, 0.19], [1.05, 0.36], [-1.05, 0.36], [2.42, 0.52], [-2.42, 0.52]],
   straps: [0.33, 0.48, 0.63, 0.78], strap: 0.024, across: 0.17,
 };
+// The line infantryman's crossbelts, each ~6 cm of buff leather (`width`, rad about the trunk): from the shoulder (`shoulder`
+// t, at `side` rad off the middle) to the crossing on the breast and the back (`cross` t), then down to the other hip
+// (`hip` t, `hipSide` rad off). They stand off the coat as the leather over the wool (`out`): further over the chest
+// (`chest`), where the fitted body's breast swells past the lean rings they are laid on.
+const CROSSBELT = { shoulder: 0.98, side: 0.55, cross: 0.72, hip: 0.14, hipSide: 1.4, width: 0.28, chest: 1.62, out: 1.42 };
+/** The crossbelts as straps: each belt shoulder to crossing to hip, on the front and the back. */
+function crossbelts() {
+  const { shoulder, side, cross, hip, hipSide, width, chest, out } = CROSSBELT;
+  return [0, Math.PI].flatMap((face) => [1, -1].flatMap((hand) => [
+    [shoulder, face + hand * side, cross, face, width, chest, 'leather'],
+    [cross, face, hip, face - hand * hipSide, width, out, 'leather'],
+  ]));
+}
+
 /** The Cuman's plates as the trunk's `plates` ([from t, to t, angle, half width, out, role, rim]), and the straps over the front. */
 function cumanLames() {
   const { rows, from, to, tall, out, columns, straps, strap, across } = CUMAN_LAMES;
@@ -1783,6 +1797,37 @@ export const ARMOR_KINDS = {
   breastplate: {
     trunk: [-0.04, 0.96, 1.19, 'steel'], skirt: [0.22, 0.3, 1.2, { rows: ['steel', 'steel2'] }], knee: [0.82, 1.05, 1.45, 'steel'],
     rigidBreastplate: [0.32, 0.96],
+  },
+  // The line infantryman's coatee (the Napoleonic wars to the 1840s): wool to the waist in front, short tails behind (here
+  // the skirt all round to the top of the thigh), the regiment's facings down the front, at the collar and the cuffs; over it two
+  // broad belts of pipeclayed buff leather, one from each shoulder to the other hip (the cartridge box's and the bayonet's),
+  // crossed on the breast and the back, a brass plate where they cross.
+  crossbelts: {
+    trunk: [-0.06, 0.99, 1.1, { panel: [-0.06, 0.96, 0.985, 'cloth2'], base: 'cloth' }], skirt: [0.42, 0.45, 1.16, 'cloth'], collar: 'cloth2',
+    forearm: [0.72, 0, 1.12, 'cloth2'],
+    straps: crossbelts(),
+    studs: [[CROSSBELT.cross, 0, 0.07, CROSSBELT.chest + 0.04, 'gold']],
+  },
+  // The cuirassier's cuirass (the French an XI, 1802-1806): a rounded breast and a back of ~2-3 mm iron to the waist, joined
+  // at the shoulders by brass-scaled straps and at the sides by a belt; no fauld, the thighs in breeches and the great boots.
+  cuirass: {
+    trunk: [[-0.02, 0.96, 1.2, 'steel'], [0.0, 0.05, 1.26, 'leather']],
+    rigidBreastplate: [0.3, 0.96],
+    studs: [[0.92, 0, 0.03, 1.24, 'gold'], [0.92, Math.PI, 0.03, 1.24, 'gold'], [0.5, Math.PI / 2, 0.03, 1.26, 'gold'], [0.5, -Math.PI / 2, 0.03, 1.26, 'gold']],
+  },
+  // The Qing soldier's jacket of the 1830s-40s (号衣/号褂): a sleeveless coat to the thigh over the long-sleeved robe, bound
+  // in a second colour at its edges, a white disc on the breast (and the back) with his corps' character (兵, 勇).
+  qingHaoyi: {
+    trunk: [-0.08, 0.97, 1.12, { mon: [0.66, 0.09, 'lace'], base: 'cloth' }], skirt: [0.42, 0.42, 1.18, { edge: 'cloth2', base: 'cloth' }],
+    belt: [-0.03, 0.08, 1.2, 'cloth2'],
+  },
+  // The Upper Palaeolithic hunter's clothes (the Sungir burials, ~34,000 years ago, their beads laid out on the bodies;
+  // the bone needles of the Gravettian): a tailored tunic of hide to the thigh with short sleeves, its edges in fur, a belt
+  // of hide; leggings and moccasins of hide.
+  hides: {
+    trunk: [-0.1, 0.95, 1.12, 'cloth'], skirt: [0.4, 0.45, 1.2, { edge: 'cloth2', base: 'cloth' }], collar: 'cloth2',
+    belt: [-0.03, 0.06, 1.2, 'leather'],
+    upperArm: [-0.25, 0.55, 1.12, { edge: 'cloth2', base: 'cloth' }],
   },
   // Murmillo: belt, the manica on the sword arm, a short greave on the lead leg over a quilted wrap.
   murmillo: {

@@ -2213,7 +2213,20 @@ STYLES.dogTurret = {
 // The spear's ways with a people's own spear: the ashigaru's yari, the rebel's pitchfork.
 STYLES.yari = { ...STYLES.spear, label: 'Yari', weapon: 'yari' };
 // The musketeer of the 18th c.: the matchlock man's ways with the flintlock, a little quicker to the next shot (its cartridge).
-STYLES.flintlock = { ...STYLES.matchlock, label: 'Flintlock musket', weapon: 'flintlock' };
+// Its bayonet fixed, a man on him is met with the point, the musket kept (`emptyStyle`: ai.js, as the three-eyed gun is
+// kept to club with): the drill books' bayonet exercise (the British 1805 and the French), the spear's thrusts and jabs with
+// the musket in both hands, the butt swung when he is too close for the point.
+STYLES.flintlock = { ...STYLES.matchlock, label: 'Flintlock musket', weapon: 'flintlock', emptyStyle: 'bayonet', ratedAs: 'matchlock' };
+STYLES.bayonet = { ...STYLES.spear, label: 'Bayonet', hidden: true, weapon: 'flintlock', fallback: 'mix',
+  attacks: { spearThrust: 0.55, spearJab: 0.3, spearSweep: 0.15 } };
+// The cuirassier's heavy straight sword (weapons.js heavySword): on foot, the arming sword's plain cuts and thrusts, the point
+// first (the French drill's); in the saddle the same, his own sword ridden with (`rideWith: 'own'`).
+STYLES.heavySword = { ...STYLES.joan, label: 'Heavy cavalry sword', weapon: 'heavySword', ratedAs: 'joan', attacks: { gladiusThrust: 0.55, gladiusCut: 0.4, forehand: 0.05 } };
+// The hunter of the Upper Palaeolithic: the spear-thrower's darts from as far as he can be sure of a hit (~20 m), then the
+// stone-tipped spear in both hands (`fallback`: the thrower let fall once the darts are gone or a man is on him).
+STYLES.stoneSpear = { ...STYLES.spear, label: 'Stone-tipped spear', weapon: 'stoneSpear', ratedAs: 'spear' };
+STYLES.atlatl = { ...STYLES.crossbow, label: 'Spear-thrower', weapon: 'atlatl', fallback: 'stoneSpear', ratedAs: 'spear',
+  ranged: { ...STYLES.crossbow.ranged, reach: 20, close: 3, shotSeconds: 0.55, reloadSafe: 4 }, weaponGuard: { hand: [0.02, 0.85, -0.1], dir: [0.9, 0.35, 0.05] } };
 // The legionary before the lines meet: the pilum held up behind the scutum, thrown from within 15 m (`reach`), then his
 // sword drawn and the legionary's ways (`fallback`: physics.js rearm, the pilum gone).
 // (Left out for now, 2026-11-19: no kit or man carries it and the builders do not offer it; `passive` keeps it off the pickers.)
