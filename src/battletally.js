@@ -8,7 +8,7 @@
 
 import { hurtShare } from './ai.js';
 import { inFight, legShare } from './physics.js';
-import { t } from './i18n.js';
+import { t } from './i18n/words.js';
 
 /**
  * How hurt a man who lived must be to count as wounded (0..1, of hurtShare or

@@ -1,0 +1,1730 @@
+{
+ "version": 1,
+ "source": "src/physics/config.js",
+ "tables": {
+  "WORLD": {
+   "gravity": 9.81,
+   "substeps": 8,
+   "jointFootwork": 0.55,
+   "ringHalf": 2.85,
+   "gloveRadius": 0.065,
+   "teamSpacing": 1.1,
+   "teamRowSpacing": 0.9,
+   "sidestepShare": 0.7,
+   "threatSpeedShare": 0.6,
+   "fists": {
+    "gloved": {
+     "radius": 0.065,
+     "contactSeconds": 0.011,
+     "handFracture": 1,
+     "cutForce": {
+      "$number": "Infinity"
+     }
+    },
+    "bare": {
+     "radius": 0.042,
+     "contactSeconds": 0.008,
+     "handFracture": 0.9,
+     "cutForce": 2100
+    }
+   },
+   "props": {
+    "radius": 0.06,
+    "cutHeadDeltaV": 1.5,
+    "flySpeedPerHeadDeltaV": 1.6,
+    "flyBase": 1.2,
+    "flyUp": 1.5,
+    "restitution": 0.35,
+    "slide": 0.75,
+    "spinMin": 8,
+    "spinRange": 8
+   },
+   "contactStep": 0.012,
+   "twoHandWrist": 1.7,
+   "weaponTurnLimit": 25,
+   "weaponTurn": {
+    "rate": 20,
+    "inertia": 0.1,
+    "power": 0.27,
+    "slowest": 0.3
+   },
+   "fendDrive": 0.25,
+   "meetAlong": 0.45,
+   "offMeetAlong": 0.7,
+   "gripStep": 0.006,
+   "grip": {
+    "shortest": 0.4,
+    "headClear": 0.08
+   },
+   "halfGrip": {
+    "retake": 0.1
+   },
+   "haft": {
+    "from": 0.1,
+    "shortest": 0.25,
+    "radius": 0.017,
+    "blunt": 1,
+    "contactSeconds": 0.007,
+    "slides": 0.5
+   },
+   "contactRange": 2.6,
+   "contactMargin": 0.6,
+   "bodyReach": 1.3,
+   "blindsideAngle": 1.0471975511965976,
+   "blindsideFactor": 1.6,
+   "headLock": {
+    "sight": 0.6283185307179586,
+    "turn": 0.55,
+    "restLean": 0.12
+   },
+   "headMovement": {
+    "slip": {
+     "across": 0.14,
+     "down": 0.06
+    },
+    "roll": {
+     "across": 0.14,
+     "down": 0.04
+    }
+   },
+   "weave": {
+    "range": 0.35,
+    "easeRate": 4,
+    "hz": 0.75,
+    "size": 0.045,
+    "kneeDip": 0.03
+   },
+   "motor": {
+    "hand": {
+     "omega": 60,
+     "zeta": 0.6
+    },
+    "elbow": {
+     "omega": 34,
+     "zeta": 0.75
+    },
+    "head": {
+     "omega": 20,
+     "zeta": 0.85
+    },
+    "trunk": {
+     "omega": 13,
+     "zeta": 0.5
+    },
+    "pelvis": {
+     "omega": 12,
+     "zeta": 0.5
+    },
+    "knee": {
+     "omega": 22,
+     "zeta": 0.7
+    },
+    "foot": {
+     "omega": 36,
+     "zeta": 0.9
+    }
+   },
+   "reflex": {
+    "latency": 0.095,
+    "trainedSaving": 0.03,
+    "bracedSaving": 0.035,
+    "ramp": 0.14,
+    "floor": 0.12
+   },
+   "damping": {
+    "up": 0.8,
+    "down": 0.5
+   },
+   "groundFriction": 14,
+   "braceCompliance": 0.0005,
+   "diagonalCompliance": 0.003,
+   "headCone": 1.2,
+   "spineTwist": 1.3,
+   "ragdoll": {
+    "toneDamping": 7,
+    "spineTwist": 0.8,
+    "hipCone": 2,
+    "headCone": 0.9,
+    "shoulderCone": 2.8,
+    "bodyClearance": 0.85,
+    "sleepSpeed": 0.12,
+    "sleepSeconds": 0.25,
+    "hingeSlack": 0.03,
+    "restAgainst": 0.5
+   },
+   "minFold": {
+    "arm": 0.13,
+    "leg": 0.16
+   },
+   "limitStep": 0.006,
+   "limitStepLimp": 0.03,
+   "helmet": {
+    "paddingStretch": 2.5,
+    "glance": 0.9,
+    "slide": 0.8,
+    "glancedBelow": 0.75
+   },
+   "shell": {
+    "padding": 0.65
+   },
+   "joints": {
+    "stiffness": 2200
+   },
+   "helmetOff": {
+    "ease": 1,
+    "holds": {
+     "open": 14,
+     "half": 31,
+     "enclosed": 100
+    },
+    "refKg": 2,
+    "fit": 0.9,
+    "catch": {
+     "base": 1,
+     "rim": 0.6,
+     "rimAt": 0.3,
+     "rimWidth": 0.25,
+     "seat": 0.8,
+     "lift": 0.3
+    }
+   },
+   "daze": {
+    "from": 0.5,
+    "minSeconds": 1.5,
+    "maxSeconds": 6,
+    "reaction": 0.2,
+    "strength": 0.3,
+    "staggerMore": 0.5,
+    "sway": 0.03
+   },
+   "aimedAtWithin": 0.7,
+   "aimedAtOthers": 0.2,
+   "footing": {
+    "turnRate": 6,
+    "followPushed": 2.5,
+    "edgeMargin": 0.3
+   },
+   "drop": {
+    "footing": 0.12,
+    "outBelow": -0.45
+   },
+   "joint": {
+    "hipCone": 2.4,
+    "shoulder": {
+     "hanging": 1,
+     "level": 0.7,
+     "overhead": 0.26
+    },
+    "breakAngle": 0.8,
+    "breakAngles": {
+     "neck": 1.5
+    },
+    "straightAllowance": 0.01,
+    "strainToBreak": 0.05,
+    "strainLeak": 6,
+    "brokenDownSeconds": 2
+   },
+   "limbTwist": {
+    "arm": {
+     "low": {
+      "inward": 1.95,
+      "outward": 1.55
+     },
+     "high": {
+      "inward": 2.8,
+      "outward": 2.6
+     },
+     "lowAt": -0.8,
+     "highAt": 0.8
+    },
+    "leg": {
+     "low": {
+      "inward": 1.3,
+      "outward": 1.2
+     },
+     "high": {
+      "inward": 1.3,
+      "outward": 1.2
+     },
+     "lowAt": -0.8,
+     "highAt": 0.8
+    },
+    "softBand": 0.35,
+    "standingBand": 0.05,
+    "resistShare": 0.3,
+    "limpHold": 0.002,
+    "wrenchSpeed": 1,
+    "breakFurther": 0.8,
+    "restoreRate": 2,
+    "restoreMax": 0.6,
+    "from": 0.35,
+    "reversed": 0.7,
+    "wristBack": 2.6
+   },
+   "step": {
+    "threshold": 0.11,
+    "seconds": 0.17,
+    "lift": 0.05,
+    "lead": 0.5
+   },
+   "footSpeed": 1.2,
+   "footAcceleration": 8,
+   "footQuickness": 0.5,
+   "quicknessTypical": 0.84,
+   "legStrengthTypical": 0.8,
+   "contactSeconds": 0.011,
+   "restitution": 0.1,
+   "transferRestitution": 0.6,
+   "weaponTransferRestitution": {
+    "blunt": 0.2,
+    "edge": 0
+   },
+   "edgeCarriesOn": 0.85,
+   "poise": {
+    "mass": 8.6,
+    "shell": 4.75,
+    "carried": 2.5
+   },
+   "skill": {
+    "aimError": {
+     "hand": 0.04,
+     "blunt": 0.08,
+     "blade": 0.07,
+     "point": 0.1
+    },
+    "holdAngle": 0.01,
+    "fightScatter": 0.3,
+    "gunSpread": 1.6,
+    "edgeTilt": [
+     0.9,
+     1.5
+    ],
+    "flatBlunt": 0.5,
+    "draw": 0.25,
+    "artScatter": 0.6
+   },
+   "rotationLead": 0.45,
+   "staminaRecovery": 0.06,
+   "heat": {
+    "core": 37,
+    "heatCapacity": 3470,
+    "restWatts": 1.2,
+    "staminaJoules": 18600,
+    "efficiency": 0.2,
+    "walk": 2,
+    "run": 4,
+    "runFrom": 2.2,
+    "still": 0.2,
+    "armourPerKg": 1.9,
+    "carriedPerKg": 1,
+    "loadDraw": 0.02,
+    "sprint": 8,
+    "airInsulation": 0.1,
+    "clo": 0.155,
+    "skin": 35,
+    "clothes": 0.6,
+    "armour": 1.6,
+    "skinShare": {
+     "head": 0.09,
+     "trunk": 0.36,
+     "limb": 0.55
+    },
+    "sweatFrom": 36.8,
+    "sweatPerDegree": 550,
+    "sweatMost": 1000,
+    "evapBlocked": 0.65,
+    "reference": {
+     "air": 20,
+     "humidity": 0.5
+    },
+    "strainFrom": 38.5,
+    "weakFrom": 39,
+    "limit": 40,
+    "recoveryAtLimit": 0.4,
+    "strengthAtLimit": 0.8,
+    "breath": {
+     "breastplate": 0.95,
+     "closedHelm": 0.93
+    },
+    "climates": {
+     "temperate": {
+      "air": 18,
+      "humidity": 0.6
+     },
+     "carrhae": {
+      "air": 40,
+      "humidity": 0.2
+     },
+     "mobei": {
+      "air": 30,
+      "humidity": 0.25
+     },
+     "jiangnan": {
+      "air": 32,
+      "humidity": 0.8
+     },
+     "cajamarca": {
+      "air": 17,
+      "humidity": 0.55
+     },
+     "agincourt": {
+      "air": 8,
+      "humidity": 0.95
+     },
+     "cerignola": {
+      "air": 22,
+      "humidity": 0.6
+     },
+     "catalaunian": {
+      "air": 25,
+      "humidity": 0.6
+     },
+     "sarhu": {
+      "air": 8,
+      "humidity": 0.5
+     },
+     "liaodong1618": {
+      "air": 12,
+      "humidity": 0.65
+     },
+     "abdali1619": {
+      "air": 5,
+      "humidity": 0.6
+     },
+     "hunriver1621": {
+      "air": 14,
+      "humidity": 0.5
+     },
+     "colosseum": {
+      "air": 30,
+      "humidity": 0.5
+     },
+     "pyongyang": {
+      "air": -4,
+      "humidity": 0.67
+     },
+     "byeokjegwan": {
+      "air": 1,
+      "humidity": 0.6
+     },
+     "coastFort": {
+      "air": 27,
+      "humidity": 0.8
+     },
+     "nanjing1659": {
+      "air": 25,
+      "humidity": 0.78
+     },
+     "ulsan": {
+      "air": 1,
+      "humidity": 0.5
+     }
+    }
+   },
+   "strikeRecovery": 0.6,
+   "deflect": {
+    "window": 0.45,
+    "ref": "katana",
+    "least": 0.18,
+    "most": 0.65,
+    "spam": 0.3,
+    "holdFor": 1,
+    "reel": [
+     0.3,
+     0.8
+    ],
+    "reelJoules": 120,
+    "strikeAt": 0.8,
+    "arc": 1.5,
+    "aiShare": 0.3,
+    "big": {
+     "share": 0.2,
+     "least": 0.05,
+     "most": 0.12,
+     "open": 2
+    }
+   },
+   "guardHeld": {
+    "recovery": 0.25,
+    "staminaPerSecond": 0.025,
+    "perJoule": 0.0006,
+    "spentBelow": 0,
+    "willFrom": 0.12,
+    "willFull": 0.45
+   },
+   "guardRead": {
+    "untrainedBelow": 0.3,
+    "delay": [
+     0.3,
+     0.02
+    ],
+    "lag": [
+     0.11,
+     0.015
+    ],
+    "error": [
+     0.08,
+     0.01
+    ],
+    "linger": 0.5,
+    "chance": {
+     "most": 0.85,
+     "power": 1.5
+    },
+    "art": {
+     "delay": 0.1,
+     "error": 2.5,
+     "lag": 1.8
+    },
+    "thrust": {
+     "delay": 0.04,
+     "error": 1.5,
+     "lag": 1.25,
+     "chance": 0.75
+    }
+   },
+   "guardCover": {
+    "out": 0.11
+   },
+   "concussionCapacity": 4.1,
+   "concussionAfterKnockdown": 0.5,
+   "knockout": {
+    "overChin": 1.85,
+    "bodyDeltaV": 2.45
+   },
+   "heavy": {
+    "loadSeconds": 0.2,
+    "loadTwist": 0.6,
+    "loadDip": 0.045,
+    "massFactor": 1.4,
+    "costFactor": 2.2,
+    "committedSeconds": 0.35
+   },
+   "miss": {
+    "seconds": 0.15,
+    "cap": 16,
+    "thrust": 0.5,
+    "breath": 0.4
+   },
+   "spent": {
+    "wadeSunk": 0.3
+   },
+   "evade": {
+    "costJumps": 2.5,
+    "accel": 1.9,
+    "strikeTurn": 0.3,
+    "snap": 0.25,
+    "seconds": {
+     "aside": 0.5,
+     "back": 0.5,
+     "duck": 0.55,
+     "hop": 0.5
+    },
+    "aside": {
+     "step": 3.4,
+     "back": 0.6
+    },
+    "back": {
+     "step": 2.6,
+     "aside": 0.5
+    },
+    "duck": {
+     "dip": 0.16,
+     "head": 0.24,
+     "lean": 0.35,
+     "across": 0.05,
+     "back": 0.8
+    },
+    "hop": {
+     "crouch": 0.07,
+     "up": 0.7,
+     "back": 3.2,
+     "aside": 1.2
+    },
+    "step": {
+     "dip": 0.1,
+     "lower": 0.07,
+     "lean": 0.2
+    }
+   },
+   "diveRoll": {
+    "pushing": 0.3,
+    "cone": 0.8,
+    "catch": 0.33,
+    "under": 0.6,
+    "costJumps": 3,
+    "gather": 1,
+    "tuck": {
+     "fold": 0.95,
+     "fatFrom": 0.2,
+     "fat": 1.6
+    },
+    "diagonal": {
+     "from": 1,
+     "run": 4,
+     "walk": 0.35,
+     "most": 0.75
+    },
+    "shape": {
+     "crouch": {
+      "lean": 0.75,
+      "legs": 0.62,
+      "footAhead": 0
+     },
+     "dive": {
+      "arch": -0.05,
+      "hands": -0.15,
+      "legsBack": 0.25
+     },
+     "tuck": {
+      "curl": 0.6,
+      "chin": 1.1,
+      "headAside": 0.9,
+      "hip": 2.3,
+      "knee": 2.4
+     }
+    },
+    "dive": {
+     "legs": 0.5,
+     "angle": 0.35,
+     "legTop": 0.6,
+     "reach": 0.9,
+     "leastFlight": 0.14
+    },
+    "hands": {
+     "share": 0.6,
+     "eccentric": 1.5,
+     "give": 0.45,
+     "jointShare": 0.5,
+     "take": 0.5,
+     "keep": 0.85,
+     "turn": 0.9,
+     "least": 1.5,
+     "headFirst": 3
+    },
+    "slam": {
+     "harmFrom": 1.6,
+     "fallFrom": 3.2,
+     "harm": 1,
+     "brake": 0.5
+    },
+    "roll": {
+     "loss": 0.2,
+     "unround": 0.6,
+     "plate": 0.8,
+     "knock": 0.05,
+     "rock": 0.5,
+     "humpWidth": 2,
+     "leastRadius": 0.18,
+     "open": 1.4,
+     "feet": 1,
+     "stall": 0.3
+    },
+    "rise": {
+     "carry": 0.25,
+     "carryMost": 0.6,
+     "brake": 6,
+     "settled": 0.8,
+     "settleMost": 0.35
+    },
+    "breakGap": 0.18,
+    "knockBreak": 0.8,
+    "most": 4
+   },
+   "thrustBody": {
+    "twoHands": 0.2,
+    "oneHand": 0.03,
+    "fullStep": 2.1
+   },
+   "head": {
+    "blockedShare": 0.2,
+    "cutForce": 1800
+   },
+   "strikerRecoil": {
+    "share": 0.7,
+    "gloved": 0.4,
+    "armour": 1
+   },
+   "hurt": {
+    "chinPerHeadDamage": 0.35,
+    "chinPerKnockdown": 0.1,
+    "stunPerDeltaV": 0.6,
+    "hurtSeconds": 8,
+    "hurtPerKnockdown": 4,
+    "hurtStrength": 0.65,
+    "staminaPerTrunkDamage": 0.6,
+    "armForcePerDamage": 0.4
+   },
+   "wind": {
+    "blowCap": 0.3,
+    "pushCap": 0.12,
+    "pushShare": 0.4,
+    "floor": 0.25,
+    "returnSeconds": 2.5
+   },
+   "overdraft": {
+    "floor": -1,
+    "forceAtFloor": 0.25,
+    "recoveryShare": 0.25,
+    "faintSeconds": 3.5,
+    "wakeStamina": -0.45,
+    "graceSeconds": 10,
+    "clearSeconds": 5,
+    "defenceCost": 0.012,
+    "posture": {
+     "stance": {
+      "lean": 0.3,
+      "crouch": 0.07,
+      "guardHeight": -0.17
+     },
+     "hunch": 0.2,
+     "headDrop": 0.045,
+     "headForward": 0.02,
+     "dip": 0.02,
+     "handDrop": 0.14
+    },
+    "stagger": {
+     "from": 0.7,
+     "shift": 0.02,
+     "head": 0.03,
+     "roll": 0.08,
+     "hz": [
+      0.55,
+      0.83
+     ]
+    },
+    "breath": {
+     "deepen": 1.2,
+     "quicken": 0.8
+    },
+    "screen": {
+     "curve": 1.15,
+     "pulseHz": 1.1,
+     "pulse": 0.12
+    }
+   },
+   "stagger": {
+    "armouredFrom": 0.5,
+    "startAt": 0.7,
+    "overwhelm": 1.6,
+    "minSeconds": 2,
+    "maxSeconds": 10,
+    "strength": 0.7,
+    "harm": 0.6,
+    "defend": 0.5,
+    "force": 5000,
+    "catchSeconds": 1,
+    "hitWithin": 0.5
+   },
+   "rotationalFactor": {
+    "jab": 0.85,
+    "cross": 1,
+    "hook": 1.35,
+    "uppercut": 1.25
+   },
+   "followThrough": 0.2,
+   "lungeStance": {
+    "fullShift": 0.2,
+    "leanKept": 0.5
+   },
+   "heldOut": {
+    "rest": [
+     0.12,
+     0.5,
+     -0.1
+    ],
+    "restDir": [
+     1,
+     -0.35,
+     0
+    ],
+    "offRest": [
+     0.04,
+     0.5,
+     0.14
+    ]
+   },
+   "minImpactSpeed": 2,
+   "getUpSeconds": 1.6,
+   "rise": {
+    "restSpeed": 0.3,
+    "restSeconds": 0.3,
+    "waitMost": 1.5,
+    "strengthFrom": 0.4,
+    "seconds": {
+     "gather": 0.25,
+     "roll": 0.45,
+     "push": 0.35,
+     "step": 0.3,
+     "kneel": 0.3,
+     "stand": 0.45
+    },
+    "rollFrom": 0.6,
+    "reached": 0.75,
+    "stood": 0.97,
+    "patience": 1.2,
+    "gain": 0.01,
+    "strainMost": 6,
+    "slowest": 7,
+    "asks": {
+     "push": 0.35,
+     "step": 0.5,
+     "kneel": 0.6,
+     "stand": 0.75
+    },
+    "legsInPush": 0.15,
+    "rearShare": 0.6,
+    "kneeShare": 0.6,
+    "legFatigue": 0.5,
+    "braceBelow": 1.3,
+    "braceShare": 0.5,
+    "braceSlow": 1.4,
+    "kneelLeanFree": 0.2,
+    "pace": {
+     "easy": 1.5,
+     "low": 0.6,
+     "k": 1.5
+    },
+    "effort": 0.025,
+    "roll": {
+     "choiceFrom": 2.2,
+     "badArm": 0.6,
+     "weapon": 0.3,
+     "limbs": 4
+    },
+    "oneArmIn": 0.35,
+    "rest": {
+     "seconds": 1.2,
+     "perTry": 0.6,
+     "most": 6,
+     "crawlAfter": 3
+    },
+    "retryMargin": 1.05,
+    "wobble": {
+     "seconds": 0.9,
+     "size": 0.05,
+     "least": 0.3,
+     "hz": [
+      1.1,
+      1.7
+     ],
+     "easyMargin": 1.5,
+     "strain": 1,
+     "tired": 0.6,
+     "dazed": 1.2,
+     "fat": 0.6,
+     "old": 0.8
+    },
+    "kneesBack": 0.1,
+    "kneelLean": 0.35,
+    "legReach": 0.95,
+    "contact": 0.03,
+    "toes": 0.06,
+    "pushShare": 0.6,
+    "brace": 0.06,
+    "braceFrom": 0.6,
+    "braceTo": 0.9,
+    "braceStall": 0.3,
+    "freshDown": 0.45,
+    "freshStrength": 0.3,
+    "freshPace": 0.15
+   },
+   "balance": {
+    "speed": 2.1,
+    "reach": 0.8,
+    "fallSeconds": 1.4,
+    "absorbPerSecond": 5,
+    "massShare": 0.7,
+    "strikeMassShare": 1,
+    "legDamageCost": 0.3
+   },
+   "rush": {
+    "speedFactor": 2.6
+   },
+   "crash": {
+    "from": 0.8,
+    "tolerance": 1.2,
+    "fromHead": 3,
+    "restitution": 0.2,
+    "contactSeconds": 0.05,
+    "rotation": 1,
+    "cooldown": 0.6,
+    "hard": 0.5,
+    "horse": 0.05,
+    "lying": 0.1,
+    "brace": {
+     "grip": 0.7,
+     "seconds": 0.1,
+     "shieldSeconds": 0.2,
+     "sideOn": 0.4
+    },
+    "ready": {
+     "stretch": 1.8,
+     "share": 0.6
+    }
+   },
+   "terrain": {
+    "cell": 2,
+    "margin": 0.75,
+    "stepUp": 0.45,
+    "stepDown": 0.45,
+    "reachDown": 0.6,
+    "airReach": 0.05,
+    "airDamping": 0.1,
+    "airborne": 0.7,
+    "fallingSpeed": 1.5,
+    "touching": 0.04,
+    "bodyRadius": 0.3,
+    "playerClearance": 0.14,
+    "bodyHeight": 1.7,
+    "liftRate": 16,
+    "sag": 0.06,
+    "rise": 1.5,
+    "climb": 1,
+    "slopeSpan": 0.5,
+    "slopeMost": 0.6,
+    "slopeHeadroom": 0.5,
+    "leash": {
+     "from": 0.6,
+     "to": 0.9
+    },
+    "fall": {
+     "safe": 5,
+     "legs": 1.6,
+     "bodyFrom": 4.5,
+     "body": 1,
+     "stumble": 6.5,
+     "airMin": 0.2,
+     "ankleFrom": 6.8,
+     "ankleTo": 11,
+     "compress": 12,
+     "compressFrom": 8,
+     "together": 0.3,
+     "footOver": 1
+    }
+   },
+   "jump": {
+    "force": 1.38,
+    "push": 0.42,
+    "speed": 0.2,
+    "crouch": {
+     "seconds": 0.28,
+     "depth": 0.5,
+     "fast": 5,
+     "running": 0.3
+    },
+    "least": 0.06,
+    "forward": 0.35,
+    "tuck": 0.2,
+    "clear": 0.15,
+    "slideBack": 1.2,
+    "settle": 0.7,
+    "cost": 0.035,
+    "workRef": 700,
+    "wade": 0.55,
+    "land": {
+     "absorb": 0.3,
+     "soft": 0.3,
+     "plate": 0.55,
+     "eccentric": 1.5,
+     "massRef": 80,
+     "massExp": 0.5,
+     "buckle": 0.9,
+     "stumble": 1.1,
+     "fall": 1.75,
+     "bruiseFrom": 1.1,
+     "bruise": 0.8,
+     "bruiseMost": 2.5,
+     "heal": 0.2,
+     "broken": 4,
+     "fracture": 2.35,
+     "fractureSpan": 0.4,
+     "trunk": 1.5,
+     "trunkFrom": 1.75,
+     "grace": 0.6,
+     "downGrace": 5,
+     "cost": 0.02,
+     "dipMost": 0.55,
+     "seconds": 0.22,
+     "perRatio": 0.2
+    },
+    "recover": {
+     "base": 0.2,
+     "perRatio": 0.3
+    }
+   },
+   "run": {
+    "speedFactor": 2.3
+   },
+   "runMode": {
+    "speedFactor": 4,
+    "recovery": 0.25,
+    "turn": {
+     "smooth": 0.1,
+     "lag": 0.12,
+     "head": 0.6,
+     "lead": 0.1,
+     "leadMax": 0.25,
+     "hipLag": 0.07,
+     "hipLagMax": 0.18,
+     "full": 0.15,
+     "gap": 0.08,
+     "pathFrom": 1.5
+    },
+    "stance": {
+     "blade": 0,
+     "crouch": 0,
+     "width": 0.4,
+     "lean": 0.03,
+     "guardHeight": 0,
+     "stagger": 0,
+     "even": 1
+    },
+    "lean": 0.25,
+    "dip": 0.02,
+    "bob": 0.045,
+    "ease": 6,
+    "kneeOut": 0.06,
+    "swing": {
+     "back": 0.05,
+     "pull": 0.1
+    },
+    "heel": {
+     "reach": 0.98,
+     "most": 0.08
+    },
+    "arms": {
+     "span": 1.3,
+     "centre": -0.25,
+     "swing": 0.15,
+     "swingPerSpeed": 0.06,
+     "most": 0.8,
+     "elbow": 1.57,
+     "elbowSwing": 0.35,
+     "abduct": 0.12,
+     "inward": 0.025,
+     "tilt": 0.25
+    },
+    "step": {
+     "seconds": 0.42,
+     "overlap": 0.74,
+     "lead": 1.3,
+     "threshold": 0.2,
+     "lift": 0.4
+    },
+    "settle": 0.95,
+    "stairs": {
+     "slope": 0.15,
+     "step": {
+      "seconds": 0.15,
+      "overlap": 0.55,
+      "lead": 1.4,
+      "threshold": 0.2,
+      "lift": 0.12
+     }
+    },
+    "carry": {
+     "small": {
+      "length": 1.25,
+      "mass": 1.6
+     },
+     "poleFrom": 1.6,
+     "bowFrom": 1.25,
+     "waist": {
+      "flex": -0.12,
+      "abduct": 0.2,
+      "elbow": 0.5,
+      "swing": 0.25
+     },
+     "dir": [
+      -0.35,
+      -1,
+      0.06
+     ],
+     "pole": {
+      "hand": [
+       0.17,
+       0.15,
+       -0.03
+      ],
+      "dir": [
+       0.8,
+       0.56,
+       -0.2
+      ]
+     },
+     "longHand": [
+      0.1,
+      0.62,
+      0.17
+     ],
+     "longDir": [
+      0.45,
+      1,
+      0.1
+     ],
+     "shield": {
+      "flex": 0.05,
+      "abduct": 0.28,
+      "elbow": 1.45,
+      "swing": 0.3
+     },
+     "reach": -0.2
+    }
+   },
+   "gait": {
+    "forceRef": 0.96,
+    "speedRef": 33,
+    "top": 8.5,
+    "runShare": {
+     "base": 0.35,
+     "aerobic": 0.3,
+     "least": 0.4,
+     "most": 0.68
+    },
+    "legFloor": 0.25,
+    "accel": 1.15,
+    "brake": 0.75,
+    "least": 0.12,
+    "runFrom": 2.2,
+    "arrive": 0.6,
+    "rate": 2.2,
+    "ratePerSpeed": 0.22,
+    "contact": 0.95,
+    "mostContact": 0.9,
+    "leastPower": 0.35,
+    "powerContact": 0.5,
+    "slowest": 2.5,
+    "land": 0.25,
+    "landPerSpeed": 0.012,
+    "lift": 0.14,
+    "liftPerSpeed": 0.035,
+    "liftMost": 0.42,
+    "tiredLift": 0.35,
+    "threshold": 0.2,
+    "heelUp": 0.6,
+    "lean": 0.06,
+    "leanPerSpeed": 0.02,
+    "accelLean": 0.8,
+    "accelSmooth": 0.15,
+    "tiredLean": 0.15,
+    "leanMost": [
+     -0.5,
+     0.75
+    ],
+    "limp": {
+     "seconds": 0.5,
+     "length": 0.4
+    },
+    "corner": {
+     "grip": 1,
+     "legs": 0.7,
+     "room": 2,
+     "roomLeast": 0.6
+    },
+    "walkRun": 0.5,
+    "switchBand": 0.08,
+    "blend": 0.22,
+    "brakeReach": 1,
+    "brakeDip": 0.05,
+    "walk": {
+     "preferred": 0.25,
+     "ability": 0.3,
+     "slowest": 0.35,
+     "step": 1.25,
+     "stepExp": 0.3,
+     "stepPower": 0.25,
+     "stepMost": 1.05,
+     "duty": 0.66,
+     "dutyPerFroude": 0.2,
+     "careful": 0.12,
+     "land": 0.5,
+     "lift": 0.1,
+     "liftPerFroude": 0.15,
+     "threshold": 0.04,
+     "accel": 0.3
+    },
+    "pose": {
+     "track": {
+      "hip": 0.55,
+      "thigh": 0.8,
+      "run": 0.5
+     },
+     "vault": 0.45,
+     "reach": 0.98,
+     "sway": 0.5,
+     "runSway": 0.7,
+     "swayTime": 0.5,
+     "list": 0.05,
+     "listRef": 4.2,
+     "listMost": 0.12,
+     "pelvis": 0.08,
+     "pelvisMost": 0.18,
+     "thorax": 0.8,
+     "head": {
+      "hz": 2,
+      "neckRef": 50,
+      "damping": 0.35,
+      "most": 0.025,
+      "smooth": 0.03
+     },
+     "arms": {
+      "walk": 0.9,
+      "run": 1.05,
+      "inertiaRef": 5,
+      "inertiaRange": [
+       0.8,
+       1.25
+      ],
+      "walkElbow": 0.2,
+      "walkElbowFroude": 0.7,
+      "walkElbowSwing": 0.15
+     }
+    }
+   },
+   "walk": {
+    "stance": {
+     "blade": 0,
+     "crouch": 0,
+     "width": 0.5,
+     "lean": 0.03,
+     "guardHeight": 0
+    },
+    "strideHz": 0.9,
+    "runStrideHz": 1.5
+   },
+   "tend": {
+    "dip": 0.04,
+    "lean": 0.12
+   },
+   "damp": {
+    "misfire": 0.25,
+    "misfireKinds": {
+     "click": 0.3,
+     "puff": 0.4,
+     "reprime": 0.3
+    },
+    "primeSeconds": 5,
+    "hangFire": 0.17,
+    "hangMin": 0.5,
+    "hangMax": 1.5
+   },
+   "goneSeconds": 20,
+   "reloadMaxSpeed": 0.6,
+   "throw": {
+    "seconds": 0.3,
+    "down": 0.6,
+    "hipShare": 0.6
+   },
+   "shoulderThrow": {
+    "bear": 0.7,
+    "lift": 0.8,
+    "pullShare": 0.5,
+    "pull": 0.8,
+    "angle": 0.5,
+    "spin": 0.7,
+    "stallSeconds": 0.6
+   },
+   "impact": {
+    "minSpeed": 2.2,
+    "head": 0.6,
+    "body": 1,
+    "fractureSpeed": 9.5
+   },
+   "injury": {
+    "trunkFatal": 2.5,
+    "headFatal": 2.2,
+    "limbBreak": 1.8,
+    "fractured": 0.15,
+    "chestJoules": 216,
+    "shockStrength": 0.6,
+    "limbWeight": 0.12,
+    "drainSeconds": 10,
+    "severed": {
+     "base": 0.25,
+     "perMass": 2.5,
+     "share": {
+      "wrist": 0.006,
+      "elbow": 0.022,
+      "shoulder": 0.05,
+      "ankle": 0.0145,
+      "knee": 0.061,
+      "hip": 0.161
+     }
+    }
+   },
+   "recoil": {
+    "seconds": 0.015,
+    "longGunSeconds": 0.03,
+    "reference": 250,
+    "steadiest": 0.75,
+    "shakiest": 1.7,
+    "snapOver": 3.5,
+    "snapRise": 2,
+    "rockedOver": 0.24,
+    "rocked": 0.9
+   },
+   "runCarry": {
+    "relaxFrom": 4,
+    "guardFrom": 2.6,
+    "swing": 0.07,
+    "ease": 4,
+    "runningSpeed": 2.5,
+    "walkFrom": 0.85
+   },
+   "tiers": {
+    "full": 6,
+    "grid": 16,
+    "coarse": 32,
+    "engageRange": 3,
+    "hitMemory": 0.6,
+    "stride": {
+     "3": 2,
+     "4": 4
+    },
+    "proxyFollow": 12,
+    "proxyEvery": 2,
+    "ghostEvery": 6,
+    "riderLead": 0.3,
+    "horse": {
+     "range": 8,
+     "lead": 1
+    },
+    "unseen": {
+     "stride": 2,
+     "far": 15
+    }
+   },
+   "startApart": 1.6,
+   "startBeyondReach": 1,
+   "teamStartApart": 1.1,
+   "gunStartApart": 4,
+   "clinch": {
+    "lockDistance": 0.14,
+    "range": 0.95,
+    "pullDown": 0.08,
+    "reachSeconds": 0.6,
+    "driveShare": 0.85,
+    "release": 0.55
+   },
+   "legCapacity": 24,
+   "legGivesAgainEvery": 0.6,
+   "damageCapacity": {
+    "head": 26,
+    "trunk": 16,
+    "Forearm": 30,
+    "UpperArm": 30,
+    "Thigh": 12,
+    "Shank": 12
+   },
+   "contactStress": {
+    "radius": 0.065,
+    "most": 1.5
+   },
+   "blockedDamageShare": 0.35,
+   "downSecondsMin": 3,
+   "downSecondsRange": 4,
+   "knockdownsToStop": 3,
+   "shield": {
+    "dropOnFall": 0.75,
+    "wrench": 60,
+    "strainLeak": 1,
+    "holdSeconds": 0.03,
+    "unbraced": 0.6,
+    "open": 0.4,
+    "glance": 0.45,
+    "turnStep": 0.5,
+    "wall": [
+     0.36,
+     0.7,
+     0.1
+    ],
+    "roof": [
+     0.26,
+     0.96,
+     0.03
+    ],
+    "roofTilt": 1.1
+   },
+   "weapons": {
+    "dropOnFall": 0.35,
+    "pickupSeconds": 0.45,
+    "pickupReach": 0.4,
+    "pickupGiveUp": 2,
+    "heavyFrom": 3.2,
+    "heavyAimJitter": 0.45,
+    "effort": {
+     "share": 0.3,
+     "cap": 3,
+     "ref": "katana"
+    }
+   },
+   "wear": {
+    "press": 0.35,
+    "flat": 10,
+    "bone": 0.02,
+    "shaftFrom": 0.4,
+    "blade": {
+     "radius": 0.012,
+     "length": 0.85
+    },
+    "shaft": 0.018,
+    "column": 1.45,
+    "stop": {
+     "flesh": 0.25,
+     "plate": 0.06,
+     "proof": 0.8,
+     "shield": 0.12,
+     "bone": 0.03
+    },
+    "ribs": {
+     "pitch": 0.035,
+     "broad": 0.008
+    },
+    "crown": 0.45,
+    "bones": {
+     "rib": 400,
+     "skull": 2000,
+     "long": 4000
+    },
+    "point": {
+     "section": [
+      0.04,
+      0.0055
+     ]
+    },
+    "across": 0.3,
+    "split": {
+     "cut": 1,
+     "blunt": 0.35,
+     "pierce": 0.25
+    }
+   },
+   "longPoint": 3,
+   "standard": {
+    "minSide": 4,
+    "shooters": 0.5,
+    "colours": {
+     "red": "#b3161b",
+     "blue": "#1f3f8a"
+    }
+   },
+   "pain": {
+    "dip": 0.27,
+    "lean": 0.35
+   },
+   "trod": {
+    "from": 0.8,
+    "legDrive": 0.25,
+    "restitution": 0.1,
+    "flatFrom": 0.5,
+    "tripFrom": 2
+   },
+   "crawl": {
+    "strike": 0.35,
+    "speed": 0.3,
+    "accel": 0.3,
+    "strideHz": 1.1,
+    "stride": 0.06,
+    "dip": 0.3,
+    "lean": 1.1,
+    "turnSpeed": 0.7,
+    "turnOnSpot": 0.35,
+    "turnStride": 0.6,
+    "thighApart": 2,
+    "leanThigh": 0.06,
+    "footOut": 0.008,
+    "armApart": 0.8
+   },
+   "bodyFooting": {
+    "grip": 0.5,
+    "least": 0.03,
+    "most": 0.75,
+    "stepOver": {
+     "below": 2.2,
+     "height": 0.45
+    },
+    "kick": {
+     "swing": 2
+    }
+   },
+   "press": {
+    "push": 0.5,
+    "sweeps": 3,
+    "blindFrom": 0.5,
+    "body": 0.25
+   },
+   "lowStrike": {
+    "fit": 0.85,
+    "dip": 0.26,
+    "lean": 0.9,
+    "kneelFrom": 0.7,
+    "within": 3.2,
+    "headBelow": 0.85,
+    "stoopSeconds": 0.3,
+    "recoverSeconds": 0.3,
+    "approachMost": 1.5,
+    "standOff": 0.4,
+    "approachShare": 0.6,
+    "handIn": 0.25,
+    "room": 0.15,
+    "headFurther": 0.35,
+    "downFrom": 0.3,
+    "lost": 3.6
+   },
+   "pin": {
+    "dip": 0.26,
+    "lean": 0.5,
+    "lockDistance": 0.2,
+    "weightShare": 0.6,
+    "gripStiffness": 4000,
+    "gripShare": 0.6,
+    "release": 0.6,
+    "lowNeck": 0.4,
+    "seconds": 4,
+    "retry": 1.2,
+    "struggleAfter": 0.8,
+    "pinners": 2
+   },
+   "mount": {
+    "startApart": 12,
+    "chargeSteer": {
+     "from": 4,
+     "settle": 1.2,
+     "lastMoment": 0.8,
+     "snap": 0.12
+    },
+    "dismount": {
+     "speed": 1.8,
+     "beside": 0.9,
+     "reach": 1.6
+    },
+    "line": {
+     "spacing": 3,
+     "rankBack": 5,
+     "margin": 1.5
+    },
+    "seat": {
+     "speed": 5,
+     "pommel": 0.35,
+     "across": 0.55,
+     "horseShare": 0.2,
+     "kickFree": 3,
+     "carried": 0.5,
+     "grip": 0.25
+    },
+    "reach": {
+     "easy": 0.6,
+     "most": 0.7,
+     "steps": 14,
+     "inHz": 3,
+     "outHz": 1.2,
+     "damping": 1,
+     "seat": 0.35
+    },
+    "coupling": {
+     "forms": {
+      "couched": 0.6,
+      "twoThrust": 0.35,
+      "oneThrust": 0.12,
+      "twoSwing": 0.04,
+      "oneSwing": 0.03
+     },
+     "across": 0.4,
+     "horse": 0.167
+    },
+    "twist": 1.3,
+    "swingPitch": 0.3,
+    "seatHeight": 0.1,
+    "pass": 0.6,
+    "passReach": 0.5,
+    "passMounted": 1.5,
+    "passLance": 0.7,
+    "wheelAt": 9,
+    "turnSpeed": 5,
+    "edge": 6,
+    "horse": {
+     "manBlood": 75,
+     "bleedShare": 0.3,
+     "heartSeconds": 45,
+     "heartDepth": 4,
+     "brainDepth": 2,
+     "vital": {
+      "chest": 0.15,
+      "neck": 0.1
+     },
+     "legBreak": 160,
+     "headStun": 450,
+     "trunkFatal": 2500,
+     "boltSeconds": 4
+    },
+    "trample": {
+     "legs": 0.6,
+     "link": 0.9,
+     "most": 12,
+     "behind": 0.5,
+     "fell": 4,
+     "poiseGain": 0.15
+    },
+    "brace": {
+     "length": 1.5,
+     "still": 0.5,
+     "share": 0.5,
+     "shaft": 1000
+    },
+    "crash": {
+     "fall": 8.5,
+     "lateral": 1.5,
+     "shockSeconds": 0.2,
+     "shoveDecay": 3,
+     "alliedFrom": 5
+    },
+    "avoid": {
+     "ahead": 1.5,
+     "nearest": 3,
+     "clear": 1.8,
+     "swerve": 0.6,
+     "gain": 0.5,
+     "every": 0.1
+    },
+    "arc": 1.5,
+    "hedge": {
+     "look": 20,
+     "width": 2.5,
+     "depth": 2.5,
+     "long": 1.2,
+     "facing": 1,
+     "dense": 1.5,
+     "every": 0.25
+    },
+    "stamina": {
+     "gallopSeconds": 60,
+     "restSeconds": 90,
+     "slows": 0.3,
+     "easy": 0.5
+    },
+    "turn": {
+     "into": 0.3,
+     "settle": 4,
+     "bank": {
+      "hz": 1,
+      "damping": 1
+     },
+     "bleed": 0.2
+    },
+    "balance": {
+     "lead": [
+      0,
+      0.6
+     ],
+     "hz": [
+      1,
+      2
+     ],
+     "share": [
+      0.6,
+      1
+     ],
+     "shift": 0.06
+    },
+    "motion": {
+     "blend": 0.5,
+     "stand": {
+      "bob": [
+       0,
+       2,
+       0
+      ],
+      "pitch": [
+       0,
+       0
+      ],
+      "rock": [
+       0,
+       1,
+       0
+      ]
+     },
+     "walk": {
+      "bob": [
+       0.005,
+       2,
+       0.12
+      ],
+      "pitch": [
+       0.025,
+       0.9
+      ],
+      "rock": [
+       0.025,
+       1,
+       0.25
+      ]
+     },
+     "trot": {
+      "bob": [
+       0.024,
+       2,
+       0.475
+      ],
+      "pitch": [
+       0.012,
+       0.1
+      ],
+      "rock": [
+       0.012,
+       2,
+       0.2
+      ]
+     },
+     "canter": {
+      "bob": [
+       0.018,
+       1,
+       0.9
+      ],
+      "pitch": [
+       0.03,
+       0.15
+      ],
+      "rock": [
+       0.015,
+       1,
+       0.5
+      ]
+     },
+     "gallop": {
+      "bob": [
+       0.012,
+       1,
+       0.8
+      ],
+      "pitch": [
+       0.025,
+       0.1
+      ],
+      "rock": [
+       0.006,
+       1,
+       0.5
+      ]
+     },
+     "seatSpring": {
+      "hz": 1.6,
+      "damping": 0.7
+     },
+     "lean": {
+      "walk": 0,
+      "trot": 0.03,
+      "canter": 0.06,
+      "gallop": 0.12,
+      "hz": 2,
+      "damping": 0.8,
+      "follow": 0.7,
+      "surge": 0.012
+     }
+    }
+   }
+  }
+ }
+}

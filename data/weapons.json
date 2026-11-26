@@ -1,0 +1,4171 @@
+{
+ "version": 1,
+ "source": "src/weapons.js",
+ "tables": {
+  "WEAPONS": {
+   "baton": {
+    "art": "artCrushOne",
+    "label": "Police baton",
+    "hands": "one",
+    "length": 0.58,
+    "strikeFrom": 0.12,
+    "handle": 0.08,
+    "mass": 0.6,
+    "balance": 0.24,
+    "radius": 0.019,
+    "harm": {
+     "swing": {
+      "blunt": 1
+     },
+     "thrust": {
+      "blunt": 1
+     }
+    },
+    "contactSeconds": 0.005,
+    "rotation": 1.15,
+    "wrist": {
+     "omega": 62,
+     "zeta": 0.6
+    },
+    "threat": 1.6
+   },
+   "longsword": {
+    "label": "Long sword",
+    "hands": "hybrid",
+    "length": 0.98,
+    "strikeFrom": 0.14,
+    "handle": 0.24,
+    "spacing": 0.15,
+    "mass": 1.45,
+    "balance": 0.11,
+    "radius": 0.012,
+    "harm": {
+     "swing": {
+      "cut": 1,
+      "blunt": 0.5
+     },
+     "thrust": {
+      "pierce": 1,
+      "cut": 0.15,
+      "blunt": 0.15
+     }
+    },
+    "contactSeconds": 0.004,
+    "rotation": 0.8,
+    "wrist": {
+     "omega": 17,
+     "zeta": 0.8
+    },
+    "threat": 4,
+    "art": "artPommel",
+    "crossGuard": {
+     "cross": {
+      "at": 0.04,
+      "half": 0.12
+     }
+    },
+    "halfSword": {
+     "along": 0.5,
+     "guard": {
+      "hand": [
+       0.04,
+       1.02,
+       -0.08
+      ],
+      "dir": [
+       0.72,
+       -0.69,
+       0.02
+      ]
+     },
+     "move": "halfSword",
+     "low": {
+      "guard": {
+       "hand": [
+        0.02,
+        0.52,
+        -0.15
+       ],
+       "dir": [
+        0.8,
+        0.58,
+        0.14
+       ]
+      },
+      "move": "halfSwordLow"
+     }
+    }
+   },
+   "katana": {
+    "label": "Katana",
+    "hands": "two",
+    "length": 0.8,
+    "strikeFrom": 0.12,
+    "handle": 0.27,
+    "spacing": 0.17,
+    "mass": 1.15,
+    "balance": 0.12,
+    "radius": 0.012,
+    "curve": 0.02,
+    "harm": {
+     "swing": {
+      "cut": 1.3,
+      "blunt": 0.4
+     },
+     "thrust": {
+      "pierce": 0.7,
+      "cut": 0.15,
+      "blunt": 0.15
+     }
+    },
+    "contactSeconds": 0.004,
+    "rotation": 0.8,
+    "wrist": {
+     "omega": 20,
+     "zeta": 0.8
+    },
+    "threat": 4.5,
+    "art": "artIai",
+    "crossGuard": {
+     "tsuba": {
+      "at": 0.03,
+      "round": true,
+      "radius": 0.04
+     }
+    }
+   },
+   "knife": {
+    "art": "artFleche",
+    "label": "Knife",
+    "hands": "one",
+    "length": 0.21,
+    "strikeFrom": 0.05,
+    "handle": 0.1,
+    "mass": 0.22,
+    "balance": 0,
+    "radius": 0.01,
+    "harm": {
+     "thrust": {
+      "pierce": 0.65,
+      "blunt": 0.35
+     },
+     "swing": {
+      "cut": 0.42,
+      "blunt": 0.22
+     }
+    },
+    "contactSeconds": 0.005,
+    "rotation": 0.6,
+    "wrist": {
+     "omega": 45,
+     "zeta": 0.8
+    },
+    "threat": 2.2
+   },
+   "spear": {
+    "art": "artSpear",
+    "pointFrom": 0,
+    "label": "Spear",
+    "hands": "one",
+    "length": 1.3,
+    "strikeFrom": 0.9,
+    "handle": 0.6,
+    "mass": 1.6,
+    "balance": 0.18,
+    "radius": 0.016,
+    "pointWidth": 0.04,
+    "harm": {
+     "thrust": {
+      "pierce": 1.3,
+      "cut": 0.1,
+      "blunt": 0.2
+     },
+     "swing": {
+      "cut": 0.2,
+      "blunt": 0.6
+     }
+    },
+    "contactSeconds": 0.005,
+    "rotation": 0.5,
+    "wrist": {
+     "omega": 14,
+     "zeta": 0.85
+    },
+    "threat": 3.5
+   },
+   "warhammer": {
+    "label": "War hammer",
+    "hands": "two",
+    "length": 1.45,
+    "strikeFrom": 1.15,
+    "handle": 0.55,
+    "spacing": 0.42,
+    "leadAhead": true,
+    "mass": 3.4,
+    "balance": 0.85,
+    "radius": 0.04,
+    "pointWidth": 0.015,
+    "build": {
+     "shaftRadius": 0.018,
+     "langets": 0.35
+    },
+    "harm": {
+     "swing": {
+      "blunt": 1.6,
+      "pierce": 0.4
+     },
+     "thrust": {
+      "blunt": 1,
+      "pierce": 0.8
+     }
+    },
+    "contactSeconds": 0.004,
+    "rotation": 1.2,
+    "wrist": {
+     "omega": 11,
+     "zeta": 0.8
+    },
+    "threat": 4,
+    "art": "artCrush",
+    "crush": 0.7,
+    "face": 0.02,
+    "beak": {
+     "pierce": 1,
+     "blunt": 0.5
+    }
+   },
+   "halberd": {
+    "label": "Halberd",
+    "hands": "two",
+    "length": 1.6,
+    "strikeFrom": 1.05,
+    "handle": 0.55,
+    "spacing": 0.42,
+    "leadAhead": true,
+    "edgeLeads": true,
+    "mass": 2.8,
+    "balance": 0.75,
+    "radius": 0.016,
+    "pointWidth": 0.014,
+    "harm": {
+     "swing": {
+      "cut": 1.3,
+      "blunt": 1,
+      "pierce": 0.15
+     },
+     "thrust": {
+      "pierce": 1.25,
+      "blunt": 0.45,
+      "cut": 0.05
+     }
+    },
+    "contactSeconds": 0.004,
+    "rotation": 1.05,
+    "wrist": {
+     "omega": 11,
+     "zeta": 0.82
+    },
+    "threat": 4.3,
+    "art": "artCrush",
+    "crush": 0.35,
+    "build": {
+     "shaftRadius": 0.018,
+     "langets": 0.4
+    },
+    "face": 0.03,
+    "beak": {
+     "pierce": 0.9,
+     "blunt": 0.5
+    }
+   },
+   "naginata": {
+    "label": "Naginata",
+    "hands": "two",
+    "length": 1.5,
+    "strikeFrom": 1,
+    "handle": 0.5,
+    "spacing": 0.4,
+    "leadAhead": true,
+    "edgeLeads": true,
+    "mass": 2.35,
+    "balance": 0.55,
+    "radius": 0.014,
+    "harm": {
+     "swing": {
+      "cut": 1.3,
+      "blunt": 0.625
+     },
+     "thrust": {
+      "pierce": 0.75,
+      "cut": 0.15,
+      "blunt": 0.25
+     }
+    },
+    "contactSeconds": 0.004,
+    "rotation": 0.8,
+    "wrist": {
+     "omega": 14,
+     "zeta": 0.8
+    },
+    "threat": 4.5,
+    "art": "artWheel",
+    "build": {
+     "shaftRadius": 0.016
+    }
+   },
+   "longSpear": {
+    "pointFrom": 0,
+    "label": "Spear",
+    "hands": "two",
+    "length": 1.75,
+    "strikeFrom": 1.45,
+    "handle": 0.5,
+    "spacing": 0.45,
+    "leadAhead": true,
+    "mass": 2.3,
+    "balance": 0.6,
+    "radius": 0.018,
+    "pointWidth": 0.04,
+    "harm": {
+     "thrust": {
+      "pierce": 1.5,
+      "blunt": 0.3,
+      "cut": 0.15
+     },
+     "swing": {
+      "blunt": 0.65,
+      "cut": 0.2
+     }
+    },
+    "contactSeconds": 0.005,
+    "rotation": 0.5,
+    "wrist": {
+     "omega": 13,
+     "zeta": 0.85
+    },
+    "threat": 3.8,
+    "art": "artSpear",
+    "grip": 0.5
+   },
+   "lance": {
+    "saddleOnly": true,
+    "art": "artSpear",
+    "pointFrom": 0.78,
+    "label": "Lance",
+    "hands": "two",
+    "length": 2.45,
+    "strikeFrom": 1.3,
+    "handle": 0.85,
+    "spacing": 0.45,
+    "mass": 5.2,
+    "balance": 0.18,
+    "radius": 0.026,
+    "pointWidth": 0.025,
+    "vamplate": 0.13,
+    "harm": {
+     "thrust": {
+      "pierce": 1.6,
+      "blunt": 0.35,
+      "cut": 0.02
+     },
+     "swing": {
+      "blunt": 0.9
+     }
+    },
+    "contactSeconds": 0.005,
+    "rotation": 0.4,
+    "wrist": {
+     "omega": 7,
+     "zeta": 0.9
+    },
+    "threat": 4,
+    "grip": 0.8,
+    "build": {
+     "shaftRadius": 0.019
+    },
+    "heldFast": true
+   },
+   "manchuLance": {
+    "pointFrom": 0,
+    "label": "Heavy spear",
+    "hands": "two",
+    "length": 2.05,
+    "strikeFrom": 1.6,
+    "handle": 0.85,
+    "spacing": 0.45,
+    "mass": 3.4,
+    "balance": 0.5,
+    "radius": 0.021,
+    "pointWidth": 0.03,
+    "harm": {
+     "thrust": {
+      "pierce": 1.6,
+      "blunt": 0.3,
+      "cut": 0.15
+     },
+     "swing": {
+      "blunt": 0.75,
+      "cut": 0.25
+     }
+    },
+    "contactSeconds": 0.005,
+    "rotation": 0.45,
+    "wrist": {
+     "omega": 10,
+     "zeta": 0.88
+    },
+    "threat": 4,
+    "art": "artSpear",
+    "grip": 0.7,
+    "head": 0.45,
+    "build": {
+     "shaft": "waxwood"
+    },
+    "heldFast": true
+   },
+   "yari": {
+    "pointFrom": 0,
+    "label": "Yari",
+    "hands": "two",
+    "length": 1.75,
+    "strikeFrom": 1.45,
+    "handle": 0.5,
+    "spacing": 0.45,
+    "leadAhead": true,
+    "mass": 2.3,
+    "balance": 0.6,
+    "radius": 0.018,
+    "pointWidth": 0.022,
+    "harm": {
+     "thrust": {
+      "pierce": 1.5,
+      "blunt": 0.22,
+      "cut": 0.3
+     },
+     "swing": {
+      "blunt": 0.5,
+      "cut": 0.4
+     }
+    },
+    "contactSeconds": 0.005,
+    "rotation": 0.5,
+    "wrist": {
+     "omega": 13,
+     "zeta": 0.85
+    },
+    "threat": 3.9,
+    "art": "artSpear",
+    "grip": 0.5
+   },
+   "dangpa": {
+    "art": "artSpear",
+    "pointFrom": 0,
+    "label": "Dangpa",
+    "hands": "two",
+    "length": 1.75,
+    "strikeFrom": 1.4,
+    "handle": 0.65,
+    "spacing": 0.5,
+    "leadAhead": true,
+    "mass": 3,
+    "balance": 0.75,
+    "radius": 0.02,
+    "pointWidth": 0.02,
+    "tines": 3,
+    "harm": {
+     "thrust": {
+      "pierce": 1.3,
+      "blunt": 0.3,
+      "cut": 0.2
+     },
+     "swing": {
+      "blunt": 0.6,
+      "cut": 0.35
+     }
+    },
+    "contactSeconds": 0.005,
+    "rotation": 0.45,
+    "wrist": {
+     "omega": 11,
+     "zeta": 0.85
+    },
+    "threat": 3.8,
+    "grip": 0.55
+   },
+   "langxian": {
+    "art": "artSpear",
+    "pointFrom": 0.8,
+    "label": "Langxian",
+    "hands": "two",
+    "length": 3.3,
+    "strikeFrom": 1.3,
+    "handle": 1.4,
+    "spacing": 0.55,
+    "mass": 4,
+    "balance": 0.9,
+    "radius": 0.15,
+    "pointWidth": 0.03,
+    "harm": {
+     "thrust": {
+      "pierce": 1.3,
+      "blunt": 0.35,
+      "cut": 0.05
+     },
+     "swing": {
+      "blunt": 0.45,
+      "cut": 0.1,
+      "pierce": 0.15
+     }
+    },
+    "contactSeconds": 0.008,
+    "rotation": 0.45,
+    "wrist": {
+     "omega": 6,
+     "zeta": 0.9
+    },
+    "threat": 3.4,
+    "grip": 0.6,
+    "brush": {
+     "from": 1.2,
+     "to": 3
+    },
+    "build": {
+     "shaft": "maozhu",
+     "shaftRadius": 0.025,
+     "shaftTop": 0.014
+    }
+   },
+   "pitchfork": {
+    "art": "artSpear",
+    "pointFrom": 0,
+    "label": "Pitchfork",
+    "hands": "two",
+    "length": 1.6,
+    "strikeFrom": 1.3,
+    "handle": 0.5,
+    "spacing": 0.45,
+    "leadAhead": true,
+    "mass": 1.8,
+    "balance": 0.5,
+    "radius": 0.017,
+    "pointWidth": 0.012,
+    "harm": {
+     "thrust": {
+      "pierce": 0.85,
+      "blunt": 0.45,
+      "cut": 0.03
+     },
+     "swing": {
+      "blunt": 0.7,
+      "cut": 0.05
+     }
+    },
+    "contactSeconds": 0.006,
+    "rotation": 0.5,
+    "wrist": {
+     "omega": 13,
+     "zeta": 0.85
+    },
+    "threat": 3,
+    "grip": 0.3
+   },
+   "pistol": {
+    "label": "Pistol",
+    "hands": "one",
+    "length": 0.19,
+    "strikeFrom": 0.04,
+    "handle": 0.05,
+    "mass": 0.75,
+    "balance": 0.04,
+    "radius": 0.018,
+    "harm": {
+     "swing": {
+      "blunt": 0.7
+     },
+     "thrust": {
+      "blunt": 0.5
+     }
+    },
+    "contactSeconds": 0.004,
+    "rotation": 0.6,
+    "wrist": {
+     "omega": 22,
+     "zeta": 0.9
+    },
+    "threat": 6,
+    "grip": 0.12,
+    "ranged": true,
+    "edgeUp": true
+   },
+   "adams": {
+    "label": "Adams revolver",
+    "hands": "one",
+    "length": 0.26,
+    "strikeFrom": 0.16,
+    "handle": 0.07,
+    "mass": 1.25,
+    "balance": 0.08,
+    "radius": 0.016,
+    "harm": {
+     "swing": {
+      "blunt": 0.8
+     },
+     "thrust": {
+      "blunt": 0.5
+     }
+    },
+    "contactSeconds": 0.004,
+    "rotation": 0.6,
+    "wrist": {
+     "omega": 20,
+     "zeta": 0.9
+    },
+    "threat": 6,
+    "grip": 0.15,
+    "ranged": true,
+    "edgeUp": true,
+    "muzzle": [
+     0.26,
+     0.045
+    ],
+    "shot": {
+     "projectile": {
+      "kg": 0.014,
+      "velocity": 200,
+      "curve": "sphere"
+     },
+     "energy": 280,
+     "lethal": {
+      "head": 1,
+      "torso": 1.05,
+      "limb": 0.32
+     },
+     "bleed": {
+      "head": 0.0024,
+      "torso": 0.0028,
+      "limb": 0.0014
+     },
+     "limbBreak": 0.55,
+     "impulse": 2.8,
+     "recoil": 4.5,
+     "spread": 0.013,
+     "movingSpread": 0.035,
+     "misfire": 0.03,
+     "reloadSeconds": 40,
+     "rounds": 5,
+     "ammo": 25,
+     "cylinder": true
+    }
+   },
+   "whip": {
+    "art": "artCrushOne",
+    "label": "Whip",
+    "hands": "one",
+    "length": 0.3,
+    "strikeFrom": 0.3,
+    "handle": 0.05,
+    "mass": 0.45,
+    "balance": 0.1,
+    "radius": 0.012,
+    "harm": {
+     "swing": {
+      "blunt": 0.2
+     },
+     "thrust": {
+      "blunt": 0.2
+     }
+    },
+    "contactSeconds": 0.004,
+    "rotation": 0.6,
+    "wrist": {
+     "omega": 34,
+     "zeta": 0.6
+    },
+    "threat": 2.6,
+    "grip": 0.3,
+    "rope": {
+     "length": 2.4,
+     "links": 16,
+     "massKg": 0.28,
+     "taper": 0.15,
+     "drag": 1.2,
+     "passes": 10,
+     "tipLinks": 3,
+     "lashFrom": 14,
+     "cutShare": 0.6,
+     "painFrom": 5,
+     "painSure": 22,
+     "kneelSeconds": 1.6,
+     "riseSeconds": 0.9,
+     "impact": 9,
+     "braced": 0.05,
+     "staggerFrom": 0.4,
+     "staggerSeverity": 0.72,
+     "staggerPerPain": 0.12,
+     "home": {
+      "from": 0.06,
+      "crack": 30,
+      "through": 0.05,
+      "taut": 0.97,
+      "step": {
+       "gain": 3,
+       "most": 1,
+       "margin": 0.92,
+       "ahead": 0.08
+      }
+     }
+    },
+    "reach": 2.34
+   },
+   "matchlock": {
+    "label": "Matchlock",
+    "hands": "two",
+    "length": 1,
+    "strikeFrom": 0.2,
+    "handle": 0.32,
+    "spacing": 0.42,
+    "supportAhead": true,
+    "longGun": true,
+    "mass": 3.8,
+    "balance": 0.3,
+    "radius": 0.02,
+    "harm": {
+     "swing": {
+      "blunt": 1
+     },
+     "thrust": {
+      "blunt": 0.7
+     }
+    },
+    "contactSeconds": 0.005,
+    "rotation": 0.5,
+    "wrist": {
+     "omega": 11,
+     "zeta": 0.9
+    },
+    "threat": 5,
+    "grip": 0.7,
+    "ranged": true,
+    "edgeUp": true,
+    "muzzle": [
+     1,
+     0.02
+    ],
+    "shot": {
+     "projectile": {
+      "kg": 0.013,
+      "velocity": 392,
+      "curve": "sphere"
+     },
+     "energy": 998.816,
+     "lethal": {
+      "head": 1,
+      "torso": 1.35,
+      "limb": 0.45
+     },
+     "bleed": {
+      "head": 0.0024,
+      "torso": 0.0032,
+      "limb": 0.0016
+     },
+     "limbBreak": 0.75,
+     "impulse": 5.2,
+     "recoil": 9,
+     "spread": 0.01398070098385628,
+     "movingSpread": 0.035,
+     "misfire": 0.08,
+     "reloadSeconds": 15,
+     "ammo": 24
+    },
+    "makes": {
+     "chinese": {
+      "shot": {
+       "projectile": {
+        "kg": 0.013,
+        "velocity": 392,
+        "curve": "sphere"
+       },
+       "energy": 998.816,
+       "lethal": {
+        "head": 1,
+        "torso": 1.35,
+        "limb": 0.45
+       },
+       "bleed": {
+        "head": 0.0024,
+        "torso": 0.0032,
+        "limb": 0.0016
+       },
+       "limbBreak": 0.75,
+       "impulse": 5.2,
+       "recoil": 9,
+       "spread": 0.018,
+       "movingSpread": 0.035,
+       "misfire": 0.12,
+       "reloadSeconds": 15,
+       "ammo": 24
+      }
+     }
+    }
+   },
+   "flintlock": {
+    "label": "Flintlock musket",
+    "hands": "two",
+    "length": 1.5,
+    "strikeFrom": 1.07,
+    "handle": 0.38,
+    "spacing": 0.44,
+    "supportAhead": true,
+    "longGun": true,
+    "mass": 4.7,
+    "balance": 0.35,
+    "radius": 0.02,
+    "pointWidth": 0.018,
+    "harm": {
+     "swing": {
+      "blunt": 1.1
+     },
+     "thrust": {
+      "pierce": 1.1,
+      "blunt": 0.4
+     }
+    },
+    "contactSeconds": 0.005,
+    "rotation": 0.5,
+    "wrist": {
+     "omega": 10,
+     "zeta": 0.9
+    },
+    "threat": 5.2,
+    "grip": 0.7,
+    "ranged": true,
+    "edgeUp": true,
+    "muzzle": [
+     1.07,
+     0.02
+    ],
+    "shot": {
+     "projectile": {
+      "kg": 0.032,
+      "velocity": 303.98653605981957,
+      "curve": "sphere"
+     },
+     "energy": 1478.5250256903678,
+     "lethal": {
+      "head": 1,
+      "torso": 1.35,
+      "limb": 0.45
+     },
+     "bleed": {
+      "head": 0.0024,
+      "torso": 0.0032,
+      "limb": 0.0016
+     },
+     "limbBreak": 0.75,
+     "impulse": 7.5,
+     "recoil": 12,
+     "spread": 0.013970513130827183,
+     "movingSpread": 0.035,
+     "misfire": 0.1,
+     "reloadSeconds": 10,
+     "ammo": 30
+    }
+   },
+   "pilum": {
+    "label": "Pilum",
+    "hands": "one",
+    "length": 1.5,
+    "strikeFrom": 1.1,
+    "handle": 0.5,
+    "mass": 2,
+    "balance": 0.45,
+    "radius": 0.012,
+    "pointWidth": 0.01,
+    "harm": {
+     "thrust": {
+      "pierce": 1.2,
+      "blunt": 0.25
+     },
+     "swing": {
+      "blunt": 0.5
+     }
+    },
+    "contactSeconds": 0.004,
+    "rotation": 0.6,
+    "wrist": {
+     "omega": 14,
+     "zeta": 0.85
+    },
+    "threat": 3.8,
+    "grip": 0.6,
+    "ranged": true,
+    "muzzle": [
+     0.2,
+     0
+    ],
+    "shot": {
+     "bolt": true,
+     "thrown": true,
+     "speed": 22,
+     "energy": 4.6,
+     "length": 2,
+     "bounce": 0.5,
+     "spread": 0.03,
+     "rounds": 1,
+     "misfire": 0,
+     "reloadSeconds": 0,
+     "ammo": 1
+    }
+   },
+   "atlatl": {
+    "label": "Spear-thrower",
+    "hands": "one",
+    "length": 0.5,
+    "strikeFrom": 0.3,
+    "handle": 0.1,
+    "mass": 0.35,
+    "balance": 0.3,
+    "radius": 0.012,
+    "harm": {
+     "swing": {
+      "blunt": 0.3
+     },
+     "thrust": {
+      "blunt": 0.15
+     }
+    },
+    "contactSeconds": 0.004,
+    "rotation": 0.6,
+    "wrist": {
+     "omega": 18,
+     "zeta": 0.85
+    },
+    "threat": 2.6,
+    "grip": 0.6,
+    "ranged": true,
+    "muzzle": [
+     0.45,
+     0
+    ],
+    "shot": {
+     "bolt": true,
+     "dart": true,
+     "speed": 27,
+     "energy": 0.6,
+     "length": 1.7,
+     "bounce": 0.45,
+     "spread": 0.04,
+     "rounds": 1,
+     "misfire": 0,
+     "reloadSeconds": 3,
+     "ammo": 3
+    }
+   },
+   "threeEyed": {
+    "label": "Three-eyed gun",
+    "hands": "two",
+    "length": 0.95,
+    "strikeFrom": 0.55,
+    "handle": 0.35,
+    "spacing": 0.4,
+    "supportAhead": true,
+    "longGun": true,
+    "mass": 4,
+    "balance": 0.62,
+    "radius": 0.04,
+    "harm": {
+     "swing": {
+      "blunt": 1.3
+     },
+     "thrust": {
+      "blunt": 0.6
+     }
+    },
+    "contactSeconds": 0.004,
+    "rotation": 1.2,
+    "wrist": {
+     "omega": 9,
+     "zeta": 0.85
+    },
+    "threat": 4.6,
+    "grip": 0.7,
+    "ranged": true,
+    "edgeUp": true,
+    "crush": 0.4,
+    "muzzle": [
+     0.95,
+     0
+    ],
+    "shot": {
+     "projectile": {
+      "kg": 0.012,
+      "velocity": 169.66349891632362,
+      "curve": "sphere"
+     },
+     "energy": 172.71421718717608,
+     "lethal": {
+      "head": 0.8203925316390863,
+      "torso": 0.5181426515615282,
+      "limb": 0.2158927714839701
+     },
+     "bleed": {
+      "head": 0.0013817137374974088,
+      "torso": 0.002072570606246113,
+      "limb": 0.0008635710859358804
+     },
+     "limbBreak": 0.2158927714839701,
+     "impulse": 2.0444275619179226,
+     "recoil": 5,
+     "spread": 0.05561131435259978,
+     "movingSpread": 0.06,
+     "misfire": 0.12,
+     "barrels": 3,
+     "between": 0.45,
+     "reloadSeconds": 40,
+     "ammo": 9
+    }
+   },
+   "crossbow": {
+    "label": "Crossbow",
+    "hands": "two",
+    "length": 0.72,
+    "strikeFrom": 0.3,
+    "handle": 0.22,
+    "spacing": 0.36,
+    "supportAhead": true,
+    "longGun": true,
+    "mass": 4.2,
+    "balance": 0.35,
+    "radius": 0.025,
+    "harm": {
+     "swing": {
+      "blunt": 0.9
+     },
+     "thrust": {
+      "blunt": 0.6
+     }
+    },
+    "contactSeconds": 0.005,
+    "rotation": 0.5,
+    "wrist": {
+     "omega": 11,
+     "zeta": 0.9
+    },
+    "threat": 4.6,
+    "grip": 0.7,
+    "ranged": true,
+    "edgeUp": true,
+    "muzzle": [
+     0.66,
+     0.05
+    ],
+    "shot": {
+     "bolt": true,
+     "speed": 50,
+     "energy": 2,
+     "length": 0.38,
+     "bounce": 0.72,
+     "spread": 0.012,
+     "rounds": 1,
+     "misfire": 0,
+     "reloadSeconds": 8,
+     "ammo": 30,
+     "span": {
+      "by": "goat's foot",
+      "drawN": 1800,
+      "advantage": 4,
+      "lift": 1,
+      "share": 0.5
+     }
+    }
+   },
+   "nu": {
+    "label": "Crossbow (nu)",
+    "hands": "two",
+    "length": 0.7,
+    "strikeFrom": 0.3,
+    "handle": 0.18,
+    "spacing": 0.34,
+    "supportAhead": true,
+    "longGun": true,
+    "mass": 3,
+    "balance": 0.35,
+    "radius": 0.022,
+    "harm": {
+     "swing": {
+      "blunt": 0.8
+     },
+     "thrust": {
+      "blunt": 0.5
+     }
+    },
+    "contactSeconds": 0.005,
+    "rotation": 0.5,
+    "wrist": {
+     "omega": 12,
+     "zeta": 0.9
+    },
+    "threat": 4.4,
+    "grip": 0.7,
+    "ranged": true,
+    "edgeUp": true,
+    "muzzle": [
+     0.64,
+     0.05
+    ],
+    "shot": {
+     "bolt": true,
+     "speed": 48,
+     "energy": 1.6,
+     "length": 0.42,
+     "bounce": 0.78,
+     "spread": 0.012,
+     "rounds": 1,
+     "misfire": 0,
+     "reloadSeconds": 6,
+     "ammo": 75,
+     "span": {
+      "by": "waist",
+      "drawN": 1000,
+      "advantage": 1,
+      "lift": 2,
+      "share": 0.5
+     }
+    }
+   },
+   "rifle": {
+    "label": "AR-15",
+    "hands": "two",
+    "length": 0.62,
+    "strikeFrom": 0.2,
+    "handle": 0.24,
+    "spacing": 0.36,
+    "supportAhead": true,
+    "longGun": true,
+    "mass": 3,
+    "balance": 0.2,
+    "radius": 0.025,
+    "harm": {
+     "swing": {
+      "blunt": 0.9
+     },
+     "thrust": {
+      "blunt": 0.7
+     }
+    },
+    "contactSeconds": 0.005,
+    "rotation": 0.5,
+    "wrist": {
+     "omega": 12,
+     "zeta": 0.9
+    },
+    "threat": 7,
+    "grip": 0.7,
+    "ranged": true,
+    "edgeUp": true,
+    "muzzle": [
+     0.6,
+     0.06
+    ],
+    "shot": {
+     "projectile": {
+      "kg": 0.004,
+      "velocity": 935,
+      "curve": "g7",
+      "bc": 0.151,
+      "calibre": 0.0057
+     },
+     "energy": 1748.45,
+     "lethal": {
+      "head": 1.2,
+      "torso": 1.7,
+      "limb": 0.6
+     },
+     "bleed": {
+      "head": 0.0032,
+      "torso": 0.0048,
+      "limb": 0.0024
+     },
+     "limbBreak": 0.65,
+     "impulse": 3.8,
+     "recoil": 5,
+     "recoilSeconds": 0.06,
+     "spread": 0.005,
+     "movingSpread": 0.02,
+     "misfire": 0.002,
+     "rounds": 30,
+     "reloadSeconds": 2.5,
+     "reload": "magazine",
+     "ammo": 210,
+     "automatic": {
+      "rate": 12,
+      "burst": [
+       3,
+       6
+      ]
+     }
+    }
+   },
+   "shotgun": {
+    "label": "Shotgun",
+    "hands": "two",
+    "length": 0.72,
+    "strikeFrom": 0.2,
+    "handle": 0.3,
+    "spacing": 0.4,
+    "supportAhead": true,
+    "longGun": true,
+    "mass": 3.6,
+    "balance": 0.25,
+    "radius": 0.024,
+    "harm": {
+     "swing": {
+      "blunt": 1
+     },
+     "thrust": {
+      "blunt": 0.7
+     }
+    },
+    "contactSeconds": 0.005,
+    "rotation": 0.5,
+    "wrist": {
+     "omega": 11,
+     "zeta": 0.9
+    },
+    "threat": 6.5,
+    "grip": 0.7,
+    "ranged": true,
+    "edgeUp": true,
+    "muzzle": [
+     0.72,
+     0.03
+    ],
+    "shot": {
+     "projectile": {
+      "kg": 0.0035,
+      "velocity": 400,
+      "curve": "sphere"
+     },
+     "energy": 280,
+     "pellets": 9,
+     "pellet": 0.016,
+     "lethal": {
+      "head": 0.55,
+      "torso": 0.26,
+      "limb": 0.1
+     },
+     "bleed": {
+      "head": 0.001,
+      "torso": 0.0013,
+      "limb": 0.0005
+     },
+     "limbBreak": 0.08,
+     "impulse": 1.4,
+     "recoil": 16,
+     "recoilSeconds": 0.05,
+     "spread": 0.012,
+     "movingSpread": 0.03,
+     "misfire": 0.002,
+     "rounds": 5,
+     "reloadSeconds": 4,
+     "reload": "tube",
+     "ammo": 30
+    }
+   },
+   "flamethrower": {
+    "label": "Flamethrower",
+    "hands": "two",
+    "length": 0.8,
+    "strikeFrom": 0.3,
+    "handle": 0.2,
+    "spacing": 0.42,
+    "supportAhead": true,
+    "longGun": true,
+    "tethered": true,
+    "mass": 4.5,
+    "balance": 0.35,
+    "radius": 0.028,
+    "harm": {
+     "swing": {
+      "blunt": 0.8
+     },
+     "thrust": {
+      "blunt": 0.6
+     }
+    },
+    "contactSeconds": 0.005,
+    "rotation": 0.5,
+    "wrist": {
+     "omega": 10,
+     "zeta": 0.9
+    },
+    "threat": 8,
+    "grip": 0.7,
+    "ranged": true,
+    "edgeUp": true,
+    "muzzle": [
+     0.8,
+     0
+    ],
+    "shot": {
+     "flame": true,
+     "rounds": 80,
+     "ammo": 80,
+     "reloadSeconds": {
+      "$number": "Infinity"
+     },
+     "automatic": {
+      "rate": 10,
+      "burst": [
+       10,
+       25
+      ]
+     },
+     "misfire": 0,
+     "spread": 0.02
+    }
+   },
+   "armRifle": {
+    "label": "Arm rifle and blade",
+    "hands": "one",
+    "hand": "r",
+    "mounted": true,
+    "length": 0.55,
+    "strikeFrom": 0.18,
+    "handle": 0.02,
+    "mass": 2.6,
+    "balance": 0.22,
+    "radius": 0.026,
+    "pointWidth": 0.025,
+    "harm": {
+     "swing": {
+      "cut": 1.25,
+      "blunt": 0.5
+     },
+     "thrust": {
+      "pierce": 1.05,
+      "cut": 0.2,
+      "blunt": 0.25
+     }
+    },
+    "contactSeconds": 0.004,
+    "rotation": 0.75,
+    "wrist": {
+     "omega": 18,
+     "zeta": 0.8
+    },
+    "threat": 7,
+    "ranged": true,
+    "muzzle": [
+     0.34,
+     0.03
+    ],
+    "shot": {
+     "projectile": {
+      "kg": 0.004,
+      "velocity": 935,
+      "curve": "g7",
+      "bc": 0.151,
+      "calibre": 0.0057
+     },
+     "energy": 1748.45,
+     "lethal": {
+      "head": 1.2,
+      "torso": 1.7,
+      "limb": 0.6
+     },
+     "bleed": {
+      "head": 0.0032,
+      "torso": 0.0048,
+      "limb": 0.0024
+     },
+     "limbBreak": 0.65,
+     "impulse": 3.8,
+     "recoil": 5,
+     "recoilSeconds": 0.06,
+     "spread": 0.005,
+     "movingSpread": 0.02,
+     "misfire": 0.002,
+     "rounds": {
+      "$number": "Infinity"
+     },
+     "reloadSeconds": 2.5,
+     "reload": "magazine",
+     "ammo": {
+      "$number": "Infinity"
+     },
+     "automatic": {
+      "rate": 12,
+      "burst": [
+       3,
+       6
+      ]
+     }
+    }
+   },
+   "turretRifle": {
+    "label": "SPUR rifle turret",
+    "hands": "one",
+    "hand": "r",
+    "mounted": true,
+    "length": 0.7,
+    "strikeFrom": 0.18,
+    "handle": 0.02,
+    "mass": 4,
+    "balance": 0.3,
+    "radius": 0.03,
+    "harm": {
+     "swing": {
+      "blunt": 0.5
+     },
+     "thrust": {
+      "blunt": 0.3
+     }
+    },
+    "contactSeconds": 0.004,
+    "rotation": 0.75,
+    "wrist": {
+     "omega": 14,
+     "zeta": 0.85
+    },
+    "threat": 7,
+    "ranged": true,
+    "muzzle": [
+     0.6,
+     0.03
+    ],
+    "turret": {
+     "height": 0.12,
+     "grip": 0.05,
+     "rest": -0.05,
+     "pan": 2.6,
+     "tilt": [
+      -0.35,
+      1.05
+     ],
+     "slew": 1.75,
+     "accel": 20,
+     "servo": 10,
+     "lead": 0.05,
+     "mount": {
+      "hz": 9,
+      "zeta": 0.35
+     },
+     "bore": 0.04,
+     "inertia": 0.3,
+     "lay": 0.01,
+     "ready": 0.15
+    },
+    "shot": {
+     "projectile": {
+      "kg": 0.00907,
+      "velocity": 813,
+      "curve": "g7",
+      "bc": 0.305,
+      "calibre": 0.0067
+     },
+     "energy": 2997.4944149999997,
+     "lethal": {
+      "head": 1.2,
+      "torso": 1.7,
+      "limb": 0.6
+     },
+     "bleed": {
+      "head": 0.0032,
+      "torso": 0.0048,
+      "limb": 0.0024
+     },
+     "limbBreak": 0.65,
+     "impulse": 3.8,
+     "recoil": 10.1311995,
+     "recoilSeconds": 0.06,
+     "spread": 0.0037,
+     "movingSpread": 0.015,
+     "misfire": 0.002,
+     "rounds": {
+      "$number": "Infinity"
+     },
+     "reloadSeconds": 2.5,
+     "reload": "magazine",
+     "ammo": {
+      "$number": "Infinity"
+     }
+    }
+   },
+   "armShotgun": {
+    "label": "Arm shotgun and mace",
+    "hands": "one",
+    "hand": "l",
+    "mounted": true,
+    "length": 0.42,
+    "strikeFrom": 0.16,
+    "handle": 0.02,
+    "mass": 4,
+    "balance": 0.3,
+    "radius": 0.05,
+    "harm": {
+     "swing": {
+      "blunt": 1.3
+     },
+     "thrust": {
+      "blunt": 0.6
+     }
+    },
+    "contactSeconds": 0.004,
+    "rotation": 1.2,
+    "wrist": {
+     "omega": 11,
+     "zeta": 0.85
+    },
+    "threat": 6.5,
+    "ranged": true,
+    "crush": 0.4,
+    "muzzle": [
+     0.42,
+     0
+    ],
+    "shot": {
+     "projectile": {
+      "kg": 0.0035,
+      "velocity": 400,
+      "curve": "sphere"
+     },
+     "energy": 280,
+     "pellets": 9,
+     "pellet": 0.016,
+     "lethal": {
+      "head": 0.55,
+      "torso": 0.26,
+      "limb": 0.1
+     },
+     "bleed": {
+      "head": 0.001,
+      "torso": 0.0013,
+      "limb": 0.0005
+     },
+     "limbBreak": 0.08,
+     "impulse": 1.4,
+     "recoil": 16,
+     "recoilSeconds": 0.05,
+     "spread": 0.012,
+     "movingSpread": 0.03,
+     "misfire": 0.002,
+     "rounds": {
+      "$number": "Infinity"
+     },
+     "reloadSeconds": 4,
+     "reload": "tube",
+     "ammo": {
+      "$number": "Infinity"
+     }
+    }
+   },
+   "staff": {
+    "art": "artCrushClub",
+    "label": "Staff",
+    "hands": "two",
+    "length": 0.95,
+    "strikeFrom": -0.85,
+    "handle": 0.85,
+    "spacing": 0.5,
+    "leadAhead": true,
+    "slides": true,
+    "ends": 2,
+    "mass": 1.2,
+    "balance": 0.05,
+    "radius": 0.016,
+    "build": {
+     "shaft": "waxwood"
+    },
+    "harm": {
+     "swing": {
+      "blunt": 1
+     },
+     "thrust": {
+      "blunt": 0.8
+     }
+    },
+    "contactSeconds": 0.007,
+    "rotation": 0.9,
+    "wrist": {
+     "omega": 18,
+     "zeta": 0.8
+    },
+    "threat": 3.8,
+    "grip": 0.6
+   },
+   "espada": {
+    "art": "artDrawCut",
+    "label": "Espada",
+    "hands": "one",
+    "length": 0.85,
+    "strikeFrom": 0.12,
+    "handle": 0.14,
+    "mass": 1.1,
+    "balance": 0.12,
+    "radius": 0.011,
+    "harm": {
+     "thrust": {
+      "pierce": 0.95,
+      "cut": 0.2,
+      "blunt": 0.1
+     },
+     "swing": {
+      "cut": 0.9,
+      "blunt": 0.35
+     }
+    },
+    "contactSeconds": 0.004,
+    "rotation": 0.7,
+    "wrist": {
+     "omega": 24,
+     "zeta": 0.8
+    },
+    "threat": 3.4,
+    "crossGuard": {
+     "cross": {
+      "at": 0.022,
+      "half": 0.11,
+      "flat": 0.03
+     }
+    }
+   },
+   "rapier": {
+    "art": "artFleche",
+    "label": "Rapier",
+    "hands": "one",
+    "length": 1.05,
+    "strikeFrom": 0.1,
+    "handle": 0.14,
+    "mass": 1.15,
+    "balance": 0.1,
+    "radius": 0.008,
+    "harm": {
+     "thrust": {
+      "pierce": 1.6,
+      "cut": 0.08,
+      "blunt": 0.03
+     },
+     "swing": {
+      "cut": 0.4,
+      "blunt": 0.05
+     }
+    },
+    "contactSeconds": 0.003,
+    "rotation": 0.5,
+    "wrist": {
+     "omega": 26,
+     "zeta": 0.8
+    },
+    "threat": 3.8,
+    "crossGuard": {
+     "quillons": {
+      "at": 0.02,
+      "half": 0.13
+     },
+     "cup": {
+      "at": 0.03,
+      "round": true,
+      "radius": 0.045
+     },
+     "bars": {
+      "at": 0,
+      "half": 0.055,
+      "flat": 0.05
+     }
+    },
+    "build": {
+     "section": [
+      0.014,
+      0.0055
+     ]
+    }
+   },
+   "macuahuitl": {
+    "art": "artDrawCut",
+    "label": "Macuahuitl",
+    "hands": "one",
+    "length": 0.7,
+    "strikeFrom": 0.18,
+    "handle": 0.16,
+    "mass": 1.15,
+    "balance": 0.36,
+    "radius": 0.028,
+    "brittle": 0.55,
+    "cleave": 0.4,
+    "harm": {
+     "swing": {
+      "cut": 1,
+      "blunt": 0.4
+     },
+     "thrust": {
+      "blunt": 0.3
+     }
+    },
+    "contactSeconds": 0.004,
+    "rotation": 0.85,
+    "wrist": {
+     "omega": 21,
+     "zeta": 0.8
+    },
+    "threat": 3.2,
+    "build": {
+     "wooden": true
+    }
+   },
+   "tepoztopilli": {
+    "art": "artSpear",
+    "pointFrom": 0,
+    "label": "Tepoztopilli",
+    "hands": "two",
+    "length": 1.3,
+    "strikeFrom": 0.98,
+    "handle": 0.38,
+    "spacing": 0.4,
+    "leadAhead": true,
+    "mass": 1.7,
+    "balance": 0.58,
+    "radius": 0.02,
+    "pointWidth": 0.08,
+    "brittle": 0.55,
+    "cleave": 0.4,
+    "harm": {
+     "thrust": {
+      "pierce": 0.65,
+      "cut": 0.3,
+      "blunt": 0.15
+     },
+     "swing": {
+      "cut": 0.7,
+      "blunt": 0.3
+     }
+    },
+    "contactSeconds": 0.005,
+    "rotation": 0.6,
+    "wrist": {
+     "omega": 14,
+     "zeta": 0.85
+    },
+    "threat": 3.4,
+    "grip": 0.5
+   },
+   "stoneSpear": {
+    "art": "artSpear",
+    "pointFrom": 0,
+    "label": "Stone-tipped spear",
+    "hands": "two",
+    "length": 1.5,
+    "strikeFrom": 1.25,
+    "handle": 0.5,
+    "spacing": 0.45,
+    "leadAhead": true,
+    "mass": 1.3,
+    "balance": 0.55,
+    "radius": 0.016,
+    "pointWidth": 0.035,
+    "brittle": 0.55,
+    "harm": {
+     "thrust": {
+      "pierce": 1.3,
+      "cut": 0.3,
+      "blunt": 0.18
+     },
+     "swing": {
+      "blunt": 0.45,
+      "cut": 0.15
+     }
+    },
+    "contactSeconds": 0.005,
+    "rotation": 0.5,
+    "wrist": {
+     "omega": 14,
+     "zeta": 0.85
+    },
+    "threat": 3.6,
+    "grip": 0.5
+   },
+   "kanabo": {
+    "label": "Kanabo",
+    "hands": "two",
+    "length": 1.15,
+    "strikeFrom": 0.25,
+    "handle": 0.35,
+    "spacing": 0.17,
+    "mass": 5,
+    "balance": 0.68,
+    "radius": 0.05,
+    "harm": {
+     "swing": {
+      "blunt": 1.4
+     },
+     "thrust": {
+      "blunt": 0.4
+     }
+    },
+    "contactSeconds": 0.006,
+    "rotation": 1.25,
+    "wrist": {
+     "omega": 8,
+     "zeta": 0.85
+    },
+    "threat": 4.4,
+    "art": "artCrushClub",
+    "crush": 0.5,
+    "build": {
+     "wooden": true
+    }
+   },
+   "langya": {
+    "label": "Wolf-tooth mace",
+    "hands": "one",
+    "length": 0.72,
+    "strikeFrom": 0.46,
+    "handle": 0.13,
+    "mass": 2,
+    "balance": 0.68,
+    "radius": 0.042,
+    "pointWidth": 0.012,
+    "harm": {
+     "swing": {
+      "blunt": 1.45,
+      "pierce": 0.3
+     },
+     "thrust": {
+      "blunt": 0.4,
+      "pierce": 0.15
+     }
+    },
+    "contactSeconds": 0.004,
+    "rotation": 1,
+    "wrist": {
+     "omega": 12,
+     "zeta": 0.85
+    },
+    "threat": 4,
+    "art": "artCrushOne",
+    "crush": 0.45,
+    "build": {
+     "shaft": null
+    },
+    "drawnRadius": 0.035
+   },
+   "flangedMace": {
+    "label": "Flanged mace",
+    "hands": "one",
+    "length": 0.66,
+    "strikeFrom": 0.5,
+    "handle": 0.12,
+    "mass": 1.6,
+    "balance": 0.29,
+    "radius": 0.036,
+    "harm": {
+     "swing": {
+      "blunt": 1.5
+     },
+     "thrust": {
+      "blunt": 0.35
+     }
+    },
+    "contactSeconds": 0.004,
+    "rotation": 0.95,
+    "wrist": {
+     "omega": 14,
+     "zeta": 0.85
+    },
+    "threat": 3.9,
+    "art": "artCrushOne",
+    "crush": 0.55,
+    "face": 0.02,
+    "build": {
+     "shaft": null
+    }
+   },
+   "champi": {
+    "art": "artCrushOne",
+    "label": "Champi",
+    "hands": "one",
+    "length": 0.74,
+    "strikeFrom": 0.62,
+    "handle": 0.12,
+    "mass": 1.25,
+    "balance": 0.46,
+    "radius": 0.05,
+    "harm": {
+     "swing": {
+      "blunt": 1.3,
+      "pierce": 0.25
+     },
+     "thrust": {
+      "blunt": 0.35
+     }
+    },
+    "contactSeconds": 0.004,
+    "rotation": 0.95,
+    "wrist": {
+     "omega": 14,
+     "zeta": 0.85
+    },
+    "threat": 3.6,
+    "crush": 0.3,
+    "build": {
+     "shaftRadius": 0.015
+    }
+   },
+   "saber": {
+    "art": "artDrawCut",
+    "label": "Sabre",
+    "hands": "one",
+    "length": 0.82,
+    "strikeFrom": 0.12,
+    "handle": 0.14,
+    "mass": 1,
+    "balance": 0.13,
+    "radius": 0.012,
+    "curve": 0.06,
+    "harm": {
+     "swing": {
+      "cut": 1.05,
+      "blunt": 0.35
+     },
+     "thrust": {
+      "pierce": 0.7,
+      "cut": 0.15,
+      "blunt": 0.1
+     }
+    },
+    "contactSeconds": 0.004,
+    "rotation": 0.75,
+    "wrist": {
+     "omega": 24,
+     "zeta": 0.8
+    },
+    "threat": 3.3,
+    "crossGuard": {
+     "cross": {
+      "at": 0.03,
+      "half": 0.055
+     }
+    }
+   },
+   "kilij": {
+    "label": "Kilij",
+    "hands": "one",
+    "length": 0.9,
+    "strikeFrom": 0.12,
+    "handle": 0.14,
+    "mass": 1.2,
+    "balance": 0.18,
+    "radius": 0.012,
+    "curve": 0.12,
+    "harm": {
+     "swing": {
+      "cut": 1.05,
+      "blunt": 0.38
+     },
+     "thrust": {
+      "pierce": 0.6,
+      "cut": 0.15,
+      "blunt": 0.1
+     }
+    },
+    "contactSeconds": 0.004,
+    "rotation": 0.78,
+    "wrist": {
+     "omega": 21,
+     "zeta": 0.8
+    },
+    "threat": 3.4,
+    "crossGuard": {
+     "cross": {
+      "at": 0.03,
+      "half": 0.065
+     }
+    },
+    "art": "artDrawCut"
+   },
+   "yatagan": {
+    "art": "artDrawCut",
+    "label": "Yatagan",
+    "hands": "one",
+    "length": 0.64,
+    "strikeFrom": 0.1,
+    "handle": 0.13,
+    "mass": 0.85,
+    "balance": 0.16,
+    "radius": 0.012,
+    "curve": -0.04,
+    "harm": {
+     "swing": {
+      "cut": 1.05,
+      "blunt": 0.3
+     },
+     "thrust": {
+      "pierce": 0.8,
+      "cut": 0.15,
+      "blunt": 0.1
+     }
+    },
+    "contactSeconds": 0.004,
+    "rotation": 0.7,
+    "wrist": {
+     "omega": 25,
+     "zeta": 0.8
+    },
+    "threat": 3.2
+   },
+   "bow": {
+    "label": "Bow",
+    "hands": "one",
+    "hand": "l",
+    "length": 0.95,
+    "strikeFrom": 0.95,
+    "handle": 0.85,
+    "mass": 0.6,
+    "balance": 0,
+    "radius": 0.014,
+    "harm": {
+     "swing": {
+      "blunt": 0.3
+     },
+     "thrust": {
+      "blunt": 0.2
+     }
+    },
+    "contactSeconds": 0.006,
+    "rotation": 0.5,
+    "wrist": {
+     "omega": 14,
+     "zeta": 0.9
+    },
+    "threat": 3.5,
+    "grip": 0.4,
+    "ranged": true,
+    "bow": true,
+    "drawN": 360,
+    "cast": {
+     "drawLength": 0.71,
+     "brace": 0.15,
+     "fullness": 0.45,
+     "kept": 0.85,
+     "virtualKg": 0.015,
+     "arrowKg": 0.06
+    },
+    "ammo": 36
+   },
+   "compositeBow": {
+    "label": "Composite bow",
+    "hands": "one",
+    "hand": "l",
+    "length": 0.62,
+    "strikeFrom": 0.62,
+    "handle": 0.55,
+    "mass": 0.7,
+    "balance": 0,
+    "radius": 0.016,
+    "harm": {
+     "swing": {
+      "blunt": 0.3
+     },
+     "thrust": {
+      "blunt": 0.2
+     }
+    },
+    "contactSeconds": 0.006,
+    "rotation": 0.5,
+    "wrist": {
+     "omega": 14,
+     "zeta": 0.9
+    },
+    "threat": 3.6,
+    "grip": 0.4,
+    "ranged": true,
+    "bow": true,
+    "drawN": 400,
+    "cast": {
+     "drawLength": 0.76,
+     "brace": 0.16,
+     "fullness": 0.6,
+     "kept": 0.9,
+     "virtualKg": 0.01,
+     "arrowKg": 0.065
+    },
+    "ammo": 54
+   },
+   "chineseBow": {
+    "label": "Ming bow",
+    "hands": "one",
+    "hand": "l",
+    "length": 0.8,
+    "strikeFrom": 0.8,
+    "handle": 0.72,
+    "mass": 0.8,
+    "balance": 0,
+    "radius": 0.016,
+    "harm": {
+     "swing": {
+      "blunt": 0.32
+     },
+     "thrust": {
+      "blunt": 0.22
+     }
+    },
+    "contactSeconds": 0.006,
+    "rotation": 0.5,
+    "wrist": {
+     "omega": 14,
+     "zeta": 0.9
+    },
+    "threat": 3.7,
+    "grip": 0.4,
+    "ranged": true,
+    "bow": true,
+    "drawN": 450,
+    "cast": {
+     "drawLength": 0.8,
+     "brace": 0.16,
+     "fullness": 0.57,
+     "kept": 0.88,
+     "virtualKg": 0.025,
+     "arrowKg": 0.09
+    },
+    "ammo": 36
+   },
+   "yumi": {
+    "label": "Yumi",
+    "hands": "one",
+    "hand": "l",
+    "length": 1.45,
+    "strikeFrom": 1.45,
+    "handle": 0.75,
+    "mass": 0.75,
+    "balance": 0.2,
+    "radius": 0.014,
+    "harm": {
+     "swing": {
+      "blunt": 0.3
+     },
+     "thrust": {
+      "blunt": 0.2
+     }
+    },
+    "contactSeconds": 0.006,
+    "rotation": 0.5,
+    "wrist": {
+     "omega": 13,
+     "zeta": 0.9
+    },
+    "threat": 3.8,
+    "grip": 0.4,
+    "ranged": true,
+    "bow": true,
+    "drawN": 450,
+    "cast": {
+     "drawLength": 0.88,
+     "brace": 0.16,
+     "fullness": 0.5,
+     "kept": 0.85,
+     "virtualKg": 0.03,
+     "arrowKg": 0.09
+    },
+    "ammo": 36
+   },
+   "manchuBow": {
+    "label": "Manchu bow",
+    "hands": "one",
+    "hand": "l",
+    "length": 0.92,
+    "strikeFrom": 0.92,
+    "handle": 0.82,
+    "mass": 0.9,
+    "balance": 0,
+    "radius": 0.017,
+    "harm": {
+     "swing": {
+      "blunt": 0.35
+     },
+     "thrust": {
+      "blunt": 0.25
+     }
+    },
+    "contactSeconds": 0.006,
+    "rotation": 0.5,
+    "wrist": {
+     "omega": 13,
+     "zeta": 0.9
+    },
+    "threat": 3.8,
+    "grip": 0.4,
+    "ranged": true,
+    "bow": true,
+    "drawN": 580,
+    "cast": {
+     "drawLength": 0.86,
+     "brace": 0.2,
+     "fullness": 0.55,
+     "kept": 0.88,
+     "virtualKg": 0.045,
+     "arrowKg": 0.14
+    },
+    "ammo": 30
+   },
+   "longbow": {
+    "label": "Longbow",
+    "hands": "one",
+    "hand": "l",
+    "length": 1,
+    "strikeFrom": 1,
+    "handle": 0.9,
+    "mass": 0.8,
+    "balance": 0,
+    "radius": 0.016,
+    "harm": {
+     "swing": {
+      "blunt": 0.35
+     },
+     "thrust": {
+      "blunt": 0.25
+     }
+    },
+    "contactSeconds": 0.006,
+    "rotation": 0.5,
+    "wrist": {
+     "omega": 13,
+     "zeta": 0.9
+    },
+    "threat": 3.8,
+    "grip": 0.4,
+    "ranged": true,
+    "bow": true,
+    "drawN": 600,
+    "cast": {
+     "drawLength": 0.76,
+     "brace": 0.165,
+     "fullness": 0.45,
+     "kept": 0.85,
+     "virtualKg": 0.02,
+     "arrowKg": 0.095
+    },
+    "ammo": 72
+   },
+   "pike": {
+    "art": "artSpear",
+    "pointFrom": 0,
+    "label": "Pike",
+    "hands": "two",
+    "length": 3.4,
+    "strikeFrom": 3.1,
+    "handle": 1.6,
+    "spacing": 0.6,
+    "leadAhead": true,
+    "mass": 3.5,
+    "balance": 0.7,
+    "radius": 0.017,
+    "pointWidth": 0.025,
+    "harm": {
+     "thrust": {
+      "pierce": 1.5,
+      "blunt": 0.25,
+      "cut": 0.1
+     },
+     "swing": {
+      "blunt": 0.6,
+      "cut": 0.1
+     }
+    },
+    "contactSeconds": 0.005,
+    "rotation": 0.4,
+    "wrist": {
+     "omega": 8,
+     "zeta": 0.9
+    },
+    "threat": 4,
+    "grip": 0.45
+   },
+   "dagger": {
+    "art": "artFleche",
+    "label": "Dagger",
+    "hands": "one",
+    "length": 0.3,
+    "strikeFrom": 0.06,
+    "handle": 0.11,
+    "mass": 0.35,
+    "balance": 0,
+    "radius": 0.01,
+    "pointWidth": 0.012,
+    "harm": {
+     "thrust": {
+      "pierce": 0.8,
+      "blunt": 0.3
+     },
+     "swing": {
+      "cut": 0.35,
+      "blunt": 0.2
+     }
+    },
+    "contactSeconds": 0.005,
+    "rotation": 0.6,
+    "wrist": {
+     "omega": 40,
+     "zeta": 0.8
+    },
+    "threat": 2.5
+   },
+   "shortSword": {
+    "art": "artFleche",
+    "label": "Short sword",
+    "hands": "one",
+    "length": 0.6,
+    "strikeFrom": 0.1,
+    "handle": 0.12,
+    "mass": 0.85,
+    "balance": 0.08,
+    "radius": 0.012,
+    "harm": {
+     "thrust": {
+      "pierce": 0.85,
+      "cut": 0.2,
+      "blunt": 0.15
+     },
+     "swing": {
+      "cut": 0.8,
+      "blunt": 0.4
+     }
+    },
+    "contactSeconds": 0.004,
+    "rotation": 0.7,
+    "wrist": {
+     "omega": 26,
+     "zeta": 0.8
+    },
+    "threat": 3,
+    "crossGuard": {
+     "guard": {
+      "at": 0.025,
+      "half": 0.04,
+      "flat": 0.015
+     }
+    }
+   },
+   "wakizashi": {
+    "art": "artDrawCut",
+    "label": "Wakizashi",
+    "hands": "one",
+    "length": 0.5,
+    "strikeFrom": 0.08,
+    "handle": 0.16,
+    "mass": 0.7,
+    "balance": 0.08,
+    "radius": 0.012,
+    "curve": 0.012,
+    "harm": {
+     "swing": {
+      "cut": 1.15,
+      "blunt": 0.3
+     },
+     "thrust": {
+      "pierce": 0.6,
+      "cut": 0.15,
+      "blunt": 0.1
+     }
+    },
+    "contactSeconds": 0.004,
+    "rotation": 0.75,
+    "wrist": {
+     "omega": 28,
+     "zeta": 0.8
+    },
+    "threat": 3.2,
+    "crossGuard": {
+     "tsuba": {
+      "at": 0.03,
+      "round": true,
+      "radius": 0.034
+     }
+    }
+   },
+   "dao": {
+    "label": "Dao",
+    "hands": "one",
+    "length": 0.75,
+    "strikeFrom": 0.12,
+    "handle": 0.15,
+    "mass": 0.95,
+    "balance": 0.1,
+    "radius": 0.012,
+    "curve": 0.05,
+    "harm": {
+     "swing": {
+      "cut": 1.1,
+      "blunt": 0.35
+     },
+     "thrust": {
+      "pierce": 0.78,
+      "cut": 0.15,
+      "blunt": 0.1
+     }
+    },
+    "contactSeconds": 0.004,
+    "rotation": 0.75,
+    "wrist": {
+     "omega": 25,
+     "zeta": 0.8
+    },
+    "threat": 3.2,
+    "art": "artDrawCut",
+    "crossGuard": {
+     "disc": {
+      "at": 0.028,
+      "round": true,
+      "radius": 0.045
+     }
+    }
+   },
+   "changdao": {
+    "label": "Changdao",
+    "hands": "two",
+    "length": 0.9,
+    "strikeFrom": 0.13,
+    "handle": 0.3,
+    "spacing": 0.19,
+    "mass": 1.3,
+    "balance": 0.14,
+    "radius": 0.012,
+    "curve": 0.025,
+    "harm": {
+     "swing": {
+      "cut": 1.33,
+      "blunt": 0.45
+     },
+     "thrust": {
+      "pierce": 0.7,
+      "cut": 0.15,
+      "blunt": 0.15
+     }
+    },
+    "contactSeconds": 0.004,
+    "rotation": 0.8,
+    "wrist": {
+     "omega": 18,
+     "zeta": 0.8
+    },
+    "threat": 4.6,
+    "art": "artIai",
+    "crossGuard": {
+     "disc": {
+      "at": 0.03,
+      "round": true,
+      "radius": 0.04
+     }
+    }
+   },
+   "guandao": {
+    "label": "Guandao",
+    "hands": "two",
+    "length": 1.6,
+    "strikeFrom": 1.05,
+    "handle": 0.55,
+    "spacing": 0.42,
+    "leadAhead": true,
+    "edgeLeads": true,
+    "mass": 2.95,
+    "balance": 0.6,
+    "radius": 0.016,
+    "harm": {
+     "swing": {
+      "cut": 1.15,
+      "blunt": 1.05
+     },
+     "thrust": {
+      "pierce": 0.55,
+      "cut": 0.12,
+      "blunt": 0.5
+     }
+    },
+    "contactSeconds": 0.005,
+    "rotation": 0.85,
+    "wrist": {
+     "omega": 12,
+     "zeta": 0.85
+    },
+    "threat": 4.7,
+    "art": "artWheel",
+    "crush": 0.3
+   },
+   "zhanmadao": {
+    "label": "Zhanmadao",
+    "hands": "two",
+    "length": 1.8,
+    "strikeFrom": 1,
+    "handle": 0.6,
+    "spacing": 0.45,
+    "leadAhead": true,
+    "edgeLeads": true,
+    "mass": 2.6,
+    "balance": 0.55,
+    "radius": 0.015,
+    "curve": 0.04,
+    "harm": {
+     "swing": {
+      "cut": 1.35,
+      "blunt": 0.75
+     },
+     "thrust": {
+      "pierce": 0.65,
+      "cut": 0.15,
+      "blunt": 0.3
+     }
+    },
+    "contactSeconds": 0.005,
+    "rotation": 0.85,
+    "wrist": {
+     "omega": 13,
+     "zeta": 0.84
+    },
+    "threat": 4.8,
+    "art": "artWheel",
+    "crush": 0.15,
+    "build": {
+     "shaftRadius": 0.017
+    }
+   },
+   "jian": {
+    "label": "Jian",
+    "hands": "one",
+    "length": 0.95,
+    "strikeFrom": 0.1,
+    "handle": 0.21,
+    "mass": 1,
+    "balance": 0.1,
+    "radius": 0.01,
+    "harm": {
+     "thrust": {
+      "pierce": 1.05,
+      "cut": 0.2,
+      "blunt": 0.08
+     },
+     "swing": {
+      "cut": 0.9,
+      "blunt": 0.25
+     }
+    },
+    "contactSeconds": 0.004,
+    "rotation": 0.6,
+    "wrist": {
+     "omega": 30,
+     "zeta": 0.78
+    },
+    "threat": 3.6,
+    "art": "artDrawCut",
+    "crossGuard": {
+     "guard": {
+      "at": 0.012,
+      "half": 0.0375,
+      "flat": 0.013
+     }
+    }
+   },
+   "odachi": {
+    "label": "Ōdachi",
+    "hands": "two",
+    "length": 1.08,
+    "strikeFrom": 0.15,
+    "handle": 0.42,
+    "spacing": 0.36,
+    "mass": 2.3,
+    "balance": 0.24,
+    "radius": 0.013,
+    "curve": 0.03,
+    "harm": {
+     "swing": {
+      "cut": 1.4,
+      "blunt": 0.6
+     },
+     "thrust": {
+      "pierce": 0.65,
+      "cut": 0.15,
+      "blunt": 0.2
+     }
+    },
+    "contactSeconds": 0.005,
+    "rotation": 0.85,
+    "wrist": {
+     "omega": 14,
+     "zeta": 0.82
+    },
+    "threat": 4.9,
+    "art": "artIai",
+    "crossGuard": {
+     "tsuba": {
+      "at": 0.03,
+      "round": true,
+      "radius": 0.045
+     }
+    }
+   },
+   "zweihander": {
+    "label": "Zweihander",
+    "hands": "two",
+    "length": 1.28,
+    "strikeFrom": 0.28,
+    "handle": 0.42,
+    "spacing": 0.32,
+    "mass": 3,
+    "balance": 0.17,
+    "radius": 0.013,
+    "ricasso": 0.25,
+    "harm": {
+     "swing": {
+      "cut": 1,
+      "blunt": 0.5
+     },
+     "thrust": {
+      "pierce": 1,
+      "cut": 0.15,
+      "blunt": 0.15
+     }
+    },
+    "contactSeconds": 0.005,
+    "rotation": 0.85,
+    "wrist": {
+     "omega": 13,
+     "zeta": 0.82
+    },
+    "threat": 4.9,
+    "art": "artPommel",
+    "crossGuard": {
+     "cross": {
+      "at": 0.03,
+      "half": 0.28
+     },
+     "hooks": {
+      "at": 0.27,
+      "half": 0.07
+     }
+    }
+   },
+   "bat": {
+    "art": "artCrushOne",
+    "label": "Baseball bat",
+    "hands": "two",
+    "length": 0.6,
+    "strikeFrom": 0.32,
+    "handle": 0.24,
+    "spacing": 0.09,
+    "mass": 0.9,
+    "balance": 0.42,
+    "radius": 0.033,
+    "harm": {
+     "swing": {
+      "blunt": 1.25
+     },
+     "thrust": {
+      "blunt": 0.4
+     }
+    },
+    "contactSeconds": 0.005,
+    "rotation": 1,
+    "wrist": {
+     "omega": 16,
+     "zeta": 0.85
+    },
+    "threat": 3.4,
+    "build": {
+     "wooden": true
+    }
+   },
+   "qinglong": {
+    "label": "Green Dragon Crescent Blade",
+    "hands": "two",
+    "length": 1.6,
+    "strikeFrom": 1.05,
+    "handle": 0.55,
+    "spacing": 0.42,
+    "leadAhead": true,
+    "edgeLeads": true,
+    "mass": 2.95,
+    "balance": 0.6,
+    "radius": 0.016,
+    "harm": {
+     "swing": {
+      "cut": 1.15,
+      "blunt": 1.05
+     },
+     "thrust": {
+      "pierce": 0.55,
+      "cut": 0.12,
+      "blunt": 0.5
+     }
+    },
+    "contactSeconds": 0.005,
+    "rotation": 0.85,
+    "wrist": {
+     "omega": 12,
+     "zeta": 0.85
+    },
+    "threat": 4.7,
+    "art": "artWheel",
+    "crush": 0.3
+   },
+   "armingSword": {
+    "art": "artDrawCut",
+    "label": "Arming sword",
+    "hands": "one",
+    "length": 0.8,
+    "strikeFrom": 0.12,
+    "handle": 0.13,
+    "mass": 1.15,
+    "balance": 0.12,
+    "radius": 0.011,
+    "harm": {
+     "thrust": {
+      "pierce": 1,
+      "cut": 0.2,
+      "blunt": 0.12
+     },
+     "swing": {
+      "cut": 0.95,
+      "blunt": 0.4
+     }
+    },
+    "contactSeconds": 0.004,
+    "rotation": 0.7,
+    "wrist": {
+     "omega": 24,
+     "zeta": 0.8
+    },
+    "threat": 3.4,
+    "crossGuard": {
+     "cross": {
+      "at": 0.02,
+      "half": 0.11
+     }
+    }
+   },
+   "heavySword": {
+    "art": "artDrawCut",
+    "label": "Heavy cavalry sword",
+    "hands": "one",
+    "length": 0.97,
+    "strikeFrom": 0.14,
+    "handle": 0.14,
+    "mass": 1.3,
+    "balance": 0.16,
+    "radius": 0.011,
+    "harm": {
+     "thrust": {
+      "pierce": 1.05,
+      "cut": 0.2,
+      "blunt": 0.15
+     },
+     "swing": {
+      "cut": 0.95,
+      "blunt": 0.45
+     }
+    },
+    "contactSeconds": 0.004,
+    "rotation": 0.66,
+    "wrist": {
+     "omega": 22,
+     "zeta": 0.8
+    },
+    "threat": 3.5
+   },
+   "sayf": {
+    "art": "artDrawCut",
+    "label": "Sayf",
+    "hands": "one",
+    "length": 0.84,
+    "strikeFrom": 0.12,
+    "handle": 0.12,
+    "mass": 1.15,
+    "balance": 0.16,
+    "radius": 0.012,
+    "harm": {
+     "swing": {
+      "cut": 1,
+      "blunt": 0.4
+     },
+     "thrust": {
+      "pierce": 0.85,
+      "cut": 0.2,
+      "blunt": 0.12
+     }
+    },
+    "contactSeconds": 0.004,
+    "rotation": 0.72,
+    "wrist": {
+     "omega": 23,
+     "zeta": 0.8
+    },
+    "threat": 3.4,
+    "crossGuard": {
+     "cross": {
+      "at": 0.02,
+      "half": 0.075,
+      "flat": 0.01
+     }
+    }
+   },
+   "clava": {
+    "art": "artCrushOne",
+    "label": "Club",
+    "hands": "one",
+    "length": 0.78,
+    "strikeFrom": 0.42,
+    "handle": 0.12,
+    "mass": 2,
+    "balance": 0.6,
+    "radius": 0.04,
+    "harm": {
+     "swing": {
+      "blunt": 1.35
+     },
+     "thrust": {
+      "blunt": 0.4
+     }
+    },
+    "contactSeconds": 0.005,
+    "rotation": 0.95,
+    "wrist": {
+     "omega": 13,
+     "zeta": 0.85
+    },
+    "threat": 3.6,
+    "crush": 0.35
+   },
+   "gladius": {
+    "art": "artFleche",
+    "label": "Gladius",
+    "hands": "one",
+    "length": 0.62,
+    "strikeFrom": 0.1,
+    "handle": 0.13,
+    "mass": 0.9,
+    "balance": 0.08,
+    "radius": 0.012,
+    "harm": {
+     "thrust": {
+      "pierce": 0.9,
+      "cut": 0.2,
+      "blunt": 0.15
+     },
+     "swing": {
+      "cut": 0.8,
+      "blunt": 0.4
+     }
+    },
+    "contactSeconds": 0.004,
+    "rotation": 0.7,
+    "wrist": {
+     "omega": 26,
+     "zeta": 0.8
+    },
+    "threat": 3,
+    "crossGuard": {
+     "guard": {
+      "at": 0.025,
+      "half": 0.04,
+      "flat": 0.015
+     }
+    },
+    "build": {
+     "edge": "iron",
+     "blade": "iron"
+    }
+   },
+   "sica": {
+    "art": "artDrawCut",
+    "label": "Sica",
+    "hands": "one",
+    "length": 0.46,
+    "strikeFrom": 0.08,
+    "handle": 0.12,
+    "mass": 0.7,
+    "balance": 0.14,
+    "radius": 0.012,
+    "curved": true,
+    "curve": -0.07,
+    "harm": {
+     "swing": {
+      "cut": 1.15,
+      "blunt": 0.3
+     },
+     "thrust": {
+      "pierce": 0.7,
+      "cut": 0.25,
+      "blunt": 0.1
+     }
+    },
+    "contactSeconds": 0.004,
+    "rotation": 0.75,
+    "wrist": {
+     "omega": 26,
+     "zeta": 0.8
+    },
+    "threat": 3.1,
+    "build": {
+     "edge": "iron",
+     "blade": "iron"
+    }
+   },
+   "trident": {
+    "art": "artSpear",
+    "label": "Trident",
+    "hands": "hybrid",
+    "length": 1.15,
+    "strikeFrom": 0.95,
+    "handle": 0.55,
+    "spacing": 0.4,
+    "leadAhead": true,
+    "mass": 1.8,
+    "balance": 0.5,
+    "radius": 0.016,
+    "pointWidth": 0.012,
+    "tines": 3,
+    "harm": {
+     "thrust": {
+      "pierce": 0.85,
+      "cut": 0.2,
+      "blunt": 0.3
+     },
+     "swing": {
+      "blunt": 0.55
+     }
+    },
+    "contactSeconds": 0.005,
+    "rotation": 0.5,
+    "wrist": {
+     "omega": 14,
+     "zeta": 0.85
+    },
+    "threat": 3.8,
+    "grip": 0.5
+   },
+   "spatha": {
+    "art": "artDrawCut",
+    "label": "Spatha",
+    "hands": "one",
+    "length": 0.82,
+    "strikeFrom": 0.12,
+    "handle": 0.12,
+    "mass": 1.2,
+    "balance": 0.13,
+    "radius": 0.011,
+    "harm": {
+     "thrust": {
+      "pierce": 0.95,
+      "cut": 0.2,
+      "blunt": 0.12
+     },
+     "swing": {
+      "cut": 0.95,
+      "blunt": 0.4
+     }
+    },
+    "contactSeconds": 0.004,
+    "rotation": 0.72,
+    "wrist": {
+     "omega": 23,
+     "zeta": 0.8
+    },
+    "threat": 3.4,
+    "crossGuard": {
+     "guard": {
+      "at": 0.018,
+      "half": 0.0425,
+      "flat": 0.015
+     }
+    },
+    "build": {
+     "edge": "iron",
+     "blade": "iron"
+    }
+   },
+   "kontos": {
+    "saddleOnly": true,
+    "art": "artSpear",
+    "pointFrom": 0.78,
+    "label": "Kontos",
+    "hands": "two",
+    "length": 2.65,
+    "strikeFrom": 1.5,
+    "handle": 1.05,
+    "spacing": 0.55,
+    "mass": 5.6,
+    "balance": 0.2,
+    "radius": 0.025,
+    "pointWidth": 0.03,
+    "harm": {
+     "thrust": {
+      "pierce": 1.6,
+      "blunt": 0.35,
+      "cut": 0.02
+     },
+     "swing": {
+      "blunt": 0.9
+     }
+    },
+    "contactSeconds": 0.005,
+    "rotation": 0.38,
+    "wrist": {
+     "omega": 6.5,
+     "zeta": 0.9
+    },
+    "threat": 4,
+    "grip": 0.75
+   },
+   "banner": {
+    "label": "Banner",
+    "flag": "knights",
+    "hands": "two",
+    "length": 1.75,
+    "strikeFrom": -0.6,
+    "handle": 0.85,
+    "spacing": 0.45,
+    "leadAhead": true,
+    "mass": 3.5,
+    "balance": 0.75,
+    "radius": 0.018,
+    "pointWidth": 0.04,
+    "harm": {
+     "swing": {
+      "blunt": 1
+     },
+     "thrust": {
+      "blunt": 0.7,
+      "pierce": 0.3
+     }
+    },
+    "contactSeconds": 0.008,
+    "rotation": 1.4,
+    "wrist": {
+     "omega": 10,
+     "zeta": 0.9
+    },
+    "threat": 2,
+    "grip": 0.5,
+    "art": "artSpear"
+   },
+   "lingQi": {
+    "label": "Command flag",
+    "flag": "chinese",
+    "hands": "two",
+    "length": 1.75,
+    "strikeFrom": -0.6,
+    "handle": 0.85,
+    "spacing": 0.45,
+    "leadAhead": true,
+    "mass": 3.5,
+    "balance": 0.75,
+    "radius": 0.018,
+    "pointWidth": 0.04,
+    "harm": {
+     "swing": {
+      "blunt": 1
+     },
+     "thrust": {
+      "blunt": 0.7,
+      "pierce": 0.3
+     }
+    },
+    "contactSeconds": 0.008,
+    "rotation": 1.4,
+    "wrist": {
+     "omega": 10,
+     "zeta": 0.9
+    },
+    "threat": 2,
+    "grip": 0.5,
+    "art": "artSpear"
+   },
+   "sancak": {
+    "label": "Sancak",
+    "flag": "ottomans",
+    "hands": "two",
+    "length": 1.75,
+    "strikeFrom": -0.6,
+    "handle": 0.85,
+    "spacing": 0.45,
+    "leadAhead": true,
+    "mass": 3.5,
+    "balance": 0.75,
+    "radius": 0.018,
+    "pointWidth": 0.04,
+    "harm": {
+     "swing": {
+      "blunt": 1
+     },
+     "thrust": {
+      "blunt": 0.7,
+      "pierce": 0.3
+     }
+    },
+    "contactSeconds": 0.008,
+    "rotation": 1.4,
+    "wrist": {
+     "omega": 10,
+     "zeta": 0.9
+    },
+    "threat": 2,
+    "grip": 0.5,
+    "art": "artSpear"
+   },
+   "tug": {
+    "label": "Tug",
+    "flag": "steppe",
+    "hands": "two",
+    "length": 1.75,
+    "strikeFrom": -0.6,
+    "handle": 0.85,
+    "spacing": 0.45,
+    "leadAhead": true,
+    "mass": 3.5,
+    "balance": 0.75,
+    "radius": 0.018,
+    "pointWidth": 0.04,
+    "harm": {
+     "swing": {
+      "blunt": 1
+     },
+     "thrust": {
+      "blunt": 0.7,
+      "pierce": 0.3
+     }
+    },
+    "contactSeconds": 0.008,
+    "rotation": 1.4,
+    "wrist": {
+     "omega": 10,
+     "zeta": 0.9
+    },
+    "threat": 2,
+    "grip": 0.5,
+    "art": "artSpear"
+   },
+   "nobori": {
+    "label": "Nobori",
+    "flag": "japanese",
+    "hands": "two",
+    "length": 1.75,
+    "strikeFrom": -0.6,
+    "handle": 0.85,
+    "spacing": 0.45,
+    "leadAhead": true,
+    "mass": 3.5,
+    "balance": 0.75,
+    "radius": 0.018,
+    "pointWidth": 0.04,
+    "harm": {
+     "swing": {
+      "blunt": 1
+     },
+     "thrust": {
+      "blunt": 0.7,
+      "pierce": 0.3
+     }
+    },
+    "contactSeconds": 0.008,
+    "rotation": 1.4,
+    "wrist": {
+     "omega": 10,
+     "zeta": 0.9
+    },
+    "threat": 2,
+    "grip": 0.5,
+    "art": "artSpear"
+   },
+   "pamitl": {
+    "label": "Pamitl",
+    "flag": "mexica",
+    "hands": "two",
+    "length": 1.75,
+    "strikeFrom": -0.6,
+    "handle": 0.85,
+    "spacing": 0.45,
+    "leadAhead": true,
+    "mass": 3.5,
+    "balance": 0.75,
+    "radius": 0.018,
+    "pointWidth": 0.04,
+    "harm": {
+     "swing": {
+      "blunt": 1
+     },
+     "thrust": {
+      "blunt": 0.7,
+      "pierce": 0.3
+     }
+    },
+    "contactSeconds": 0.008,
+    "rotation": 1.4,
+    "wrist": {
+     "omega": 10,
+     "zeta": 0.9
+    },
+    "threat": 2,
+    "grip": 0.5,
+    "art": "artSpear"
+   },
+   "vexillum": {
+    "label": "Vexillum",
+    "flag": "romans",
+    "hands": "two",
+    "length": 1.75,
+    "strikeFrom": -0.6,
+    "handle": 0.85,
+    "spacing": 0.45,
+    "leadAhead": true,
+    "mass": 3.5,
+    "balance": 0.75,
+    "radius": 0.018,
+    "pointWidth": 0.04,
+    "harm": {
+     "swing": {
+      "blunt": 1
+     },
+     "thrust": {
+      "blunt": 0.7,
+      "pierce": 0.3
+     }
+    },
+    "contactSeconds": 0.008,
+    "rotation": 1.4,
+    "wrist": {
+     "omega": 10,
+     "zeta": 0.9
+    },
+    "threat": 2,
+    "grip": 0.5,
+    "art": "artSpear"
+   },
+   "halberdEtched": {
+    "label": "Etched halberd",
+    "hands": "two",
+    "length": 1.6,
+    "strikeFrom": 1.05,
+    "handle": 0.55,
+    "spacing": 0.42,
+    "leadAhead": true,
+    "edgeLeads": true,
+    "mass": 2.8,
+    "balance": 0.75,
+    "radius": 0.016,
+    "pointWidth": 0.014,
+    "harm": {
+     "swing": {
+      "cut": 1.3,
+      "blunt": 1,
+      "pierce": 0.15
+     },
+     "thrust": {
+      "pierce": 1.25,
+      "blunt": 0.45,
+      "cut": 0.05
+     }
+    },
+    "contactSeconds": 0.004,
+    "rotation": 1.05,
+    "wrist": {
+     "omega": 11,
+     "zeta": 0.82
+    },
+    "threat": 4.3,
+    "art": "artCrush",
+    "crush": 0.35,
+    "build": {
+     "shaftRadius": 0.018,
+     "langets": 0.4
+    },
+    "face": 0.03,
+    "beak": {
+     "pierce": 0.9,
+     "blunt": 0.5
+    },
+    "etched": true
+   }
+  },
+  "SHIELDS": {
+   "parma": {
+    "label": "Parma",
+    "radius": 0.28,
+    "mass": 2.4,
+    "offset": 0.07,
+    "armHarm": 0.15,
+    "hold": 1,
+    "material": "bronzePlate"
+   },
+   "roundShield": {
+    "label": "Round shield",
+    "radius": 0.3,
+    "mass": 2.2,
+    "offset": 0.07,
+    "armHarm": 0.15,
+    "hold": 1.1,
+    "look": "tengpai",
+    "material": "planks"
+   },
+   "rodela": {
+    "label": "Rodela",
+    "radius": 0.29,
+    "mass": 3.5,
+    "offset": 0.07,
+    "armHarm": 0.12,
+    "hold": 1.4,
+    "look": "steel",
+    "material": "steelPlate"
+   },
+   "chimalli": {
+    "label": "Chimalli",
+    "radius": 0.33,
+    "mass": 1.6,
+    "offset": 0.07,
+    "armHarm": 0.2,
+    "hold": 1.3,
+    "look": "feather",
+    "material": "wicker"
+   },
+   "buckler": {
+    "label": "Iron buckler",
+    "radius": 0.2,
+    "mass": 1.4,
+    "offset": 0.06,
+    "armHarm": 0.12,
+    "hold": 0.6,
+    "look": "steel",
+    "material": "steelPlate"
+   },
+   "kalkan": {
+    "label": "Kalkan",
+    "radius": 0.3,
+    "mass": 1.7,
+    "offset": 0.07,
+    "armHarm": 0.17,
+    "hold": 1.1,
+    "look": "kalkan",
+    "material": "wicker",
+    "makes": {
+     "steppe": "steppeShield",
+     "knights": "heater",
+     "saladin": "turs"
+    }
+   },
+   "steppeShield": {
+    "label": "Wicker shield",
+    "radius": 0.3,
+    "mass": 1.7,
+    "offset": 0.07,
+    "armHarm": 0.17,
+    "hold": 1.1,
+    "look": "steppe",
+    "material": "wicker"
+   },
+   "turs": {
+    "label": "Turs",
+    "radius": 0.32,
+    "mass": 2.8,
+    "offset": 0.07,
+    "armHarm": 0.15,
+    "hold": 1.3,
+    "look": "turs",
+    "material": "planks"
+   },
+   "riotShield": {
+    "label": "Riot shield",
+    "shape": "curved",
+    "width": 0.6,
+    "height": 1.05,
+    "curve": 1.2,
+    "mass": 4,
+    "offset": 0.1,
+    "armHarm": 0.07,
+    "hold": 1.5,
+    "look": "riot",
+    "material": "polycarbonate"
+   },
+   "heater": {
+    "label": "Heater shield",
+    "shape": "curved",
+    "width": 0.56,
+    "height": 0.8,
+    "curve": 0.75,
+    "mass": 4,
+    "offset": 0.1,
+    "armHarm": 0.08,
+    "hold": 1.6,
+    "look": "heater",
+    "material": "planks"
+   },
+   "scutum": {
+    "label": "Scutum",
+    "shape": "curved",
+    "width": 0.62,
+    "height": 0.95,
+    "curve": 0.5,
+    "mass": 6,
+    "offset": 0.1,
+    "armHarm": 0.07,
+    "hold": 1.5,
+    "look": "scutum",
+    "material": "plywood"
+   },
+   "oval": {
+    "label": "Oval shield",
+    "shape": "curved",
+    "width": 0.72,
+    "height": 0.98,
+    "curve": 1.6,
+    "mass": 5.5,
+    "offset": 0.1,
+    "armHarm": 0.08,
+    "hold": 1.3,
+    "look": "oval",
+    "material": "planks"
+   },
+   "germanic": {
+    "label": "Round shield",
+    "radius": 0.42,
+    "mass": 4,
+    "offset": 0.08,
+    "armHarm": 0.14,
+    "hold": 1.1,
+    "look": "germanic",
+    "material": "planks"
+   },
+   "parmula": {
+    "label": "Parmula",
+    "shape": "curved",
+    "width": 0.36,
+    "height": 0.42,
+    "curve": 0.9,
+    "mass": 2.4,
+    "offset": 0.08,
+    "armHarm": 0.13,
+    "hold": 1.1,
+    "look": "parmula",
+    "material": "planks"
+   },
+   "scissores": {
+    "label": "Scissores",
+    "radius": 0.13,
+    "mass": 2,
+    "offset": 0.12,
+    "armHarm": 0.04,
+    "hold": 4,
+    "look": "scissores",
+    "material": "steelPlate"
+   }
+  },
+  "MATERIALS": {
+   "steel": {
+    "hardness": 1,
+    "dulls": 0.001,
+    "blade": {
+     "strength": 1200,
+     "scatter": 8,
+     "capacity": 40000,
+     "fails": "snapped",
+     "modulus": 200000000000,
+     "yields": 1500000000
+    }
+   },
+   "iron": {
+    "hardness": 0.7,
+    "dulls": 0.0022,
+    "blade": {
+     "strength": 500,
+     "scatter": 4,
+     "capacity": 9000,
+     "fails": "bent",
+     "modulus": 190000000000,
+     "yields": 350000000
+    }
+   },
+   "bronze": {
+    "hardness": 0.6,
+    "dulls": 0.0025,
+    "blade": {
+     "strength": 600,
+     "scatter": 5,
+     "capacity": 7000,
+     "fails": "bent",
+     "modulus": 110000000000,
+     "yields": 400000000
+    }
+   },
+   "hardwood": {
+    "hardness": 0.1,
+    "shaft": {
+     "strength": 1,
+     "scatter": 6,
+     "chop": 600,
+     "modulus": 12000000000,
+     "density": 670,
+     "bore": 0,
+     "rupture": 103000000
+    }
+   },
+   "waxwood": {
+    "hardness": 0.1,
+    "shaft": {
+     "strength": 1.4,
+     "scatter": 6,
+     "chop": 600,
+     "modulus": 10000000000,
+     "density": 670,
+     "bore": 0,
+     "rupture": 144000000
+    }
+   },
+   "bamboo": {
+    "hardness": 0.1,
+    "shaft": {
+     "strength": 0.8,
+     "scatter": 5,
+     "chop": 350,
+     "modulus": 15000000000,
+     "density": 700,
+     "bore": 0.7
+    }
+   },
+   "maozhu": {
+    "hardness": 0.15,
+    "shaft": {
+     "strength": 1.2,
+     "scatter": 5,
+     "chop": 900,
+     "modulus": 15000000000,
+     "density": 700,
+     "bore": 0.6
+    }
+   },
+   "planks": {
+    "hardness": 0.12,
+    "board": {
+     "perKg": 850,
+     "scatter": 6
+    }
+   },
+   "plywood": {
+    "hardness": 0.12,
+    "board": {
+     "perKg": 1200,
+     "scatter": 6
+    }
+   },
+   "wicker": {
+    "hardness": 0.08,
+    "board": {
+     "perKg": 900,
+     "scatter": 5
+    }
+   },
+   "polycarbonate": {
+    "hardness": 0.15,
+    "board": {
+     "perKg": 5000,
+     "scatter": 6
+    }
+   },
+   "steelPlate": {
+    "hardness": 1
+   },
+   "bronzePlate": {
+    "hardness": 0.6
+   }
+  },
+  "BLADES": {
+   "chipsOn": 0.6,
+   "gaps": {
+    "rigidFrom": 0.75,
+    "thrust": 0.4,
+    "swing": 0.1,
+    "size": 0.05,
+    "lacing": 0,
+    "under": {
+     "blunt": 0.25,
+     "cut": 0.3,
+     "pierce": 0.2
+    },
+    "layers": {
+     "mail": {
+      "blunt": 0.3,
+      "cut": 0.85,
+      "pierce": 0.65
+     },
+     "butted": {
+      "blunt": 0.15,
+      "cut": 0.7,
+      "pierce": 0.3
+     },
+     "bare": {
+      "blunt": 0,
+      "cut": 0,
+      "pierce": 0
+     }
+    },
+    "facing": 0.3,
+    "exposure": {
+     "from": 1.05,
+     "to": 2.6,
+     "zones": {
+      "armpit": 0.9,
+      "elbow": 0.3
+     }
+    },
+    "opens": true,
+    "zones": {
+     "armpit": {
+      "trunk": [
+       {
+        "height": [
+         0.6,
+         0.92
+        ],
+        "round": [
+         50,
+         125
+        ]
+       },
+       {
+        "height": [
+         0.7,
+         0.92
+        ],
+        "round": [
+         125,
+         140
+        ]
+       }
+      ],
+      "UpperArm": {
+       "along": [
+        0,
+        0.3
+       ],
+       "faces": "trunk"
+      },
+      "edge": true
+     },
+     "groin": {
+      "trunk": {
+       "height": [
+        -1,
+        0.08
+       ],
+       "round": [
+        0,
+        75
+       ]
+      },
+      "Thigh": {
+       "along": [
+        0,
+        0.25
+       ],
+       "faces": "inside"
+      },
+      "edge": true
+     },
+     "neck": {
+      "trunk": {
+       "cap": 0.6
+      },
+      "head": [
+       {
+        "rise": [
+         -1,
+         -0.5
+        ],
+        "round": [
+         0,
+         180
+        ]
+       },
+       {
+        "rise": [
+         -1,
+         -0.3
+        ],
+        "round": [
+         120,
+         180
+        ]
+       }
+      ],
+      "edge": true
+     },
+     "elbow": {
+      "UpperArm": {
+       "along": [
+        0.8,
+        1
+       ],
+       "faces": "crease"
+      },
+      "Forearm": {
+       "along": [
+        0,
+        0.2
+       ],
+       "faces": "crease"
+      },
+      "edge": true
+     },
+     "knee": {
+      "Thigh": {
+       "along": [
+        0.8,
+        1
+       ],
+       "faces": "crease"
+      },
+      "Shank": {
+       "along": [
+        0,
+        0.2
+       ],
+       "faces": "crease"
+      },
+      "edge": true
+     },
+     "visor": {
+      "head": {
+       "rise": [
+        -0.05,
+        0.4
+       ],
+       "round": [
+        0,
+        35
+       ]
+      },
+      "helm": "closed",
+      "under": "bare"
+     },
+     "face": {
+      "head": {
+       "rise": [
+        -0.5,
+        0.35
+       ],
+       "round": [
+        0,
+        55
+       ]
+      },
+      "helm": "open",
+      "under": "bare",
+      "edge": true,
+      "open": 0.8
+     }
+    },
+    "aimed": {
+     "trunk": 0.12,
+     "limb": 0.1,
+     "head": {
+      "closed": 0.33,
+      "open": 0.55,
+      "sealed": 0.2,
+      "bare": 0
+     }
+    },
+    "aimFor": {
+     "body": "armpit",
+     "head": "throat"
+    },
+    "marks": {
+     "armpit": "armpit",
+     "throat": "neck",
+     "sights": {
+      "closed": "visor",
+      "open": "face"
+     },
+     "groin": "groin",
+     "thigh": "groin"
+    },
+    "solid": {
+     "trunk": [
+      {
+       "height": [
+        0.08,
+        1.1
+       ],
+       "round": [
+        0,
+        50
+       ]
+      },
+      {
+       "height": [
+        -1,
+        1.1
+       ],
+       "round": [
+        125,
+        180
+       ]
+      }
+     ],
+     "head": [
+      {
+       "rise": [
+        0.4,
+        1
+       ],
+       "round": [
+        0,
+        180
+       ]
+      }
+     ]
+    }
+   },
+   "bite": 0.82,
+   "stopped": 0.5,
+   "tissueCut": {
+    "fleshJ": 3430,
+    "soft": 0.6,
+    "boneJ": 150000,
+    "materialFloor": 0.3
+   },
+   "limbs": {
+    "wrist": [
+     "Forearm",
+     0.6,
+     1
+    ],
+    "elbow": [
+     "Forearm",
+     1.2,
+     1
+    ],
+    "shoulder": [
+     "UpperArm",
+     1.1,
+     1
+    ],
+    "ankle": [
+     "Shank",
+     0.5,
+     1
+    ],
+    "knee": [
+     "Shank",
+     1.2,
+     1
+    ],
+    "hip": [
+     "Thigh",
+     1.1,
+     1
+    ],
+    "neck": [
+     "neck",
+     1,
+     1
+    ]
+   },
+   "neckCut": {
+    "length": 0.07,
+    "muscle": 0.9,
+    "fat": 0.5,
+    "viscera": 0.0018,
+    "bone": 0.00065
+   },
+   "sever": {
+    "neck": [
+     120,
+     null,
+     0
+    ]
+   },
+   "limbCut": {
+    "bone": 0.6,
+    "splits": 0.45,
+    "fractured": 0.2,
+    "reopen": 0.5
+   },
+   "trunkCut": {
+    "waist": 0.63,
+    "waistFrom": 0.15,
+    "waistLow": 0.25,
+    "waistHigh": 0.38,
+    "waistTo": 0.48,
+    "cortical": 0.65,
+    "spine": 0.45,
+    "ribs": 0.35,
+    "ribsPer": 0.3,
+    "cage": [
+     0.4,
+     0.95
+    ],
+    "girdle": 0.35,
+    "girdleFrom": 0.82,
+    "pelvis": 0.7,
+    "pelvisTo": 0.22,
+    "steepest": 0.45,
+    "from": 0.1,
+    "to": 0.92,
+    "edge": 1,
+    "carry": 0.5,
+    "bleedSeconds": 4
+   },
+   "bone": {
+    "fleshJ": 15,
+    "fullJ": 60,
+    "grazeShare": 0.3,
+    "flesh": 0.35
+   },
+   "zone": 0.32,
+   "lethalPierce": 45,
+   "vital": {
+    "organ": 0.6,
+    "seconds": 45
+   },
+   "pierceTrauma": 0.17,
+   "crushTrauma": 0.03,
+   "crushFace": 0.075,
+   "cutAlignmentPower": 2,
+   "slice": {
+    "most": 2,
+    "hardFrom": 0.75
+   },
+   "pointShare": 0.78,
+   "bleed": {
+    "from": {
+     "cut": 40,
+     "pierce": 25
+    },
+    "perJoule": {
+     "cut": 0.00002,
+     "pierce": 0.00003
+    },
+    "zone": {
+     "head": 1.2,
+     "trunk": 1.5,
+     "limb": 1
+    },
+    "through": {
+     "head": 40,
+     "trunk": 60,
+     "limb": 35
+    },
+    "artery": {
+     "vessel": 0.35,
+     "channel": 0.015,
+     "seconds": 90
+    }
+   },
+   "clotSeconds": 60,
+   "collapseAt": 0.38,
+   "shockStrength": 0.55,
+   "gripImpulsePerNewton": 0.12,
+   "gripHold": 0.6,
+   "gripLever": {
+    "palm": 0.09,
+    "reference": 0.45
+   },
+   "gripLeak": 0.5,
+   "armHitShare": 0.6,
+   "clashRestitution": 0.25,
+   "clashSpeed": 1.5,
+   "beatThrough": {
+    "braced": 1.5,
+    "from": 0.5
+   },
+   "glanceShare": 0.6
+  },
+  "PUNCTURE": {
+   "joules": 95,
+   "at": 0.65,
+   "power": 0.5,
+   "width": 0.01,
+   "after": 0.3,
+   "spread": 0.3,
+   "most": 0.995
+  },
+  "GUN": {
+   "referenceKg": 80,
+   "lethal": {
+    "head": 1,
+    "torso": 0.5,
+    "limb": 0.2
+   },
+   "hurtShare": 0.5,
+   "bleed": {
+    "head": 0.0008,
+    "torso": 0.002,
+    "limb": 0.0006
+   },
+   "muzzle": [
+    0.17,
+    0.045
+   ],
+   "projectile": {
+    "kg": 0.008,
+    "velocity": 360,
+    "curve": "g1",
+    "bc": 0.15,
+    "calibre": 0.009
+   },
+   "spread": 0.022,
+   "barrelShare": 0.15,
+   "settled": 0.08,
+   "steadyBelow": 0.35,
+   "movingSpread": 0.02,
+   "reelingSpread": 2.5,
+   "woundAt": 7,
+   "recoil": 4,
+   "unsettled": 0.05,
+   "impulse": 2.9,
+   "energy": 518.4,
+   "platedHolds": 0.45,
+   "plateKnock": {
+    "stun": 2,
+    "stagger": 0.5
+   }
+  },
+  "ARROW": {
+   "speed": 55,
+   "gravity": 9.81,
+   "spread": 0.025,
+   "length": 0.8,
+   "lethal": {
+    "head": 1.1,
+    "torso": 1,
+    "limb": 0.25
+   },
+   "wound": {
+    "rate": {
+     "muscle": 0.0008,
+     "torso": 0.0012,
+     "head": 0.0012
+    },
+    "seconds": {
+     "artery": 90,
+     "abdomen": 75,
+     "chest": 45
+    },
+    "deep": 0.4,
+    "chestFrom": 0.45,
+    "deepFrom": 0.3
+   },
+   "impulse": 1.4,
+   "bounce": 0.9,
+   "stays": 6,
+   "flight": {
+    "cd": 2,
+    "shaft": 0.0115,
+    "boltShaft": 0.015
+   },
+   "joules": 100,
+   "over": {
+    "step": 0.01,
+    "most": 0.75
+   },
+   "horseShare": 0.25
+  },
+  "THROWABLES": {
+   "frag": {
+    "label": "Frag",
+    "name": "fragmentation grenade",
+    "massKg": 0.4,
+    "radius": 0.032,
+    "fuse": 4.5,
+    "fragments": 1200,
+    "raysMost": 12,
+    "joules": 225,
+    "fade": 14,
+    "reach": 30,
+    "lethal": {
+     "head": 0.8,
+     "torso": 0.4,
+     "limb": 0.15
+    },
+    "bleed": {
+     "head": 0.0012,
+     "torso": 0.0018,
+     "limb": 0.0008
+    },
+    "impulse": 0.3,
+    "blast": {
+     "impulse": 120,
+     "near": 0.6,
+     "reach": 12
+    },
+    "flash": null,
+    "ai": {
+     "least": 3,
+     "within": 5,
+     "clear": 10,
+     "from": 8,
+     "to": 25
+    }
+   },
+   "flashbang": {
+    "label": "Flashbang",
+    "name": "stun grenade",
+    "massKg": 0.47,
+    "radius": 0.025,
+    "fuse": 1.5,
+    "fragments": 0,
+    "blast": {
+     "impulse": 12,
+     "near": 0.6,
+     "reach": 4
+    },
+    "flash": {
+     "stun": [
+      [
+       1,
+       6
+      ],
+      [
+       3,
+       5
+      ],
+      [
+       5,
+       3.5
+      ],
+      [
+       8,
+       2
+      ],
+      [
+       12,
+       0.8
+      ],
+      [
+       15,
+       0
+      ]
+     ],
+     "away": 0.45,
+     "hidden": 0.3,
+     "staggerWithin": 3,
+     "stagger": 1,
+     "stunShare": 0.5
+    },
+    "ai": {
+     "least": 2,
+     "within": 4,
+     "clear": 6,
+     "from": 4,
+     "to": 18
+    }
+   }
+  },
+  "NET": {
+   "speed": 8.5,
+   "radius": 0.75,
+   "open": 0.25,
+   "flightMax": 1.2,
+   "step": 0.35,
+   "footing": 0.7,
+   "freeRate": 0.22,
+   "bladeFree": 2.2,
+   "lies": 30
+  }
+ }
+}

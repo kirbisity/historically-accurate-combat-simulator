@@ -7,6 +7,9 @@
 // `#maps=off` in the page's address draws everything as before (the mail painted ring by ring, each lamella its own plate, the
 // castle's own painted stone, the painted grounds), for comparing the two in one build; `boxer.detailMaps()` says which is in force.
 
+// (pieceMaterial lives with the armour's table, armourkinds.js, where the simulation reads it; named here for the drawing.)
+export { pieceMaterial } from './armourkinds.js';
+
 /** Whether an address's hash asks for the detail maps (anything but `maps=off` does). */
 export function detailMapsWanted(hash = '') {
   return !/(^|[#&])maps=off\b/.test(hash);
@@ -197,26 +200,6 @@ export const ARMOUR_COVERAGE = {
   silverback: null, robot: ['panels'],
 };
 
-/** What an armour piece's paint (loftbody.js ARMOR_KINDS) says it is made of (see ARMOUR_TILES), or null. */
-export function pieceMaterial(paint) {
-  if (!paint) return null;
-  if (typeof paint === 'string') return ['steel', 'steel2', 'gold'].includes(paint) ? 'steel' : ['mail', 'armor', 'pad'].includes(paint) ? paint : null;
-  if (typeof paint !== 'object') return null;
-  if (paint.mail) return 'mail';
-  if (paint.lamellae) return paint.pointDown ? 'scales' : 'lamellae';
-  if (paint.scales) return 'scales';
-  if (paint.kozane) return 'kozane';
-  if (paint.studded || (paint.rivets && paint.base === 'cloth')) return 'studded';
-  if (paint.lames) return 'steel';
-  // Cloth over bones (a corset: whalebone or steel in stitched channels).
-  if (paint.boning) return 'boned';
-  const roles = [...(paint.rows ?? []), ...(paint.base ? [paint.base] : []), ...(paint.mon ? [paint.mon[2]] : [])];
-  if (!roles.length) return null;
-  // (Plates set in mail, rows of each, are steel: the mail and plate tile has both.)
-  if (roles.every((role) => ['steel', 'steel2', 'gold', 'mail'].includes(role)) && roles.some((role) => role !== 'mail')) return 'steel';
-  if (roles.every((role) => role === 'armor' || role === 'gold')) return 'armor';
-  return null;
-}
 
 /** The tile an armour kind's piece of a material wears (in `slot`, if given: 'trunk', 'skirt', 'upperArm'...), or null. */
 export function armourTileOf(kind, material, slot = null) {

@@ -17,7 +17,7 @@
 
 import { levelOf } from './items.js';
 import { comradesOf } from './team.js';
-import { getLang, tname } from '../i18n.js';
+import { getLang, tname } from '../i18n/words.js';
 
 // The events that put a man out (physics.js knockOut: the `kind` it was given, and the death event's `attacker` is who is credited).
 const OUT_KINDS = new Set(['knockout', 'killed', 'bledOut', 'drowned', 'out']);

@@ -1,0 +1,27 @@
+{
+ "version": 1,
+ "source": "src/tableduel.js",
+ "tables": {
+  "TABLE_DUEL": {
+   "enabled": false,
+   "far": 12,
+   "reach": 2.6,
+   "meanSeconds": 18,
+   "collapse": 2.5,
+   "recheck": 0.5,
+   "ghostEvery": 0.5,
+   "ghostCheck": 6,
+   "shooterEvery": 0,
+   "inFull": 60,
+   "keep": 0.8,
+   "near": 4,
+   "sharpness": 4,
+   "fearMap": true,
+   "foeFrom": 10,
+   "focusEvery": 1,
+   "farEvery": 0.4,
+   "markFor": 0.5,
+   "poseBeat": true
+  }
+ }
+}

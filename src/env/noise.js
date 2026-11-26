@@ -68,7 +68,6 @@ export const ENV_NOISE_SIZE = 256;
 export const ENV_NOISE_CELLS = 16;
 
 let envNoiseData = null;
-let envNoiseTextureMade = null;
 
 /**
  * The picture's values, 0..1, four to a texel: [0] smooth single noise, [1] the same from another seed,
@@ -92,22 +91,6 @@ export function envNoiseValues() {
   }
   envNoiseData = data;
   return data;
-}
-
-/** The picture as a texture (made once): repeating, mip-mapped. */
-export function envNoiseTexture() {
-  if (envNoiseTextureMade) return envNoiseTextureMade;
-  const values = envNoiseValues();
-  const bytes = new Uint8Array(values.length);
-  for (let index = 0; index < values.length; index += 1) bytes[index] = Math.round(Math.min(1, Math.max(0, values[index])) * 255);
-  const texture = new THREE.DataTexture(bytes, ENV_NOISE_SIZE, ENV_NOISE_SIZE, THREE.RGBAFormat);
-  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
-  texture.magFilter = THREE.LinearFilter;
-  texture.minFilter = THREE.LinearMipmapLinearFilter;
-  texture.generateMipmaps = true;
-  texture.needsUpdate = true;
-  envNoiseTextureMade = texture;
-  return texture;
 }
 
 /** The picture read on the processor as a shader reads it: `u`, `v` in turns of the picture, `channel` 0..3. */

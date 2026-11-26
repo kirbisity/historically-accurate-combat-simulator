@@ -39,7 +39,7 @@ import { englishManAtArms, footSoldier, frenchKnight, mingSoldier, rebel, roninW
 import { STYLES } from './moves.js';
 import { createWorld, inFight, placeOnFloor, reviveFighter, seededRandom } from './physics.js';
 import { placeMounted } from './physics/mounted.js';
-import { t, tname } from './i18n.js';
+import { t, tname } from './i18n/words.js';
 
 export const LAST_GATE = {
   title: 'Last Stand Squad',
@@ -834,9 +834,10 @@ export function lastGateBoardKey(mode) {
 /**
  * The boards kept in `storage` (a localStorage, or anything with getItem and setItem; null or one that throws: boards that
  * keep nothing beyond the page), one for each level. `list(mode)` its runs best first; `best(mode)` the first or null;
- * `add(run)` puts a run on its level's board (`run.hero`, the level) and says its place.
+ * `add(run)` puts a run on its level's board (`run.hero`, the level) and says its place. `today()` dates a run that comes
+ * without its own date: the page's clock (main.js), so this module reads none.
  */
-export function createLastGateBoard(storage) {
+export function createLastGateBoard(storage, { today = () => null } = {}) {
   const memory = new Map();
   const read = (mode) => {
     const key = lastGateBoardKey(mode);
@@ -854,7 +855,7 @@ export function createLastGateBoard(storage) {
     best: (mode = 'samurai') => list(mode)[0] ?? null,
     add(run) {
       const mode = run.hero in LAST_GATE_MODES ? run.hero : 'samurai';
-      const entry = { hero: mode, kills: run.kills, heroKills: run.heroKills ?? 0, seconds: run.seconds, waves: run.waves ?? 0, squad: run.squad ?? null, date: run.date ?? new Date().toISOString() };
+      const entry = { hero: mode, kills: run.kills, heroKills: run.heroKills ?? 0, seconds: run.seconds, waves: run.waves ?? 0, squad: run.squad ?? null, date: run.date ?? today() };
       const ranked = lastGateRank(read(mode), entry);
       const key = lastGateBoardKey(mode);
       memory.set(key, ranked.runs);

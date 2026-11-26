@@ -9,7 +9,7 @@ import { handling } from '../handling.js';
 import { WEAPONS } from '../weapons.js';
 import { LEVEL_CONFIG } from './config.js';
 import { beginAction, feetFloor, levelOf, say } from './items.js';
-import { t, tname } from '../i18n.js';
+import { t, tname } from '../i18n/words.js';
 
 /** The same outfit? (kind, design, colours, headgear) */
 function sameKit(a, b) {
