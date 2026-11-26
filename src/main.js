@@ -1234,6 +1234,10 @@ let detailLoad = newDetailLoad();
 // A share held (boxer.detailLoad(share), for a review): null, the step times choose.
 let detailPinned = null;
 
+// Each tick's steps and ms (boxer.tickLog: the spread of the simulation's cost over frames, for the profiling tools), the last TICK_LOG_SIZE.
+const TICK_LOG_SIZE = 4096;
+const tickLog = [];
+
 function tick(seconds, { budget = SIM_BUDGET_MS } = {}) {
   // The training yard begins again when a man in it is out (between frames: never while one is drawn).
   if (state.game === 'tutorial' && yard.restart) newBout();
@@ -1250,14 +1254,19 @@ function tick(seconds, { budget = SIM_BUDGET_MS } = {}) {
     advance(state.world, STEP, thinkForBout, STEP);
     state.accumulator -= STEP;
     steps += 1;
-    if (performance.now() - started > budget) {
-      // Out of time: what is left is dropped, not owed to the next frame.
+    // Out of time, or no time left for another step as long as this frame's have been: what is left is dropped, not owed to the
+    // next frame. (Stopped only once a step had ended past the budget, a frame of 15 ms steps ran two of them, 30 ms: a battle
+    // that cannot keep up went by turns in frames of one step and of two, at 500 men half its frames two.)
+    const spent = performance.now() - started;
+    if (spent + spent / steps > budget) {
       state.accumulator = Math.min(state.accumulator, STEP * 0.999);
       break;
     }
   }
   // (Over real time between frames, not the world's: a battle that cannot keep up runs slower than real time.)
   const now = performance.now();
+  tickLog.push([now, steps, now - started]);
+  if (tickLog.length > TICK_LOG_SIZE) tickLog.shift();
   if (steps && tableOn(state.world)) state.world.detailShare = detailPinned ?? keepDetailLoad(detailLoad, (now - started) / steps, Math.min(0.25, (now - (detailLoad.at ?? now)) / 1000));
   detailLoad.at = now;
   consumeEvents();
@@ -4724,6 +4733,12 @@ const boxer = window.boxer = {
   autopilot: (on) => {
     if (on !== undefined) state.autopilot = Boolean(on);
     return Boolean(state.autopilot);
+  },
+  // Each tick's [time, steps, ms] (the last 4096); `clear` empties it after reading.
+  tickLog: (clear) => {
+    const kept = tickLog.slice();
+    if (clear) tickLog.length = 0;
+    return kept;
   },
   // A large battle's circle of men in full (detailload.js): the share now and the smoothed ms a step. `detailLoad(share)` holds a
   // share (1: never shrunk), null lets the step times choose again.
