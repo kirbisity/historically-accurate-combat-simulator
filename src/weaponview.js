@@ -7,6 +7,7 @@
 import { P } from './body.js';
 import { floorUnder, SEVER_PARTS, point, quatRotate, shieldDisc } from './physics.js';
 import { reloadProps } from './physics/ranged.js';
+import { unpackedComponent } from './meshpack.js';
 import { BONE } from './rig.js';
 import { disposeObject, doubleSided, outlineFor, surface, unskinnedCopy } from './toon.js';
 import { ARROW, SHIELDS, WEAPONS } from './weapons.js';
@@ -2643,7 +2644,8 @@ function liftTriangles(mesh, boneIndices, origin) {
       mesh.boneTransform(vertex, posed);
       posed.applyMatrix4(mesh.matrixWorld).sub(origin);
       positions.push(posed.x, posed.y, posed.z);
-      if (colors) colorList.push(colors.getX(vertex), colors.getY(vertex), colors.getZ(vertex));
+      // (A crowd body's colours are packed in bytes: read as the card reads them.)
+      if (colors) colorList.push(unpackedComponent(colors, vertex, 0), unpackedComponent(colors, vertex, 1), unpackedComponent(colors, vertex, 2));
     }
   }
   geometry.setIndex(remaining);

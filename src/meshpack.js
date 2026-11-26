@@ -64,6 +64,22 @@ export function packForCard(geometry, { keep = ['position'] } = {}) {
   return geometry;
 }
 
+// The largest value of each integer type, which a normalized attribute of it reads as 1 on the card.
+const PACKED_ONE = new Map([[Int8Array, 127], [Uint8Array, 255], [Int16Array, 32767], [Uint16Array, 65535]]);
+const PACKED_READ = ['getX', 'getY', 'getZ', 'getW'];
+
+/**
+ * Component `k` (0..3) of vertex `index` as the card reads it: a packed (normalized) attribute's integer scaled back to
+ * 0..1 (unsigned) or -1..1 (signed), as WebGL does. three r128's getX gives the integer as stored, so a page reader of an
+ * attribute that may be packed (a crowd body's colours: render.js packCrowdBody) reads it through this.
+ */
+export function unpackedComponent(attribute, index, k) {
+  const value = attribute[PACKED_READ[k]](index);
+  if (!attribute.normalized) return value;
+  const one = PACKED_ONE.get((attribute.isInterleavedBufferAttribute ? attribute.data.array : attribute.array).constructor);
+  return one ? Math.max(value / one, -1) : value;
+}
+
 /** Whether a geometry has packed or uploaded-and-freed attributes (it must not be merged, cloned or read). */
 export function packedGeometry(geometry) {
   for (const attribute of Object.values(geometry.attributes)) {
