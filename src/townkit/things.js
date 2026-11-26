@@ -369,11 +369,23 @@ export const TK_SCATTER = {
  * chance; `paved(x, z)`: whether the ground there is paved (TK_SCATTER.tuft.paved); `cover`: what stands this far over the ground is a roof (m). All of it is fine detail, drawn near the
  * camera only. Returns the counts laid.
  */
-export function tkScatter(blocks, lay, { box, grows, heightAt = null, colour = TK_THINGS.green, litter = TK_THINGS.leafLitter, stones = true, seed = 1, cover = 0.5, thick = 1, paved = null }) {
+export function tkScatter(blocks, lay, options) {
+  const steps = tkScatterSteps(blocks, lay, options);
+  for (let next = steps.next(); ; next = steps.next()) if (next.done) return next.value;
+}
+
+/**
+ * tkScatter in steps (a generator: a yield, 'scatter', after every `rows` rows of its points), for a part of a place
+ * drawn while it is played (places/pyongyang.js: the town's scatter is some 200 000 points, 50 to 90 ms on an M1 Pro
+ * in one piece). The same points in the same order: what it lays is the same.
+ */
+export function* tkScatterSteps(blocks, lay, { box, grows, heightAt = null, colour = TK_THINGS.green, litter = TK_THINGS.leafLitter, stones = true, seed = 1, cover = 0.5, thick = 1, paved = null, rows = Infinity }) {
   const random = tkRandom(seed * 977 + 31);
   const s = TK_SCATTER;
   const laid = { tuft: 0, stone: 0, litter: 0 };
+  let row = 0;
   for (let z = box.z[0]; z < box.z[1]; z += s.cell) {
+    if ((row += 1) % rows === 0) yield 'scatter';
     for (let x = box.x[0]; x < box.x[1]; x += s.cell) {
       const [px, pz] = [x + random() * s.cell, z + random() * s.cell];
       const [r1, r2, r3, r4] = [random(), random(), random(), random()];

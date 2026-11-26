@@ -156,7 +156,9 @@ export function createSectionStream({ graph, build, free, config = {}, now = () 
     job.waiting = next.value === STREAM_FRAME;
     job.ms += took;
     job.count = (job.count ?? 0) + 1;
-    if (took > counts.longestStepMs) counts.longestStep = `${id}#${job.count}`;
+    // (Named by what the build said it had done before it (a yield's value: 'houses', a decor piece's kind), so a tool can tell which piece is long.)
+    if (took > counts.longestStepMs) counts.longestStep = `${id}#${job.count}${job.said ? ` after ${job.said}` : ''}`;
+    if (typeof next.value === 'string' && next.value !== STREAM_FRAME) job.said = next.value;
     counts.steps += 1;
     counts.buildMs += took;
     counts.longestStepMs = Math.max(counts.longestStepMs, took);
