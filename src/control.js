@@ -588,6 +588,8 @@ export const MOVE_NAMES = {
   stab: ['Stab'], upStab: ['Rising stab'], highStab: ['High stab'], execute: ['Finisher', 'dagger thrust'],
   gladiusThrust: ['Thrust'], gladiusCut: ['Cut'], swordLunge: ['Lunge'], quickThrust: ['Quick thrust'], flickCut: ['Flick cut'],
   sicaHook: ['Hooked cut'], sicaThrust: ['Thrust'], crescentSlash: ['Crescent slash'], staffButt: ['Butt strike'],
+  staffChop: ['Staff chop', 'middle grip'], staffRise: ['Rising blow', 'the other end'], staffBeat: ['Beat', 'off the line'], staffThrust: ['Staff thrust', 'sliding grip'],
+  staffSmash: ['Long smash', 'end grip'], staffWheel: ['Flat wheel', 'end grip'], staffSweep: ['Low sweep', 'at the legs'],
   maceOverhead: ['Mace', 'overhead'], maceSide: ['Mace', 'side blow'], maceOverheadLeft: ['Mace', 'overhead'], maceSideLeft: ['Mace', 'side blow'],
   botCut: ['Blade cut'], botThrust: ['Blade thrust'], botSweep: ['Blade sweep'],
   shoot: ['Shot'], fireLong: ['Shot'], fireRifle: ['Shot'], firePump: ['Shot'], fireVolley: ['Volley'], loose: ['Arrow loosed'],
