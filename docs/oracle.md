@@ -166,7 +166,8 @@ the standard error of the difference of two independent estimates:
 - the candidate's own `n` and `sd` are used where it gives them, and the baseline's spread at the candidate's `n` where it
   does not. A candidate that fights more seeds is judged more tightly.
 
-`tolerance` in the baseline file is that bound for a candidate of the same `n`, for reading only.
+`tolerance` in the baseline file is that bound for a candidate of the same `n` and value, for reading only. A rate's
+spread uses each side's own rate, so a candidate whose rate has moved toward 0 or 1 gets a slightly tighter bound.
 
 The verdict is PASS when no metric is missing and at most `--allow` metrics fail. By default that is 1% of the metrics
 checked, and at least one. At z = 3 about 0.3% of the metrics would fail by chance alone if they were independent normal
