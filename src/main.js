@@ -7,26 +7,25 @@ import { uiIconHtml } from './uiicons.js';
 import { logPart, logWords } from './i18n/names-log.js';
 import { buildBody, fighterFile, FRAMES, normaliseInputs, P, PRESETS, SEGMENTS } from './body.js';
 import { calorieRange, caloriesForWeight, deriveStats, exerciseHours } from './physiology.js';
-import { paintHealth, thinkAll } from './ai.js';
+import { paintHealth } from './healthbar.js';
 import { withTanks } from './physics/flame.js';
 import { CUSTOM_STYLE_KEYS, MOVES, STRATEGIES, STYLE_KEYS, STYLES } from './moves.js';
 import { armourSpotAt, wearArmour, wearWork } from './physics/armourwear.js';
-import { advance, armourPieceAt, capsules, opponentFor, collapseAt, cutOff, dropWeapon, concussionCapacity, createWorld, perform, placeFighter, placeOnFloor, point, reviveFighter, startCrawl, startJump, throwPunch, WORLD } from './physics.js';
+import { advance, armourPieceAt, capsules, opponentFor, collapseAt, cutOff, dropWeapon, concussionCapacity, createWorld, perform, placeFighter, placeOnFloor, point, reviveFighter, startCrawl, throwPunch, WORLD } from './physics.js';
 import { bleedingFast } from './maiming.js';
 import { DEFAULT_LOOK, LOOK_OPTIONS } from './face.js';
 import { activateLook, activateLookNow, activeLook, DEFAULT_LOOK_ID, drawFrame, OFFICIAL_LOOK_ID, flattenView, loadLook, lookById, lookIdFromSearch, lookList, LOOKS, rememberedLookId, rememberLook } from './looks.js';
 import { installLooksBench } from './looksbench.js';
 import { randomCharacter, randomGladiator, varyCharacter } from './cast.js';
-import { ratingOf, WARRIORS } from './roster.js';
+import { addTestUnits, ratingOf, WARRIORS } from './roster.js';
 import { builderCharacters, WEAPON_KINDS, weaponCategoryOf } from './pickgroups.js';
 import { installMenus } from './menu.js';
 import { LEVEL_PRESETS, levelPreset } from './levelmode/presets.js';
 import { introPlaying, playIntro, skipIntro, stepIntro } from './intro.js';
-import { breakRun, contextAction, directFighter, keyStick, keyThrottle, MOVE_KEYS, moveName, newOrders, playerCrawl, swingAt } from './control.js';
-import { preferredWalk } from './physics/gait.js';
+import { breakRun, contextAction, keyThrottle, MOVE_KEYS, moveName, newOrders, swingAt } from './control.js';
 import { installFightControls, TOUCH } from './touch.js';
 import { nextScreenFrame, screenBox } from './screenbox.js';
-import { canCommand, chooseGroup, chosenGroup, clearOrders, COMMAND_ORDERS, FIRE_ORDER_KEY, giveFireOrder, giveOrder, hasShot, holdingFire } from './command.js';
+import { canCommand, chooseGroup, chosenGroup, clearOrders, COMMAND_ORDERS, FIRE_ORDER_KEY, giveFireOrder, hasShot, holdingFire } from './command.js';
 import { createFightUiMarks } from './fightui/marker.js';
 import { fightUiChoose } from './fightui/index.js';
 import { fightUiWireToggle } from './fightui/toggle.js';
@@ -75,9 +74,9 @@ import { installAfflictions, paintAfflictions } from './afflictview.js';
 import { createAwarenessOverlay } from './levelmode/awarenessview.js';
 import { travelPlaces } from './levelmode/travel.js';
 import { floorAt } from './physics/terrain.js';
-import { cameraTerrain, createStageWorld, mechanismsOf, pullLever, setMechanism, updateStage } from './levelmode/stage.js';
-import { attemptCount, attemptLog, attemptStory, bossFightOn, contextFor, createLevelWorld, drainRebuilds, drainUi, dropDown, endingDone, endingOf, interact, interactions, killBoss, killNoname, levelBusy, levelOpponent, levelThink, respawnPlayer, restAtPoint, restartFromRest, useItem } from './levelmode/level.js';
-import { feetFloor, holdPlayer } from './levelmode/items.js';
+import { cameraTerrain, createStageWorld, mechanismsOf, pullLever, setMechanism } from './levelmode/stage.js';
+import { attemptCount, attemptLog, attemptStory, bossFightOn, contextFor, createLevelWorld, drainRebuilds, drainUi, dropDown, endingDone, endingOf, interact, interactions, killBoss, killNoname, levelOpponent, restAtPoint, restartFromRest, useItem } from './levelmode/level.js';
+import { feetFloor } from './levelmode/items.js';
 import { snapshotGear } from './levelmode/checkpoints.js';
 import { applySandbox, heroClean, heroLoad, heroSave, sandboxBadge, sandboxPlaces, travelTo } from './levelmode/sandbox.js';
 import { installLevelHud } from './levelmode/hud.js';
@@ -102,7 +101,7 @@ import { installMuteButton, installUiSounds } from './audio/controls.js';
 import { installSoundBench } from './audio/bench.js';
 import { DEFAULT_STAGE_LOOK, STAGE_LOOKS, stageLookNames } from './levelmode/stagelooks.js';
 import { stageCameraRoom } from './levelmode/kit.js';
-import { createLastGate, createLastGateBoard, drainLastGate, LAST_GATE, lastGateResult, stepLastGate } from './lastgate.js';
+import { createLastGate, createLastGateBoard, drainLastGate, LAST_GATE, lastGateResult } from './lastgate.js';
 import { createLastGateView } from './lastgateview.js';
 import { loadPhotoFaces, photoFaceRegions, photoFaceStats, photoFacesOn, releaseUnusedPhotoFaces, resetPhotoCasting, setPhotoFaces, setPhotoFill } from './photoface.js';
 import { hasOrigin, originOf, REGION_ORIGINS, regionName, regionTone, setShade, settleOrigin, skinShadeOf, toneSpan } from './faceregions.js';
@@ -122,7 +121,6 @@ import { mergeFallen } from './fallenview.js';
 import { townfolkFrame, townfolkInfo, townfolkReset } from './townfolkview.js';
 import { disposeObject } from './toon.js';
 import { installStory } from './story/storyview.js';
-import { easeFor } from './story/scenes/stage.js';
 import { STORY_MUSTER_RADIUS, STORY_PLACES, storyPlaceWeather } from './places/storyplaces.js';
 import { tkSetTier, tkTier } from './townkit/place.js';
 import { tkWeatherNow } from './townkit/weather.js';
@@ -131,6 +129,11 @@ import { mountCameraTuner } from './camtuner.js';
 import { mountDeflectTuner } from './deflecttuner.js';
 import { memoryStats } from './memstats.js';
 import { watchContextLoss } from './contextloss.js';
+import { applyAction, createRecorder, createSim, newCommand, simLevel, stepSim, WALK_KEYS } from './sim.js';
+import { drawnOf } from './drawnstate.js';
+
+// The test units, when the address asks for them (roster.js: the roster reads no page itself).
+addTestUnits(location.hash);
 
 const STEP = 1 / 60;
 const $ = (selector) => document.querySelector(selector);
@@ -282,6 +285,8 @@ const fightControls = installFightControls($('#fight-ui'), {
   world: () => state.world,
   player: () => player(),
   orders: () => state.orders,
+  // (What changes the world between steps goes through the simulation's actions, recorded: sim.js applyAction.)
+  act: (action) => act(action),
   now: realSeconds,
   look: (yaw, pitch) => followCam.look(yaw, pitch, realSeconds(), state.orders.lock !== null),
   zoom: (ratio) => followCam.zoom(ratio),
@@ -325,7 +330,7 @@ const paceNow = () => Math.min(timeScale(state.drama, realSeconds()), cutsceneDi
 // wind-up and held at its contact (artdrama.js). The frame's pace only: never the physics step, never boxer.advance or playFrames.
 // (Story mode's finale slows the field he lies on: src/story/scenes/finale.js.)
 const fightPace = () => paceNow() * hitFeel.pace(realSeconds()) * artDrama.pace(realSeconds()) * (state.game === 'story' ? story.pace() : 1);
-const levelHud = installLevelHud($('#fight-ui'), { world: () => state.world, active: () => Boolean(state.world?.stage?.level) && state.mode === 'play', now: realSeconds, camera: () => scene.camera });
+const levelHud = installLevelHud($('#fight-ui'), { world: () => state.world, active: () => Boolean(state.world?.stage?.level) && state.mode === 'play', now: realSeconds, camera: () => scene.camera, act: (action) => act(action) });
 
 // The ring on the floor round the man locked on.
 const lockRing = new THREE.Mesh(new THREE.RingGeometry(0.42, 0.5, 40), new THREE.MeshBasicMaterial({ color: 0xffcf4a, transparent: true, opacity: 0.85, depthWrite: false, side: THREE.DoubleSide }));
@@ -359,7 +364,7 @@ let chargeArrowAt = -Infinity;
 function chooseOrderGroup(step) {
   const me = player();
   if (state.mode !== 'play' || !canCommand(state.world, me)) return;
-  chooseGroup(state.world, me, step);
+  act({ kind: 'group', fighter: me.id, step });
 }
 
 /** Give the player's side (the arm chosen) an order (command.js): a charge goes the way the camera looks, or at the man he is locked on. */
@@ -368,7 +373,7 @@ function orderSide(kind) {
   if (state.mode !== 'play' || !canCommand(state.world, me)) return;
   const locked = lockedTarget();
   const dir = locked ? [locked.x[P.pelvis * 3] - me.x[P.pelvis * 3], locked.x[P.pelvis * 3 + 2] - me.x[P.pelvis * 3 + 2]] : floorAxes().ahead;
-  const command = giveOrder(state.world, me, kind, { dir, group: chosenGroup(state.world, me) });
+  const command = act({ kind: 'order', fighter: me.id, order: kind, dir, group: chosenGroup(state.world, me) });
   if (command?.kind !== 'charge') return;
   chargeArrow.position.set(command.at[0] + command.dir[0] * CHARGE_ARROW.ahead, 0.03, command.at[1] + command.dir[1] * CHARGE_ARROW.ahead);
   chargeArrow.rotation.y = Math.atan2(-command.dir[1], command.dir[0]);
@@ -379,7 +384,7 @@ function orderSide(kind) {
 function toggleFire() {
   const me = player();
   if (state.mode !== 'play' || !canCommand(state.world, me) || !hasShot(state.world, me)) return;
-  giveFireOrder(state.world, me, !holdingFire(state.world, me.corner));
+  act({ kind: 'fire', fighter: me.id, hold: !holdingFire(state.world, me.corner) });
 }
 
 /** The charge's arrow, fading out. */
@@ -489,7 +494,9 @@ function* newBoutSteps() {
   // Last Stand Squad: a run of its own (lastgate.js), the level and the squad picked on its screens.
   if (state.game === 'lastgate') return yield* newLastGateRunSteps();
   // A scenario is the same world on its own floor, with its own people.
-  const scenario = levelNow();
+  // (The bout's setup is plain data, sim.js createSim: what a recording keeps to make the same world again.)
+  const setup = { mode: state.game, scenario: state.scenario ?? null, muster: state.muster ?? null };
+  const scenario = simLevel(setup);
   // Each side: its lead (the one the builder edits) and, in a team fight,
   // the level's crew or, in the ring, fighters from the presets.
   // Who rides is each fighter's own (`inputs.mounted`, set in the builder; those whose kit rides: horses.js canRide).
@@ -511,9 +518,11 @@ function* newBoutSteps() {
   // In a battle the man played is his side's general, drawn up in the middle of his arm (physics.js centreGeneral); the sandbox already stands its lead in the middle.
   const general = scenario && state.game !== 'tutorial' ? { corner: state.playSide, index: state.lead[state.playSide] ?? 0 } : null;
   yield 'world';
-  state.world = createWorld([...sides[0], ...sides[1]], { seed: state.seed, arena, rules: scenario?.rules, formation: scenario?.formation, place, climate: scenario?.climate, general });
-  // A custom battle of more than CUSTOM_BATTLE tableFrom men: fought as a large one (tableduel.js tableOn).
-  state.world.largeBattle = Boolean(scenario?.custom) && state.world.fighters.length > CUSTOM_BATTLE.tableFrom;
+  Object.assign(setup, { entries: [...sides[0], ...sides[1]], seed: state.seed, place, general });
+  // (A custom battle of more than CUSTOM_BATTLE tableFrom men is fought as a large one, tableduel.js tableOn: createSim.)
+  state.world = createSim(setup, scenario);
+  // (boxer.record: the bout's setup and everything that reaches it, step by step, for a replay headless: sim.js createRecorder.)
+  state.recorder = state.recordBouts ? { world: state.world, recorder: createRecorder(setup, { orders: () => state.orders, world: state.world, hashEvery: state.recordBouts.hashEvery }) } : null;
   // (Its circle of men in full starts whole, and shrinks if the steps cannot keep up: detailload.js, tick.)
   detailLoad = newDetailLoad();
   yield* presentWorldSteps(place, arena, scenario);
@@ -610,7 +619,7 @@ function buildQueuedViews() {
 
 const lastGateView = createLastGateView($('.arena'));
 // The best runs, kept in this browser (behind list/add, so a server's board can take its place).
-const lastGateBoard = createLastGateBoard(browserStorage());
+const lastGateBoard = createLastGateBoard(browserStorage(), { today: () => new Date().toISOString() });
 
 /**
  * Into Last Stand Squad at this level, as its hero (lastgate.js LAST_GATE_MODES), with the squad set up on its screens
@@ -884,84 +893,56 @@ function* warmShaderSteps(onCount) {
 
 // ---- Loop -------------------------------------------------------------------
 
-function thinkForBout(world, dt) {
-  // A level-mode stage: the sections around the player awake, the rest dormant (levelmode/stage.js); then his own
-  // systems (levelmode/level.js): an action in hand, tonics at work, a death, the boss's second phase.
-  if (world.stage) {
-    updateStage(world);
-    if (world.stage.level) levelThink(world, dt);
+/**
+ * A step's command (sim.js newCommand): everything the step takes from the page, gathered as the step begins: who is played,
+ * the camera's view, the modes' holds, the keys as the player's steering, the big battle's detail share.
+ */
+function boutCommand(world) {
+  const command = newCommand();
+  command.mode = state.game;
+  const me = state.mode === 'play' ? player() : null;
+  command.player = me ? me.id : null;
+  command.autopilot = Boolean(state.autopilot);
+  command.view = me ? cameraView() : null;
+  command.detailShare = state.detailShareFor?.world === world ? state.detailShareFor.share : undefined;
+  if (state.game === 'story') {
+    command.held = [...story.held()];
+    command.scene = story.holding();
   }
-  // The intro's legends stand in their guard: nobody to fight.
-  if (state.game === 'intro') return;
-  const players = state.mode === 'play' && player() ? new Set([player().id]) : new Set();
-  // The one you play is simulated in full however big the fight; the men you can see deciding are thought for in full
-  // (ai.js AI.perceive: him and the camera's view).
-  world.keepFull = new Set(players);
-  world.perceiver = players.size ? [...players][0] : undefined;
-  world.view = players.size ? cameraView() : null;
-  // The man played has the stamina overdraft (physics/overdraft.js); an AI fighter never does.
-  for (const fighter of world.fighters) if (Boolean(fighter.player) !== players.has(fighter.id)) fighter.player = players.has(fighter.id);
-  // Standing still: no thinking at all; he stays where he is, guard down, and takes what comes.
-  // (Trailer capture: boxer.autopilot(true) lets the fight AI play the player's man, the HUD and camera as in play.)
-  const still = new Set(state.autopilot ? [] : players);
-  // A story scene's figures (src/story/scenes/stage.js): held where the scene puts them, posed by it.
-  if (state.game === 'story') for (const id of story.held()) still.add(id);
-  // Crawling (the sandbox's look at it): that side down on its knees, still in the fight; the player's man as he chooses.
-  const crawlSide = !state.scenario && state.standStill.startsWith('crawl:') ? state.standStill.slice(6) : null;
-  for (const fighter of world.fighters) {
-    if (players.has(fighter.id)) continue;
-    if (fighter.corner === crawlSide && !fighter.crawling) playerCrawl(world, fighter, true);
-    else if (fighter.corner !== crawlSide && fighter.crawlChosen) playerCrawl(world, fighter, false);
-  }
-  if (state.standStill && !crawlSide && !state.scenario) {
-    for (const fighter of world.fighters) {
-      if (fighter.corner !== state.standStill || players.has(fighter.id)) continue;
-      still.add(fighter.id);
-      world.keepFull.add(fighter.id);
-      Object.assign(fighter, { move: 0, strafe: 0, running: false, goTo: null, defence: null, rush: null });
-    }
-  }
-  // The training partner thinks nothing: he stands, and swings only when the tutorial says.
-  if (state.game === 'tutorial') {
-    const partner = yardPartner();
-    if (partner) {
-      still.add(partner.id);
-      world.keepFull.add(partner.id);
-      yardStep(world, partner);
-    }
-  }
-  // Last Stand Squad: the foes walked at the squad, the squad kept at its places, the waves (lastgate.js).
-  if (world.lastGate) stepLastGate(world, dt, { playerId: players.size ? [...players][0] : null });
-  thinkAll(world, dt, still);
-  if (!players.size) return;
-  // At a bandage, a change of harness, a stoop for a weapon: he stands where he is.
-  if (world.stage?.level && levelBusy(world)) {
-    player().runMode = false;
-    player().walkSpeed = null;
-    holdPlayer(player());
-  }
-  // A story scene: he is the scene's (src/story/scenes/stage.js poses him), not the player's.
-  else if (state.game === 'story' && story.holding()) {
-    // (The player's chosen walk is not the scene's.)
-    player().walkSpeed = null;
-    story.think(world);
-  }
-  // Walking about (V), the keys steer him; otherwise he does as the orders say.
-  else if (player().walking) {
-    walkAbout(player());
-    // (Walking about, a jump asked for is still his: the orders are not carried out in walk mode.)
-    if (state.orders.jump) {
-      state.orders.jump = false;
-      startJump(world, player());
-    }
-  }
-  else {
-    // The movement keys: a stick, the way the camera looks.
+  command.standStill = state.scenario ? '' : state.standStill;
+  if (me) {
     // (Shift is a pedal: the run's throttle grows as it is held, control.js keyThrottle.)
-    state.orders.keyStick = keyStick(fightKeys, floorAxes(), state.walkRunning, keyThrottle(realSeconds() - (state.runHeldSince ?? realSeconds())));
-    if (state.orders.keyStick) tutorial.signal('move', 1);
-    directFighter(world, player(), state.orders, dt);
+    command.stick = { keys: [...fightKeys], axes: floorAxes(), running: state.walkRunning, throttle: keyThrottle(realSeconds() - (state.runHeldSince ?? realSeconds())) };
+    command.walk = { keys: [...walkHeld], look: [scene.orbit.target.x - scene.camera.position.x, scene.orbit.target.z - scene.camera.position.z], running: state.walkRunning };
   }
+  return command;
+}
+
+// The page's own modes inside a step (sim.js thinkStep): the training yard's partner, a story scene's staging of the man played.
+const BOUT_HOOKS = {
+  yardPartner: () => yardPartner(),
+  yardStep: (world, partner) => yardStep(world, partner),
+  scene: (world) => story.think(world),
+  moved: () => tutorial.signal('move', 1),
+};
+
+/** One step of the world (sim.js stepSim) with this moment's command, recorded when the bout is (boxer.record). */
+function stepBout(world) {
+  const command = boutCommand(world);
+  const recorder = state.recorder?.world === world ? state.recorder.recorder : null;
+  recorder?.step(command);
+  stepSim(world, command, state.orders, BOUT_HOOKS);
+  recorder?.stepDone(world);
+}
+
+/** One of the player's actions between steps (sim.js applyAction), recorded when the bout is; what it returns. */
+function act(action) {
+  const world = state.world;
+  const recorder = state.recorder?.world === world ? state.recorder.recorder : null;
+  recorder?.action(action);
+  const result = applyAction(world, action, state.orders);
+  recorder?.actionDone();
+  return result;
 }
 
 /** What the camera takes in on the floor (ai.js AI.perceive): where it stands, the way it looks, half its width (rad). */
@@ -980,71 +961,16 @@ function floorAxes() {
 }
 
 // ---- Walk mode: the player walks or runs about, guard down ----------------
+// (Steered by sim.js walkAbout from the keys held and the camera's look, both in the step's command: boutCommand.)
 
-const WALK_KEYS = { w: [1, 0], arrowup: [1, 0], s: [-1, 0], arrowdown: [-1, 0], a: [0, 1], arrowleft: [0, 1], d: [0, -1], arrowright: [0, -1] };
 const walkHeld = new Set();
 
-/** Steer the walking player: the held directions, taken from where the camera looks; facing the way he goes. */
-function walkAbout(fighter) {
-  if (!fighter.walking) return;
-  const look = [scene.orbit.target.x - scene.camera.position.x, scene.orbit.target.z - scene.camera.position.z];
-  const length = Math.hypot(look[0], look[1]);
-  // A camera straight overhead (or not yet placed) gives no heading: then his own facing does.
-  const ahead = length > 1e-3 ? [look[0] / length, look[1] / length] : [Math.cos(fighter.yaw), -Math.sin(fighter.yaw)];
-  // Left of the camera's view on the floor.
-  const left = [ahead[1], -ahead[0]];
-  let along = 0;
-  let across = 0;
-  for (const key of walkHeld) {
-    const [forward, side] = WALK_KEYS[key] ?? [0, 0];
-    along += forward;
-    across += side;
-  }
-  const pelvis = [fighter.x[P.pelvis * 3], fighter.x[P.pelvis * 3 + 2]];
-  fighter.strafe = 0;
-  // Walking about a story place (enterStoryRoam: nobody there is fighting), he stands and walks at ease as the
-  // scenes' men do (story/scenes/stage.js easeFor): standing, the hands down and the feet side by side; walking, the
-  // arms to the stride. Out of the crouch of the guard, a man standing still in built shade is not read as hanging in the air.
-  const atEase = Boolean(state.world?.roam);
-  if (!along && !across) {
-    // Standing: keep the way he faces.
-    if (atEase) fighter.ease = easeFor(fighter, { time: state.world.time });
-    fighter.move = 0;
-    fighter.walkSpeed = null;
-    fighter.goTo = [pelvis[0] + Math.cos(fighter.yaw) * 3, 0, pelvis[1] - Math.sin(fighter.yaw) * 3];
-    return;
-  }
-  const way = [ahead[0] * along + left[0] * across, ahead[1] * along + left[1] * across];
-  const size = Math.hypot(way[0], way[1]);
-  // Opposite keys held together cancel out: he stands.
-  if (size < 1e-6) {
-    fighter.move = 0;
-    return;
-  }
-  if (atEase) fighter.ease = easeFor(fighter, { walking: true });
-  fighter.goTo = [pelvis[0] + (way[0] / size) * 3, 0, pelvis[1] + (way[1] / size) * 3];
-  fighter.move = 1;
-  fighter.running = state.walkRunning && !fighter.crawling;
-  fighter.runMode = fighter.running;
-  // (Walking, his own easy walk: physics/gait.js preferredWalk.)
-  fighter.walkSpeed = fighter.running || fighter.crawling ? null : preferredWalk(fighter);
-}
-
-/** Into walk mode, or back into the fight (the guard up, the footwork the style's). */
+/** Into walk mode, or back into the fight (the guard up, the footwork the style's: sim.js setWalking). */
 function setWalking(on) {
   const fighter = player();
   if (!fighter) return;
-  fighter.walking = on;
-  if (!on) {
-    // (Back on guard: the ease a story place's walk gave him is let go.)
-    if (state.world?.roam) fighter.ease = undefined;
-    fighter.goTo = null;
-    fighter.move = 0;
-    fighter.running = false;
-    fighter.runMode = false;
-    fighter.walkSpeed = null;
-    walkHeld.clear();
-  }
+  act({ kind: 'walking', fighter: fighter.id, on });
+  if (!on) walkHeld.clear();
 }
 
 let last = performance.now();
@@ -1251,7 +1177,7 @@ function tick(seconds, { budget = SIM_BUDGET_MS } = {}) {
   let steps = 0;
   while (state.accumulator >= STEP) {
     state.before = snapshot(state.world);
-    advance(state.world, STEP, thinkForBout, STEP);
+    stepBout(state.world);
     state.accumulator -= STEP;
     steps += 1;
     if (performance.now() - started > budget) {
@@ -1264,7 +1190,8 @@ function tick(seconds, { budget = SIM_BUDGET_MS } = {}) {
   const now = performance.now();
   tickLog.push([now, steps, now - started]);
   if (tickLog.length > TICK_LOG_SIZE) tickLog.shift();
-  if (steps && tableOn(state.world)) state.world.detailShare = detailPinned ?? keepDetailLoad(detailLoad, (now - started) / steps, Math.min(0.25, (now - (detailLoad.at ?? now)) / 1000));
+  // (Handed to the world in the next steps' commands, sim.js thinkStep: the world reads no clock.)
+  if (steps && tableOn(state.world)) state.detailShareFor = { world: state.world, share: detailPinned ?? keepDetailLoad(detailLoad, (now - started) / steps, Math.min(0.25, (now - (detailLoad.at ?? now)) / 1000)) };
   detailLoad.at = now;
   consumeEvents();
   if (state.world.stage?.level) drainLevel();
@@ -1420,7 +1347,7 @@ function drainLevel() {
     else if (message.type === 'death') showDeath(() => {
       // Behind the dark: wake at the last rest (unless the bout has been left or begun again).
       if (state.world !== world) return;
-      respawnPlayer(world);
+      act({ kind: 'respawn' });
       for (const id of drainRebuilds(world)) rebuildFighterView(id);
       state.orders = newOrders();
       fightControls.reset();
@@ -1719,7 +1646,7 @@ function drawWorld(dt, drawIt = true) {
   // The armour's soft swing (horseview.js BARD_SWAY, wardrobe.js PAGODA_SWAY): always on the man played, on both men of a duel,
   // on no one else of a crowd (its cost kept to the one or two men looked at).
   const duel = world.fighters.length <= 2;
-  for (const fighter of world.fighters) fighter.softSwing = Boolean(fighter.player) || duel;
+  for (const fighter of world.fighters) drawnOf(fighter).softSwing = Boolean(fighter.player) || duel;
   for (const view of state.horseViews ?? []) updateHorseView(view, world, state.paused ? 0 : dt * state.speed * fightPace());
   const safe = safeMen(world, followed);
   selectCrowdDraw(scene, state.views, safe, world.stage ? STAGE_CROWD_VIEW : CROWD_VIEW);
@@ -2155,7 +2082,7 @@ segmented('#modes', (mode, button) => {
   cameraNote = '';
   fightKeys.clear();
   // Orders given while playing are taken back: his side goes its own way.
-  clearOrders(state.world);
+  act({ kind: 'clearOrders' });
   fightControls.setActive(mode === 'play');
   document.body.classList.toggle('playing', mode === 'play');
 });
@@ -2527,8 +2454,8 @@ function command(name) {
   const spec = MOVES[name];
   if (spec?.kind === 'strike') {
     const zone = spec.zones.includes('legs') ? 'legs' : state.aimBody ? 'body' : 'head';
-    swingAt(state.world, player(), state.orders, name, zone);
-  } else perform(state.world, player(), name);
+    act({ kind: 'swing', fighter: player().id, move: name, zone });
+  } else act({ kind: 'perform', fighter: player().id, move: name });
 }
 
 const typing = (target) => Boolean(target.closest?.('input, select, textarea, [contenteditable]'));
@@ -2608,7 +2535,7 @@ window.addEventListener('blur', () => {
   walkHeld.clear();
   fightKeys.clear();
   state.walkRunning = false;
-  if (state.mode === 'play' && player()) player().move = 0;
+  if (state.mode === 'play' && player()) act({ kind: 'stop', fighter: player().id });
   state.orders.keyStick = null;
   state.orders.guard = false;
   guardKeyDown = null;
@@ -4731,6 +4658,14 @@ const boxer = window.boxer = {
     if (on !== undefined) state.autopilot = Boolean(on);
     return Boolean(state.autopilot);
   },
+  // Recording (sim.js createRecorder): `record(true)` records every bout made from then on (its setup, then the orders,
+  // actions and steps that reach it); `recording()` the bout's recording so far, as JSON-ready data, for tools/replay.js.
+  // (`{ hashEvery }`: the world's hash kept every so many steps, 60 unless said: 1 finds the step a replay parts at.)
+  record: (on = true, { hashEvery = 60 } = {}) => {
+    state.recordBouts = on ? { hashEvery } : null;
+    return Boolean(state.recordBouts);
+  },
+  recording: () => (state.recorder?.world === state.world ? state.recorder.recorder.finish(state.world) : null),
   // Each tick's [time, steps, ms] (the last 4096); `clear` empties it after reading.
   tickLog: (clear) => {
     const kept = tickLog.slice();

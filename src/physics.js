@@ -113,10 +113,18 @@ const RECOIL = {
 
 /** Small deterministic generator so a seed replays a bout exactly. */
 export function seededRandom(seed) {
-  let state = seed >>> 0;
+  return rngStepper({ state: seed >>> 0 });
+}
+
+/**
+ * The generator's draw over a state kept as plain data (`rng.state`, a uint32: mulberry32), not in a closure: a world's
+ * generator is `world.rng`, so a snapshot of the world carries it as a number and a restore picks the sequence up where it
+ * was (sim.js). The function holds nothing of its own; any number of steppers over one `rng` draw the one sequence.
+ */
+export function rngStepper(rng) {
   return () => {
-    state = (state + 0x6d2b79f5) >>> 0;
-    let t = state;
+    rng.state = (rng.state + 0x6d2b79f5) >>> 0;
+    let t = rng.state;
     t = Math.imul(t ^ (t >>> 15), t | 1);
     t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
     return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
@@ -2170,7 +2178,9 @@ export function missileTroop(style) {
 
 export function createWorld(fighterInputs, { seed = 1, arena = { halfX: WORLD.ringHalf, halfZ: WORLD.ringHalf, ring: true }, rules = {}, formation = {}, place = null, climate = null, artillery = null, timeLimit = null, general = null } = {}) {
   arena = arenaOnItsGround(arena, place);
-  const random = seededRandom(seed);
+  // (The generator's state is a field of the world, `world.rng`: rngStepper.)
+  const rng = { state: seed >>> 0 };
+  const random = rngStepper(rng);
   const sides = fighterInputs.map((entry, index) => ({ inputs: entry.inputs ?? entry, corner: entry.corner ?? (index % 2 === 0 ? 'red' : 'blue') }));
   // With a gun in the fight, they start further apart: room for the gun to work, and to close.
   const gunFight = sides.some((side) => missileTroop(STYLES[side.inputs.style]));
@@ -2283,7 +2293,7 @@ export function createWorld(fighterInputs, { seed = 1, arena = { halfX: WORLD.ri
   if (mounted) for (const fighter of fighters) if (riding(fighter.body.inputs)) horses.push(createHorse(fighter, horses.length, random));
   // The air of the place (`place`: its scene's key; WORLD.heat.climates): how fast a man sheds the heat of the fight there.
   // A battle fought in a scene another season shares (`climate`: its own key, the story's Liaodong battles on the Sarhu hills) gives its own air.
-  const world = { time: 0, fighters, events: [], random, over: false, pendingImpulses: [], lastDt: 1 / 60, arena, props, debris: [], arrows: [], clashing: new Set(), rules, standards, horses, climate: climateOf(climate ?? place), screened: 0 };
+  const world = { time: 0, fighters, events: [], rng, random, over: false, pendingImpulses: [], lastDt: 1 / 60, arena, props, debris: [], arrows: [], clashing: new Set(), rules, standards, horses, climate: climateOf(climate ?? place), screened: 0 };
   // A fight with weapons in it: someone came armed (a weapon in hand or a sidearm in his kit). A bout of bare hands (the ring, the
   // cage, a brawl) is not one, and no one in it draws a knife on a man who is down (finisher.js).
   world.armed = fighters.some((fighter) => fighter.weapon || fighter.body.gear.sidearm);

@@ -1,0 +1,275 @@
+{
+ "version": 1,
+ "files": {
+  "weapons.json": {
+   "source": "src/weapons.js",
+   "tables": [
+    "WEAPONS",
+    "SHIELDS",
+    "MATERIALS",
+    "BLADES",
+    "PUNCTURE",
+    "GUN",
+    "ARROW",
+    "THROWABLES",
+    "NET"
+   ],
+   "bytes": 71758,
+   "sha256": "a18984a2caffd330",
+   "nonFinite": 7,
+   "omitted": 0,
+   "omittedExamples": []
+  },
+  "armourkinds.json": {
+   "source": "src/armourkinds.js",
+   "tables": [
+    "ARMOR_KINDS"
+   ],
+   "bytes": 69907,
+   "sha256": "7e9d3736ba5227c8",
+   "nonFinite": 0,
+   "omitted": 0,
+   "omittedExamples": []
+  },
+  "outfits.json": {
+   "source": "src/outfits.js",
+   "tables": [
+    "OUTFITS",
+    "FACTIONS",
+    "HEADGEAR"
+   ],
+   "bytes": 253346,
+   "sha256": "0611370661088631",
+   "nonFinite": 0,
+   "omitted": 0,
+   "omittedExamples": []
+  },
+  "moves.json": {
+   "source": "src/moves.js",
+   "tables": [
+    "MOVES",
+    "STYLES",
+    "DEFENCES",
+    "STRATEGIES"
+   ],
+   "bytes": 271538,
+   "sha256": "a7da148c920edb6b",
+   "nonFinite": 4,
+   "omitted": 0,
+   "omittedExamples": []
+  },
+  "body.json": {
+   "source": "src/body.js",
+   "tables": [
+    "PRESETS",
+    "FRAMES",
+    "BODY",
+    "PARTICLES",
+    "SEGMENTS"
+   ],
+   "bytes": 56146,
+   "sha256": "9c70df508b3e6b0c",
+   "nonFinite": 0,
+   "omitted": 0,
+   "omittedExamples": []
+  },
+  "physics-config.json": {
+   "source": "src/physics/config.js",
+   "tables": [
+    "WORLD"
+   ],
+   "bytes": 29847,
+   "sha256": "6651bc59ab0812f6",
+   "nonFinite": 1,
+   "omitted": 0,
+   "omittedExamples": []
+  },
+  "ai.json": {
+   "source": "src/ai.js",
+   "tables": [
+    "AI"
+   ],
+   "bytes": 9589,
+   "sha256": "3a8669c2ef0b2111",
+   "nonFinite": 0,
+   "omitted": 0,
+   "omittedExamples": []
+  },
+  "horses.json": {
+   "source": "src/horses.js",
+   "tables": [
+    "HORSES",
+    "BARDING",
+    "HORSE_LOAD"
+   ],
+   "bytes": 6109,
+   "sha256": "2f16af38c4b68cc5",
+   "nonFinite": 0,
+   "omitted": 0,
+   "omittedExamples": []
+  },
+  "maiming.json": {
+   "source": "src/maiming.js",
+   "tables": [
+    "MAIMING"
+   ],
+   "bytes": 1127,
+   "sha256": "3cce556409722717",
+   "nonFinite": 0,
+   "omitted": 0,
+   "omittedExamples": []
+  },
+  "riding.json": {
+   "source": "src/riding.js",
+   "tables": [
+    "RIDING"
+   ],
+   "bytes": 1645,
+   "sha256": "f817d494fb22db3f",
+   "nonFinite": 0,
+   "omitted": 0,
+   "omittedExamples": []
+  },
+  "command.json": {
+   "source": "src/command.js",
+   "tables": [
+    "COMMAND"
+   ],
+   "bytes": 529,
+   "sha256": "b0808c4cbe2f30d2",
+   "nonFinite": 0,
+   "omitted": 0,
+   "omittedExamples": []
+  },
+  "formation.json": {
+   "source": "src/formation.js",
+   "tables": [
+    "DRILL",
+    "WINGS"
+   ],
+   "bytes": 987,
+   "sha256": "9af8e7a55b8da10a",
+   "nonFinite": 0,
+   "omitted": 0,
+   "omittedExamples": []
+  },
+  "tableduel.json": {
+   "source": "src/tableduel.js",
+   "tables": [
+    "TABLE_DUEL"
+   ],
+   "bytes": 448,
+   "sha256": "9b608e45015c847f",
+   "nonFinite": 0,
+   "omitted": 0,
+   "omittedExamples": []
+  },
+  "control.json": {
+   "source": "src/control.js",
+   "tables": [
+    "CONTROL"
+   ],
+   "bytes": 1789,
+   "sha256": "f37c381ce40a7581",
+   "nonFinite": 0,
+   "omitted": 0,
+   "omittedExamples": []
+  },
+  "pose.json": {
+   "source": "src/pose.js",
+   "tables": [
+    "POSE"
+   ],
+   "bytes": 821,
+   "sha256": "17c2f37ea993e6ce",
+   "nonFinite": 0,
+   "omitted": 0,
+   "omittedExamples": []
+  },
+  "cast.json": {
+   "source": "src/cast.js",
+   "tables": [
+    "CAST",
+    "PERIOD_BUILD"
+   ],
+   "bytes": 7064,
+   "sha256": "2d54eddfd31e1e78",
+   "nonFinite": 0,
+   "omitted": 0,
+   "omittedExamples": []
+  },
+  "roster.json": {
+   "source": "src/roster.js",
+   "tables": [
+    "WARRIORS"
+   ],
+   "bytes": 85128,
+   "sha256": "dcc371bd724080ee",
+   "nonFinite": 0,
+   "omitted": 0,
+   "omittedExamples": []
+  },
+  "ratings.json": {
+   "source": "src/ratings.js",
+   "tables": [
+    "RATINGS"
+   ],
+   "bytes": 227074,
+   "sha256": "40a8e1c5cc1fafb3",
+   "nonFinite": 0,
+   "omitted": 0,
+   "omittedExamples": []
+  },
+  "props-arenasize.json": {
+   "source": "src/props/arenasize.js",
+   "tables": [
+    "PLACE_ARENAS",
+    "SUBWAY_ARENA",
+    "COLOSSEUM"
+   ],
+   "bytes": 1995,
+   "sha256": "dedd8df0d662e948",
+   "nonFinite": 0,
+   "omitted": 0,
+   "omittedExamples": []
+  },
+  "custombattle.json": {
+   "source": "src/custombattle.js",
+   "tables": [
+    "CUSTOM_BATTLE"
+   ],
+   "bytes": 5202,
+   "sha256": "13cc9fdd68df705c",
+   "nonFinite": 0,
+   "omitted": 2,
+   "omittedExamples": [
+    "CUSTOM_BATTLE.maps.pyongyang (getter)",
+    "CUSTOM_BATTLE.maps.canaltown (getter)"
+   ]
+  },
+  "scenarios.json": {
+   "source": "src/scenarios.js",
+   "tables": [
+    "SCENARIOS"
+   ],
+   "bytes": 55730,
+   "sha256": "6c0ecd512cdad0f2",
+   "nonFinite": 0,
+   "omitted": 27,
+   "omittedExamples": [
+    "SCENARIOS.legion.cast (function)",
+    "SCENARIOS.legion.wings.cast (function)",
+    "SCENARIOS.mobei.cast (function)",
+    "SCENARIOS.carrhae.cast (function)",
+    "SCENARIOS.catalaunian.cast (function)",
+    "SCENARIOS.rebellion.cast (function)",
+    "SCENARIOS.rebellion.wings.cast (function)",
+    "SCENARIOS.agincourt.cast (function)",
+    "SCENARIOS.cerignola.cast (function)",
+    "SCENARIOS.canton.cast (function)",
+    "SCENARIOS.sanyuanli.cast (function)",
+    "SCENARIOS.sekigahara.cast (function)"
+   ]
+  }
+ }
+}

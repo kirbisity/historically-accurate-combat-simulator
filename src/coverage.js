@@ -1,4 +1,4 @@
-// What of a man his armour covers, read off the armour as it is drawn (loftbody.js ARMOR_KINDS: each piece [from, to, inflate,
+// What of a man his armour covers, read off the armour as it is drawn (armourkinds.js ARMOR_KINDS: each piece [from, to, inflate,
 // paint] along its part), so that what guards a place is what is seen over it: a blow that lands where no piece is drawn meets
 // the clothes, not the coat's figures. Per struck part (physics.js STRUCK), the stretches of it (t along the part: the trunk
 // from the hips 0 to the neck 1, a limb from its upper joint 0 to its lower 1) each piece covers, and what the piece is made of
@@ -11,8 +11,7 @@
 // the waist: loftbody.js skirtTo) covers each thigh from the hip down to its hem, and the shank below the knee where it hangs
 // past it.
 
-import { ARMOR_KINDS } from './loftbody.js';
-import { pieceMaterial } from './detailmaps.js';
+import { ARMOR_KINDS, pieceMaterial } from './armourkinds.js';
 
 export const ARMOUR_COVER = {
   // Where the hand begins along the forearm (elbow 0, the fist's middle 1): the fist's own radius back from it, ~5 of a

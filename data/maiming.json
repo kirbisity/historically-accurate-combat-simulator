@@ -1,0 +1,73 @@
+{
+ "version": 1,
+ "source": "src/maiming.js",
+ "tables": {
+  "MAIMING": {
+   "bloodPerKg": 70,
+   "flowRefKg": 75,
+   "flowExponent": 0.75,
+   "vessels": {
+    "wrist": {
+     "flow": 116,
+     "real": 17.5,
+     "clamp": 0.28,
+     "clot": 90
+    },
+    "elbow": {
+     "flow": 141,
+     "real": 31.5,
+     "clamp": 0.2,
+     "clot": 140
+    },
+    "shoulder": {
+     "flow": 149,
+     "real": 42,
+     "clamp": 0.1,
+     "clot": 200
+    },
+    "ankle": {
+     "flow": 128,
+     "real": 15.75,
+     "clamp": 0.25,
+     "clot": 90
+    },
+    "knee": {
+     "flow": 160,
+     "real": 38.5,
+     "clamp": 0.15,
+     "clot": 160
+    },
+    "hip": {
+     "flow": 185,
+     "real": 66.5,
+     "clamp": 0.05,
+     "clot": 240
+    }
+   },
+   "clamped": {
+    "flow": 0.3,
+    "clot": 0.4
+   },
+   "ruin": {
+    "flow": 0.7
+   },
+   "deathOver": 2.2,
+   "shock": {
+    "wrist": 0.48,
+    "elbow": 0.54,
+    "shoulder": 0.6,
+    "ankle": 0.71,
+    "knee": 0.87,
+    "hip": 1.02
+   },
+   "shockHalfLife": 25,
+   "trained": 0.25,
+   "broken": 0.7,
+   "adrenaline": 0.4,
+   "player": {
+    "stun": 1.6
+   },
+   "fastBleed": 0.002
+  }
+ }
+}

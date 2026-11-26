@@ -14,7 +14,7 @@ import { P } from '../body.js';
 import { hurtShare } from '../ai.js';
 import { mindState } from './awareness.js';
 import { levelOf, say } from './items.js';
-import { t, tname } from '../i18n.js';
+import { t, tname } from '../i18n/words.js';
 
 export const TEAM = {
   // m: within this a living comrade has his name and pip over his head (the HUD's panel lists them always).

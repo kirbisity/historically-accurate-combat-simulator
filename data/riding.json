@@ -1,0 +1,108 @@
+{
+ "version": 1,
+ "source": "src/riding.js",
+ "tables": {
+  "RIDING": {
+   "lookAhead": 1.6,
+   "leadMost": 2,
+   "contactAt": 1,
+   "reachShare": 0.8,
+   "couchAhead": 0.9,
+   "rest": 0.35,
+   "passing": 3,
+   "early": 0.06,
+   "cone": 0.8,
+   "archer": {
+    "gunRadius": 11,
+    "inward": 0.6,
+    "standoff": 30,
+    "spread": 0.5,
+    "body": 12,
+    "approach": 1.6,
+    "range": 60,
+    "wary": {
+     "horse": 20,
+     "foot": 8
+    },
+    "closing": 1.5,
+    "clear": 8,
+    "away": 2.5,
+    "wall": 10,
+    "crowd": 8,
+    "crowdPush": 0.8,
+    "arc": {
+     "left": 0.35,
+     "right": 0.5
+    },
+    "friend": 2.2,
+    "beyond": 15,
+    "ahead": 0.8,
+    "resupply": {
+     "radius": 3,
+     "near": 15,
+     "seconds": 6,
+     "loads": 1
+    }
+   },
+   "melee": {
+    "within": 4,
+    "closing": 4,
+    "slowest": 1.5,
+    "closeIn": 1.5,
+    "still": 2,
+    "standing": 0.5,
+    "reroll": 3
+   },
+   "brace": {
+    "length": 1.8
+   },
+   "charging": 3,
+   "within": 14,
+   "noise": {
+    "aim": 0.3,
+    "pause": 0.6,
+    "pace": 0.1,
+    "wheel": 0.3
+   },
+   "wheel": {
+    "room": 0.45,
+    "from": 0.3,
+    "slowest": 0.5,
+    "clear": 4
+   },
+   "patience": {
+    "passes": 3,
+    "seconds": 25
+   },
+   "lane": {
+    "gap": 5,
+    "look": 2,
+    "push": 1.8,
+    "footGap": 2.5
+   },
+   "flank": {
+    "corridor": 2.5,
+    "from": 2,
+    "hole": 6,
+    "margin": 4,
+    "keep": 2,
+    "switch": 2
+   },
+   "assist": {
+    "through": 8,
+    "face": 0.45,
+    "halted": 0.5,
+    "ready": 4
+   },
+   "robot": {
+    "turretStand": 3,
+    "dodge": 0.35,
+    "dodgeReach": 0.6,
+    "leap": [
+     0.9,
+     1.4
+    ]
+   }
+  }
+ }
+}

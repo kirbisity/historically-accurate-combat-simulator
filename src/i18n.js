@@ -20,9 +20,10 @@
 // own, the way arcade and fighting games print them. A table entry whose zh is the same as its en must be on this list; the
 // test reads it, so nothing is left English by accident.
 
-import { UI } from './i18n/ui.js';
-import { NAMES_ZH } from './i18n/names.js';
-import { NAME_PARTS, NAME_PARTS_EAST, NAME_TITLES } from './i18n/names-parts.js';
+import { getLang, setLangNow, t } from './i18n/words.js';
+// The words themselves (pick, t, tname, tlist, SEP and the language in force) live in i18n/words.js, plain code the
+// simulation's own texts can use without this module's page and storage (port groundwork, the user's call, 2026-11-26).
+export { getLang, pick, SEP, t, tlist, tname } from './i18n/words.js';
 
 /** The languages, in the order the switch shows them. */
 export const LANGS = ['en', 'zh'];
@@ -57,127 +58,47 @@ function storedLang() {
   }
 }
 
-let langNow = storedLang() ?? browserLang();
+setLangNow(storedLang() ?? browserLang());
 const langListeners = new Set();
-
-export const getLang = () => langNow;
 
 /** Mark the page with its language (CSS :lang(zh) and the CJK fonts follow it). */
 function markLangOnPage() {
   try {
-    if (globalThis.document?.documentElement) globalThis.document.documentElement.lang = langNow === 'zh' ? 'zh-CN' : 'en';
+    if (globalThis.document?.documentElement) globalThis.document.documentElement.lang = getLang() === 'zh' ? 'zh-CN' : 'en';
   } catch { /* no page (node) */ }
 }
 markLangOnPage();
 
 export function setLang(next) {
   if (!LANGS.includes(next)) throw new Error(`setLang: no language '${next}' (have ${LANGS.join(', ')})`);
-  const changed = next !== langNow;
-  langNow = next;
+  const changed = next !== getLang();
+  setLangNow(next);
   try {
     globalThis.localStorage?.setItem(LANG_STORAGE_KEY, next);
   } catch { /* a private window or blocked storage: the choice lasts this visit */ }
-  if (!changed) return langNow;
+  if (!changed) return getLang();
   markLangOnPage();
   for (const listener of [...langListeners]) {
     try {
-      listener(langNow);
+      listener(getLang());
     } catch (error) {
       console.error('a language listener failed', error);
     }
   }
   try {
-    globalThis.dispatchEvent?.(new CustomEvent('gladiator:lang', { detail: { lang: langNow } }));
+    globalThis.dispatchEvent?.(new CustomEvent('gladiator:lang', { detail: { lang: getLang() } }));
   } catch { /* no window (node) */ }
-  return langNow;
+  return getLang();
 }
 
 /** Flip between the languages (the switch's one tap). */
-export const toggleLang = () => setLang(LANGS[(LANGS.indexOf(langNow) + 1) % LANGS.length]);
+export const toggleLang = () => setLang(LANGS[(LANGS.indexOf(getLang()) + 1) % LANGS.length]);
 
 export function onLangChange(listener) {
   langListeners.add(listener);
   return () => langListeners.delete(listener);
 }
 
-/** A `{ en, zh }` text in the language in force (en when the other is missing); a string as it is. */
-export function pick(text) {
-  if (text === null || text === undefined) return '';
-  if (typeof text !== 'object') return String(text);
-  return (langNow !== 'en' && text[langNow]) || text.en || '';
-}
-
-const fillVars = (template, vars) => (vars ? template.replace(/\{(\w+)\}/g, (whole, name) => (name in vars ? String(vars[name]) : whole)) : template);
-
-/** A UI string by key, its `{placeholders}` filled. */
-export function t(key, vars) {
-  const entry = UI[key];
-  if (!entry) return key;
-  return fillVars(pick(entry), vars);
-}
-
-/** A proper name kept English in the data, in the language in force. */
-export function tname(english) {
-  if (langNow === 'en' || english === null || english === undefined) return english ?? '';
-  return NAMES_ZH[english] ?? kitTail(english) ?? personalName(english) ?? english;
-}
-
-// A kit's name past its dash, as a warrior's line shows it ('Knights Templar — mail, surcoat and great helm' → 'mail, surcoat
-// and great helm'): its Chinese the same way ('圣殿骑士——锁子甲、罩袍、桶盔' → '锁子甲、罩袍、桶盔'). Built once, on first need.
-let kitTails = null;
-function kitTail(english) {
-  if (!kitTails) {
-    kitTails = new Map();
-    for (const [name, zh] of Object.entries(NAMES_ZH)) {
-      if (name.includes(' — ') && zh.includes('——')) kitTails.set(name.split(' — ').pop(), zh.split('——').pop());
-    }
-  }
-  return kitTails.get(english);
-}
-
-/**
- * A soldier's own name, made of parts (cast.js: 'Wang Da', 'Sgt. Reyes', 'Hans von Uri', 'Wat the Miller'), in Chinese part by
- * part (src/i18n/names-parts.js): the longest run of words found first; East Asian names run together (王大, 井伊直政), any
- * other with the transliteration's dot (汉斯·冯·乌里); a title or rank after the name, as Chinese has it (雷耶斯中士).
- * A token with a digit in it (a second 'Wang 2', an android's 'H-1 Unit 523') is kept as it is, run onto the part before it.
- * All or nothing: a name with any part not in the tables stays English. Null when it is not one.
- */
-function personalName(english) {
-  const words = english.split(' ').filter(Boolean);
-  const parts = [];
-  const titles = [];
-  let east = true;
-  for (let at = 0; at < words.length;) {
-    if (/\d/.test(words[at])) {
-      if (parts.length) parts[parts.length - 1] += words[at];
-      else parts.push(words[at]);
-      at += 1;
-      continue;
-    }
-    let found = false;
-    for (let end = words.length; end > at && !found; end -= 1) {
-      const run = words.slice(at, end).join(' ');
-      const zh = NAME_TITLES[run] ?? NAME_PARTS_EAST[run] ?? NAME_PARTS[run];
-      if (zh === undefined) continue;
-      if (run in NAME_TITLES) titles.push(zh);
-      else {
-        if (!(run in NAME_PARTS_EAST)) east = false;
-        if (zh) parts.push(zh);
-      }
-      at = end;
-      found = true;
-    }
-    if (!found) return null;
-  }
-  if (!parts.length) return null;
-  return parts.join(east ? '' : '·') + titles.join('');
-}
-
-/** Names joined as the language joins a list. */
-export const tlist = (strings) => strings.map(tname).join(langNow === 'zh' ? '、' : ', ');
-
-/** The separator between the parts of a line ("Sword · Plate"), which the two languages share. */
-export const SEP = ' · ';
 
 /**
  * The page's static words (index.html) in the language in force: an element's `data-i18n` key sets its text, and

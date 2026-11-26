@@ -7,7 +7,8 @@
 /* global THREE */
 
 import { ENV, ENV_WEATHER, PLACE_ENV } from './config.js';
-import { ENV_NOISE_CELLS, envNoiseTexture } from './noise.js';
+import { ENV_NOISE_CELLS } from './noise.js';
+import { envNoiseTexture } from './noisetexture.js';
 import { ENV_GLSL_FILM, envToneOf } from './post.js';
 
 const ENV_DEG = Math.PI / 180;

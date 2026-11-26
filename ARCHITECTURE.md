@@ -119,6 +119,37 @@ frame times: pixels first, then medium, then low at the floor ratio; a frame far
 last quarter; the macro map and the shadow's taps), so a change of tier compiles nothing. `boxer.quality('auto' | 'high' | 'low')` (remembered in `localStorage`; the ghost bar has the select)
 holds a rung or lets the frame times decide. `tools/stagebench.html` has the means of measuring (`SB.prof`, `SB.ab`, `SB.compare`).
 
+### The boundary (`src/sim.js`, `src/simsnapshot.js`)
+
+The simulation takes everything from outside as data at a step, so the JS is a clean reference for a native port (the
+user's call, 2026-11-26).
+
+- **Setup.** `createSim(setup)` makes a bout's world from plain data: the entries, the seed, the place, the battle's key and
+  muster, the general.
+- **Steps.** `stepSim(world, command, orders, hooks)` is one fixed step of 1/60 s. The command (`newCommand`) carries:
+  - the man played;
+  - the camera's view (perception stays camera-based in single player, as an input);
+  - a big battle's detail share (from the page's step cost, as an input);
+  - the modes' holds;
+  - the movement keys with the camera's floor axes and the run's throttle;
+  - walk mode's keys and look.
+
+  The player's `orders` (control.js) are his control state, carried from step to step. The training yard's partner and a
+  story scene's staging stay with the page, as hooks.
+- **Actions.** What the player does between steps goes through `applyAction`: a defence or a blow from a key, walk mode,
+  a side's orders, the crawl, level mode's items and the respawn behind the death screen.
+- **Outputs.** The page drains them: `world.events`, the sound log (audio/log.js), and level mode's `drainUi` and
+  `drainRebuilds`.
+- **State.** The generator's state is `world.rng`. `world.random` steps it and holds nothing of its own.
+- **Recording.** `createRecorder` and `replayRecording` (`boxer.record(true)`, `boxer.recording()`, `tools/replay.js`)
+  record a bout and fight it again from the recording, hashed step by step (`worldHash`). A browser recording replays bit
+  for bit only in the engine that made it: Chrome's V8 and node's differ in their transcendental maths.
+- **Snapshots.** `snapshotWorld` and `restoreWorld` (`tools/snapshot.js`) write a fight's state as JSON-ready rows and
+  restore it into the same bout made afresh. Shared objects stay shared; Sets and Maps keep their order; non-finite
+  numbers are tagged.
+- **Data.** `node tools/exportdata.js` writes the tables to `data/*.json` (`data/SCHEMA.md`).
+- **Coupling.** `node tools/coupling.js` lists what the simulation still reaches of the drawing.
+
 ## Drawing (browser only)
 
 `src/render.js` (scene, fighter views, camera), `src/loftbody.js` (the body

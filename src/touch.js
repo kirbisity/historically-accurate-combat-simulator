@@ -15,7 +15,8 @@
 // elsewhere stay selectable and scroll as usual.
 
 import { P } from './body.js';
-import { hurtShare, paintHealth } from './ai.js';
+import { hurtShare } from './ai.js';
+import { paintHealth } from './healthbar.js';
 import { ACTIONS, askExecution, CONTROL, contextAction, crawlReady, horseAction, lockCandidate, moveName, toggleCrawl } from './control.js';
 import { createRecognizer, stickZone } from './gesture.js';
 import { inFight, jumpNow, opponentFor, point, reachOf, sidearmSwapReady } from './physics.js';
@@ -70,7 +71,8 @@ const uiElement = (tag, className, text) => Object.assign(document.createElement
  * project([x, y, z]) → [px, py, inFront], ray(px, py) → { origin, dir } (the
  * line of sight through a point on the screen), floorAxes() → { ahead, right }
  * (the camera's on the floor), now() (s), marks() (the marks of a blow in the
- * fight: fightui/marker.js), order(kind) (an order to his side: command.js). Returns { update, setActive, reset, ... }.
+ * fight: fightui/marker.js), order(kind) (an order to his side: command.js), act(action) (a change to the world between
+ * steps, the crawl's, through the simulation's actions: sim.js applyAction, recorded). Returns { update, setActive, reset, ... }.
  */
 export function installFightControls(root, hooks) {
   const surface = root.appendChild(uiElement('div', 'touch-surface'));
@@ -442,7 +444,7 @@ export function installFightControls(root, hooks) {
     const world = hooks.world();
     if (!me || !world) return false;
     const was = Boolean(me.crawling);
-    const done = toggleCrawl(world, me, hooks.orders());
+    const done = hooks.act ? hooks.act({ kind: 'crawl', fighter: me.id }) : toggleCrawl(world, me, hooks.orders());
     if (done) signal(was ? 'stand' : 'crawl');
     return done;
   }

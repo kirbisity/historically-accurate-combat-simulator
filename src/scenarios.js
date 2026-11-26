@@ -7,7 +7,7 @@ import { FRAMES, normaliseInputs, PRESETS } from './body.js';
 import { caloriesForBodyFat, caloriesForWeight } from './physiology.js';
 import { createWorld, seededRandom } from './physics.js';
 import { STYLES } from './moves.js';
-import { SUBWAY_ARENA } from './props/subway.js';
+import { SUBWAY_ARENA } from './props/arenasize.js';
 import { pyongyangTownTerrain } from './places/pyongyang.js';
 import { atahualpa, bannerman, conquistadorHorseman, drilledSoldier, englishArcher, englishManAtArms, europeanSoldier, footSoldier, frenchFoot, frenchKnight, pikeman, hanHorseman, hospitaller, incaMan, mingHorseman, mingSoldier, mountedKnight, nobleKnight, ottomanSoldier, rebel, romanHorseman, roninWarrior, samuraiHorseman, sengokuWarrior, swatOfficer, wokouRaider, wokouSamurai, yakuza } from './cast.js';
 import { britishSoldier, qingMan } from './cast.js';

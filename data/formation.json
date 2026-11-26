@@ -1,0 +1,60 @@
+{
+ "version": 1,
+ "source": "src/formation.js",
+ "tables": {
+  "DRILL": {
+   "minMembers": 4,
+   "pace": 0.8,
+   "contact": 1.1,
+   "chargePace": 3,
+   "testudo": {
+    "close": 0.7,
+    "ease": 1.2,
+    "pace": 0.7
+   },
+   "dressed": 0.8,
+   "arrive": 0.15,
+   "steer": 0.4,
+   "runFrom": 3,
+   "leash": 0.9,
+   "engage": 1.2,
+   "squadEngage": 0.6,
+   "frontDepth": 0.6,
+   "file": 0.45,
+   "reviewEvery": 0.25,
+   "swapEvery": 1.5,
+   "volley": {
+    "at": 12,
+    "draw": 0.8
+   },
+   "runIn": 5,
+   "volleyWindow": 1.2,
+   "rank": 0.4,
+   "holdFire": {
+    "halfBreadth": 0.2
+   },
+   "lean": 0.3,
+   "leanPace": 0.6,
+   "retireAt": 5,
+   "retireBehind": 1,
+   "woundedAt": 0.3,
+   "freshBelow": 0.15,
+   "relief": 2.5,
+   "spentBelow": 0.3,
+   "spentHot": 0.4,
+   "freshAbove": 0.7
+  },
+  "WINGS": {
+   "out": 2.5,
+   "back": 10,
+   "abreast": 3,
+   "spacing": 3.2,
+   "rankBack": 4,
+   "release": 9,
+   "alarm": 16,
+   "by": 25,
+   "shooters": 8,
+   "reviewEvery": 0.25
+  }
+ }
+}
