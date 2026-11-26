@@ -1326,6 +1326,20 @@ const CUMAN_LAMES = {
   columns: [[0.3, 0.19], [-0.3, 0.19], [1.05, 0.36], [-1.05, 0.36], [2.42, 0.52], [-2.42, 0.52]],
   straps: [0.33, 0.48, 0.63, 0.78], strap: 0.024, across: 0.17,
 };
+// The line infantryman's crossbelts, each ~6 cm of buff leather (`width`, rad about the trunk): from the shoulder (`shoulder`
+// t, at `side` rad off the middle) to the crossing on the breast and the back (`cross` t), then down to the other hip
+// (`hip` t, `hipSide` rad off). They stand off the coat as the leather over the wool (`out`): further over the chest
+// (`chest`), where the fitted body's breast swells past the lean rings they are laid on.
+const CROSSBELT = { shoulder: 0.98, side: 0.55, cross: 0.72, hip: 0.14, hipSide: 1.4, width: 0.28, chest: 1.62, out: 1.42 };
+/** The crossbelts as straps: each belt shoulder to crossing to hip, on the front and the back. */
+function crossbelts() {
+  const { shoulder, side, cross, hip, hipSide, width, chest, out } = CROSSBELT;
+  return [0, Math.PI].flatMap((face) => [1, -1].flatMap((hand) => [
+    [shoulder, face + hand * side, cross, face, width, chest, 'leather'],
+    [cross, face, hip, face - hand * hipSide, width, out, 'leather'],
+  ]));
+}
+
 /** The Cuman's plates as the trunk's `plates` ([from t, to t, angle, half width, out, role, rim]), and the straps over the front. */
 function cumanLames() {
   const { rows, from, to, tall, out, columns, straps, strap, across } = CUMAN_LAMES;
@@ -1791,8 +1805,8 @@ export const ARMOR_KINDS = {
   crossbelts: {
     trunk: [-0.06, 0.99, 1.1, { panel: [-0.06, 0.96, 0.985, 'cloth2'], base: 'cloth' }], skirt: [0.42, 0.45, 1.16, 'cloth'], collar: 'cloth2',
     forearm: [0.72, 0, 1.12, 'cloth2'],
-    straps: [[0.98, 0.5, 0.12, -1.35, 0.06, 1.2, 'leather'], [0.98, -0.5, 0.12, 1.35, 0.06, 1.2, 'leather'], [0.98, Math.PI - 0.5, 0.12, Math.PI + 1.35, 0.06, 1.2, 'leather'], [0.98, Math.PI + 0.5, 0.12, Math.PI - 1.35, 0.06, 1.2, 'leather']],
-    studs: [[0.62, 0, 0.05, 1.24, 'gold']],
+    straps: crossbelts(),
+    studs: [[CROSSBELT.cross, 0, 0.07, CROSSBELT.chest + 0.04, 'gold']],
   },
   // The cuirassier's cuirass (the French an XI, 1802-1806): a rounded breast and a back of ~2-3 mm iron to the waist, joined
   // at the shoulders by brass-scaled straps and at the sides by a belt; no fauld, the thighs in breeches and the great boots.
