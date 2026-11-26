@@ -634,9 +634,22 @@ function shaderWarmers() {
   // A fighter's cloth in the cloth atlas (skinParts), where the detail maps are drawn.
   const cloth = new THREE.SkinnedMesh(skinnedGeometry, clothMaterial());
   cloth.bind(skinV7.skeleton, new THREE.Matrix4());
-  // (As a fighter's are: the wetness patch is part of the program, wetview.js; these bodies' meshes say which points are skin.)
+  // (As a fighter's are, the same patches in the same order, each part of the program: lit as the photo head is (the skins:
+  // photoface.js), the loose cloth's sway (clothsway.js), the base body's dual-quaternion skinning (dqskin.js), the
+  // wetness (wetview.js; these bodies' meshes say which points are skin); and casting a shadow, so that the open air's
+  // figure shade is laid on them as on his skin (looks/kit.js sweepFigureShade). Without the first three and the
+  // shadow, the swapped skin's program was another, linked on the frame the open air shaded it: 30 to 820 ms on an M1
+  // Pro (measured in Pyongyang's roam, 2026-11-25).)
   skinnedGeometry.setAttribute('wetSkin', new THREE.Float32BufferAttribute(new Float32Array(3), 1));
-  for (const mesh of [skinV7, skinV7Low, cloth]) wetWarm(mesh.material, true);
+  skinnedGeometry.setAttribute('clothSway', new THREE.Float32BufferAttribute(new Float32Array(3), 1));
+  for (const mesh of [skinV7, skinV7Low]) skinScatter(mesh.material);
+  const swing = new ClothSwing(BONES.length);
+  for (const mesh of [skinV7, skinV7Low, cloth]) {
+    swayCloth(mesh.material, swing);
+    if (SKIN_DQ.base) dualQuaternionSkinning(mesh.material);
+    wetWarm(mesh.material, true);
+    mesh.castShadow = true;
+  }
   group.add(severed, outlineFor(severed), skinV7, outlineFor(skinV7), skinV7Low, cloth, drops, stains, vane, tracer, cord);
   group.traverse((object) => {
     object.frustumCulled = false;
