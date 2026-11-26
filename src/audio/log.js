@@ -67,7 +67,7 @@ const BARE_BELOW = 0.12;
  */
 export const ARMOUR_COVERING = {
   // (The nanban dō: a European breastplate traded east and laced into a samurai's harness.)
-  plate: 'plate', breastplate: 'plate', conquistador: 'plate', segmentata: 'plate', toseiDo: 'plate', okegawa: 'plate', robot: 'plate', nanbanDo: 'plate',
+  plate: 'plate', breastplate: 'plate', cuirass: 'plate', conquistador: 'plate', segmentata: 'plate', toseiDo: 'plate', okegawa: 'plate', robot: 'plate', nanbanDo: 'plate',
   // (The hamata: the Republic's legionary's mail shirt.)
   hamata: 'mail', templar: 'mail', haubergeon: 'mail', hauberk: 'mail', centurion: 'mail', krug: 'mail', krugDisc: 'mail', bekhter: 'mail', cumanMail: 'mail', mailMirror: 'mail',
   lamellar: 'lamellar', oyoroi: 'lamellar', doMaru: 'lamellar', doMaruSode: 'lamellar', hanLamellar: 'lamellar', mingLamellar: 'lamellar', mingEliteLamellar: 'lamellar',
@@ -84,13 +84,15 @@ export const ARMOUR_COVERING = {
   // Cloth, fur or a corset in the armour's place: no armour (a blow meets the man; his steps carry no kit).
   deel: null, girdle: null, mingVest: null, wuxiaRobe: null, uncu: null, uncuChecks: null, uncuTocapu: null, uncuRoyal: null,
   corset: null, overbust: null, overbustSleeved: null, silverback: null,
+  // (The line's crossbelts over a wool coat, the Qing soldier's cotton jacket, the hunter's hides.)
+  crossbelts: null, qingHaoyi: null, hides: 'leather',
 };
 
 /** What each helm (outfits.js HELMETS, by the design's `head.kind`) is made of: iron and bronze ring as plate; the rest by their stuff. */
 export const HELM_COVERING = {
   bascinet: 'plate', stechhelm: 'plate', greatHelm: 'plate', kettleHat: 'plate', kabuto: 'plate', jingasa: 'plate', arenaHelm: 'plate', mingHat: 'plate',
   mingHelm: 'plate', qingHelm: 'plate', pagodaHelm: 'plate', hanHelm: 'plate', galea: 'plate', steppeHelm: 'plate', chichak: 'plate', ayyubidHelm: 'plate', morion: 'plate',
-  cabasset: 'plate', potHelmet: 'plate', robotHead: 'plate', montefortino: 'plate', ridgeHelm: 'plate', spangenhelm: 'plate',
+  cabasset: 'plate', potHelmet: 'plate', cuirassierHelm: 'plate', robotHead: 'plate', montefortino: 'plate', ridgeHelm: 'plate', spangenhelm: 'plate',
   riotHelmet: 'leather', opsHelmet: 'leather', lionHead: 'leather',
   jaguarHelm: 'wood', eagleHelm: 'wood',
   turban: 'padded', bork: 'padded', bashlyk: 'padded',

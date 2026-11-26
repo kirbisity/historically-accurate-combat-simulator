@@ -138,6 +138,8 @@ export const ARMOUR_TILES = {
   // (spaulders, vambraces, knee cops, the fauld's lames) munition plate, its edges turned (ARMOUR_EDGES). His breastplate too.
   brigandine: { studded: 'euroBrigandine', steel: 'munitionPlate' },
   breastplate: { steel: 'munitionPlate' },
+  // The cuirassier's cuirass: hammered iron as the foot soldier's breastplate.
+  cuirass: { steel: 'munitionPlate' },
   // The Ming coats' arm guards: the bi fu's riveted lames over a plain bracer; the elite's arms, already lamed, hammered iron.
   mingLamellar: { 'forearm.steel': 'bifu' },
   mingScaleCoat: { 'forearm.steel': 'bifu' },
@@ -176,6 +178,8 @@ export const ARMOUR_EDGES = {
  */
 export const ARMOUR_COVERAGE = {
   heavyRiot: ['polymer'], riot: ['polymer'], patrolVest: null, plateCarrier: null,
+  // The Napoleonic crossbelts and the Qing jacket are leather and cloth; the hunter's hides, hide and fur.
+  crossbelts: ['plate'], cuirass: ['munitionPlate', 'plate'], qingHaoyi: null, hides: null,
   plate: ['plate', 'fluted', 'harnessEdge'], templar: ['mail', 'plate'], brigandine: ['euroBrigandine', 'munitionPlate', 'harnessEdge'], haubergeon: ['mail'], breastplate: ['munitionPlate', 'harnessEdge'],
   lamellar: ['kozane', 'plate'], oyoroi: ['kozane', 'mail', 'plate'], toseiDo: ['yokohagi', 'sugake', 'plate'], nanbanDo: ['munitionPlate', 'sugake', 'mail', 'plate'], okegawa: ['yokohagi', 'sugake', 'plate'],
   doMaru: ['kozane'], doMaruSode: ['kozane'],
@@ -500,6 +504,11 @@ export const CLOTH_GARMENTS = {
     templar: { '*': 'wool', armor: 'none' },
     brigandine: { '*': 'wool', armor: 'none', pad: 'quiltedFine' },
     breastplate: { '*': 'wool', armor: 'none', pad: 'quiltedFine' },
+    crossbelts: { '*': 'leather', gold: 'none' },
+    cuirass: { '*': 'none', leather: 'leather' },
+    // The Qing soldier's cotton jacket; the hunter's tunic of hide edged in fur.
+    qingHaoyi: { '*': 'cotton' },
+    hides: { '*': 'hide', cloth2: 'fur' },
     haubergeon: { '*': 'wool', armor: 'none', pad: 'quiltedFine' },
     hauberk: { '*': 'wool', armor: 'none' },
     plate: { '*': 'wool', armor: 'none', pad: 'quiltedFine' },
@@ -586,6 +595,8 @@ export const CLOTH_GARMENTS = {
     mingHelm: 'none', qingHelm: 'none', montefortino: 'none', morion: 'none', opsHelmet: 'cordura', pagodaHelm: 'none', policeCap: 'worsted', potHelmet: 'none',
     ridgeHelm: 'none', riotHelmet: 'none', robotHead: 'none', spangenhelm: 'none', stechhelm: 'none', steppeHelm: 'none', tiltHat: 'felt', plumeHat: 'felt',
     topHat: 'felt', turban: 'cotton', widowCap: 'cotton', proximityHood: 'aluminized',
+    // The shako's felt; the cuirassier's helmet steel and brass (its fur band and mane drawn plain); the Qing hat's straw.
+    shako: 'felt', cuirassierHelm: 'none', qingHat: 'straw',
     // The primates' heads are their coats.
     macaqueHead: 'fur', baboonHead: 'fur', chimpHead: 'fur',
   },

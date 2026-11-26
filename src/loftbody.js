@@ -1747,6 +1747,34 @@ export const ARMOR_KINDS = {
     trunk: [-0.04, 0.96, 1.19, 'steel'], skirt: [0.22, 0.3, 1.2, { rows: ['steel', 'steel2'] }], knee: [0.82, 1.05, 1.45, 'steel'],
     rigidBreastplate: [0.32, 0.96],
   },
+  // The line infantryman's crossbelts (the Napoleonic wars to the 1840s): two broad belts of pipeclayed buff leather over the
+  // coat, one from each shoulder to the other hip (the cartridge box's and the bayonet's), crossed on the breast and the
+  // back, a brass plate where they cross.
+  crossbelts: {
+    straps: [[0.98, 0.5, 0.12, -1.35, 0.06, 1.2, 'leather'], [0.98, -0.5, 0.12, 1.35, 0.06, 1.2, 'leather'], [0.98, Math.PI - 0.5, 0.12, Math.PI + 1.35, 0.06, 1.2, 'leather'], [0.98, Math.PI + 0.5, 0.12, Math.PI - 1.35, 0.06, 1.2, 'leather']],
+    studs: [[0.62, 0, 0.05, 1.24, 'gold']],
+  },
+  // The cuirassier's cuirass (the French an XI, 1802-1806): a rounded breast and a back of ~2-3 mm iron to the waist, joined
+  // at the shoulders by brass-scaled straps and at the sides by a belt; no fauld, the thighs in breeches and the great boots.
+  cuirass: {
+    trunk: [[-0.02, 0.96, 1.2, 'steel'], [0.0, 0.05, 1.26, 'leather']],
+    rigidBreastplate: [0.3, 0.96],
+    studs: [[0.92, 0, 0.03, 1.24, 'gold'], [0.92, Math.PI, 0.03, 1.24, 'gold'], [0.5, Math.PI / 2, 0.03, 1.26, 'gold'], [0.5, -Math.PI / 2, 0.03, 1.26, 'gold']],
+  },
+  // The Qing soldier's jacket of the 1830s-40s (号衣/号褂): a sleeveless coat to the thigh over the long-sleeved robe, bound
+  // in a second colour at its edges, a white disc on the breast (and the back) with his corps' character (兵, 勇).
+  qingHaoyi: {
+    trunk: [-0.08, 0.97, 1.12, { mon: [0.66, 0.09, 'lace'], base: 'cloth' }], skirt: [0.42, 0.42, 1.18, { edge: 'cloth2', base: 'cloth' }],
+    belt: [-0.03, 0.08, 1.2, 'cloth2'],
+  },
+  // The Upper Palaeolithic hunter's clothes (the Sungir burials, ~34,000 years ago, their beads laid out on the bodies;
+  // the bone needles of the Gravettian): a tailored tunic of hide to the thigh with short sleeves, its edges in fur, a belt
+  // of hide; leggings and moccasins of hide.
+  hides: {
+    trunk: [-0.1, 0.95, 1.12, 'cloth'], skirt: [0.4, 0.45, 1.2, { edge: 'cloth2', base: 'cloth' }], collar: 'cloth2',
+    belt: [-0.03, 0.06, 1.2, 'leather'],
+    upperArm: [-0.25, 0.55, 1.12, { edge: 'cloth2', base: 'cloth' }],
+  },
   // Murmillo: belt, the manica on the sword arm, a short greave on the lead leg over a quilted wrap.
   murmillo: {
     belt: BALTEUS, upperArm: { r: [-0.25, 1.02, 1.32, MANICA] }, forearm: { r: [-0.06, -0.02, 1.32, MANICA] },

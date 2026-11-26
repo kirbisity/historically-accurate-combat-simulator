@@ -112,6 +112,8 @@ export const NAMES_WORLD = {
   'Rome': '罗马',
   'Law': '执法',
   'Apes & Monkeys': '猿猴',
+  'Primates': '灵长类',
+  'Napoleonic': '拿破仑时代',
   'Machines': '机器',
 
   // ---- Where a face is from (faceregions.js REGION_ORIGINS) ----

@@ -54,6 +54,14 @@ export const CROSSBOW = { bolt: true, speed: 50, energy: 2, length: 0.38, bounce
 // go through a shield and the arm behind it or a mail shirt. One carried (`ammo` 1: the second, the lighter one, not here),
 // gone once thrown (`thrown`): then the gladius.
 export const PILUM = { bolt: true, thrown: true, speed: 22, energy: 4.6, length: 2.0, bounce: 0.5, spread: 0.03, rounds: 1, misfire: 0, reloadSeconds: 0, ammo: 1 };
+// The spear-thrower's dart (a missile flown as a bolt is: physics/ranged.js loose), the Upper Palaeolithic hunter's (the
+// Magdalenian spear-throwers of antler and wood, ~17,000 years ago): a light spear of ~1.7 m, ~150 g, a flint point hafted
+// in a bevelled foreshaft. Cast with the thrower, a lever that lengthens the arm, it leaves the hand at ~25-30 m/s
+// (Whittaker and Kamp's and Hutchings's trials: ~20-30 m/s from casual and practised throwers): ~60 J (`energy`, of the war
+// arrow's 100 J), a heavier, slower missile than the arrow, its broad stone head cutting a wide channel in flesh, little
+// against a hard surface. Aimed less well than a bow (`spread`). Three carried in the off hand (`ammo`); fitting the next
+// on the hook takes a few seconds (`reloadSeconds`).
+export const DART = { bolt: true, dart: true, speed: 27, energy: 0.6, length: 1.7, bounce: 0.45, spread: 0.04, rounds: 1, misfire: 0, reloadSeconds: 3, ammo: 3 };
 export const NU = { ...CROSSBOW, speed: 48, energy: 1.6, length: 0.42, bounce: 0.78, reloadSeconds: 6, ammo: 75,
   span: { by: 'waist', drawN: 1000, advantage: 1, lift: 2, share: 0.5 } };
 
@@ -674,6 +682,14 @@ export const WEAPONS = {
     muzzle: [0.2, 0],
     shot: PILUM,
   },
+  // The spear-thrower (DART) in the hand, a dart laid along it on the hook: a board of antler or wood ~0.5 m; swung, a stick.
+  atlatl: {
+    label: 'Spear-thrower', hands: 'one', length: 0.5, strikeFrom: 0.3, handle: 0.1, mass: 0.35, balance: 0.3, radius: 0.012,
+    harm: { swing: { blunt: 0.3 }, thrust: { blunt: 0.15 } },
+    contactSeconds: 0.004, rotation: 0.6, wrist: { omega: 18, zeta: 0.85 }, threat: 2.6, grip: 0.6, ranged: true,
+    muzzle: [0.45, 0],
+    shot: DART,
+  },
   // The three-eyed gun (see THREE_EYED): fired from the hip with the shaft
   // under the arm; empty, a club with an iron head (`crush`: the barrels'
   // mass drives through armour as a mace's does).
@@ -832,6 +848,17 @@ export const WEAPONS = {
     pointFrom: 0, label: 'Tepoztopilli', hands: 'two', length: 1.3, strikeFrom: 0.98, handle: 0.38, spacing: 0.4, leadAhead: true, mass: 1.7, balance: 0.58, radius: 0.02, pointWidth: 0.08, brittle: 0.55, cleave: 0.4,
     harm: { thrust: { pierce: 0.65, cut: 0.3, blunt: 0.15 }, swing: { cut: 0.7, blunt: 0.3 } },
     contactSeconds: 0.005, rotation: 0.6, wrist: { omega: 14, zeta: 0.85 }, threat: 3.4, grip: 0.5,
+  },
+  // The hunter's thrusting spear of the Upper Palaeolithic: a straight shaft of spruce or ash ~2 m (the Schöningen spears of
+  // ~300,000 years ago are 1.8-2.5 m, the later stone-tipped ones as long), a leaf-shaped flint point ~10 cm long and ~3.5 cm
+  // across hafted in a split end with sinew and birch-tar. Held in two hands. The flint is keener than iron but brittle
+  // (`brittle`, as obsidian): it goes into flesh as deep as an iron head and breaks on bone, wood and metal.
+  // (`pointWidth` 0.035; PUNCTURE.)
+  stoneSpear: {
+    art: 'artSpear',
+    pointFrom: 0, label: 'Stone-tipped spear', hands: 'two', length: 1.5, strikeFrom: 1.25, handle: 0.5, spacing: 0.45, leadAhead: true, mass: 1.3, balance: 0.55, radius: 0.016, pointWidth: 0.035, brittle: 0.55,
+    harm: { thrust: { pierce: 1.3, cut: 0.3, blunt: 0.18 }, swing: { blunt: 0.45, cut: 0.15 } },
+    contactSeconds: 0.005, rotation: 0.5, wrist: { omega: 14, zeta: 0.85 }, threat: 3.6, grip: 0.5,
   },
   // The kanabo: a long oak club shod with iron studs, swung in two hands.
   // Heavy (~5 kg of iron-shod oak), its weight spread along the swelling
@@ -1171,6 +1198,16 @@ export const WEAPONS = {
     label: 'Arming sword', hands: 'one', length: 0.8, strikeFrom: 0.12, handle: 0.13, mass: 1.15, balance: 0.12, radius: 0.011,
     harm: { thrust: { pierce: 1, cut: 0.2, blunt: 0.12 }, swing: { cut: 0.95, blunt: 0.4 } },
     contactSeconds: 0.004, rotation: 0.7, wrist: { omega: 24, zeta: 0.8 }, threat: 3.4,
+  },
+  // The heavy cavalry sword of the Napoleonic cuirassier (the French an XI and an XIII, 1803-1805; the British 1796 heavy
+  // cavalry sword): ~0.97 m of straight blade, two fullers, a brass basket guard, ~1.3 kg, its weight further out than an
+  // infantry sword's. Taught for the point (the French drill, and Napoleon's own order: "point, the point!"): a charge's thrust
+  // went through a man, and a cut from the saddle as well.
+  heavySword: {
+    art: 'artDrawCut',
+    label: 'Heavy cavalry sword', hands: 'one', length: 0.97, strikeFrom: 0.14, handle: 0.14, mass: 1.3, balance: 0.16, radius: 0.011,
+    harm: { thrust: { pierce: 1.05, cut: 0.2, blunt: 0.15 }, swing: { cut: 0.95, blunt: 0.45 } },
+    contactSeconds: 0.004, rotation: 0.66, wrist: { omega: 22, zeta: 0.8 }, threat: 3.5,
   },
   // The Ayyubid sword (sayf) of Saladin's day: straight and two-edged (the
   // curved sabre came to Syria and Egypt only with the Mamluks, a century

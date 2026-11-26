@@ -973,6 +973,103 @@ export function buildHeadgear(body, head, colors, steel, cornerHex, { lowDetail 
       group.add(crown, brim, band);
       break;
     }
+    case 'shako': {
+      // The line infantry's shako (the French of 1806-1812, the British "Belgic" and bell-top of 1812-1844): a tall cylinder of
+      // black felt a little wider at its top, a leather crown, a short peak, a brass plate on the front, the cords and a woollen
+      // pompom over it (`plume`: the company's colour), the chinscales' brass bosses at the sides.
+      const felt = surface(color, { roughness: 0.85 });
+      const leather = surface(0x161414, { roughness: 0.45 });
+      const brass = metal(steel, head.gold ?? 0xc9a24a);
+      const tube = new THREE.Mesh(new THREE.CylinderGeometry(1.06 * r, 0.98 * r, 1.45 * r, 22, 1, true), felt);
+      tube.material = felt.clone();
+      tube.material.side = THREE.DoubleSide;
+      tube.position.y = 0.92 * r;
+      const crown = new THREE.Mesh(new THREE.CylinderGeometry(1.06 * r, 1.06 * r, 0.06 * r, 22), leather);
+      crown.position.y = 1.65 * r;
+      const band = new THREE.Mesh(new THREE.CylinderGeometry(1.0 * r, 0.99 * r, 0.16 * r, 22, 1, true), leather);
+      band.position.y = 0.26 * r;
+      const peak = new THREE.Mesh(new THREE.CylinderGeometry(1.2 * r, 1.2 * r, 0.04 * r, 20, 1, false, -Math.PI / 2, Math.PI), leather);
+      peak.position.set(0.12 * r, 0.2 * r, 0);
+      peak.rotation.z = -0.22;
+      const plate = new THREE.Mesh(new THREE.CircleGeometry(0.34 * r, 6), brass);
+      plate.position.set(1.07 * r, 0.9 * r, 0);
+      plate.rotation.set(0, Math.PI / 2, -0.04);
+      plate.userData.noOutline = true;
+      const pompom = new THREE.Mesh(new THREE.SphereGeometry(0.22 * r, 12, 8), surface(head.plume ?? 0xe8e4da, { roughness: 0.95 }));
+      pompom.position.set(0.95 * r, 1.82 * r, 0);
+      pompom.scale.set(0.8, 1.2, 0.8);
+      group.add(tube, crown, band, peak, plate, pompom);
+      for (const side of [1, -1]) {
+        const boss = new THREE.Mesh(new THREE.SphereGeometry(0.12 * r, 8, 6), brass);
+        boss.position.set(0, 0.28 * r, side * 0.99 * r);
+        group.add(boss);
+      }
+      break;
+    }
+    case 'cuirassierHelm': {
+      // The French cuirassier's helmet (the 1804 and 1811 patterns): a steel skull, a band of black fur (sealskin) round its
+      // foot, a brass crest from brow to nape with a black horsehair mane falling from it down the back, a short peak bound in
+      // brass, a red plume at the left side, the brass chinscales.
+      const iron = metal(steel, color);
+      const brass = metal(steel, head.gold ?? 0xc9a24a);
+      const skull = new THREE.Mesh(new THREE.SphereGeometry(1.06 * r, 24, 12, 0, Math.PI * 2, 0, Math.PI * 0.5), iron);
+      skull.scale.set(1.04, 1.02, 1);
+      skull.position.y = 0.18 * r;
+      const fur = new THREE.Mesh(new THREE.CylinderGeometry(1.12 * r, 1.12 * r, 0.32 * r, 22, 1, true), surface(head.fur ?? 0x1a1612, { roughness: 1 }));
+      fur.position.y = 0.32 * r;
+      // The crest: a brass comb on the skull, from the brow to the nape.
+      const comb = new THREE.Shape();
+      for (let step = 0; step <= 24; step += 1) {
+        const angle = 0.25 + (step / 24) * (Math.PI - 0.4);
+        const x = 1.12 * Math.cos(angle) * r;
+        const y = (0.18 + 1.32 * Math.sin(angle)) * r;
+        if (step === 0) comb.moveTo(x, y);
+        else comb.lineTo(x, y);
+      }
+      comb.lineTo(-0.9 * r, 0.6 * r);
+      comb.lineTo(0.9 * r, 0.6 * r);
+      const crest = new THREE.Mesh(new THREE.ExtrudeGeometry(comb, { depth: 0.08 * r, bevelEnabled: false }), brass);
+      crest.position.z = -0.04 * r;
+      // The mane: black horsehair from the crest's top down over the back of the helmet to the shoulders.
+      const hair = surface(head.mane ?? 0x0e0c0b, { roughness: 1 });
+      const mane = new THREE.Mesh(new THREE.BoxGeometry(0.12 * r, 1.9 * r, 0.3 * r), hair);
+      mane.position.set(-1.05 * r, 0.25 * r, 0);
+      mane.rotation.z = -0.18;
+      const top = new THREE.Mesh(new THREE.SphereGeometry(0.2 * r, 10, 8), hair);
+      top.position.set(-0.3 * r, 1.48 * r, 0);
+      const peak = new THREE.Mesh(new THREE.CylinderGeometry(1.18 * r, 1.18 * r, 0.04 * r, 20, 1, false, -Math.PI / 2, Math.PI), iron);
+      peak.position.set(0.12 * r, 0.18 * r, 0);
+      peak.rotation.z = -0.18;
+      const plume = new THREE.Mesh(new THREE.CylinderGeometry(0.1 * r, 0.04 * r, 1.1 * r, 8), surface(head.plume ?? 0xa8161a, { roughness: 0.95 }));
+      plume.position.set(0, 1.0 * r, 1.12 * r);
+      group.add(skull, fur, crest, mane, top, peak, plume);
+      for (const side of [1, -1]) {
+        const scales = new THREE.Mesh(new THREE.BoxGeometry(0.16 * r, 0.9 * r, 0.04 * r), brass);
+        scales.position.set(0.1 * r, -0.3 * r, side * 1.0 * r);
+        scales.rotation.x = side * 0.12;
+        group.add(scales);
+      }
+      break;
+    }
+    case 'qingHat': {
+      // The Qing soldier's summer hat (凉帽, the 1830s-40s): a cone of woven rattan or bamboo, its upper part covered in red
+      // silk fringe (红缨) spreading from the top, a band inside; the Green Standard's men wore it on campaign as on parade.
+      const straw = surface(color, { roughness: 0.9 });
+      const cone = new THREE.Mesh(new THREE.ConeGeometry(1.75 * r, 1.0 * r, 26, 1, true), straw);
+      cone.material = straw.clone();
+      cone.material.side = THREE.DoubleSide;
+      cone.position.y = 0.78 * r;
+      const fringe = new THREE.Mesh(new THREE.ConeGeometry(1.45 * r, 0.86 * r, 26, 1, true), surface(head.fringe ?? 0xa8161a, { roughness: 1 }));
+      fringe.material.side = THREE.DoubleSide;
+      fringe.position.y = 0.88 * r;
+      const knob = new THREE.Mesh(new THREE.SphereGeometry(0.12 * r, 8, 6), surface(head.gold ?? 0x8a6a3a, { roughness: 0.6 }));
+      knob.position.y = 1.32 * r;
+      const band = new THREE.Mesh(new THREE.CylinderGeometry(1.02 * r, 1.06 * r, 0.24 * r, 18, 1, true), surface(0x1a1714));
+      band.position.y = 0.3 * r;
+      group.add(cone, fringe, knob, band);
+      hidesHair = false;
+      break;
+    }
     case 'morion': {
       // The comb morion (MORION): a narrow skull raised in one piece into a tall crescent comb front to back, the brim
       // level over the ears and swept up into points before and behind, every edge turned and roped, the lining's brass

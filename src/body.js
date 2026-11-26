@@ -616,6 +616,26 @@ export const PRESETS = {
   },
   // A modern infantry rifleman: the M4 (the AR-15 family), the combat uniform, helmet and plate carrier, and one frag
   // grenade (his kit's: outfits.js infantry). A young soldier of ordinary size, fit from the army's training, ~78 kg.
+  // A British line infantryman of the 1830s-40s (the 18th Royal Irish and the 26th Cameronians at Canton and Amoy, 1841):
+  // the recruit's ~168 cm (the army's 5 ft 6 in standard), hardened by drill and the march, on the ration's ~3400 kcal.
+  lineInfantry: {
+    name: 'Pte. Joseph Wood', style: 'flintlock', sex: 'male', heightCm: 168, frame: 'medium', age: 24, exercise: 0.75, calories: 3400,
+    outfit: { kind: 'lineInfantry', design: 0 }, accessories: [],
+    look: { skinTone: 'light', hairStyle: 'cleanShort', hairColor: '#4a3020', facialHair: 'none', eyeColor: 'blue' },
+  },
+  // A French cuirassier of 1812: taken at 1.76 m and over, the heaviest men of the cavalry, riding and drilling daily.
+  cuirassier: {
+    name: 'Jean Lefort', style: 'heavySword', sex: 'male', heightCm: 180, frame: 'large', age: 28, exercise: 0.7, calories: 4200,
+    outfit: { kind: 'cuirassier', design: 0 }, accessories: [],
+    look: { skinTone: 'light', hairStyle: 'cleanShort', hairColor: '#2a1a10', facialHair: 'handlebar', eyeColor: 'brown' },
+  },
+  // A Green Standard soldier of Guangdong, 1841: a southern Han man (peoples.js mingSouth), the ration in arrears, the
+  // garrison's little drill.
+  greenStandard: {
+    name: 'Huang Fu', style: 'matchlock', sex: 'male', heightCm: PEOPLES.mingSouth.heightCm, frame: 'medium', age: 30, exercise: 0.55, calories: 2800,
+    outfit: { kind: 'greenStandard', design: 0 }, accessories: [],
+    look: { skinTone: 'lightTan', hairStyle: 'buzz', hairColor: '#120d0a', facialHair: 'mustache', eyeColor: 'brown', faceRegion: 'china' },
+  },
   infantry: {
     name: 'Spc. Luis Herrera', style: 'rifle', sex: 'male', heightCm: 176, frame: 'medium', age: 23, exercise: 0.62, calories: 3600,
     outfit: { kind: 'infantry', design: 0 }, accessories: [],
@@ -831,6 +851,15 @@ export const PRESETS = {
     outfit: { kind: 'lorarius', design: 0 }, accessories: [],
     look: { skinTone: 'tan', hairStyle: 'cleanShort', hairColor: '#2a1a10', facialHair: 'stubble', eyeColor: 'brown' },
   },
+  // A hunter of the Upper Palaeolithic (the Gravettian, ~30,000 years ago: Sungir, Dolní Věstonice): tall and robust (the
+  // period's men ~176 cm, Holt and Formicola 2008), at work every day of his life on a diet of meat (`exercise`, `calories`);
+  // the dark skin and the light eyes the genomes of Europe's hunters give them (Villabruna, Cheddar Man).
+  hunter: {
+    name: 'Ice Age hunter', style: 'atlatl', sex: 'male', heightCm: 176, frame: 'large', age: 26, exercise: 0.92, calories: 4000,
+    outfit: { kind: 'hides', design: 0 }, accessories: [],
+    look: { skinTone: 'deep', hairStyle: 'long', hairColor: '#120d0a', facialHair: 'beard', eyeColor: 'blue' },
+  },
+
   // A silverback western lowland gorilla, fought upright: ~1.8 m standing
   // and 230 kg, past the top of the wild adult males' usual range (~160-200
   // kg; Smith & Jungers 1997; captive males reach 270 and more), lean (~8%
