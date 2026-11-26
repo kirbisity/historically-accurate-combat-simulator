@@ -13,14 +13,14 @@ import { MOVES, pointRoomOf, STRATEGIES, STYLES, moveRange } from './moves.js';
 import { MAIMING, maimFear } from './maiming.js';
 import { aimPoint, armGone, openVessel, inRiderArc, bladeFor, blockFor, bodyHarm, chinNow, couchedGap, crawlingAway, dazedShare, dropShield, dropWeapon, fightTier, guardReading, holdGuard, hostile, fillGrid, floorGrid, gridAround, inFight, legGone, legShare, limbGone, longPoint, nearestOpponent, perform, point, protectionAt, reachOf, goToGrips, shedStandard, sightAngle, staggerShare, startCrawl, startPickup, strikeThreat, throwPunch, toLocal, useMounted, WORLD, undeflectable, guardOverrun } from './physics.js';
 import { vec, yawRotate } from './pose.js';
-import { BLADES, GUN, WEAPONS } from './weapons.js';
+import { BLADES, GUN, offHandAlong, WEAPONS } from './weapons.js';
 import { FACTIONS, factionOf } from './outfits.js';
 import { castNet } from './physics/net.js';
 import { diveRollOutlook, startDiveRoll, wantsDiveRoll } from './physics/diveroll.js';
 import { STEPOVER } from './physics/stepover.js';
 import { startThrow, throwChoice } from './physics/throwable.js';
 import { BRUSH, brushScreens, heldOffAt } from './physics/brush.js';
-import { expectedGap, gapsOf, rigidAt } from './physics/gaps.js';
+import { expectedGap, gapChance, gapsOf, gapUnder, markGap, rigidAt } from './physics/gaps.js';
 import { handling } from './handling.js';
 import { holdWing, reinFrom, ride, standToRider } from './riding.js';
 import { walkingDistance } from './physics/fieldworks.js';
@@ -194,6 +194,24 @@ export const AI = {
   // Going to grips (goesToGrips): his man within both their reaches and `within` m, his best blow getting less than `through` of its
   // harm through the man's kit, at `rate` a second.
   grips: { within: 1, through: 0.2, spent: 0.25, footing: 0.85, rate: 0.5 },
+  // To the half-sword (keepHalfSword; a weapon with a `halfSword` grip, weapons.js: the long sword): the bind won, his man's blade
+  // parried or deflected off him (physics.js 'parry', 'deflect'), he lets go of the grip with his left hand, takes his blade by
+  // the middle and goes in for a gap, as the armoured fight of Liechtenauer's tradition (Ringeck, Talhoffer) has it, if:
+  // - his man is still out of line for `change` s or more (reeling from the deflect, physics.js reel; his parried stroke
+  //   still coming back; broken open): the time it takes to change the grip and step in (the left hand off the grip and
+  //   onto the blade and the hilt up, ~0.3-0.4 s in fencers in harness: three or four frames at ten a second), so a weak
+  //   parry that leaves the other man his guard is no opening for it and a strong deflect is;
+  // - he weighed the bind within `fresh` s of it (he decides on it, not a second later);
+  // - his man is within his reach and `within` m (a step);
+  // - his man's kit turns his ordinary blows: the half-sword's point, laid at the throat or the armpit (harmThrough, `placed`),
+  //   gets `gain` times or more of its harm through that man's kit than the best of his ordinary cuts and thrusts does (on a
+  //   knight in plate and a closed helm ~0.31 against ~0.13; on a samurai in his harness ~0.68 against ~0.43; on a man with
+  //   his face or his body bare the two are alike and he fights on with the edge and the long point, as a man does who can
+  //   reach flesh);
+  // - and then `take` × his armour sense of the time (armourSense: a man who does not read kit fights as drilled).
+  // Once at it he stays close (`closeShare` of the thrust's reach) and thrusts for the gaps, the grip taken first, for `hold` s
+  // after the last bind he won, until his man gets more than `leave` m beyond his reach.
+  halfSword: { change: 0.35, fresh: 0.25, within: 0.6, gain: 1.5, take: 0.85, closeShare: 0.85, hold: 5, leave: 0.9 },
   // A game plan lasts this long (s, plus up to `strategyRange`) before a rethink.
   strategySeconds: 20,
   strategyRange: 20,
@@ -1517,6 +1535,8 @@ function chooseFocus(world, fighter) {
   for (let index = fighter.aiEventCursor ?? 0; index < events.length; index += 1) {
     const event = events[index];
     surge(fighter, event);
+    // (A bind he won: his man's blow met on his blade and turned off him; weighed for the half-sword, keepHalfSword.)
+    if ((event.kind === 'parry' || event.kind === 'deflect') && event.fighter === fighter.id && !event.off) fighter.aiBind = { time: event.time, man: event.attacker, weighed: false };
     if (event.kind !== 'landed' && event.kind !== 'blocked' && event.kind !== 'shot' && event.kind !== 'arrow') continue;
     feel(world, fighter, event);
     // Hit from afar (a shot, an arrow): he turns on the shooter only if he is near; a man across the field is not chased through his line.
@@ -4136,7 +4156,10 @@ function decide(world, fighter, dt) {
   if (fighter.aiPressure === 0 && random() < (style.pressure ?? 0) * plan.pressure * AI.pressureSpellsPerShare * dt) fighter.aiPressure = AI.pressureSeconds;
   const inside = fighter.aiPressure > 0;
   const reach = reachOf(fighter);
-  const range = (inside ? reach * 0.75 : reach + opponent.body.lengths.headRadius + AI.rangeExtra + plan.range + (kicker ? AI.kickerExtra : 0)) + (waiting ? AI.waitingDistance : 0);
+  // At the half-sword (keepHalfSword): close in, at the short point's reach.
+  const half = keepHalfSword(world, fighter, opponent, distance);
+  const halfRange = half ? (moveRange(MOVES[half], fighter.body, fighter.weapon.spec) + opponent.body.lengths.headRadius) * AI.halfSword.closeShare : null;
+  const range = (half ? halfRange : inside ? reach * 0.75 : reach + opponent.body.lengths.headRadius + AI.rangeExtra + plan.range + (kicker ? AI.kickerExtra : 0)) + (waiting ? AI.waitingDistance : 0);
   // Circling while waiting: round him, a way chosen by who I am.
   if (waiting) fighter.strafe = Math.max(-1, Math.min(1, fighter.strafe + (fighter.id % 2 ? 0.6 : -0.6)));
   // His own cadence: spells of moving and of working, in bursts; against a
@@ -4282,6 +4305,8 @@ function decide(world, fighter, dt) {
     fighter.cooldown = Math.min(fighter.cooldown, AI.press.punish);
   }
   if (fighter.cooldown > 0) return;
+  // (At the half-sword: not till his left hand has the blade, physics.js updateWeapon.)
+  if (half && !halfGripTaken(fighter.weapon)) return;
   // Choose among the moves that reach from here; in the clinch, knees.
   // (Pressing, timed to where the two of them will be when it is out: the speed they close at over its reach, AI.press timing.)
   // (Not with a comrade at his shoulder or ahead, AI.kickClearance: in a press of men he strikes from where he stands, and
@@ -4290,7 +4315,7 @@ function decide(world, fighter, dt) {
   const closing = reachOut ? closingSpeed(fighter, opponent, distance) : 0;
   const timed = closing > AI.press.timedFrom && !paced ? closing * AI.press.timing : 0;
   const choices = {};
-  for (const [name, weight] of Object.entries(style.attacks)) {
+  for (const [name, weight] of Object.entries(half ? { [half]: 1 } : style.attacks)) {
     const spec = MOVES[name];
     if (fighter.clinch) {
       if (name === 'knee' && spacing.kickRoom) choices[name] = 1;
@@ -4348,7 +4373,7 @@ function decide(world, fighter, dt) {
   }
   // Now and then, one big shot instead: a power strike loaded up and thrown alone.
   const finishing = opponent.hurt > 0 || opponent.stagger > 0;
-  const heavy = !fighter.clinch && random() < plan.heavy + (finishing ? AI.finishingHeavy : 0);
+  const heavy = !fighter.clinch && !half && random() < plan.heavy + (finishing ? AI.finishingHeavy : 0);
   if (heavy) {
     combo = null;
     if (move === 'jab' && choices.cross) move = 'cross';
@@ -4423,8 +4448,9 @@ function riposte(world, fighter, striker, style, distance) {
   return true;
 }
 
-// Where a zone a move is aimed at strikes him, for his kit (protectionAt): the legs by a thigh.
-const ZONE_PART = { head: 'head', body: 'trunk', legs: 'lThigh' };
+// Where a zone a move is aimed at strikes him, for his kit (protectionAt): the legs by a thigh; the throat (under the chin) as
+// the head's lower edge, where a closed helm's gap is the neck; the armpit as the trunk's; the sights (the eyes) as the head's.
+const ZONE_PART = { head: 'head', body: 'trunk', legs: 'lThigh', throat: 'head', armpit: 'trunk', sights: 'head' };
 
 /** How far this man reads another's kit (AI.armourSense): 0 untrained, 1 an elite. */
 export function armourSense(fighter) {
@@ -4454,7 +4480,12 @@ export function harmThrough(attacker, defender, spec, zone = 'body') {
   const part = ZONE_PART[zone] ?? 'trunk';
   const covered = protectionAt(gear, part);
   const rigid = rigidAt(covered, gear) && cut + pierce > 0.2;
-  const gap = rigid ? expectedGap(gear, part, spec.mode, covered) : { found: 0, under: covered };
+  // (A point laid in by a hand on the blade, `placed` (the half-sword's), at a gap's own place (the throat, the armpit, the
+  // sights: BLADES.gaps.marks): found as often as it is placed there, physics.js registerWeaponImpact, not as often as a point
+  // thrown at the part lands in a gap.)
+  const marked = rigid && spec.placed !== undefined ? markGap(gear, zone) : null;
+  const open = marked && BLADES.gaps.zones[marked].open;
+  const gap = marked ? { found: open ? gapChance(gear, marked, spec.mode) : spec.placed, under: gapUnder(gear, marked, covered), met: Boolean(open) } : rigid ? expectedGap(gear, part, spec.mode, covered) : { found: 0, under: covered };
   const found = Math.min(1, gap.met ? gap.found : gap.found * attacker.body.technique * (0.5 + (attacker.body.skill ?? 0.5)));
   const edge = (on) => cut * (1 - (on.cut ?? 0)) + pierce * (1 - (on.pierce ?? 0));
   const felt = blunt * (1 - (covered.blunt ?? 0) * (1 - (wspec?.crush ?? 0)));
@@ -4526,6 +4557,64 @@ function aimZone(fighter, opponent, spec, random) {
     if (pick < 0) return zones[index];
   }
   return zones[0];
+}
+
+/**
+ * Whether the half-sword gets more of itself through his man's kit than his ordinary blows (AI.halfSword `gain`): the best of
+ * its thrusts at the gaps (harmThrough, its point `placed`) against the best of his style's cuts and thrusts anywhere on him
+ * (bestHarmThrough). False with a weapon that has no half-sword grip (weapons.js `halfSword`). The player's art weighs it too
+ * (weaponarts.js).
+ */
+export function halfSwordPays(fighter, opponent) {
+  const grip = fighter.weapon?.held ? fighter.weapon.spec.halfSword : null;
+  if (!grip || !opponent?.body?.gear) return false;
+  const move = MOVES[grip.move];
+  const half = Math.max(...move.zones.map((zone) => harmThrough(fighter, opponent, move, zone)));
+  return half >= bestHarmThrough(fighter, opponent) * AI.halfSword.gain;
+}
+
+/** How long (s) his man is out of line now: reeling (a deflect), broken open, or his parried stroke still coming back. */
+export function outOfLine(man) {
+  const stroke = man.punch;
+  const coming = stroke?.stopped ? Math.max(0, stroke.spec.duration - stroke.t) : 0;
+  return Math.max(man.stagger ?? 0, man.brokenOpen ?? 0, coming);
+}
+
+/** Whether his off hand has his weapon at the half-sword (physics.js updateWeapon `gripAlong`, held two-handed there). */
+function halfGripTaken(weapon) {
+  return Boolean(weapon?.held && weapon.half && weapon.twoHanded && weapon.gripAlong === offHandAlong(weapon.spec, true));
+}
+
+/**
+ * Whether he goes to (or stays at) the half-sword against this man (AI.halfSword): a bind of his just won (`aiBind`, chooseFocus)
+ * weighed once, at his man still out of line long enough to change the grip, near, in kit his ordinary blows glance from;
+ * kept while his man stays near and binds keep being won. Sets `fighter.halfSword` (physics.js halfGripped: the grip, the
+ * guard); returns the half-sword thrust's name, or null.
+ */
+function keepHalfSword(world, fighter, opponent, distance) {
+  const spec = AI.halfSword;
+  const grip = fighter.weapon?.held ? fighter.weapon.spec.halfSword : null;
+  if (!grip || fighter.mount || fighter.clinch || opponent.state !== 'up') {
+    fighter.halfSword = null;
+    return null;
+  }
+  const bind = fighter.aiBind;
+  if (bind && !bind.weighed && bind.man === opponent.id) {
+    bind.weighed = true;
+    const open = world.time - bind.time <= spec.fresh && outOfLine(opponent) >= spec.change && distance <= reachOf(fighter) + spec.within;
+    if (open && halfSwordPays(fighter, opponent)) {
+      if (fighter.halfSword?.man === opponent.id) fighter.halfSword.until = world.time + spec.hold;
+      else if (world.random() < spec.take * armourSense(fighter)) {
+        fighter.halfSword = { man: opponent.id, since: world.time, until: world.time + spec.hold };
+        fighter.aiCombo = null;
+        fighter.cooldown = 0;
+        world.events.push({ time: world.time, kind: 'halfSword', fighter: fighter.id, defender: opponent.id, effects: ['takes his blade by the middle'] });
+      }
+    }
+  }
+  const half = fighter.halfSword;
+  if (half && (half.man !== opponent.id || world.time > half.until || distance > reachOf(fighter) + spec.leave)) fighter.halfSword = null;
+  return fighter.halfSword ? grip.move : null;
 }
 
 /** Whether a thrust at `zone` is laid for where his armour parts there (AI.gapAim): only at rigid armour, as he reads it. */

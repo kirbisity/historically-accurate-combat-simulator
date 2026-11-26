@@ -26,7 +26,7 @@
 // first, and it needs no blood up: pressed, he pulls the pin and throws it at his man (or straight on). It is one throw: once
 // it is gone the button is the art's again (shown only while the art is charged).
 
-import { AI, adrenalineGain, surge } from './ai.js';
+import { AI, adrenalineGain, halfSwordPays, surge } from './ai.js';
 import { soundEvent } from './audio/log.js';
 import { P } from './body.js';
 import { MOVES, STYLES } from './moves.js';
@@ -75,9 +75,11 @@ export const ARTS = {
   // whether they are locked together, his weapon and its hand. A man with a shield on his arm and an armed man square before it
   // has the shield's art (`shield`) before any of his family's.
   choices: {
-    // The long sword: a man in arms close, the half-sword's point into a gap; plate on his head, the mordhau; else the pommel.
+    // The long sword: a man close in kit its ordinary blows glance from (ai.js halfSwordPays, as the AI weighs it after a bind:
+    // the half-sword's point at a gap getting more through than an edge or a long point would), the half-sword's point into a
+    // gap; plate on his head, the mordhau; else the pommel.
     artPommel: [
-      { art: 'artHalfSword', when: (s) => s.armour.trunk !== 'none' && s.distance < 1.15 },
+      { art: 'artHalfSword', when: (s) => s.halfPays && s.distance < 1.15 },
       { art: 'artMordhau', when: (s) => s.armour.head === 'plate' },
     ],
     // The katana and the ōdachi: an armoured man, or one out at the point's length, the tsuki at the throat; one close and square
@@ -143,7 +145,8 @@ function armourClass(man, key) {
  * The situation as he sees it for his art (pure): his man's distance (m, hips to hips) and his own reach (physics.js reachOf); the
  * armour on his man's head, trunk and shins; whether his man stands square to him, his guard high, charging or crowding in, lower
  * than him, inside his point, armed and his weapon hand within reach, with a shield, braced behind a block; where his man stands
- * about him (`bearing`, rad, + to his left); whether they are locked together. Null with no man.
+ * about him (`bearing`, rad, + to his left); whether they are locked together; whether the half-sword pays against his kit
+ * (`halfPays`, ai.js halfSwordPays). Null with no man.
  */
 export function artSituation(world, fighter, man) {
   if (!man) return null;
@@ -183,6 +186,7 @@ export function artSituation(world, fighter, man) {
     beak: Boolean(weapon?.spec.beak),
     thrower: Boolean(style?.throws || style?.shoulderThrow),
     myShield: Boolean(fighter.shield),
+    halfPays: halfSwordPays(fighter, man),
   };
 }
 
