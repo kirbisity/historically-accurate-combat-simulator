@@ -315,6 +315,22 @@ function footmanDesign(label, kind, cloth, quilt, hat) {
   return { label, top: { kind: 'longsleeve', color: quilt }, bottom: { kind: 'tights', color: '#3a3326' }, armor: { kind, color: '#9aa0a8', cloth, gold: '#c9a85a', mail: '#8d9097' }, head: { kind: 'kettleHat', color: '#9aa0a8', ...hat }, feet: { kind: 'turnshoe', color: '#3a2a1c' } };
 }
 
+/**
+ * A Landsknecht's kit in its colours: the slashed cloth's ground (`ground`) and the colour slashed through it (`slash`), the
+ * hose's stripes (`hoseA`, `hoseB`); the breastplate polished, the beret in the ground colour with a white plume and knots of
+ * the slash colour (loftbody.js LOFT kits `landsknecht`; wardrobe.js the `barett`).
+ */
+function landsknechtDesign(label, ground, slash, hoseA, hoseB) {
+  return {
+    label,
+    top: { kind: 'longsleeve', color: ground },
+    bottom: { kind: 'tights', color: ground },
+    armor: { kind: 'landsknecht', color: '#c3c8cf', cloth: ground, cloth2: slash, lace: hoseA, charge: { color: hoseB }, leather: '#3a2416', gold: slash },
+    head: { kind: 'barett', color: ground, trim: slash, plume: '#f2efe6' },
+    feet: { kind: 'turnshoe', color: '#a8865c' },
+  };
+}
+
 /** Tōsei gusoku in a finish, with its crest and war mask. */
 /**
  * An ō-yoroi design: the lacquer of the plates, the silk lacing, gilt
@@ -1273,6 +1289,52 @@ export const OUTFITS = {
       footmanDesign('Mail shirt', 'haubergeon', '#5a4a30', '#b8a888', { design: 'a', brim: 2.0, coif: true }),
       footmanDesign('Breastplate', 'breastplate', '#6a1e22', '#a89070', { design: 'c', brim: 1.8, tall: true }),
       footmanDesign('Brigandine, black', 'brigandine', '#1c1c20', '#8a7a60', { design: 'b', brim: 1.85, tall: true, coif: true }),
+    ],
+  },
+  // A Landsknecht Doppelsöldner of the 1520s-40s, as the reenactor's clips show him: a polished munition breastplate with a
+  // short fauld and tassets over the belly and the top of the thighs (no backplate drawn, no arm or leg harness), over the
+  // slashed and puffed clothes his company was licensed to wear (Maximilian's word that their lives were too short and
+  // brutish to be held to the sumptuary laws): black sleeves slashed over yellow, one arm the other way round, slashed and
+  // paned Pluderhosen of black and yellow (one leg in hanging panes, the other in diamonds) puffed out to below the knee,
+  // the hose of one leg striped red and blue, a great black slashed beret with a white ostrich plume and yellow knots, and
+  // broad cow-mouth shoes (the clips' turned shoes here).
+  landsknecht: {
+    // Trained: the Doppelsöldner had to show his fencing school's letter to be taken on at double pay (the Joanneum's armoury
+    // in Graz on the two-hand sword's men); trained for years, an elite's skill (`skill` 0.65: OUTFITS' tiers).
+    skill: 0.65,
+    faction: 'knights', plated: true,
+    label: 'Landsknecht — breastplate', family: 'knight', movement: 'good', fists: 'bare',
+    // The breastplate is curved (the 16th c.'s globose breast): a blow or an arrow not square on it glances.
+    breastplate: 0.8,
+    // His Katzbalger: the short broad sword at the belt (the short sword's figures, weapons.js shortSword).
+    sidearm: 'shortSword',
+    spare: 'dagger',
+    // A munition breastplate with its fauld and tassets, ~7 kg (the Graz armoury's munition breasts run 5-8 kg): about half
+    // the conquistador's breastplate, mail sleeves and morion (0.165 for ~13 kg).
+    extraMass: 0.09,
+    // The trunk under plate, as the conquistador's breastplate (blunt 0.55, cut 1, pierce 0.95, turning a blade). The rest is
+    // cloth: the puffed and slashed sleeves and the Pluderhosen are layers of wool over a linen or silk lining, lots of it, so
+    // a little against an edge (cut 0.15 on the arms, 0.2 on the thighs under the great puffs; hose alone below them), next to
+    // nothing against a point or a blow. The beret is felt and cloth.
+    protection: {
+      blunt: 0.55, cut: 1, pierce: 0.95, bullet: { head: 0, torso: 0.55, limb: 0 },
+      regions: {
+        head: { blunt: 0.05, cut: 0.1, pierce: 0 },
+        torso: { blunt: 0.55, cut: 1, pierce: 0.95, deflects: true },
+        UpperArm: { blunt: 0.1, cut: 0.15, pierce: 0.05, worn: true },
+        Forearm: { blunt: 0.08, cut: 0.12, pierce: 0.04, worn: true },
+        Thigh: { blunt: 0.1, cut: 0.2, pierce: 0.05, worn: true },
+        Shank: { blunt: 0.03, cut: 0.05, pierce: 0, worn: true },
+      },
+    },
+    // No mail under it: the breastplate's gaps (the armpits, the back, below the tassets) are open to a point.
+    // Paid double for standing in the front rank (Doppelsold), the men of a company who chose the pikes' first shock: a little
+    // steadier than a conquistador's veterans (0.45 against 0.35).
+    courage: 0.45,
+    designs: [
+      landsknechtDesign('Black and yellow', '#141416', '#d9a21c', '#b2242a', '#27407e'),
+      landsknechtDesign('Red and white', '#8a1a1e', '#ece6d6', '#1c1c20', '#d9a21c'),
+      landsknechtDesign('Blue and yellow', '#22356e', '#d9a21c', '#8a1a1e', '#ece6d6'),
     ],
   },
   // Lamellar: small lacquered steel scales laced in rows, in red. Proof

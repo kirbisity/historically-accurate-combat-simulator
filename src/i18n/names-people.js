@@ -49,6 +49,7 @@ export const NAMES_PEOPLE = {
   'Qi Long Spearman': '戚家军长枪手',
   'Dangpa Soldier': '镋钯手',
   'Halberdier': '长戟兵',
+  'Doppelsöldner': '双饷大剑兵',
   'Ming Spearman': '明军长枪手',
   'Ming Musketeer': '明军鸟铳手',
   'Garrison Crossbowman': '卫所弩手',
