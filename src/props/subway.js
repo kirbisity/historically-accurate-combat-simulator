@@ -39,7 +39,8 @@ export const SUBWAY_CAR = { length: 18.35, width: 3.05, height: 3.7, floor: 1.1,
  * the far wall. The fighters keep off the edge as off any arena edge; a
  * shove, a throw or a knockdown can still put a man over it.
  */
-export const SUBWAY_ARENA = { halfX: 4.2, halfZ: 1.35, drop: { at: 1.35 + 0.75, floor: -1.2, to: 6.0, reason: 'fell onto the tracks' } };
+// (The table itself lives in props/arenasize.js with the other places' sizes, plain data the simulation reads.)
+export { SUBWAY_ARENA } from './arenasize.js';
 
 /** Standard gauge (m) and how high the rail head stands over the ties. */
 const SUBWAY_GAUGE = 1.435;

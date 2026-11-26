@@ -12,7 +12,7 @@ import { FACTIONS } from './outfits.js';
 import { WARRIORS } from './roster.js';
 import { drawUp, intoZone, MUSTER, zoneOf } from './muster.js';
 import { tname } from './i18n.js';
-import { SUBWAY_ARENA } from './props/subway.js';
+import { SUBWAY_ARENA } from './props/arenasize.js';
 import { wallWorks } from './story/ground/walls.js';
 import { pyongyangPlan } from './places/pyongyang.js';
 import { CANAL_TOWN, canalTownPlan } from './places/canaltown.js';

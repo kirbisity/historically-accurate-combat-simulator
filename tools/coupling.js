@@ -37,13 +37,10 @@ const SIM_WRITE = /\b(fighter|world|state\.world|opponent|man|him|player\(\))\.[
 // Everything reached only through these is presentation dragged into the sim's import graph ('pulled'): it loads in Node
 // because its three.js and DOM code sits in functions the fight never calls. A port needs the table, not the module.
 export const DATA_PULLS = [
-  ['coverage.js', 'loftbody.js', 'ARMOR_KINDS: each armour piece drawn, [from, to] along its part (what covers a struck place)'],
-  ['coverage.js', 'detailmaps.js', 'pieceMaterial: which detail map, so which material, a drawn piece is'],
+  // (ARMOR_KINDS and pieceMaterial now live in armourkinds.js, SUBWAY_ARENA in props/arenasize.js: data modules, 2026-11-26.)
   ['scenarios.js', 'places/pyongyang.js', 'pyongyangTownTerrain: the town fight\'s solids'],
-  ['scenarios.js', 'props/subway.js', 'SUBWAY_ARENA: the subway platform\'s floor and walls'],
   ['custombattle.js', 'places/pyongyang.js', 'pyongyangPlan: the wall and field of the Pyongyang ground'],
   ['custombattle.js', 'places/canaltown.js', 'CANAL_TOWN, canalTownPlan: the canal town\'s court'],
-  ['custombattle.js', 'props/subway.js', 'SUBWAY_ARENA'],
   ['story/battles/03-pyongyang.js', 'places/pyongyang.js', 'pyongyangPlan'],
   ['wind.js', 'levelmode/stagelooks.js', 'stageLookOf: the wind of a stage\'s weather look'],
 ];

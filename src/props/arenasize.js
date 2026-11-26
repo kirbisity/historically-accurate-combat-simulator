@@ -9,3 +9,7 @@ export const COLOSSEUM = {
   step: 0.04,
   rise: 0.62,
 };
+
+// The subway platform as a fighting floor (props/subway.js draws it): the platform's half-axes (m), and the drop past its
+// edge 0.75 m beyond the side wall's line onto the track bed 1.2 m below, as far as the far wall (physics.js floorUnder).
+export const SUBWAY_ARENA = { halfX: 4.2, halfZ: 1.35, drop: { at: 1.35 + 0.75, floor: -1.2, to: 6.0, reason: 'fell onto the tracks' } };
