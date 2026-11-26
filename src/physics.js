@@ -43,7 +43,7 @@ import { climateOf, freshHeat, heatMark, heatRecovery, heatStrength, stepHeat } 
 import { recoverUnder, stepNausea } from './physics/afflictions.js';
 import { bowShotCost, strokeHeft, swingEffort } from './physics/effort.js';
 import { bigDeflect, breakOpen, deflecting, deflectsWith, deflectWindow, guardHold, noteGuard } from './physics/deflect.js';
-import { guardCatch } from './physics/hilt.js';
+import { gatheredPast, guardCatch, guardShelters } from './physics/hilt.js';
 import { jumpBlocked, jumpLanding, jumpOf } from './physics/jump.js';
 import { bendShare, BLUNT, bluntPart, faceThrough, guardGives, guardMeets } from './physics/blunt.js';
 import { formUp, placeWings, WINGS } from './formation.js';
@@ -7955,6 +7955,9 @@ function collideStriker(world, attacker, defender, striker, time) {
     const distance = vec.length(offset);
     // Past a shield's rim the blow finds him; through its face it does not.
     if (shadow && behindShield(closest.onFirst, shadow)) continue;
+    // A blade come onto the hand that holds a sword meets the sword's guard first where the guard reaches it (physics/hilt.js
+    // guardShelters): the clash finds it there (clashWeapons), not the fingers.
+    if (striker.weapon && hiltShelters(defender, capsule, closest.t, sa, sb, striker.radius)) continue;
     const contactKey = `${prefix}${capsule.key}`;
     const normal = distance > 1e-9 ? vec.scale(offset, 1 / distance) : [0, 1, 0];
     if (!attacker.contacts.has(contactKey)) {
@@ -9950,6 +9953,8 @@ function registerWeaponImpact(world, attacker, defender, striker, closest, capsu
     point: contactPoint, normal, edge: [weapon.dir[0], weapon.dir[1], weapon.dir[2]], travel: relative, harm: bluntShare, cut, pierce, pointJoules, pointGoes, energy, along, at: closest.s, strikeMass, bluntMix: mix.blunt, slice: slice === 1 ? undefined : slice,
     edgeShare: (mix.cut + mix.pierce) / Math.max(1e-6, mix.blunt + mix.cut + mix.pierce), haft: haft || undefined,
     gapZone: gapZone ?? undefined,
+    // (How far along the part it met him: past coverage.js ARMOUR_COVER.handFrom of a forearm, his hand.)
+    struckAt: closest.t,
   };
   if (intoGape) event.gapZone = 'lacing';
   // Where the last blow met him (drawing: the hung armour near it is knocked swinging, armourwearview.js).
@@ -10424,6 +10429,20 @@ function clashBlades(world, first, second) {
 }
 
 /**
+ * Whether a blade (the segment `from`-`to`, its `radius`) come onto a man's forearm `capsule` at `along` meets the guard of the
+ * sword in that hand first (physics/hilt.js guardShelters): only at the hand itself (past ARMOUR_COVER.handFrom), only a held
+ * weapon with a guard.
+ */
+function hiltShelters(fighter, capsule, along, from, to, radius) {
+  if (along < ARMOUR_COVER.handFrom || !capsule.key.endsWith('Forearm')) return false;
+  for (const weapon of heldBlades(fighter)) {
+    if (!weapon.spec.crossGuard || !capsule.key.startsWith(weapon.main)) continue;
+    if (guardShelters(weapon.spec, point(fighter.x, P[`${weapon.main}Hand`]), weapon.dir, from, to, radius)) return true;
+  }
+  return false;
+}
+
+/**
  * A blade (`other`'s segment, `from`-`to`, its `radius`) caught on a weapon's guard (physics/hilt.js guardCatch), as the
  * meeting clashWeapons would have found along the lines: the closest points, their parameters on the two segments it uses
  * (the guarded blade's from half its striking start, so the bar's `s` is below 0), the offset, distance and reach.
@@ -10436,7 +10455,7 @@ function hiltMeeting(fighter, weapon, from, to, radius, second) {
   const start = weapon.spec.strikeFrom * 0.5;
   const s = (caught.along - start) / Math.max(1e-6, weapon.spec.length - start);
   const closest = second ? { onFirst: caught.onSecond, onSecond: caught.onFirst, s: caught.t, t: s } : { onFirst: caught.onFirst, onSecond: caught.onSecond, s, t: caught.t };
-  return { closest, offset: vec.sub(closest.onFirst, closest.onSecond), distance: caught.distance, reach: caught.reach };
+  return { closest, offset: vec.sub(closest.onFirst, closest.onSecond), distance: caught.distance, reach: caught.reach, of: fighter.id };
 }
 
 /**
@@ -10464,7 +10483,11 @@ function clashWeapons(world, first, second, a = first.weapon, b = second.weapon)
   let caught = null;
   // Missed along their lines, one may still be caught on the other's cross or hooks near the hands (physics/hilt.js).
   if (distance >= reach) {
-    caught = hiltMeeting(first, a, b1, b2, b.spec.radius, false) ?? hiltMeeting(second, b, a1, a2, a.spec.radius, true);
+    // (A sword being gathered for its blow or brought back after it, hilt and blade, is steered round the other man's, close by
+    // his hands as they pass at a fencing distance: a guard catches a blow in its live part, or a blade held still, and only
+    // while its own sword is not being gathered either: physics/hilt.js gatheredPast.)
+    const steered = gatheredPast(strokeOf(first, a), strikeLiveUntil) || gatheredPast(strokeOf(second, b), strikeLiveUntil);
+    if (!steered) caught = hiltMeeting(first, a, b1, b2, b.spec.radius, false) ?? hiltMeeting(second, b, a1, a2, a.spec.radius, true);
     if (caught) ({ closest, offset, distance, reach } = caught);
   }
   const key = `${first.id}${a === first.offWeapon ? 'o' : ''}:${second.id}${b === second.offWeapon ? 'o' : ''}`;
@@ -10549,7 +10572,7 @@ function clashWeapons(world, first, second, a = first.weapon, b = second.weapon)
   // across the other as they met (`slide`, m/s: the way its edge scrapes, and the sparks it tears off fly). Read by nothing here.)
   const parts = [weaponPart(a, one.along), weaponPart(b, two.along)];
   const slide = vec.length(one.velocity) >= vec.length(two.velocity) ? vec.sub(one.velocity, two.velocity) : vec.sub(two.velocity, one.velocity);
-  world.events.push({ time: world.time, kind: 'clash', fighter: first.id, other: second.id, point: met, normal, impulse, parts, slide, deflect: deflected || undefined, hilt: caught ? true : undefined, struck: struck || undefined, along: [one.along, two.along], energy: 0.5 * ((massA * massB) / (massA + massB)) * Math.max(0, closing) ** 2, effects: ['blades meet'] });
+  world.events.push({ time: world.time, kind: 'clash', fighter: first.id, other: second.id, point: met, normal, impulse, parts, slide, deflect: deflected || undefined, hilt: caught ? true : undefined, hiltOf: caught?.of, struck: struck || undefined, along: [one.along, two.along], energy: 0.5 * ((massA * massB) / (massA + massB)) * Math.max(0, closing) ** 2, effects: ['blades meet'] });
   // Heard: how fast they met, what of each (an edge, a haft, a head), and whether a point was turned along the blade (a scrape).
   // (The man played's deflect, and whether big: WORLD.deflect.big; its own sound, audio/sfx/sampled.js.)
   const deflectedBy = deflected ? parried[0] : null;

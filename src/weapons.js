@@ -410,6 +410,10 @@ export const WEAPONS = {
     label: 'Long sword', hands: 'hybrid', length: 0.98, strikeFrom: 0.14, handle: 0.24, spacing: 0.15, mass: 1.45, balance: 0.11, radius: 0.012,
     harm: { swing: { cut: 1, blunt: 0.5 }, thrust: { pierce: 1, cut: 0.15, blunt: 0.15 } },
     contactSeconds: 0.004, rotation: 0.8, wrist: { omega: 17, zeta: 0.8 }, threat: 4, art: 'artPommel',
+    // Its cross (`crossGuard`, physics/hilt.js): ~24 cm across (`half` 0.12 each side), the straight cross of the 15th-c. long
+    // swords (Oakeshott's types XVIIIa-XX run ~20-28 cm), a little before the hand: a blade that runs down to the hands is
+    // stopped there.
+    crossGuard: { cross: { at: 0.04, half: 0.12 } },
     // The half-sword (Liechtenauer's armoured fight, Ringeck's and Talhoffer's Kampffechten): the left hand let go of the grip and
     // laid round the middle of the blade (`along`: that share of the blade out from the guard hand), the right kept on the grip,
     // the sword held as a short spear whose point the hand on the blade steers into a gap. `guard`: how it is held between
@@ -432,6 +436,10 @@ export const WEAPONS = {
     label: 'Katana', hands: 'two', length: 0.8, strikeFrom: 0.12, handle: 0.27, spacing: 0.17, mass: 1.15, balance: 0.12, radius: 0.012, curve: 0.02,
     harm: { swing: { cut: 1.3, blunt: 0.4 }, thrust: { pierce: 0.7, cut: 0.15, blunt: 0.15 } },
     contactSeconds: 0.004, rotation: 0.8, wrist: { omega: 20, zeta: 0.8 }, threat: 4.5, art: 'artIai',
+    // Its tsuba (`crossGuard`, physics/hilt.js): an iron disc ~7.5-8 cm across (Edo-period katana tsuba run ~7-8.5 cm), round
+    // the blade just before the hand (`round`, `radius` 0.04): a small catch, the same whatever the turn of the grip, and only
+    // for a blade that comes down onto the hands.
+    crossGuard: { tsuba: { at: 0.03, round: true, radius: 0.04 } },
   },
   knife: {
     art: 'artFleche',
@@ -821,6 +829,10 @@ export const WEAPONS = {
     label: 'Espada', hands: 'one', length: 0.85, strikeFrom: 0.12, handle: 0.14, mass: 1.1, balance: 0.12, radius: 0.011,
     harm: { thrust: { pierce: 0.95, cut: 0.2, blunt: 0.1 }, swing: { cut: 0.9, blunt: 0.35 } },
     contactSeconds: 0.004, rotation: 0.7, wrist: { omega: 24, zeta: 0.8 }, threat: 3.4,
+    // Its hilt (`crossGuard`, physics/hilt.js): the long straight quillons of the Spanish cut-and-thrust swords of the conquest
+    // (c. 1500-1530, ~22 cm across: `half` 0.11), with a side ring looped ~5-6 cm out over one flat (`flat`, here 0.03 each
+    // side: one ring, the turn of the grip shared between its side and the bare one).
+    crossGuard: { cross: { at: 0.022, half: 0.11, flat: 0.03 } },
   },
   // The rapier: a long, slender thrusting sword with a swept hilt. Its point
   // is everything (`pierce`); its narrow edge cuts a little, it barely bruises.
@@ -829,6 +841,11 @@ export const WEAPONS = {
     label: 'Rapier', hands: 'one', length: 1.05, strikeFrom: 0.1, handle: 0.14, mass: 1.15, balance: 0.1, radius: 0.008,
     harm: { thrust: { pierce: 1.6, cut: 0.08, blunt: 0.03 }, swing: { cut: 0.4, blunt: 0.05 } },
     contactSeconds: 0.003, rotation: 0.5, wrist: { omega: 26, zeta: 0.8 }, threat: 3.8,
+    // Its swept hilt (`crossGuard`, physics/hilt.js), the parts that catch: the quillons, ~26 cm across (`half` 0.13: rapiers of
+    // c. 1600-1630 in the Wallace Collection and the Royal Armouries run ~22-30 cm); a small cup or shell before the hand
+    // (`round`, 4.5 cm); and round the hand itself the knuckle bow, the arms of the hilt and the side rings (`bars`: the bow
+    // ~5.5 cm out on the edge side, the rings ~5 cm out over the flats), which take a cut at the sword hand on their steel.
+    crossGuard: { quillons: { at: 0.02, half: 0.13 }, cup: { at: 0.03, round: true, radius: 0.045 }, bars: { at: 0, half: 0.055, flat: 0.05 } },
     // Its slender blade at the middle, across and through (m): ~2.2-2.5 cm at the ricasso narrowing to ~1 cm near the point,
     // 5-8 mm thick in its hexagonal or diamond section (the blades in Norman, *The Rapier and Small-Sword*, 1980; from memory,
     // unverified): ~1.4 cm by 5.5 mm in the middle, as a flat bar (a diamond's is less stiff, a hexagon's more). Driven on
@@ -950,6 +967,9 @@ export const WEAPONS = {
     label: 'Sabre', hands: 'one', length: 0.82, strikeFrom: 0.12, handle: 0.14, mass: 1.0, balance: 0.13, radius: 0.012, curve: 0.06,
     harm: { swing: { cut: 1.05, blunt: 0.35 }, thrust: { pierce: 0.7, cut: 0.15, blunt: 0.1 } },
     contactSeconds: 0.004, rotation: 0.75, wrist: { omega: 24, zeta: 0.8 }, threat: 3.3,
+    // Its guard (`crossGuard`, physics/hilt.js): the short cross of the steppe sabre, ~11 cm across with small langets (the
+    // horse sabres of the Golden Horde and the Ming, ~8-12 cm): it keeps a blade off the hand only near the line of the blade.
+    crossGuard: { cross: { at: 0.03, half: 0.055 } },
   },
   // The kılıç (kilij) of the Sultan's men, and the long sabre of the Kipchak steppe before it: longer than the
   // Mongol sabre and far more deeply curved. The Cuman kurgans' sabres run to ~0.9-1 m of blade (the Dnieper and Don
@@ -965,6 +985,9 @@ export const WEAPONS = {
     label: 'Kilij', hands: 'one', length: 0.9, strikeFrom: 0.12, handle: 0.14, mass: 1.2, balance: 0.18, radius: 0.012, curve: 0.12,
     harm: { swing: { cut: 1.05, blunt: 0.38 }, thrust: { pierce: 0.6, cut: 0.15, blunt: 0.1 } },
     contactSeconds: 0.004, rotation: 0.78, wrist: { omega: 21, zeta: 0.8 }, threat: 3.4,
+    // Its guard (`crossGuard`, physics/hilt.js): the Ottoman kılıç's cross with langets and ball ends, ~13 cm across (the
+    // 15th-17th c. kılıç, ~12-15 cm).
+    crossGuard: { cross: { at: 0.03, half: 0.065 } },
     // Its art the drawing cut (the dao's and the jian's, `artDrawCut`): the hilt pulled back through the cut, so the curve
     // slides the edge along the wound instead of against the push of an arm straightening into a plain cut.
     art: 'artDrawCut',
@@ -1124,12 +1147,17 @@ export const WEAPONS = {
     label: 'Short sword', hands: 'one', length: 0.6, strikeFrom: 0.1, handle: 0.12, mass: 0.85, balance: 0.08, radius: 0.012,
     harm: { thrust: { pierce: 0.85, cut: 0.2, blunt: 0.15 }, swing: { cut: 0.8, blunt: 0.4 } },
     contactSeconds: 0.004, rotation: 0.7, wrist: { omega: 26, zeta: 0.8 }, threat: 3,
+    // Its guard (`crossGuard`, physics/hilt.js): the gladius's (below).
+    crossGuard: { guard: { at: 0.025, half: 0.04, flat: 0.015 } },
   },
   wakizashi: {
     art: 'artDrawCut',
     label: 'Wakizashi', hands: 'one', length: 0.5, strikeFrom: 0.08, handle: 0.16, mass: 0.7, balance: 0.08, radius: 0.012, curve: 0.012,
     harm: { swing: { cut: 1.15, blunt: 0.3 }, thrust: { pierce: 0.6, cut: 0.15, blunt: 0.1 } },
     contactSeconds: 0.004, rotation: 0.75, wrist: { omega: 28, zeta: 0.8 }, threat: 3.2,
+    // Its tsuba (`crossGuard`, physics/hilt.js): a disc ~6.5-7 cm across, a little smaller than the katana's (the short sword
+    // of a daishō pair).
+    crossGuard: { tsuba: { at: 0.03, round: true, radius: 0.034 } },
   },
   // The Ming dao (a liuyedao, "willow-leaf sabre"): one hand, a gently
   // curved single edge, a round guard. Cuts first, and thrusts.
@@ -1137,6 +1165,9 @@ export const WEAPONS = {
     label: 'Dao', hands: 'one', length: 0.75, strikeFrom: 0.12, handle: 0.15, mass: 0.95, balance: 0.1, radius: 0.012, curve: 0.05,
     harm: { swing: { cut: 1.1, blunt: 0.35 }, thrust: { pierce: 0.78, cut: 0.15, blunt: 0.1 } },
     contactSeconds: 0.004, rotation: 0.75, wrist: { omega: 25, zeta: 0.8 }, threat: 3.2, art: 'artDrawCut',
+    // Its guard (`crossGuard`, physics/hilt.js): the round, dished guard of the Ming and Qing sabres, ~8-9 cm across (as
+    // drawn here, 9 cm): a disc round the blade, a small catch whatever the turn of the grip.
+    crossGuard: { disc: { at: 0.028, round: true, radius: 0.045 } },
   },
   // The Qi family sabre (戚家刀, changdao): the long two-handed dao Qi Jiguang gave his Zhejiang men after the Japanese
   // swords they faced (Jixiao xinshu, the 长刀 chapter: 'this came in with the Japanese raiders... I obtained their
@@ -1151,6 +1182,8 @@ export const WEAPONS = {
     harm: { swing: { cut: 1.33, blunt: 0.45 }, thrust: { pierce: 0.7, cut: 0.15, blunt: 0.15 } },
     // Its wrist between the katana's (20) and the ōdachi's (14): the longer blade a little slower to bring round.
     contactSeconds: 0.004, rotation: 0.8, wrist: { omega: 18, zeta: 0.8 }, threat: 4.6, art: 'artIai',
+    // Its guard (`crossGuard`, physics/hilt.js): round, as the Japanese tsuba it was made after, ~8 cm across.
+    crossGuard: { disc: { at: 0.03, round: true, radius: 0.04 } },
   },
   // The guandao: a broad, heavy crescent blade on a long shaft, fought like
   // the naginata but a quarter heavier, its weight knocking men about more
@@ -1182,6 +1215,9 @@ export const WEAPONS = {
     label: 'Jian', hands: 'one', length: 0.95, strikeFrom: 0.1, handle: 0.21, mass: 1.0, balance: 0.1, radius: 0.01,
     harm: { thrust: { pierce: 1.05, cut: 0.2, blunt: 0.08 }, swing: { cut: 0.9, blunt: 0.25 } },
     contactSeconds: 0.004, rotation: 0.6, wrist: { omega: 30, zeta: 0.78 }, threat: 3.6, art: 'artDrawCut',
+    // Its guard (`crossGuard`, physics/hilt.js): the small, thick guard of the Ming jian, ~7.5-9 cm across the edges and ~2.5
+    // through the flats: a catch only close by the line of the blade.
+    crossGuard: { guard: { at: 0.012, half: 0.0375, flat: 0.013 } },
   },
   // The ōdachi (nodachi): a field sword of a metre of blade and more, a long
   // grip for two hands; carried by a strong man at Anegawa (1570) to cut at
@@ -1191,6 +1227,8 @@ export const WEAPONS = {
     label: 'Ōdachi', hands: 'two', length: 1.08, strikeFrom: 0.15, handle: 0.42, spacing: 0.36, mass: 2.3, balance: 0.24, radius: 0.013, curve: 0.03,
     harm: { swing: { cut: 1.4, blunt: 0.6 }, thrust: { pierce: 0.65, cut: 0.15, blunt: 0.2 } },
     contactSeconds: 0.005, rotation: 0.85, wrist: { omega: 14, zeta: 0.82 }, threat: 4.9, art: 'artIai',
+    // Its tsuba (`crossGuard`, physics/hilt.js): a disc ~9 cm across, the field sword's larger iron guard.
+    crossGuard: { tsuba: { at: 0.03, round: true, radius: 0.045 } },
   },
   // The zweihander (Bidenhänder, Schlachtschwert): the Landsknecht Doppelsöldner's two-hand sword of the 16th c. Its measures
   // are the surviving war swords': the Cleveland Museum of Art's German two-hand sword of 1550-1600 (1919.70) is 170.5 cm
@@ -1247,6 +1285,9 @@ export const WEAPONS = {
     label: 'Arming sword', hands: 'one', length: 0.8, strikeFrom: 0.12, handle: 0.13, mass: 1.15, balance: 0.12, radius: 0.011,
     harm: { thrust: { pierce: 1, cut: 0.2, blunt: 0.12 }, swing: { cut: 0.95, blunt: 0.4 } },
     contactSeconds: 0.004, rotation: 0.7, wrist: { omega: 24, zeta: 0.8 }, threat: 3.4,
+    // Its cross (`crossGuard`, physics/hilt.js): the straight cross of the 14th- and 15th-c. arming sword, ~22 cm across
+    // (Oakeshott's types XV-XVIII, ~18-24 cm; as drawn, 22 cm).
+    crossGuard: { cross: { at: 0.02, half: 0.11 } },
   },
   // The heavy cavalry sword of the Napoleonic cuirassier (the French an XI and an XIII, 1803-1805; the British 1796 heavy
   // cavalry sword): ~0.97 m of straight blade, two fullers, a brass basket guard, ~1.3 kg, its weight further out than an
@@ -1268,6 +1309,9 @@ export const WEAPONS = {
     label: 'Sayf', hands: 'one', length: 0.84, strikeFrom: 0.12, handle: 0.12, mass: 1.15, balance: 0.16, radius: 0.012,
     harm: { swing: { cut: 1.0, blunt: 0.4 }, thrust: { pierce: 0.85, cut: 0.2, blunt: 0.12 } },
     contactSeconds: 0.004, rotation: 0.72, wrist: { omega: 23, zeta: 0.8 }, threat: 3.4,
+    // Its guard (`crossGuard`, physics/hilt.js): a short cross with langets up the blade, ~15 cm across (Ayyubid and early
+    // Mamluk swords, ~12-16 cm), the langets a little out over the flats.
+    crossGuard: { cross: { at: 0.02, half: 0.075, flat: 0.01 } },
   },
   // Hercules's club (clava), as Commodus carried it into the arena: a length
   // of knotted wood thickening to its end, ~0.9 m and 2 kg, no iron on it.
@@ -1284,6 +1328,9 @@ export const WEAPONS = {
     label: 'Gladius', hands: 'one', length: 0.62, strikeFrom: 0.1, handle: 0.13, mass: 0.9, balance: 0.08, radius: 0.012,
     harm: { thrust: { pierce: 0.9, cut: 0.2, blunt: 0.15 }, swing: { cut: 0.8, blunt: 0.4 } },
     contactSeconds: 0.004, rotation: 0.7, wrist: { omega: 26, zeta: 0.8 }, threat: 3,
+    // Its guard (`crossGuard`, physics/hilt.js): an oval block of wood or bone, ~8 cm across the edges and ~3 through the
+    // flats (the Mainz and Pompeii types' hilts).
+    crossGuard: { guard: { at: 0.025, half: 0.04, flat: 0.015 } },
     // Roman-era bloomery iron and uneven steel, softer than a later quench-hardened blade (MATERIALS.iron).
     build: { edge: 'iron', blade: 'iron' },
   },  // The thraex's sica: a short sword curved like a sickle (~0.42 m of blade),
@@ -1317,6 +1364,9 @@ export const WEAPONS = {
     label: 'Spatha', hands: 'one', length: 0.82, strikeFrom: 0.12, handle: 0.12, mass: 1.2, balance: 0.13, radius: 0.011,
     harm: { thrust: { pierce: 0.95, cut: 0.2, blunt: 0.12 }, swing: { cut: 0.95, blunt: 0.4 } },
     contactSeconds: 0.004, rotation: 0.72, wrist: { omega: 23, zeta: 0.8 }, threat: 3.4,
+    // Its guard (`crossGuard`, physics/hilt.js): the short bar guard of the late Roman and Germanic spatha, ~8.5 cm across and
+    // ~3 through (bone, wood or iron, as the Nydam and Illerup hilts).
+    crossGuard: { guard: { at: 0.018, half: 0.0425, flat: 0.015 } },
     // Roman-era bloomery iron and uneven steel, softer than a later quench-hardened blade (MATERIALS.iron).
     build: { edge: 'iron', blade: 'iron' },
   },

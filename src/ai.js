@@ -12,6 +12,7 @@ import { keepOrders, obeyOrder, orderedFocus, orderKeepsPlace } from './command.
 import { P } from './body.js';
 import { MOVES, pointRoomOf, STRATEGIES, STYLES, moveRange } from './moves.js';
 import { MAIMING, maimFear } from './maiming.js';
+import { parryWilling, timedParryAt } from './parrykeen.js';
 import { aimPoint, armGone, openVessel, inRiderArc, bladeFor, blockFor, bodyHarm, chinNow, couchedGap, crawlingAway, dazedShare, dropShield, dropWeapon, fightTier, guardReading, holdGuard, hostile, fillGrid, floorGrid, gridAround, inFight, legGone, legShare, limbGone, longPoint, nearestOpponent, perform, point, protectionAt, reachOf, goToGrips, shedStandard, sightAngle, staggerShare, startCrawl, startPickup, strikeThreat, throwPunch, toLocal, useMounted, WORLD, undeflectable, guardOverrun } from './physics.js';
 import { vec, yawRotate } from './pose.js';
 import { BLADES, GUN, offHandAlong, WEAPONS } from './weapons.js';
@@ -1453,7 +1454,7 @@ export function chooseDefence(fighter, attacker, style, incoming, random) {
   // A blow that would beat through his blade (the red mark over him: physics.js undeflectable) is not met with it: he takes
   // his body out of its way, as from any heavy blow, and puts nothing of his weapon in it.
   const beats = undeflectable(attacker, fighter);
-  const name = pickDefence(style, incoming, random, heaviness(attacker, incoming, fighter), longPoint(attacker, incoming), beats);
+  const name = pickDefence(style, incoming, random, heaviness(attacker, incoming, fighter), longPoint(attacker, incoming), beats, parryWilling(fighter));
   // A roll starts on the side the hook comes from and ducks across with it.
   return { name, side: name === 'roll' ? -away : away };
 }
@@ -1483,8 +1484,10 @@ function heaviness(striker, incoming, defender = null) {
   return Math.min(1, Math.max(weapon, incoming.heavy ? spec.loaded : 0, overrun));
 }
 
-function pickDefence(style, incoming, random, heavy = 0, long = false, beats = false) {
+function pickDefence(style, incoming, random, heavy = 0, long = false, beats = false, willing = 1) {
   const answers = { ...style.defences };
+  // (A blade that parries well is put in the way the more readily: parrykeen.js parryWilling.)
+  if (answers.weaponBlock) answers.weaponBlock *= willing;
   if (beats) {
     for (const block of ['guard', 'weaponBlock', 'parry']) delete answers[block];
     answers.stepBack ??= 0.25;
@@ -3905,6 +3908,7 @@ function showOff(world, fighter, opponent, spec, distance, dt) {
 function decide(world, fighter, dt) {
   const random = world.random;
   keepGuard(world, fighter);
+  timedBeat(world, fighter);
   fighter.strafe = 0;
   fighter.running = false;
   fighter.aimAt = undefined;
@@ -4270,7 +4274,9 @@ function decide(world, fighter, dt) {
       // (Short of wind he does not put it up: WORLD.guardHeld willFrom; a thrust is the harder to meet: WORLD.guardRead.thrust.)
       const will = Math.max(0, Math.min(1, (fighter.stamina - WORLD.guardHeld.willFrom) / (WORLD.guardHeld.willFull - WORLD.guardHeld.willFrom)));
       // (And the less the more of the blow his block would let through: a guard that will fail is not what he answers with.)
-      const guards = !longPoint(striker, incoming) && random() < WORLD.guardRead.chance.most * (guardReading(fighter) ?? 0) ** WORLD.guardRead.chance.power * (incoming.spec.art ? AI.art.guardRead : 1) * will * (incoming.spec.mode === 'thrust' ? WORLD.guardRead.thrust.chance : 1) * (1 - guardOverrun(striker, fighter));
+      // (And the more readily the better his blade parries, unless it is a shield he puts up: parrykeen.js parryWilling.)
+      const willing = fighter.shield ? 1 : parryWilling(fighter);
+      const guards = !longPoint(striker, incoming) && random() < WORLD.guardRead.chance.most * (guardReading(fighter) ?? 0) ** WORLD.guardRead.chance.power * (incoming.spec.art ? AI.art.guardRead : 1) * will * (incoming.spec.mode === 'thrust' ? WORLD.guardRead.thrust.chance : 1) * (1 - guardOverrun(striker, fighter)) * willing;
       if (guards) name = blockFor(fighter);
       // A blade coming is got away from, not blocked with an arm.
       else if (incoming.spec.path === 'blade' && wary && name !== 'sidestep' && !longPoint(striker, incoming) && random() < AI.blade.stepBackChance) name = 'stepBack';
@@ -4283,6 +4289,9 @@ function decide(world, fighter, dt) {
         fighter.guardLinger = WORLD.guardRead.linger * plan.defend / Math.max(1e-6, basePlan.defend);
         fighter.guardUntil = world.time + fighter.guardLinger;
       }
+      // A trained man may time the beat of his blade on the blow, a deflect if he judges it (parrykeen.js timedParryAt).
+      const beatAt = name === 'weaponBlock' ? timedParryAt(world, fighter, incoming, random) : null;
+      if (beatAt !== null) fighter.aiBeat = { at: beatAt, punch: incoming, striker };
       // Slip and fire back: the counter comes while the attacker's hand is out.
       if ((name === 'slip' || name === 'roll') && random() < Math.min(0.9, (style.counter ?? 0) + plan.counter)) {
         fighter.cooldown = Math.min(fighter.cooldown, 0.12);
@@ -4431,6 +4440,23 @@ function closingSpeed(fighter, opponent, distance) {
 
 /** How far (m) a blow's lunge carries him in while it comes out (its step's drive over its reach), the share AI.press.lunge of it. */
 const lungeReach = (spec) => (spec.step ?? 0) * Math.max(0, spec.extendUntil - spec.windup + (spec.stepLead ?? 0)) * AI.press.lunge;
+
+/**
+ * A parry timed (parrykeen.js timedParryAt): at its moment his wrist is set and his blade beats onto the blow (physics/deflect.js
+ * reckons the deflect window from then, `guardSince`), if the blow is still coming and his guard still up with the blade;
+ * forgotten otherwise.
+ */
+function timedBeat(world, fighter) {
+  const timed = fighter.aiBeat;
+  if (!timed) return;
+  if (fighter.state !== 'up' || !fighter.guardUp || fighter.defence?.name !== 'weaponBlock' || timed.striker.punch !== timed.punch) {
+    fighter.aiBeat = null;
+    return;
+  }
+  if (world.time < timed.at) return;
+  fighter.aiBeat = null;
+  fighter.guardSince = world.time;
+}
 
 /**
  * His guard held (as the player's on his button: physics.js holdGuard, WORLD.guardHeld): a block he made against a blow kept up

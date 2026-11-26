@@ -1,9 +1,10 @@
-// A sword's cross-guard and parrying hooks (a weapon's `crossGuard`, weapons.js: the zweihander's cross and Parierhaken).
+// A sword's guard (a weapon's `crossGuard`, weapons.js): the zweihander's cross and Parierhaken, a long sword's or an arming
+// sword's cross, a rapier's quillons, cup and the bars swept round the hand, a katana's tsuba, the round guard of a dao.
 // Two blades meet where their lines come nearest (physics.js clashWeapons); a blade that passes the edge near the hands
 // and would go on to the fingers, the forearms or the head meets the bars that stand out across the blade there instead:
-// the cross at the hand and the hooks at the end of the ricasso. Caught on them it is met with the blade's strongest part,
-// a few centimetres from the hands, where the effective mass behind the parry is the arms' (weapons.js effectiveMassAt),
-// so it holds. Nothing here makes a parry stronger by a number: the bars only stand where the steel really is.
+// the cross at the hand and the hooks at the end of the ricasso, a disc of steel round the blade, the bars round the hand.
+// Caught on them it is met with the blade's strongest part, a few centimetres from the hands, where the effective mass behind
+// the parry is the arms' (weapons.js effectiveMassAt), so it holds. Nothing here makes a parry stronger by a number: the bars only stand where the steel really is.
 // Pure: physics.js asks it once per pair of blades that did not meet along their lines.
 
 import { vec } from '../pose.js';
@@ -17,11 +18,25 @@ export const HILT = {
   plane: 2 / Math.PI,
 };
 
-/** A weapon's guard bars (its `crossGuard`): each { at (m along from the main hand), reach (m out from the blade's line it catches) }. */
+/**
+ * How far out from the blade's line a part of a guard catches, on average over the turns of the grip (m). Three shapes, each
+ * where its steel really stands:
+ * - a bar across the edges (`half` each side: a cross, quillons): 2/π of it (HILT.plane);
+ * - a bar with steel square to it over the flats as well (`flat` each side: side rings, the arms of a swept hilt, a guard plate's
+ *   thickness): at each turn the farther of the two, half |cos θ| or flat |sin θ|, whose mean over the turn is 2/π √(half² + flat²);
+ * - a disc or cup round the blade (`round`, its `radius`: a tsuba, the dao's round guard, a rapier's cup): its radius whatever the
+ *   turn of the grip.
+ */
+export function guardPartReach(part) {
+  if (part.round) return part.radius;
+  return HILT.plane * Math.hypot(part.half ?? 0, part.flat ?? 0);
+}
+
+/** A weapon's guard parts (its `crossGuard`): each { at (m along from the main hand), reach (m out from the blade's line it catches) }. */
 export function guardBars(spec) {
   const guard = spec?.crossGuard;
   if (!guard) return [];
-  return Object.values(guard).map((bar) => ({ at: bar.at, reach: bar.half * HILT.plane }));
+  return Object.values(guard).map((part) => ({ at: part.at, reach: guardPartReach(part) }));
 }
 
 /**
@@ -43,4 +58,24 @@ export function guardCatch(spec, hand, dir, from, to, radius) {
     if (distance < reach && distance > 1e-9 && (!best || distance - reach < best.distance - best.reach)) best = { along: bar.at, onFirst: centre, onSecond, t, distance, reach };
   }
   return best;
+}
+
+/**
+ * Whether the guard of a blade (as guardCatch) shelters the hand holding it from another blade come onto that hand: some part
+ * of it reaches that blade, so the blade meets its steel before the fingers (physics.js collideStriker leaves the meeting to
+ * clashWeapons, which finds it on the guard). Where no part reaches (a tsuba against a cut at the back of the hand, a cross
+ * against one along the forearm) the hand is struck: a guard shelters only where its steel is.
+ */
+export function guardShelters(spec, hand, dir, from, to, radius) {
+  return guardCatch(spec, hand, dir, from, to, radius) !== null;
+}
+
+/**
+ * Whether a stroke (a blade's, physics.js strokeOf; null for one held still) is in its wind-up or coming back, not in its live
+ * part (before `windup`, or past `liveUntil(spec)`, physics.js strikeLiveUntil). Gathered, a blade is carried round a path the
+ * man chooses and steers clear of the other's hilt, which stands close by his own blade near the hands at a fencing distance;
+ * driven in its blow it goes where its momentum takes it, and a cross in the way catches it.
+ */
+export function gatheredPast(stroke, liveUntil) {
+  return Boolean(stroke) && (stroke.t < stroke.spec.windup || stroke.t > liveUntil(stroke.spec));
 }
