@@ -779,3 +779,13 @@ export function britishSoldier(random = Math.random, style = 'flintlock', rank =
   const soldier = { ...base, sex: 'male', name, style, outfit: { kind: 'lineInfantry', design: sepoy ? 5 : Math.floor(random() * 2) }, accessories: [], look };
   return builtLike(soldier, sepoy ? PERIOD_BUILD.madras.sepoy : PERIOD_BUILD.british1841[rank], random);
 }
+
+/**
+ * The Qing side's general at Canton and Sanyuanli: a banner officer in the Eight Banners' studded coat (bannerman), who
+ * leads (`leads`: physics.js raiseStandards, the side's general: ai.js keepGenerals; his fall felt by his men, generalFear)
+ * and goes in at the head of the charge (`charging`).
+ */
+export function qingGeneral(random = Math.random, style = 'dao') {
+  const officer = bannerman(random, style, 'banner', { design: 0 });
+  return { ...officer, name: pickOne(['Asitan', 'Duolong', 'Fulehe', 'Haiying', 'Kesingge', 'Nayanbao'], random), leads: true, charging: 2.5 };
+}

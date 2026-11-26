@@ -184,8 +184,9 @@ export const FLINTLOCK = {
   recoil: 12,
   spread: ballGunSpread(FLINTLOCK_LOAD),
   misfire: 0.1,
-  // The flint strikes its spark, but on a wet pan and a damp charge (rainMisfire, as the matchlock's): about two pulls in three fail.
-  rainMisfire: 0.65,
+  // The flint strikes its spark, but on a wet pan and a damp charge (rainMisfire, as the matchlock's): about two pulls in five
+  // fail; the frizzen's cover keeps some pans dry (the user's call, 2026-11-26: the sepoys still fire at Sanyuanli).
+  rainMisfire: 0.4,
   reloadSeconds: 10,
   // A cartridge box of 24-36 rounds (the British soldier's 60 in two boxes in the field): 30.
   ammo: 30,
@@ -216,9 +217,10 @@ export const NIAOCHONG = { ...MATCHLOCK, spread: 0.018, misfire: 0.12 };
  * balls cast loose to go down a fouled barrel; the powder of the Board's mills weak and coarse, its saltpetre short (the
  * British accounts: matchlocks "of rude construction", their powder poor: Ouchterlony, The Chinese War, 1844; Lin Zexu's
  * and Qishan's memorials on the state of the guns, as given in Fay, The Opium War, 1975). Wider than the Ming bird gun
- * (`spread` 0.022, its 0.018) and failing more often (`misfire` 0.15). The make for the Qing's men (WEAPONS.matchlock `makes`).
+ * (`spread` 0.022, its 0.018) and failing more often (`misfire` 0.15); slow to load in a fouled bore by men seldom drilled
+ * at it (`reloadSeconds` 22, the teppō's 15). The make for the Qing's men (WEAPONS.matchlock `makes`).
  */
-export const NIAOQIANG = { ...MATCHLOCK, spread: 0.022, misfire: 0.15 };
+export const NIAOQIANG = { ...MATCHLOCK, spread: 0.022, misfire: 0.15, reloadSeconds: 22 };
 
 /**
  * The san yan chong (三眼銃, "three-eyed gun"): three short iron barrels in

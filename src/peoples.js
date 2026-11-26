@@ -227,7 +227,8 @@ export const PEOPLES = {
     of: 'mingSouth',
     ranks: {
       greenStandard: { weightKg: -9, exercise: -0.3, skill: 0.25 },
-      villager: { weightKg: -3, exercise: 0.15, skill: 0.15, spread: 1.4, ages: [[1, 16, 60]] },
+      // Thin from a poor man's rice (the user's call, 2026-11-26: Sanyuanli a costly win).
+      villager: { weightKg: -8, exercise: -0.05, skill: 0.15, spread: 1.4, ages: [[1, 16, 60]] },
       brave: { heightCm: 1, weightKg: 4, exercise: 0.25, skill: 0.5 },
     },
   },

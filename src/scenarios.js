@@ -10,7 +10,7 @@ import { STYLES } from './moves.js';
 import { SUBWAY_ARENA } from './props/arenasize.js';
 import { pyongyangTownTerrain } from './places/pyongyang.js';
 import { atahualpa, bannerman, conquistadorHorseman, drilledSoldier, englishArcher, englishManAtArms, europeanSoldier, footSoldier, frenchFoot, frenchKnight, pikeman, hanHorseman, hospitaller, incaMan, mingHorseman, mingSoldier, mountedKnight, nobleKnight, ottomanSoldier, rebel, romanHorseman, roninWarrior, samuraiHorseman, sengokuWarrior, swatOfficer, wokouRaider, wokouSamurai, yakuza } from './cast.js';
-import { britishSoldier, qingMan } from './cast.js';
+import { britishSoldier, qingGeneral, qingMan } from './cast.js';
 import { gallicHorseman, gothWarrior, hunRider, infantrySoldier, lateRomanSoldier, parthianRider, republicanLegionary, xiongnuRider } from './cast.js';
 
 // Rome against Han: thirty-five a side (every level's armies are kept to about seventy men in all: the
@@ -1207,14 +1207,24 @@ const CANTON_WEATHER = { fog: [14, 120], sky: 0.8, pale: 0.55, sun: 0.85 };
 // the bayonet until two companies of marines with percussion muskets brought it out (Bingham 1842; Ouchterlony 1844; the
 // villagers' proclamations, as given in Wakeman, Strangers at the Gate, 1966). Here the marines do not come: fourteen
 // sepoys and two of the line in the rain (`rules.rain`: weapons.js `rainMisfire`), close together, holding their ground,
-// against fifty-two villagers with spear, hoe, sword and carrying pole.
+// against forty-three villagers and a banner officer with spear, hoe, sword and carrying pole.
 const SANYUANLI = {
   arena: { halfX: 20, halfZ: 11 },
   british: { sepoy: { flintlock: 14 }, line: { flintlock: 2 } },
-  villagers: { spear: 18, pitchfork: 14, dao: 10, staff: 10 },
+  villagers: { spear: 15, pitchfork: 12, dao: 8, staff: 8 },
   front: { british: 7, villagers: 8 },
 };
 const SANYUANLI_WEATHER = { fog: [5, 50], sky: 0.38, pale: 0.8, sun: 0.2 };
+
+/**
+ * The Qing side with its general (cast.js qingGeneral) among its hand-to-hand men, in the middle of them: the shooters
+ * (in front by the formation's `shootersFront`) left where they are, the general at the middle of the rest.
+ */
+function withGeneral(men, general) {
+  const fighting = men.filter((man) => !STYLES[man.style]?.ranged);
+  const at = men.indexOf(fighting[Math.floor(fighting.length / 2)]);
+  return [...men.slice(0, at), general, ...men.slice(at)];
+}
 
 /** Gough's men at Canton or Sanyuanli, the British line first (`styles`: { rank: { style: count } }). */
 function goughsMen(random, ranks) {
@@ -1233,14 +1243,14 @@ const CANTON_LEVEL = {
   climate: 'jiangnan',
   arena: { ...CANTON.arena, camps: false },
   camera: { yaw: -0.5, pitch: 0.42, distance: 20, maxDistance: 27 },
-  roster: { en: 'Fourteen of the British line and four Madras sepoys · thirty-six of the Green Standard: twenty matchlocks, ten spears, six swords', zh: '英军线列步兵十四人、马德拉斯土兵四人 · 绿营三十六人：鸟枪二十、长矛十、腰刀六' },
+  roster: { en: 'Fourteen of the British line and four Madras sepoys · a banner officer and thirty-six of the Green Standard: twenty matchlocks, ten spears, six swords', zh: '英军线列步兵十四人、马德拉斯土兵四人 · 八旗军官一名、绿营三十六人：鸟枪二十、长矛十、腰刀六' },
   formation: {
     red: { front: CANTON.front.british, spacing: 0.8, rowSpacing: 1.0, perRow: 9, loose: 0.06, drill: ADVANCE_HOLDING_FIRE },
     blue: { front: CANTON.front.qing, spacing: 1.2, rowSpacing: 1.5, shootersFront: SHOOTERS_FRONT_GAP, perRow: 12, loose: 0.4, drill: HOLD_AT_WILL },
   },
   cast: (random) => ({
     red: goughsMen(random, CANTON.british),
-    blue: Object.entries(CANTON.qing).flatMap(([rank, styles]) => company(styles, (style) => qingMan(random, style, rank))),
+    blue: withGeneral(Object.entries(CANTON.qing).flatMap(([rank, styles]) => company(styles, (style) => qingMan(random, style, rank))), qingGeneral(random)),
   }),
   armies: { red: ['british1841'], blue: ['qing1841'] },
   fighters: [],
@@ -1250,8 +1260,8 @@ const SANYUANLI_LEVEL = {
   title: 'Sanyuanli',
   place: 'Sanyuanli, north of Canton · 30 May 1841',
   blurb: {
-    en: "The British on the heights have dug into the villagers' family graves and plundered their villages. The gong has gone round a hundred and three of them, and the men have come out under the temple's banner with spears, hoes, swords and carrying poles. A storm breaks over the paddies. Fourteen sepoys of the 37th Madras Native Infantry and two of the line are cut off in it, and close up together. Their powder is wet: most of their muskets will not fire. Fifty-two villagers come on through the rain.\nIn 1841 two companies of marines with percussion muskets came and brought the sepoys out. Not here.",
-    zh: "高地上的英军掘了乡民的祖坟，又抢了村子。铜锣传遍一百零三乡，各乡男丁聚到古庙的旗下，拿着长矛、锄头、刀和扁担出来。水田上空下起暴雨。马德拉斯第三十七土著步兵团的土兵十四人、英军两人被困在雨里，挤成一团。他们的火药湿了：多半的枪打不响。五十二个乡民冒雨围了上来。\n一八四一年，两连带着火帽枪的英国海军陆战队赶来，把这队土兵接了出去。这里没有。",
+    en: "The British on the heights have dug into the villagers' family graves and plundered their villages. The gong has gone round a hundred and three of them, and the men have come out under the temple's banner with spears, hoes, swords and carrying poles. A storm breaks over the paddies. Fourteen sepoys of the 37th Madras Native Infantry and two of the line are cut off in it, and close up together. Their powder is wet: most of their muskets will not fire. Forty-four villagers come on through the rain.\nIn 1841 two companies of marines with percussion muskets came and brought the sepoys out. Not here.",
+    zh: "高地上的英军掘了乡民的祖坟，又抢了村子。铜锣传遍一百零三乡，各乡男丁聚到古庙的旗下，拿着长矛、锄头、刀和扁担出来。水田上空下起暴雨。马德拉斯第三十七土著步兵团的土兵十四人、英军两人被困在雨里，挤成一团。他们的火药湿了：多半的枪打不响。四十四个乡民冒雨围了上来。\n一八四一年，两连带着火帽枪的英国海军陆战队赶来，把这队土兵接了出去。这里没有。",
   },
   scene: 'sengoku',
   weather: SANYUANLI_WEATHER,
@@ -1259,14 +1269,14 @@ const SANYUANLI_LEVEL = {
   rules: { rain: true },
   arena: { ...SANYUANLI.arena, camps: false },
   camera: { yaw: -0.5, pitch: 0.42, distance: 18, maxDistance: 25 },
-  roster: { en: 'Fourteen Madras sepoys and two of the British line, in the rain · fifty-two villagers: spears, hoes, swords and carrying poles', zh: '马德拉斯土兵十四人、英军线列步兵两人，困于雨中 · 乡民五十二人：长矛、锄头、刀、扁担' },
+  roster: { en: 'Fourteen Madras sepoys and two of the British line, in the rain · a banner officer and forty-three villagers: spears, hoes, swords and carrying poles', zh: '马德拉斯土兵十四人、英军线列步兵两人，困于雨中 · 八旗军官一名、乡民四十三人：长矛、锄头、刀、扁担' },
   formation: {
     red: { front: SANYUANLI.front.british, spacing: 0.75, rowSpacing: 0.9, perRow: 4, loose: 0.05, drill: HOLD_GROUND },
     blue: { front: SANYUANLI.front.villagers, spacing: 1.1, rowSpacing: 1.3, perRow: 13, loose: 0.6 },
   },
   cast: (random) => ({
     red: goughsMen(random, SANYUANLI.british),
-    blue: company(SANYUANLI.villagers, (style) => qingMan(random, style, 'villager')),
+    blue: withGeneral(company(SANYUANLI.villagers, (style) => qingMan(random, style, 'villager')), qingGeneral(random)),
   }),
   armies: { red: ['british1841'], blue: ['qing1841'] },
   fighters: [],
