@@ -299,7 +299,8 @@ test('pyongyang: each district\'s skyline is drawn from its plan, finite and far
     const alone = tkgBuilder();
     tkSkyline(alone, { houses });
     const each = finiteTriangles(alone, `${id}'s houses`) / houses.length;
-    assert.ok(each < 40, `${id}: ${each.toFixed(0)} triangles a house in its skyline`);
+    // (Its roof the full drawing's own profile cut coarse, its walls a box: against some 9,000 in full.)
+    assert.ok(each < 250, `${id}: ${each.toFixed(0)} triangles a house in its skyline`);
   }
 });
 

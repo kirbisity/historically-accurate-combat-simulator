@@ -1,68 +1,186 @@
 // The town kit's skyline: a part of a town drawn as what shows of it over a wall or down a street from a district
 // away, made from the same plan items its full drawing is made from (build.js, hanok.js, works.js descriptions), so
 // that the two always agree. At street eye height a town wall or a yard wall hides everything but the roofs, the
-// halls' and the pavilions' upper storeys, the towers and the trees; from a wall's walk the nearest of those stand 40 m
-// and more off. So each house is one roof mass on a wall box (its eave line and ridge, no tiles, rafters or bays),
-// a hall or a pavilion its terrace, its storeys as boxes and a roof mass over each, a pagoda its stacked bodies, a
-// yard wall a strip of its height, a town wall a strip of its height with its parapet's merlons, a tree a cone (a
-// pine) or an egg of an oak's dead leaves (a bare tree is seen through, and left out). Some 20 to 30 triangles a house against the
-// full drawing's 400 to 900. Everything is laid at the 'all' level: a skyline has no finer detail to switch.
+// halls' and the pavilions' upper storeys, the towers and the trees; from 30 to 40 m on, a roof's tile rolls, the
+// rafters, the lattice and the brackets are a pixel or less. So each roof is the full drawing's own roof (geo.js
+// tkgRoofSlopes: the same hollow slope, the same eaves turning up at the corners, the same hip-and-gable) cut into a
+// few strips instead of a strip every two tile rows, with its ridge, its hips and its gables; a house its walls under
+// it as a box, its front the dark of its bays; a hall or a pavilion its terrace, its red columns, its beams, the dark
+// of its lattice, a skirt roof round every storey but the last; a gate tower its stone block, arch and parapet as
+// the full drawing lays them (they are few), its pavilion as a pavilion is; a yard wall the full drawing's own (some
+// fifty triangles); a town wall a strip of its height with its parapet's merlons; a tree the full drawing's own tree
+// (build.js tkTree, the same seed, so the same boughs and the same sprays of needles under their snow), its limbs
+// with fewer sides (`lean`). Some 100 to 150 triangles a house against the full drawing's 9,000, its colours its
+// own (the plan's tints, the kit's finishes and sheets). Everything is laid at the 'all' level: a skyline has no finer
+// detail to switch.
 
-import { tkgFrame } from './geo.js';
-import { TK_HOUSE } from './build.js';
+import { tkgFrame, tkgRoofSlopes } from './geo.js';
+import { TK_HOUSE, tkTree, tkYardWall } from './build.js';
 import { TK_HANOK } from './hanok.js';
-import { TK_WORKS } from './works.js';
+import { TK_WORKS, tkGatehouse } from './works.js';
+import { tkRandom } from './tex.js';
 
 /**
- * The skyline's make (m; colours multiply the kit's sheets): `pitch` a tiled roof's rise over its run (the houses'
- * own, TK_HOUSE.pitch); `hall` a hall's or a pavilion's roof: its overhang and its pitch (steeper than a house's, as
- * the full drawing's tkPavilion roofs are), `skirt` the skirt roof's rise between two storeys; `core` how far a
- * pavilion's open storey is drawn in from its columns' line (its columns read as a dark mass behind the eaves); the
- * colours of a tiled roof, a house's wall, a pavilion's timber, thatch (TK_HANOK.thatch), stone; trees: a pine's
- * needles, an oak's dead leaves (the far woods' colours, places/pyongyang.js PY_WOODS), a
- * crown's share of the tree's height and its width over its height (an oak's thinner crown `oakShare` of that). By eye against the full drawing seen from 40 m
- * and more.
+ * The skyline's make (m; colours multiply the kit's sheets): `strips` how many strips a slope's straight run between
+ * its turned-up corners is cut into (its hollow is across it, not along: one), and `rows` down a hollow slope (2: its
+ * hollow reads, against the full drawing's 5);
+ * a pavilion's `column` sides (4: a column is a few pixels across from 30 m); the colours of a house's wall, its front
+ * (the dark of its bays: lattice, doors and the rooms behind them, about the full drawing's mean seen from 30 m), a
+ * pavilion's timber, stone; thatch (TK_HANOK.thatch). By eye against the full drawing seen from 30 m and more.
  */
 export const TK_SKYLINE = {
-  pitch: TK_HOUSE.pitch,
-  hall: { overhang: 1.5, pitch: 0.6 },
-  skirt: 0.9,
-  core: 0.3,
-  tile: [0.6, 0.62, 0.64], wall: TK_HOUSE.plaster, timber: [0.36, 0.2, 0.15], thatch: TK_HANOK.thatch.colour, stone: TK_WORKS.stone,
-  trees: { pine: [0.2, 0.27, 0.19], oak: [0.66, 0.5, 0.28], crown: 0.62, wide: 0.32, oakShare: 0.75 },
+  strips: 1,
+  rows: 2,
+  column: 4,
+  wall: TK_HOUSE.plaster, front: 0.42, timber: [0.36, 0.2, 0.15], thatch: TK_HANOK.thatch.colour, stone: TK_WORKS.stone,
 };
 
 const tksScale = (colour, by) => colour.map((value) => value * by);
+const tksSub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+const tksCross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+const tksUnit = (a) => {
+  const length = Math.hypot(a[0], a[1], a[2]) || 1;
+  return [a[0] / length, a[1] / length, a[2] / length];
+};
 
 /**
- * A roof mass in `frame` (local +z its front, its eave's middle at local y `eave`): `wide` along x by `deep` along z
- * at the eave (the overhang taken in), its ridge `rise` over the eave. `kind` 'gable' carries the ridge to the ends
- * (upright gable ends in `endMaterial`); else it is hipped. Closed underneath, so that no slope is seen from inside.
+ * A tiled roof (tkgRoof's spec: kind, width, depth, eave, rise, overhang, verge, sag, lift, liftRun, breakAt, inner,
+ * tint, tiles, ridge, gableMaterial, gableColour) in `frame`, cut coarse: each slope in strips broken where it turns
+ * (its hips, the run of each turned-up corner, halved) and rows down its hollow (TK_SKYLINE), lit by the slope's own
+ * curve; the underside of its eaves; its ridge with its ends turned up, its hips; a hip-and-gable's gables.
  */
-export function tkSkylineRoof(builder, frame, { wide, deep, eave, rise, kind = 'hip', material = 'rooftile', colour = TK_SKYLINE.tile, endMaterial = 'plaster', endColour = TK_SKYLINE.wall }) {
-  const [w, d] = [wide / 2, deep / 2];
-  const ridge = kind === 'gable' ? w : Math.max(0, w - d);
-  const [a, b, c, e] = [frame(-w, eave, d), frame(w, eave, d), frame(w, eave, -d), frame(-w, eave, -d)];
-  const [r1, r2] = [frame(-ridge, eave + rise, 0), frame(ridge, eave + rise, 0)];
-  builder.quad(material, a, b, r2, r1, { colour });
-  builder.quad(material, c, e, r1, r2, { colour });
-  const [endM, endC] = kind === 'gable' ? [endMaterial, endColour] : [material, colour];
-  builder.tri(endM, b, c, r2, [[0, 0], [deep, 0], [d, rise]], endC);
-  builder.tri(endM, e, a, r1, [[0, 0], [deep, 0], [d, rise]], endC);
-  builder.quad(material, a, e, c, b, { colour: tksScale(colour, 0.45) });
+export function tkSkylineRoof(builder, frame, spec) {
+  const s = TK_SKYLINE;
+  const { tint = [1, 1, 1], tiles = 'rooftile', timber = [0.3, 0.22, 0.17], ridge = {} } = spec;
+  const slopes = tkgRoofSlopes(spec);
+  const world = (p) => frame(p[0], p[1], p[2]);
+  const turned = (normal) => tksUnit(tksSub(frame(normal[0], normal[1], normal[2]), frame(0, 0, 0)));
+  const rows = spec.sag || spec.lift ? s.rows : 1;
+  const liftRun = spec.liftRun ?? 2.5;
+  for (const [index, slope] of slopes.entries()) {
+    // (A hipped roof's end slopes, short and steep under the hips: one row, broken only at the gable's knee and the
+    // turned-up corners.)
+    const end = index >= 2;
+    const normalAt = (u, v) => {
+      const e = 0.01;
+      const along = tksSub(slope.point(u + e, v), slope.point(u - e, v));
+      const down = tksSub(slope.point(u, Math.min(1, v + e)), slope.point(u, Math.max(0, v - e)));
+      const normal = tksUnit(tksCross(down, along));
+      return normal[1] < 0 ? normal.map((value) => -value) : normal;
+    };
+    // Where the slope turns along its eave: its ends, where each hip (or the gable's knee) begins, the turned-up
+    // corners' runs (and halfway along them), and the straight run between in `strips`.
+    const half = slope.half;
+    const breaks = new Set([-half, half]);
+    for (let k = 1; k < s.strips; k += 1) breaks.add(-half + (2 * half * k) / s.strips);
+    if (spec.lift) for (const sign of [-1, 1]) for (const share of end ? [0.5] : [1, 0.5]) breaks.add(sign * (half - liftRun * share));
+    for (let k = 0; k <= 40; k += 1) {
+      // (A hip's start: where `start(u)` stops being flat, found by stepping along the eave.)
+      const u0 = -half + (2 * half * k) / 40;
+      const u1 = -half + (2 * half * (k + 1)) / 40;
+      if (k < 40 && (slope.start(u0) === 0 || slope.start(u0) === slope.from) !== (slope.start(u1) === 0 || slope.start(u1) === slope.from)) breaks.add(slope.start(u0) === 0 || slope.start(u0) === slope.from ? u0 : u1);
+    }
+    const us = [...breaks].filter((u) => u >= -half && u <= half).sort((a, b) => a - b).filter((u, i, list) => i === 0 || u - list[i - 1] > 0.05);
+    const tuck = Math.min(slope.run * (1 - slope.from) - 0.02, (spec.overhang ?? 0.6) + 0.35);
+    const vIn = 1 - tuck / slope.run;
+    const board = timber.map((value) => value * 0.8);
+    for (let k = 0; k + 1 < us.length; k += 1) {
+      const [ua, ub] = [us[k], us[k + 1]];
+      const va0 = Math.min(1, slope.start(ua));
+      const vb0 = Math.min(1, slope.start(ub));
+      if (va0 >= 1 && vb0 >= 1) continue;
+      const cut = end ? 1 : rows;
+      for (let r = 0; r < cut; r += 1) {
+        const va = [va0 + ((1 - va0) * r) / cut, va0 + ((1 - va0) * (r + 1)) / cut];
+        const vb = [vb0 + ((1 - vb0) * r) / cut, vb0 + ((1 - vb0) * (r + 1)) / cut];
+        const corners = [[ua, va[1]], [ub, vb[1]], [ub, vb[0]], [ua, va[0]]];
+        const points = corners.map(([u, v]) => world(slope.point(u, v)));
+        const normals = corners.map(([u, v]) => turned(normalAt(u, v)));
+        const uvs = corners.map(([u, v]) => [u + half, (1 - v) * slope.length]);
+        const order = tksCross(tksSub(points[1], points[0]), tksSub(points[3], points[0]))[1] >= 0 ? [0, 1, 2, 3] : [1, 0, 3, 2];
+        builder.quad(tiles, ...order.map((index) => points[index]), { uvs: order.map((index) => uvs[index]), colour: tint, normals: order.map((index) => normals[index]) });
+      }
+      // The underside of the eave: its boards, back to the wall plate, dark (tkgRoof's soffit).
+      if (slope.start(ua) > vIn && slope.start(ub) > vIn) continue;
+      const under = (u, v) => world(slope.point(u, v)).map((value, axis) => (axis === 1 ? value - 0.07 : value));
+      const corners = [under(ua, 1), under(ub, 1), under(ub, Math.max(vIn, slope.start(ub))), under(ua, Math.max(vIn, slope.start(ua)))];
+      const order = tksCross(tksSub(corners[1], corners[0]), tksSub(corners[3], corners[0]))[1] <= 0 ? [0, 1, 2, 3] : [1, 0, 3, 2];
+      builder.quad('timber', ...order.map((index) => corners[index]), { uvs: order.map((index) => [[0, ua], [0, ub], [tuck, ub], [tuck, ua]][index]), colour: board.map((value) => value * 0.8) });
+    }
+  }
+  // The ridge, its ends turned up (tkgRoof's: the same figures); the hips; a hip-and-gable's gables.
+  const ridgeSpec = { high: 0.24, wide: 0.2, lift: 0.18, material: tiles, colour: tint.map((value) => value * 0.85), ...ridge };
+  const top = spec.eave + spec.rise;
+  if (slopes.ridge > 0) {
+    const line = [-1, -0.75, 0.75, 1].map((t) => world([t * slopes.ridge, top - 0.02 + ridgeSpec.lift * Math.abs(t) ** 4, 0]));
+    builder.sweep(ridgeSpec.material, line, ridgeSpec.wide, ridgeSpec.high, { colour: ridgeSpec.colour, under: false });
+  }
+  if (slopes.kind === 'hip' || slopes.kind === 'hipgable') {
+    // (Each hip from where it leaves the ridge, or the gable's knee, to its eave corner, on the front and back slopes.)
+    for (const slope of slopes.slice(0, 2)) {
+      for (const sign of [-1, 1]) {
+        const u1 = sign * slope.half;
+        let u0 = u1;
+        while (Math.abs(u0) > 0 && slope.start(u0 - sign * 0.05) > 0) u0 -= sign * 0.05;
+        const line = [u0, u1].map((u) => world(slope.point(u, Math.min(1, slope.start(u)))));
+        builder.sweep(ridgeSpec.material, line, ridgeSpec.wide * 0.85, ridgeSpec.high * 0.8, { colour: ridgeSpec.colour, sink: 0.02, under: false });
+      }
+    }
+  }
+  if (slopes.gable) {
+    const { half, knee } = slopes.gable;
+    const profile = [0, 0.5, 1].map((t) => slopes[0].point(0, knee * t));
+    const low = profile[2][1];
+    for (const sx of [-1, 1]) {
+      for (const sz of [-1, 1]) {
+        for (let k = 0; k < 2; k += 1) {
+          const a = [sx * half, profile[k][1], sz * profile[k][2]];
+          const b = [sx * half, profile[k + 1][1], sz * profile[k + 1][2]];
+          const corners = [[sx * half, low, a[2]], [sx * half, low, b[2]], b, a].map(world);
+          const order = sx * sz > 0 ? [1, 0, 3, 2] : [0, 1, 2, 3];
+          builder.quad(spec.gableMaterial ?? 'plaster', ...order.map((index) => corners[index]), { uvs: order.map((index) => [[a[2], low], [b[2], low], [b[2], b[1]], [a[2], a[1]]][index]), colour: spec.gableColour ?? [1, 1, 1] });
+        }
+      }
+    }
+  }
 }
 
-/** A house (tkHouse's or tkThatch's spec, `kind` 'thatch' for a cottage) as its wall box and its roof mass. */
+/**
+ * A house (tkHouse's or tkThatch's spec, `kind` 'thatch' for a cottage) as its walls and its roof: the roof tkHouse
+ * (tkThatch) lays, with the same defaults, tints and draws of its seeded tones; the walls a box to the eave, its
+ * front the dark of its bays, the gables of a gabled roof under its line.
+ */
 export function tkSkylineHouse(builder, house) {
   const s = TK_SKYLINE;
   const frame = tkgFrame(house.at[0], house.base ?? 0, house.at[1], house.yaw ?? 0);
   const thatch = house.kind === 'thatch';
-  const eave = thatch ? house.heights?.[0] ?? 2.35 : (house.heights?.[0] ?? TK_HOUSE.storeys[0]) + ((house.storeys ?? 1) > 1 ? house.heights?.[1] ?? TK_HOUSE.storeys[1] : 0);
-  const overhang = thatch ? TK_HANOK.thatch.overhang : house.roof?.overhang ?? TK_HOUSE.overhang;
-  const rise = thatch ? house.depth * 0.42 : house.roof?.rise ?? (house.depth / 2 + overhang) * s.pitch;
-  builder.box('plaster', frame, -house.width / 2, house.width / 2, -0.3, eave, -house.depth / 2, house.depth / 2, { colour: s.wall, skip: 'bottom top' });
-  const kind = thatch || house.roof?.kind !== 'gable' ? 'hip' : 'gable';
-  tkSkylineRoof(builder, frame, { wide: house.width + 2 * overhang, deep: house.depth + 2 * overhang, eave, rise, kind, material: thatch ? 'earth' : 'rooftile', colour: thatch ? s.thatch : house.roof?.tint ?? s.tile });
+  const storeys = thatch ? 1 : house.storeys ?? 2;
+  const h0 = house.heights?.[0] ?? (thatch ? 2.35 : TK_HOUSE.storeys[0]);
+  const eave = storeys > 1 ? h0 + (house.heights?.[1] ?? TK_HOUSE.storeys[1]) : h0;
+  const [w, d] = [house.width, house.depth];
+  // (tkHouse's tones, drawn in its order from its own seed: the timber, the paint, the tiles; tkThatch's straw.)
+  const random = tkRandom((house.seed ?? 1) * 7919 + 13);
+  const timber = tksScale(house.timber ?? TK_HOUSE.timber, 0.85 + 0.3 * random());
+  const paint = tksScale(TK_HOUSE[house.wall ?? 'plaster'] ?? TK_HOUSE.plaster, 0.9 + 0.1 * random());
+  const tile = tksScale(TK_HOUSE.tile, 0.85 + 0.25 * random());
+  const t = TK_HANOK.thatch;
+  const straw = tkRandom((house.seed ?? 1) * 613 + 7);
+  const roof = thatch
+    ? { kind: 'hip', tiles: 'earth', tint: tksScale(t.colour, 0.85 + 0.25 * straw()), sag: t.swell, overhang: t.overhang, verge: 0.3, rise: d * 0.42, ridge: { high: 0.22, wide: 0.5, lift: 0, material: 'earth' }, ...house.roof }
+    : { kind: 'gable', overhang: TK_HOUSE.overhang, sag: TK_HOUSE.sag, verge: house.firewall ? 0 : 0.22, tint: tile, timber, ...house.roof };
+  const wall = house.wall ?? 'plaster';
+  // The walls: the back and the ends in their paint, the front the dark of its bays (lattice, doors, rooms behind).
+  builder.box(wall, frame, -w / 2, w / 2, -0.3, eave, -d / 2, d / 2, { colour: paint, skip: 'bottom top front' });
+  builder.upright('timber', frame, [-w / 2, d / 2], [w / 2, d / 2], -0.3, eave, { colour: tksScale(timber, s.front) });
+  const rise = roof.rise ?? (d / 2 + roof.overhang) * TK_HOUSE.pitch;
+  if (roof.kind === 'gable') {
+    for (const side of [-1, 1]) {
+      const end = frame.child((side * w) / 2, 0, 0, (side * Math.PI) / 2);
+      const peak = eave + rise - 0.1;
+      builder.tri(wall, end(-d / 2, eave, 0), end(d / 2, eave, 0), end(0, peak, 0), [[0, 0], [d, 0], [d / 2, rise]], paint);
+    }
+  }
+  tkSkylineRoof(builder, frame, { ...roof, width: w, depth: d, eave, rise, ridge: { lift: house.firewall ? 0 : 0.14, ...roof.ridge } });
 }
 
 /** A terrace (tkTerrace's: width, depth, high, in `frame` at its foot) as a box of its stone. */
@@ -70,50 +188,66 @@ function tksTerrace(builder, frame, width, depth, high) {
   if (high > 0.05) builder.box('ashlar', frame, -width / 2, width / 2, -0.3, high, -depth / 2, depth / 2, { colour: TK_HANOK.granite, skip: 'bottom' });
 }
 
-/** A hall (tkHall's spec: at, yaw, base, width, depth, high, terrace, apron) as its terrace, its body and its roof. */
-export function tkSkylineHall(builder, hall) {
-  const s = TK_SKYLINE;
-  const frame = tkgFrame(hall.at[0], hall.base ?? 0, hall.at[1], hall.yaw ?? 0);
-  const [terrace, apron, high] = [hall.terrace ?? 0.9, hall.apron ?? 1.6, hall.high ?? 3.4];
-  tksTerrace(builder, frame, hall.width + 2 * apron, hall.depth + 2 * apron, terrace);
-  const body = frame.child(0, terrace, 0);
-  builder.box('timber', body, -hall.width / 2, hall.width / 2, 0, high, -hall.depth / 2, hall.depth / 2, { colour: s.timber, skip: 'bottom top' });
-  const o = s.hall.overhang;
-  tkSkylineRoof(builder, body, { wide: hall.width + 2 * o, deep: hall.depth + 2 * o, eave: high, rise: (hall.depth / 2 + o) * s.hall.pitch, colour: hall.tint ?? s.tile });
-}
-
 /**
- * A pavilion in storeys (tkPavilion's `storeys`) in `frame` at its floor: each storey a dark core box under the one
- * above, a skirt roof round every storey but the last, the last a roof mass. Returns its top's local height.
+ * A pavilion in storeys (tkPavilion's spec: storeys, bay, column, paint, tint, overhang, lift) in `frame` at its
+ * floor, as tkPavilion lays it, coarse: each storey's columns where its columns stand (TK_SKYLINE.column sides), its
+ * beams round the columns' heads, the dark of its lattice where it is filled, a skirt roof and the floor of the storey
+ * above round every storey but the last, the last's hip-and-gable roof. Returns its top's local height.
  */
-export function tkSkylinePavilion(builder, frame, storeys, tint = TK_SKYLINE.tile) {
-  const s = TK_SKYLINE;
-  const o = s.hall.overhang;
+export function tkSkylinePavilion(builder, frame, { storeys, bay = 2.7, column = 0.19, paint = TK_WORKS.paint, tint = [0.74, 0.76, 0.78], overhang = 1.5, lift = 0.5 }) {
   let y = 0;
   storeys.forEach((storey, index) => {
-    const [w, d] = [storey.width / 2 - s.core, storey.depth / 2 - s.core];
-    builder.box('timber', frame, -w, w, y, y + storey.high, -d, d, { colour: s.timber, skip: 'bottom top' });
-    const last = index === storeys.length - 1;
-    tkSkylineRoof(builder, frame, { wide: storey.width + 2 * o, deep: storey.depth + 2 * o, eave: y + storey.high, rise: last ? (storey.depth / 2 + o) * s.hall.pitch : s.skirt, colour: tint });
-    y += storey.high;
+    const { width: w, depth: d, high, fill = 'open' } = storey;
+    const above = storeys[index + 1];
+    const head = y + high;
+    const [nx, nz] = [Math.max(1, Math.round(w / bay)), Math.max(1, Math.round(d / bay))];
+    const posts = [];
+    for (let i = 0; i <= nx; i += 1) posts.push([-w / 2 + (w * i) / nx, d / 2], [-w / 2 + (w * i) / nx, -d / 2]);
+    for (let k = 1; k < nz; k += 1) posts.push([w / 2, -d / 2 + (d * k) / nz], [-w / 2, -d / 2 + (d * k) / nz]);
+    for (const [px, pz] of posts) builder.round('timber', frame, px, pz, y, head - 0.28, column, column * 0.88, { sides: TK_SKYLINE.column, colour: paint.column, caps: '' });
+    builder.box('timber', frame, -w / 2 - 0.12, w / 2 + 0.12, head - 0.62, head - 0.1, -d / 2 - 0.12, d / 2 + 0.12, { colour: paint.beam, skip: 'bottom top' });
+    if (fill === 'lattice') builder.box('timber', frame, -w / 2 + 0.05, w / 2 - 0.05, y, head - 0.62, -d / 2 + 0.05, d / 2 - 0.05, { colour: tksScale(paint.column, 0.55), skip: 'bottom top' });
+    if (above) {
+      const rise = (w - above.width) / 2 * 0.5 + 0.35;
+      tkSkylineRoof(builder, frame, { kind: 'skirt', width: w, depth: d, eave: head, rise, overhang, inner: [above.width, above.depth], sag: 0.35, lift, tint, timber: paint.rafter });
+      const up = head + rise;
+      builder.box('timber', frame, -above.width / 2 - 0.2, above.width / 2 + 0.2, up - 0.22, up, -above.depth / 2 - 0.2, above.depth / 2 + 0.2, { colour: paint.rafter, skip: 'bottom top' });
+      y = up;
+    } else {
+      tkSkylineRoof(builder, frame, { kind: 'hipgable', width: w, depth: d, eave: head, rise: (d / 2 + overhang) * 0.72, overhang, sag: 0.42, lift: lift * 1.3, breakAt: 0.5, tint, timber: paint.rafter, ridge: { high: 0.42, wide: 0.3, lift: 0.3 } });
+      y = head;
+    }
   });
   return y;
 }
 
-/** A pavilion on a terrace (tkTerracePavilion's spec: at, yaw, base, storeys, terrace, apron). */
+/** A hall (tkHall's spec: at, yaw, base, width, depth, high, terrace, apron, bay, paint, tint, overhang) as its terrace, its walls and its pavilion. */
+export function tkSkylineHall(builder, hall) {
+  const frame = tkgFrame(hall.at[0], hall.base ?? 0, hall.at[1], hall.yaw ?? 0);
+  const [width, depth, high, terrace, apron] = [hall.width, hall.depth, hall.high ?? 3.4, hall.terrace ?? 0.9, hall.apron ?? 1.6];
+  tksTerrace(builder, frame, width + 2 * apron, depth + 2 * apron, terrace);
+  const body = frame.child(0, terrace, 0);
+  builder.box('plaster', body, -width / 2 + 0.05, width / 2 - 0.05, 0.1, high - 0.62, -depth / 2 + 0.05, depth / 2 - 0.05, { colour: TK_HOUSE.plaster, skip: 'bottom top front' });
+  tkSkylinePavilion(builder, body, { storeys: hall.storeys ?? [{ width, depth, high, fill: 'lattice' }], bay: hall.bay ?? 3.0, paint: hall.paint ?? TK_WORKS.paint, tint: hall.tint ?? [0.62, 0.64, 0.66], overhang: hall.overhang ?? 1.6, lift: 0.55 });
+}
+
+/** A pavilion on a terrace (tkTerracePavilion's spec: at, yaw, base, storeys, terrace, apron, bay, overhang). */
 export function tkSkylineTerracePavilion(builder, p) {
   const frame = tkgFrame(p.at[0], p.base ?? 0, p.at[1], p.yaw ?? 0);
   const [terrace, apron] = [p.terrace ?? 1.0, p.apron ?? 1.2];
   tksTerrace(builder, frame, p.storeys[0].width + 2 * apron, p.storeys[0].depth + 2 * apron, terrace);
-  tkSkylinePavilion(builder, frame.child(0, terrace, 0), p.storeys);
+  tkSkylinePavilion(builder, frame.child(0, terrace, 0), { storeys: p.storeys, bay: p.bay ?? 2.7, overhang: p.overhang ?? 1.5 });
 }
 
-/** A yard wall's run (a, b: [x, z]) `high` m on the ground at `base`, `thick` through, as a strip. */
-export function tkSkylineWall(builder, a, b, { high = TK_HANOK.yard.high, thick = TK_HANOK.yard.thick, base = 0, material = 'plaster', colour = TK_SKYLINE.wall } = {}) {
-  const length = Math.hypot(b[0] - a[0], b[1] - a[1]);
-  if (length < 0.05) return;
-  const frame = tkgFrame(a[0], base, a[1], Math.atan2(-(b[1] - a[1]), b[0] - a[0]));
-  builder.box(material, frame, 0, length, -0.3, high, -thick / 2, thick / 2, { colour, skip: 'bottom' });
+/** A roofed gate (tkRoofedGate's: at, yaw, base; `temple` the temple's larger one) as its posts, its lintel and its hip-and-gable roof. */
+export function tkSkylineRoofedGate(builder, g) {
+  const frame = tkgFrame(g.at[0], g.base ?? 0, g.at[1], g.yaw ?? 0);
+  const { way, high } = g.temple ? { way: 3.4, high: 4.2 } : TK_HANOK.gate;
+  const { post, roof } = TK_HANOK.gate;
+  const timber = [0.36, 0.25, 0.18];
+  for (const sx of [-1, 1]) for (const z of [-0.55, 0.55]) builder.round('timber', frame, sx * (way / 2 + post), z, 0, high, post, post * 0.9, { colour: timber, sides: TK_SKYLINE.column, caps: '' });
+  builder.box('timber', frame, -way / 2 - post * 2, way / 2 + post * 2, high, high + 0.28, -0.75, 0.75, { colour: tksScale(timber, 0.9), skip: 'top' });
+  tkSkylineRoof(builder, frame.child(0, high + 0.28, 0, Math.PI / 2), { kind: 'hipgable', width: 1.9, depth: way + 0.9, eave: 0, rise: roof.rise, overhang: roof.overhang, sag: roof.sag, lift: roof.lift, breakAt: 0.5, tint: [0.62, 0.64, 0.66], timber });
 }
 
 /**
@@ -151,42 +285,30 @@ export function tkSkylinePagoda(builder, x, y, z, { tiers = 5, size = 1.5 } = {}
 }
 
 /**
- * A tree (tkTree's: at world x, y, z, `kind` 'pine' | 'bare' | 'oak', `high`) as a cone of needles (a pine) or an egg
- * of an oak's dead leaves. A bare tree is left out: its twigs are seen through, and as a solid egg it read as a roof.
+ * A gate tower (works.js tkGatehouse's block, as the full drawing lays it: its stone, its arch and passage, its
+ * parapet; it is one of a few) in `frame` with its pavilion of `storeys` on top at `pavilion` (a frame), as a
+ * pavilion is drawn here.
  */
-export function tkSkylineTree(builder, x, y, z, { kind = 'bare', high = 8 } = {}) {
-  const t = TK_SKYLINE.trees;
-  const frame = tkgFrame(0, 0, 0, 0);
-  const crown = high * t.crown;
-  const radius = high * t.wide;
-  if (kind === 'pine') {
-    builder.round('rock', frame, x, z, y + high - crown, y + high, radius, 0.02, { sides: 6, caps: '', colour: t.pine });
-    return;
-  }
-  if (kind !== 'oak') return;
-  const r = radius * t.oakShare;
-  builder.round('rock', frame, x, z, y + high - crown, y + high - crown * 0.5, r * 0.55, r, { sides: 6, caps: '', colour: tksScale(t.oak, 0.86) });
-  builder.round('rock', frame, x, z, y + high - crown * 0.5, y + high, r, r * 0.25, { sides: 6, caps: 'top', colour: t.oak });
+export function tkSkylineGateTower(builder, frame, gate, pavilion, storeys, options = {}) {
+  tkGatehouse(builder, frame, gate);
+  tkSkylinePavilion(builder, pavilion, { storeys, ...options });
 }
 
 /**
  * A part of a town as its skyline (the makers above), into `builder`: `items` the plan's lists as the full drawing
  * takes them, any of { houses, halls, pavilions (on terraces), terraces ({ at, yaw, base, width, depth, high }), walls
- * ({ run, base, high, low }), gates (roofed gates: { at, yaw, base }), pagodas ({ at, y, tiers, size }), trees ({ at, y,
- * kind, high }), ramparts ({ nodes, ...wall }) }.
+ * ({ run, base, high, low, material }: the full drawing's own, build.js tkYardWall), gates (roofed gates: { at, yaw,
+ * base, temple }), pagodas ({ at, y, tiers, size }), trees (build.js tkTree's: { at, y, kind, high, seed, ... } as the
+ * full drawing gives them; drawn `lean`), ramparts ({ nodes, ...wall }) }.
  */
 export function tkSkyline(builder, items) {
   for (const house of items.houses ?? []) tkSkylineHouse(builder, house);
   for (const hall of items.halls ?? []) tkSkylineHall(builder, hall);
   for (const p of items.pavilions ?? []) tkSkylineTerracePavilion(builder, p);
   for (const t of items.terraces ?? []) tksTerrace(builder, tkgFrame(t.at[0], t.base ?? 0, t.at[1], t.yaw ?? 0), t.width, t.depth, t.high);
-  for (const w of items.walls ?? []) tkSkylineWall(builder, w.run[0], w.run[1], { base: w.base, high: w.high, thick: w.low ? 0.5 : TK_HANOK.yard.thick, material: w.material ?? 'plaster', colour: w.low ? TK_SKYLINE.stone : TK_SKYLINE.wall });
-  for (const g of items.gates ?? []) {
-    const frame = tkgFrame(g.at[0], g.base ?? 0, g.at[1], (g.yaw ?? 0) + Math.PI / 2);
-    const { way, high, roof } = TK_HANOK.gate;
-    tkSkylineRoof(builder, frame, { wide: way + 0.9 + 2 * roof.overhang, deep: 1.9 + 2 * roof.overhang * 0.6, eave: high + 0.28, rise: roof.rise });
-  }
+  for (const w of items.walls ?? []) tkYardWall(builder, w.run[0], w.run[1], { material: w.material, high: w.high, base: w.base, thick: w.low ? 0.5 : TK_HANOK.yard.thick });
+  for (const g of items.gates ?? []) tkSkylineRoofedGate(builder, g);
   for (const p of items.pagodas ?? []) tkSkylinePagoda(builder, p.at[0], p.y, p.at[1], p);
-  for (const t of items.trees ?? []) tkSkylineTree(builder, t.at[0], t.y, t.at[1], t);
+  for (const t of items.trees ?? []) tkTree(builder, t.at[0], t.y, t.at[1], { ...t, lean: true });
   for (const r of items.ramparts ?? []) tkSkylineRampart(builder, r.nodes, r);
 }

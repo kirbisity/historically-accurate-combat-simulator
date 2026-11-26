@@ -64,14 +64,25 @@ export const TK_TEX = {
   tuft: { size: 256, metres: 1, relief: 0.02, count: 34, fan: 0.36, wide: 0.02, face: [0.62, 0.6, 0.44], tip: [0.92, 0.9, 0.7] },
 };
 
+/**
+ * The draws of every seeded generator taped and played back (geo.js tkgNearRecorder): while `into` is an array, each
+ * draw's 32 bits are pushed to it as well as returned; while `from` is set, every generator returns its draws instead,
+ * from `at` on, and its own state stands still. A piece of fine detail laid long after the drawing that first laid it
+ * (a town's near detail, built only where the player comes near) then takes the very draws it took then.
+ */
+export const TK_TAPE = { into: null, from: null, at: 0 };
+
 /** A seeded generator, 0..1 (mulberry32). */
 export function tkRandom(seed) {
   let state = seed >>> 0;
   return () => {
+    if (TK_TAPE.from) return TK_TAPE.from[TK_TAPE.at++] / 4294967296;
     state = (state + 0x6d2b79f5) | 0;
     let t = Math.imul(state ^ (state >>> 15), 1 | state);
     t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    const drawn = (t ^ (t >>> 14)) >>> 0;
+    if (TK_TAPE.into) TK_TAPE.into.push(drawn);
+    return drawn / 4294967296;
   };
 }
 
