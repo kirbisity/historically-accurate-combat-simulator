@@ -616,6 +616,30 @@
      "eyeColor": "brown"
     }
    },
+   "martialArtist": {
+    "name": "Chan Wai-keung",
+    "style": "jeetKuneDo",
+    "sex": "male",
+    "heightCm": 172,
+    "frame": "small",
+    "age": 30,
+    "exercise": 0.95,
+    "calories": 3300,
+    "skill": 0.85,
+    "outfit": {
+     "kind": "kungfu",
+     "design": 1
+    },
+    "accessories": [],
+    "look": {
+     "skinTone": "lightTan",
+     "hairStyle": "cleanShort",
+     "hairColor": "#120d0a",
+     "facialHair": "none",
+     "eyeColor": "brown",
+     "faceRegion": "china"
+    }
+   },
    "taekwondo": {
     "name": "Kim Min-jun",
     "style": "taekwondo",
@@ -1448,6 +1472,30 @@
      "hairStyle": "buzz",
      "hairColor": "#120d0a",
      "facialHair": "mustache",
+     "eyeColor": "brown",
+     "faceRegion": "china"
+    }
+   },
+   "guangxiBrave": {
+    "name": "Wei Ah-sheng",
+    "style": "dao",
+    "sex": "male",
+    "heightCm": 169,
+    "frame": "medium",
+    "age": 27,
+    "exercise": 0.75,
+    "calories": 3500,
+    "skill": 0.5,
+    "outfit": {
+     "kind": "greenStandard",
+     "design": 4
+    },
+    "accessories": [],
+    "look": {
+     "skinTone": "tan",
+     "hairStyle": "buzz",
+     "hairColor": "#120d0a",
+     "facialHair": "none",
      "eyeColor": "brown",
      "faceRegion": "china"
     }

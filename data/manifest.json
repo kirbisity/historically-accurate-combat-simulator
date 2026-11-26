@@ -14,8 +14,8 @@
     "THROWABLES",
     "NET"
    ],
-   "bytes": 71678,
-   "sha256": "87baab610c896f19",
+   "bytes": 71758,
+   "sha256": "a18984a2caffd330",
    "nonFinite": 7,
    "omitted": 0,
    "omittedExamples": []
@@ -38,8 +38,8 @@
     "FACTIONS",
     "HEADGEAR"
    ],
-   "bytes": 250382,
-   "sha256": "35731f95eea779db",
+   "bytes": 253346,
+   "sha256": "0611370661088631",
    "nonFinite": 0,
    "omitted": 0,
    "omittedExamples": []
@@ -52,8 +52,8 @@
     "DEFENCES",
     "STRATEGIES"
    ],
-   "bytes": 268888,
-   "sha256": "23a9f3b349c66c01",
+   "bytes": 271538,
+   "sha256": "a7da148c920edb6b",
    "nonFinite": 4,
    "omitted": 0,
    "omittedExamples": []
@@ -67,8 +67,8 @@
     "PARTICLES",
     "SEGMENTS"
    ],
-   "bytes": 55158,
-   "sha256": "9fd3a978f9a2b324",
+   "bytes": 56146,
+   "sha256": "9c70df508b3e6b0c",
    "nonFinite": 0,
    "omitted": 0,
    "omittedExamples": []
@@ -192,8 +192,8 @@
     "CAST",
     "PERIOD_BUILD"
    ],
-   "bytes": 6317,
-   "sha256": "c8ce7c6d4062924d",
+   "bytes": 7064,
+   "sha256": "2d54eddfd31e1e78",
    "nonFinite": 0,
    "omitted": 0,
    "omittedExamples": []
@@ -203,8 +203,8 @@
    "tables": [
     "WARRIORS"
    ],
-   "bytes": 83838,
-   "sha256": "1335d15783786504",
+   "bytes": 85128,
+   "sha256": "dcc371bd724080ee",
    "nonFinite": 0,
    "omitted": 0,
    "omittedExamples": []
@@ -252,10 +252,10 @@
    "tables": [
     "SCENARIOS"
    ],
-   "bytes": 51740,
-   "sha256": "0d59756a6a3a5104",
+   "bytes": 55730,
+   "sha256": "6c0ecd512cdad0f2",
    "nonFinite": 0,
-   "omitted": 25,
+   "omitted": 27,
    "omittedExamples": [
     "SCENARIOS.legion.cast (function)",
     "SCENARIOS.legion.wings.cast (function)",
@@ -266,9 +266,9 @@
     "SCENARIOS.rebellion.wings.cast (function)",
     "SCENARIOS.agincourt.cast (function)",
     "SCENARIOS.cerignola.cast (function)",
-    "SCENARIOS.sekigahara.cast (function)",
-    "SCENARIOS.sekigahara.wings.cast (function)",
-    "SCENARIOS.pyongyang.arena.terrain (getter)"
+    "SCENARIOS.canton.cast (function)",
+    "SCENARIOS.sanyuanli.cast (function)",
+    "SCENARIOS.sekigahara.cast (function)"
    ]
   }
  }

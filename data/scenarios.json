@@ -1298,6 +1298,138 @@
     },
     "fighters": []
    },
+   "canton": {
+    "title": "Canton",
+    "place": "The heights north of Canton · 25 May 1841",
+    "blurb": {
+     "en": "Gough's force has landed up the river and comes up the heights north of the city against its forts. Fourteen of the British line in red and four Madras sepoys walk on in two ranks, their muskets levelled and unfired. Thirty-six of the Green Standard wait on the slope: matchlocks in front, spears and swords behind, thin men on a short ration, many of them smokers of the opium the red coats came to sell. The matchlocks go off at sixty paces. The line does not answer until it is close enough to hit.\nThe city paid six million dollars not to be stormed.",
+     "zh": "郭富的部队溯江登岸，攻上广州城北的高地，直取城外诸炮台。英军线列步兵十四人、马德拉斯土兵四人，分作两列向前，枪口平端，一枪不发。绿营三十六人守在坡上：鸟枪在前，长矛、腰刀在后；都是口粮短少的瘦弱之人，许多人抽的鸦片，正是这些红衣兵来卖的。鸟枪在六十步外就放了。英军的队列一枪不回，直到近得打得中。\n广州城付了六百万元，免于被攻。"
+    },
+    "scene": "sengoku",
+    "weather": {
+     "fog": [
+      14,
+      120
+     ],
+     "sky": 0.8,
+     "pale": 0.55,
+     "sun": 0.85
+    },
+    "climate": "jiangnan",
+    "arena": {
+     "halfX": 22,
+     "halfZ": 11,
+     "camps": false
+    },
+    "camera": {
+     "yaw": -0.5,
+     "pitch": 0.42,
+     "distance": 20,
+     "maxDistance": 27
+    },
+    "roster": {
+     "en": "Fourteen of the British line and four Madras sepoys · thirty-six of the Green Standard: twenty matchlocks, ten spears, six swords",
+     "zh": "英军线列步兵十四人、马德拉斯土兵四人 · 绿营三十六人：鸟枪二十、长矛十、腰刀六"
+    },
+    "formation": {
+     "red": {
+      "front": 15,
+      "spacing": 0.8,
+      "rowSpacing": 1,
+      "perRow": 9,
+      "loose": 0.06,
+      "drill": {
+       "advance": true,
+       "holdFire": true
+      }
+     },
+     "blue": {
+      "front": 6,
+      "spacing": 1.2,
+      "rowSpacing": 1.5,
+      "shootersFront": 4,
+      "perRow": 12,
+      "loose": 0.4,
+      "drill": {
+       "advance": false
+      }
+     }
+    },
+    "armies": {
+     "red": [
+      "british1841"
+     ],
+     "blue": [
+      "qing1841"
+     ]
+    },
+    "fighters": []
+   },
+   "sanyuanli": {
+    "title": "Sanyuanli",
+    "place": "Sanyuanli, north of Canton · 30 May 1841",
+    "blurb": {
+     "en": "The British on the heights have dug into the villagers' family graves and plundered their villages. The gong has gone round a hundred and three of them, and the men have come out under the temple's banner with spears, hoes, swords and carrying poles. A storm breaks over the paddies. Fourteen sepoys of the 37th Madras Native Infantry and two of the line are cut off in it, and close up together. Their powder is wet: most of their muskets will not fire. Fifty-two villagers come on through the rain.\nIn 1841 two companies of marines with percussion muskets came and brought the sepoys out. Not here.",
+     "zh": "高地上的英军掘了乡民的祖坟，又抢了村子。铜锣传遍一百零三乡，各乡男丁聚到古庙的旗下，拿着长矛、锄头、刀和扁担出来。水田上空下起暴雨。马德拉斯第三十七土著步兵团的土兵十四人、英军两人被困在雨里，挤成一团。他们的火药湿了：多半的枪打不响。五十二个乡民冒雨围了上来。\n一八四一年，两连带着火帽枪的英国海军陆战队赶来，把这队土兵接了出去。这里没有。"
+    },
+    "scene": "sengoku",
+    "weather": {
+     "fog": [
+      5,
+      50
+     ],
+     "sky": 0.38,
+     "pale": 0.8,
+     "sun": 0.2
+    },
+    "climate": "jiangnan",
+    "rules": {
+     "rain": true
+    },
+    "arena": {
+     "halfX": 20,
+     "halfZ": 11,
+     "camps": false
+    },
+    "camera": {
+     "yaw": -0.5,
+     "pitch": 0.42,
+     "distance": 18,
+     "maxDistance": 25
+    },
+    "roster": {
+     "en": "Fourteen Madras sepoys and two of the British line, in the rain · fifty-two villagers: spears, hoes, swords and carrying poles",
+     "zh": "马德拉斯土兵十四人、英军线列步兵两人，困于雨中 · 乡民五十二人：长矛、锄头、刀、扁担"
+    },
+    "formation": {
+     "red": {
+      "front": 7,
+      "spacing": 0.75,
+      "rowSpacing": 0.9,
+      "perRow": 4,
+      "loose": 0.05,
+      "drill": {
+       "advance": false
+      }
+     },
+     "blue": {
+      "front": 8,
+      "spacing": 1.1,
+      "rowSpacing": 1.3,
+      "perRow": 13,
+      "loose": 0.6
+     }
+    },
+    "armies": {
+     "red": [
+      "british1841"
+     ],
+     "blue": [
+      "qing1841"
+     ]
+    },
+    "fighters": []
+   },
    "sekigahara": {
     "title": "Sekigahara",
     "place": "Sekigahara, Mino · 21 October 1600",

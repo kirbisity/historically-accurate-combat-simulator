@@ -3034,6 +3034,36 @@
     "line": "Yatagan · Janissary"
    },
    {
+    "key": "martialArtist",
+    "title": "Martial Artist",
+    "inputs": {
+     "name": "Martial Artist",
+     "sex": "male",
+     "heightCm": 172,
+     "frame": "small",
+     "age": 30,
+     "exercise": 0.95,
+     "calories": 3300,
+     "style": "jeetKuneDo",
+     "skill": 0.85,
+     "look": {
+      "skinTone": "lightTan",
+      "hairStyle": "cleanShort",
+      "hairColor": "#120d0a",
+      "facialHair": "none",
+      "eyeColor": "brown",
+      "faceRegion": "china"
+     },
+     "outfit": {
+      "kind": "kungfu",
+      "design": 1
+     },
+     "accessories": []
+    },
+    "faction": "chinese",
+    "line": "Jeet kune do · Kung fu suit"
+   },
+   {
     "key": "mingSpear",
     "title": "Garrison Spearman",
     "inputs": {
@@ -3569,6 +3599,36 @@
     },
     "faction": "knights",
     "line": "Pitchfork · Commoner"
+   },
+   {
+    "key": "guangxiBrave",
+    "title": "Guangxi Brave",
+    "inputs": {
+     "name": "Guangxi Brave",
+     "sex": "male",
+     "heightCm": 169,
+     "frame": "medium",
+     "age": 27,
+     "exercise": 0.75,
+     "calories": 3500,
+     "style": "dao",
+     "skill": 0.5,
+     "look": {
+      "skinTone": "tan",
+      "hairStyle": "buzz",
+      "hairColor": "#120d0a",
+      "facialHair": "none",
+      "eyeColor": "brown",
+      "faceRegion": "china"
+     },
+     "outfit": {
+      "kind": "greenStandard",
+      "design": 4
+     },
+     "accessories": []
+    },
+    "faction": "manchu",
+    "line": "Dao · Green Standard"
    },
    {
     "key": "taichi",

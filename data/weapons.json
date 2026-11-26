@@ -774,6 +774,7 @@
      "spread": 0.01398070098385628,
      "movingSpread": 0.035,
      "misfire": 0.08,
+     "rainMisfire": 0.85,
      "reloadSeconds": 15,
      "ammo": 24
     },
@@ -802,6 +803,7 @@
        "spread": 0.018,
        "movingSpread": 0.035,
        "misfire": 0.12,
+       "rainMisfire": 0.85,
        "reloadSeconds": 15,
        "ammo": 24
       }
@@ -867,6 +869,7 @@
      "spread": 0.013970513130827183,
      "movingSpread": 0.035,
      "misfire": 0.1,
+     "rainMisfire": 0.65,
      "reloadSeconds": 10,
      "ammo": 30
     }

@@ -4845,6 +4845,36 @@
        "kind": "dressShoe",
        "color": "#141414"
       }
+     },
+     {
+      "label": "Madras native infantry",
+      "top": {
+       "kind": "longsleeve",
+       "color": "#a8201e"
+      },
+      "bottom": {
+       "kind": "pants",
+       "color": "#e8e4da",
+       "fallFront": true
+      },
+      "armor": {
+       "kind": "crossbelts",
+       "color": "#a8201e",
+       "cloth": "#a8201e",
+       "cloth2": "#e8d48a",
+       "leather": "#ece8dc",
+       "gold": "#c9a24a"
+      },
+      "head": {
+       "kind": "shako",
+       "color": "#141414",
+       "gold": "#c9a24a",
+       "plume": "#141414"
+      },
+      "feet": {
+       "kind": "dressShoe",
+       "color": "#141414"
+      }
      }
     ]
    },
@@ -4994,6 +5024,90 @@
      }
     ]
    },
+   "cantonVillager": {
+    "skill": 0.15,
+    "faction": "manchu",
+    "label": "Cantonese villager",
+    "movement": "excellent",
+    "fists": "bare",
+    "protection": {
+     "blunt": 0.04,
+     "cut": 0.04,
+     "pierce": 0,
+     "bullet": {
+      "head": 0,
+      "torso": 0,
+      "limb": 0
+     }
+    },
+    "courage": 0.6,
+    "designs": [
+     {
+      "label": "Undyed hemp",
+      "top": {
+       "kind": "flannel",
+       "color": "#b8ad94"
+      },
+      "bottom": {
+       "kind": "pants",
+       "color": "#4a4034"
+      },
+      "head": {
+       "kind": "clothWrap",
+       "color": "#3a3326"
+      },
+      "feet": {
+       "kind": "bare"
+      }
+     },
+     {
+      "label": "Indigo hemp",
+      "top": {
+       "kind": "flannel",
+       "color": "#3e4a5c"
+      },
+      "bottom": {
+       "kind": "pants",
+       "color": "#2f2c28"
+      },
+      "feet": {
+       "kind": "bare"
+      }
+     },
+     {
+      "label": "Brown jacket",
+      "top": {
+       "kind": "tunic",
+       "color": "#5e5648"
+      },
+      "bottom": {
+       "kind": "pants",
+       "color": "#3a3326"
+      },
+      "head": {
+       "kind": "clothWrap",
+       "color": "#ece6d6"
+      },
+      "feet": {
+       "kind": "bare"
+      }
+     },
+     {
+      "label": "Stripped to the waist",
+      "bottom": {
+       "kind": "pants",
+       "color": "#4a4034"
+      },
+      "head": {
+       "kind": "clothWrap",
+       "color": "#3a3326"
+      },
+      "feet": {
+       "kind": "bare"
+      }
+     }
+    ]
+   },
    "greenStandard": {
     "skill": 0.3,
     "faction": "manchu",
@@ -5105,6 +5219,33 @@
        "color": "#1c1c20",
        "cloth": "#1c1c20",
        "cloth2": "#9a1f1a",
+       "lace": "#ece8dc"
+      },
+      "head": {
+       "kind": "qingHat",
+       "color": "#c8a868",
+       "fringe": "#a8161a"
+      },
+      "feet": {
+       "kind": "clothBoot",
+       "color": "#141414"
+      }
+     },
+     {
+      "label": "Guangxi brave",
+      "top": {
+       "kind": "longsleeve",
+       "color": "#d6cbb2"
+      },
+      "bottom": {
+       "kind": "pants",
+       "color": "#1c1b1d"
+      },
+      "armor": {
+       "kind": "qingHaoyi",
+       "color": "#2a2a2e",
+       "cloth": "#2a2a2e",
+       "cloth2": "#c9a23a",
        "lace": "#ece8dc"
       },
       "head": {
@@ -9521,6 +9662,21 @@
       "feet": {
        "kind": "clothBoot",
        "color": "#161616"
+      }
+     },
+     {
+      "label": "Student tunic",
+      "top": {
+       "kind": "flannel",
+       "color": "#121214"
+      },
+      "bottom": {
+       "kind": "pants",
+       "color": "#121214"
+      },
+      "feet": {
+       "kind": "clothBoot",
+       "color": "#0c0c0c"
       }
      }
     ]
