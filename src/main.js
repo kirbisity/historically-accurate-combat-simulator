@@ -33,7 +33,7 @@ import { fightUiWireToggle } from './fightui/toggle.js';
 import { cameraRoom, createFollowCam } from './followcam.js';
 import { createCameraRig } from './camerarig.js';
 import { BONE } from './rig.js';
-import { adaptiveSize, createAdaptiveResolution } from './adaptres.js';
+import { adaptiveSize, createAdaptiveResolution, readDynamicResolution, writeDynamicResolution } from './adaptres.js';
 import { keepDetailLoad, newDetailLoad } from './detailload.js';
 import { sceneryLodOn, sceneryLodStats, setSceneryLod } from './scenerylod.js';
 import { createTapper, createWatchCam, focusOn, frameAll, pickMan, stepAuto, stepFree, zoomBy, zoomLimits } from './watchcam.js';
@@ -1047,8 +1047,10 @@ function setWalking(on) {
 }
 
 let last = performance.now();
-// A battle is drawn at no more than ratio 1.5, and with fewer pixels if it cannot keep up (adaptres.js); a duel waiting on the graphics card down to 1.5, no lower.
+// A battle is drawn at no more than ratio 1.5, and with fewer pixels when the graphics card cannot keep up (adaptres.js: down to half the screen's
+// ratio, a duel to three quarters). On unless turned off in the settings, remembered.
 const resolution = createAdaptiveResolution();
+resolution.set(readDynamicResolution(typeof localStorage === 'undefined' ? null : localStorage));
 // The quality of a stage's picture (levelmode/quality.js): 'auto' (the frame times pick the rung of the ladder: pixels, then tiers), or one held: 'high', 'low'. Remembered.
 let qualityMode = readQuality(typeof localStorage === 'undefined' ? null : localStorage);
 // (A held quality is the town kit's tier too, on a phone as on a desk: the controller only tells it of a change, and a held 'high' never changes.)
@@ -1128,7 +1130,13 @@ function frame(now) {
     if (stageSectionsMissing()) return;
     // (Under the boot screen, while the first frame's programs link: nothing drawn.)
     if (bootScreen && state.world && bootLinking()) return;
-    draw(dt);
+    // (The graphics card's own time for the drawing, where the browser has a timer: the adaptive resolution's measure of the pixels' cost.)
+    resolution.gpuBegin(scene.renderer);
+    try {
+      draw(dt);
+    } finally {
+      resolution.gpuEnd();
+    }
     // The page's boot screen (index.html) away once the first frame is drawn under the menu.
     if (bootScreen && state.world) {
       bootScreen.remove();
@@ -4411,6 +4419,8 @@ const menuGame = {
   hitFeel: { settings: hitFeel.settings, save: () => saveHitFeel(hitFeelStorage, hitFeel.settings) },
   // The picture's quality (levelmode/quality.js), for the settings: the modes, the one held, and holding another.
   quality: { modes: QUALITY_MODES, get: () => qualityMode, set: (mode) => boxer.quality(mode) },
+  // The adaptive resolution (adaptres.js), for the settings: on or off, remembered.
+  dynamicResolution: { get: () => resolution.enabled, set: (on) => boxer.adaptiveResolution(on) },
 };
 const menus = installMenus(menuGame);
 // The sound bench straight from the address (?bench=sound).
@@ -4718,9 +4728,12 @@ const boxer = window.boxer = {
     if (share !== undefined) detailPinned = share;
     return { ...detailLoad, share: state.world.detailShare ?? 1, pinned: detailPinned, on: tableOn(state.world) };
   },
-  // Adaptive resolution (adaptres.js): on or off (off: the full pixel ratio, kept), and what it is doing now; no argument: just that.
+  // Adaptive resolution (adaptres.js): on or off (off: the full pixel ratio, kept; remembered), and what it is doing now; no argument: just that.
   adaptiveResolution: (on) => {
-    if (on !== undefined) resolution.set(on, scene);
+    if (on !== undefined) {
+      resolution.set(on, scene);
+      writeDynamicResolution(typeof localStorage === 'undefined' ? null : localStorage, resolution.enabled);
+    }
     return resolution.info(scene);
   },
   // The open air (env/): put a weather on ('clear', 'cloudy', 'overcast', 'rain', 'mist', 'snow', 'dust'; null: each place's own), or with no
