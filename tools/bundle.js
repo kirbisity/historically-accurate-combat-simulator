@@ -26,7 +26,7 @@ const MODULES = ['i18n/ui-common', 'i18n/ui-menu', 'i18n/ui-fight', 'i18n/ui-bui
   'story/remount', 'story/runner', 'story/scenes/sets', 'story/scenes/finale', 'story/scenes/stage', 'story/storyview', 'story/placemark',
   // The canal town's people (their top level reads the story's sets).
   'townfolk', 'townfolkview',
-  'main'];
+  'sim', 'main'];
 const args = process.argv.slice(2);
 const minify = !args.includes('--no-minify');
 // `--lite`: a smaller page (a test build, under 15 MB with nothing beside it): the heaviest baked pictures left out, each where the

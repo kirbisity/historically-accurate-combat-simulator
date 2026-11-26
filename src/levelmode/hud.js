@@ -45,7 +45,8 @@ const levelElement = (tag, className, html = '') => Object.assign(document.creat
 
 /**
  * Put the level's controls in `root` (the fight's, so they show only while the fight does). `hooks`:
- * world(), active() (a stage run is being played), now() (s), camera() (the scene's, for the pips). Returns { update, reset, toast, destroy }.
+ * world(), active() (a stage run is being played), now() (s), camera() (the scene's, for the pips), act(action) (an item or the
+ * thing at hand used through the simulation's actions, sim.js applyAction: recorded; without it, used directly). Returns { update, reset, toast, destroy }.
  */
 export function installLevelHud(root, hooks) {
   const pill = root.appendChild(levelElement('button', 'lv-context', `${levelIcon('hand')}<span class="lv-label"></span><kbd>E</kbd>`));
@@ -61,7 +62,9 @@ export function installLevelHud(root, hooks) {
     button.addEventListener('pointerdown', (press) => {
       press.preventDefault();
       press.stopPropagation();
-      if (hooks.active()) useItem(hooks.world(), kind);
+      if (!hooks.active()) return;
+      if (hooks.act) hooks.act({ kind: 'item', item: kind });
+      else useItem(hooks.world(), kind);
     });
     return [kind, button];
   }));
@@ -112,7 +115,8 @@ export function installLevelHud(root, hooks) {
     press.stopPropagation();
     if (!hooks.active()) return;
     navigator.vibrate?.(10);
-    interact(hooks.world());
+    if (hooks.act) hooks.act({ kind: 'interact' });
+    else interact(hooks.world());
   });
   for (const kind of ['contextmenu', 'dblclick']) for (const control of [pill, ...Object.values(buttons)]) control.addEventListener(kind, (event) => event.preventDefault());
 
@@ -124,7 +128,9 @@ export function installLevelHud(root, hooks) {
     if (key === LEVEL_HUD.keys.bandage || key === LEVEL_HUD.keys.tonic) {
       event.preventDefault();
       event.stopImmediatePropagation();
-      useItem(world, key === LEVEL_HUD.keys.bandage ? 'bandage' : 'tonic');
+      const item = key === LEVEL_HUD.keys.bandage ? 'bandage' : 'tonic';
+      if (hooks.act) hooks.act({ kind: 'item', item });
+      else useItem(world, item);
     } else if (key === LEVEL_HUD.keys.kit) {
       event.preventDefault();
       event.stopImmediatePropagation();
@@ -133,7 +139,8 @@ export function installLevelHud(root, hooks) {
       // Only with something to do: otherwise E is the parry key as ever.
       event.preventDefault();
       event.stopImmediatePropagation();
-      interact(world);
+      if (hooks.act) hooks.act({ kind: 'interact' });
+      else interact(world);
     }
   };
   window.addEventListener('keydown', onKey, true);

@@ -31,7 +31,8 @@ import { applyScenery, applyScenerySteps } from './scenery.js';
 import { orbitAboveGround } from './watchcam.js';
 import { arenaColosseum, arenaForgetPainted, arenaPaintSteps } from './props/arena.js';
 import { harbourPort } from './props/harbour.js';
-import { SUBWAY_ARENA, subwayPuddleFilm, subwayStation } from './props/subway.js';
+import { subwayPuddleFilm, subwayStation } from './props/subway.js';
+import { PLACE_ARENAS } from './props/arenasize.js';
 import { swayGrass } from './clothwind.js';
 import { coastFarPlaneGuard, coastFort, coastGabions, coastHouses, coastNetRacks, coastPalms, coastPier, coastSampans, coastShip, coastShipMaterials } from './props/coast.js';
 import { buildHarness, buildLionPelt, buildRomanKit, buildScaleShirt, netCord } from './arenaview.js';
@@ -551,48 +552,8 @@ const PLACE_LIGHT = {
   stadium: { background: 0x040509, fog: [12, 46], key: 0xfff8ee, keyIntensity: 1.75, rim: 0x5a78ff },
 };
 
-/** The fighting floor of each sandbox place (half-sizes in x and z). */
-export const PLACE_ARENAS = {
-  // `ring`: a sport's ring, with its ropes and rules (fear runs lower there: ai.js fearTarget).
-  ring: { halfX: WORLD.ringHalf, halfZ: WORLD.ringHalf, ring: true },
-  // (The fought ground within the podium wall's oval of 22 by 13 m, props/arenasize.js: twice what it was when the sand was 10.5 by 7.)
-  colosseum: { halfX: 13, halfZ: 8 },
-  subway: SUBWAY_ARENA,
-  meadow: { halfX: 9, halfZ: 7 },
-  stadium: { halfX: WORLD.ringHalf, halfZ: WORLD.ringHalf, ring: true },
-  town: { halfX: 9, halfZ: 7 },
-  port: { halfX: 10, halfZ: 6 },
-  sengoku: { halfX: 11, halfZ: 7 },
-  plain: { halfX: 12, halfZ: 8 },
-  // Room for horsemen to charge, pass, wheel round and draw a pursuit off (WORLD.mount; a feigned flight wants a long run):
-  // 90 by 60 m inside a rail, the steppe battles' floor (was 60 by 40).
-  field: { halfX: 45, halfZ: 30 },
-  coastFort: { halfX: 12, halfZ: 8 },
-  coastVillage: { halfX: 12, halfZ: 8 },
-  // The square between the shops and the canal: room for the wokou raid's formations.
-  jiangnan: { halfX: 14, halfZ: 9 },
-  // (`own`: one built copy whatever the arena, setPlace.)
-  canaltown: { halfX: 18, halfZ: 9, own: true },
-  // (The wall's stretch that chapter 3 storms: story/battles/03-pyongyang.js PYONGYANG_1593.arena.)
-  pyongyang: { halfX: 135, halfZ: 9, own: true },
-  // (The town's gate square, Battle Mode's Pyongyang: places/pyongyang-city.js PY_TOWN_FIGHT, its wider field.)
-  pyongyangtown: { halfX: 26, halfZ: 15, own: true },
-  // The square of Cajamarca between its long halls (props/cajamarca.js CAJAMARCA_PLAN).
-  cajamarca: { halfX: 16, halfZ: 11 },
-  // The battlefields of 1415 and 1503, their floors as their levels have them (scenarios.js AGINCOURT, CERIGNOLA).
-  agincourt: { halfX: 50, halfZ: 11.5 },
-  cerignola: { halfX: 32, halfZ: 11 },
-  // The Last Gate's field before the castle's gate (lastgate.js LAST_GATE.arena: the same numbers).
-  lastgate: { halfX: 18, halfZ: 10.5 },
-  // The horse-archer battles' plains: the field's room for horsemen to ride round, shoot and wheel (a battle's floor is wider still: scenarios.js).
-  mobei: { halfX: 30, halfZ: 20 },
-  catalaunian: { halfX: 30, halfZ: 20 },
-  carrhae: { halfX: 30, halfZ: 20 },
-  sarhu: { halfX: 30, halfZ: 20 },
-  // A level-mode stage: the terrain is the floor (the box is only a far limit).
-  stage: { halfX: 40, halfZ: 40 },
-  dunnottar: { halfX: 40, halfZ: 40 },
-};
+// (The table lives with the other places' sizes, props/arenasize.js: plain data the simulation's bouts are set up on.)
+export { PLACE_ARENAS } from './props/arenasize.js';
 
 /** The warmers' programs are built for the lights in force by the first frames drawn after they change; the group is drawn only for these. */
 const WARM_FRAMES = 3;

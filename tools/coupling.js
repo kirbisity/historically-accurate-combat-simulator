@@ -107,7 +107,8 @@ export function scan() {
   const resolveFile = (file) => (modules.has(file) ? file : modules.has(`${file}.js`) ? `${file}.js` : null);
   for (const module of modules.values()) module.imports = module.imports.map(resolveFile).filter(Boolean);
   // The sim: what the headless fight reaches (tools/fingerprint.js, tools/tableduel.js and the tests import these).
-  const roots = ['physics.js', 'ai.js', 'scenarios.js', 'tableduel.js', 'ratings.js', 'command.js', 'control.js', 'finisher.js', 'battleend.js', 'battletally.js', 'lastgate.js', 'custombattle.js', 'levelmode/level.js', 'levelmode/stage.js', 'levelmode/awareness.js', 'story/runner.js']
+  // (sim.js: the boundary itself, its commands, actions and recorder.)
+  const roots = ['sim.js', 'physics.js', 'ai.js', 'scenarios.js', 'tableduel.js', 'ratings.js', 'command.js', 'control.js', 'finisher.js', 'battleend.js', 'battletally.js', 'lastgate.js', 'custombattle.js', 'levelmode/level.js', 'levelmode/stage.js', 'levelmode/awareness.js', 'story/runner.js']
     .concat([...modules.values()].filter((module) => /^story\/battles\//.test(module.rel)).map((module) => module.rel))
     .map((rel) => join(SRC, rel)).filter((file) => modules.has(file));
   const sim = new Set();
