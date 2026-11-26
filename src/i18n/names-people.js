@@ -57,6 +57,7 @@ export const NAMES_PEOPLE = {
   'Pte. Joseph Wood': '列兵约瑟夫·伍德',
   'Jean Lefort': '让·勒福尔',
   'Huang Fu': '黄福',
+  'Doppelsöldner': '双饷大剑兵',
   'Ming Spearman': '明军长枪手',
   'Ming Musketeer': '明军鸟铳手',
   'Garrison Crossbowman': '卫所弩手',

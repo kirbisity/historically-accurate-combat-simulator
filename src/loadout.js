@@ -51,6 +51,8 @@ export const KIT_ARMS = {
   templar: { second: ['armingSword', 'dagger', 'flangedMace'], sword: 'armingSword', short: 'dagger', third: ['flangedMace'] },
   // The foot of the 1400s-1500s: the archer's and bill-man's falchion or short sword, a dagger; the arquebusier's sword.
   footman: { second: ['shortSword', 'dagger', 'armingSword'], sword: 'shortSword', short: 'dagger' },
+  // The Landsknecht: his Katzbalger (the short sword's figures) and a dagger at the belt.
+  landsknecht: { second: ['shortSword', 'dagger'], sword: 'shortSword', short: 'dagger' },
   archer: { second: ['shortSword', 'dagger'], sword: 'shortSword', short: 'dagger' },
   forger: { second: ['dagger', 'shortSword'], sword: 'shortSword', short: 'dagger' },
   levy: { second: ['dagger', 'shortSword'], sword: 'shortSword', short: 'dagger' },
@@ -129,6 +131,8 @@ export const KIT_FIRST = {
   tournament: ['lance', 'longsword', 'warhammer'],
   templar: ['templar', 'maceShield', 'longsword', 'lance'],
   footman: ['pike', 'halberd', 'spear', 'crossbow', 'matchlock', 'bow', 'armingBuckler'],
+  // The Landsknecht company: the Doppelsöldner's zweihander and halberd, the long pike, the arquebus.
+  landsknecht: ['zweihander', 'halberd', 'pike', 'matchlock'],
   archer: ['longbow', 'shortSword'],
   forger: ['shortSword', 'dagger'],
   levy: ['spear', 'halberd', 'longbow', 'shortSword'],

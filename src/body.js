@@ -673,6 +673,14 @@ export const PRESETS = {
     outfit: { kind: 'samuraiTosei', design: 1 }, accessories: [],
     look: { skinTone: 'lightTan', hairStyle: 'topknot', hairColor: '#120d0a', facialHair: 'beard', eyeColor: 'brown' },
   },
+  // A Landsknecht Doppelsöldner with the zweihander (weapons.js zweihander, outfits.js landsknecht): the halberdier's build
+  // (the roster's Ulrich Brandt: 172 cm, a working man's frame and fitness), so that the two weapons are the difference between
+  // them; red-brown hair and a full beard, as the reenactor's clips show him.
+  doppelsoeldner: {
+    name: 'Jörg Gruber', style: 'zweihander', sex: 'male', heightCm: 172, frame: 'medium', age: 30, exercise: 0.5, calories: 3050,
+    outfit: { kind: 'landsknecht', design: 0 }, accessories: [],
+    look: { skinTone: 'light', hairStyle: 'cleanShort', hairColor: '#5a3220', facialHair: 'beard', eyeColor: 'blue' },
+  },
   // A street thug with a baseball bat; a riot officer behind his shield.
   bat: {
     name: 'Tony Marchetti', style: 'bat', sex: 'male', heightCm: 180, frame: 'medium', age: 27, exercise: 0.45, calories: 3400,

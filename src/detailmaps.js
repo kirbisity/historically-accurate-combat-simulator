@@ -513,6 +513,9 @@ export const CLOTH_GARMENTS = {
     hauberk: { '*': 'wool', armor: 'none' },
     plate: { '*': 'wool', armor: 'none', pad: 'quiltedFine' },
     conquistador: { '*': 'wool', armor: 'none' },
+    // The Landsknecht's slashed clothes: wool broadcloth, the lining showing through the slits woven alike (one material for
+    // both colours: a slit is a vertex or two wide, and two materials across one face would smear the tile between them).
+    landsknecht: { '*': 'broadcloth', armor: 'none' },
     huque: { '*': 'wool' },
     // The Spaniards' escaupil was the Mexica cotton armour taken up; the same coat in a European's company is his jack
     // (CLOTH_BY_FACTION).
@@ -589,7 +592,7 @@ export const CLOTH_GARMENTS = {
   },
   head: {
     arenaHelm: 'none', ayyubidHelm: 'none', bascinet: 'none', bashlyk: 'felt', beanie: 'rib', bork: 'felt', cabasset: 'none', chichak: 'none',
-    clothWrap: 'cotton', eagleHelm: 'feathers', featherBand: 'feathers', feltHat: 'felt', flower: 'none', furHat: 'fur', galea: 'none',
+    barett: 'felt', clothWrap: 'cotton', eagleHelm: 'feathers', featherBand: 'feathers', feltHat: 'felt', flower: 'none', furHat: 'fur', galea: 'none',
     gorillaHead: 'fur', greatHelm: 'none', guanYuCap: 'cloudSilk', hachimaki: 'cotton', hanHelm: 'none', jaguarHelm: 'pelt', jingasa: 'none',
     kabuto: 'none', katozukin: 'cotton', kettleHat: 'none', lionHead: 'fur', llautu: 'camelid', loovuuz: 'fur', mingHat: 'none',
     mingHelm: 'none', qingHelm: 'none', montefortino: 'none', morion: 'none', opsHelmet: 'cordura', pagodaHelm: 'none', policeCap: 'worsted', potHelmet: 'none',

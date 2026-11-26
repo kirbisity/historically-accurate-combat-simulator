@@ -2224,6 +2224,57 @@ STYLES.pilum = { ...STYLES.crossbow, passive: true, label: 'Pilum', weapon: 'pil
 // The halberdier: the war hammer's two-handed ways (the chop from above and the side, the thrust), the axe for the hammer.
 STYLES.halberd = { ...STYLES.warhammer, label: 'Halberd', weapon: 'halberd' };
 STYLES.halberdEtched = { ...STYLES.warhammer, label: 'Etched halberd', weapon: 'halberdEtched' };
+// The zweihander's moves (weapons.js zweihander), as the Doppelsöldner's sword is shown handled (the Landsknecht reenactor's
+// clips: carried on the right shoulder, the blade wheeled round the body in figure-eights, the left hand on the ricasso;
+// the sparring clip: big committed cuts from high, wide flat sweeps, thrusts from a low guard with passing steps) and as the
+// 16th-century German two-hand sword plays have it (the Oberhau from the shoulder, the Mittelhau across, the Unterhau rising,
+// the Stich). Nothing in them is the sword's speed or force: the hands are taken along the path and the 3 kg blade follows
+// as fast as the muscles turn its inertia (physics.js), longer paths than the long sword's for a longer blade.
+// - zweiOberhau: from the shoulder carry (the blade laid back over the right shoulder, the hands by the right ear), down
+//   through him on the diagonal to the left hip; the trunk turning through, a step behind it.
+// - zweiOberhauLinks: the same from the left shoulder down to the right hip: the wheel back. Chained after the first (the
+//   style's combos) the blade, carried on past his left hip and up behind the left shoulder by its own momentum, comes round
+//   again from the other side: the figure-eight.
+// - zweiMittelhau: the wide flat cut across at his ribs and arms, carried on through (`sweep`): the cut that kept a ring
+//   clear before the pikes.
+// - zweiUnterhau: rising from low on the right, up through his arms and chin.
+// - zweiStich: the thrust from the low guard (point at his face, hilt at the hip), a passing step in behind it.
+// - ricassoStich: the close thrust, the left hand up on the leather of the ricasso (`offAlong`: weapons.js offHandAlong), the
+//   hilt drawn back to the right hip and the point driven short and rising, the body leaning in: for a man already inside
+//   the long blade's reach (`reach` close).
+// `refWeapon`: priced against the zweihander itself (`cost` as written: between the long sword's ~0.034 a cut and the war
+// hammer's 0.045), so a lighter sword made to swing them would cost less (physics/effort.js swingEffort).
+Object.assign(MOVES, {
+  zweiOberhau: { kind: 'strike', limb: 'rHand', path: 'blade', refWeapon: 'zweihander', mode: 'swing', grip: 'two', from: { hand: [-0.02, 0.98, -0.18], dir: [-0.6, 0.55, -0.55] }, mid: [0.9, 0.15, 0.1], to: { hand: [0.27, 0.4, 0.2], dir: [0.4, -0.75, 0.55] }, windup: 0.2, extendUntil: 0.46, duration: 0.9, twist: -0.6, lean: 0.14, shift: 0.08, cost: 0.04, mass: { arm: 0.65, body: 0.045 }, rotation: 0.85, zones: ['body', 'head'], reach: 'weapon', contactAt: 0.72 },
+  zweiOberhauLinks: { kind: 'strike', limb: 'rHand', path: 'blade', refWeapon: 'zweihander', mode: 'swing', grip: 'two', from: { hand: [0.04, 0.95, 0.14], dir: [-0.55, 0.6, 0.6] }, mid: [0.9, 0.15, -0.1], to: { hand: [0.27, 0.42, -0.22], dir: [0.4, -0.75, -0.55] }, windup: 0.2, extendUntil: 0.46, duration: 0.9, twist: 0.45, lean: 0.14, shift: 0.08, cost: 0.04, mass: { arm: 0.6, body: 0.04 }, rotation: 0.85, zones: ['body', 'head'], reach: 'weapon', contactAt: 0.72 },
+  zweiMittelhau: { kind: 'strike', limb: 'rHand', path: 'blade', refWeapon: 'zweihander', mode: 'swing', grip: 'two', sweep: true, from: { hand: [0.02, 0.72, -0.32], dir: [-0.35, 0.15, -0.95] }, mid: [1, 0.05, 0], to: { hand: [0.2, 0.66, 0.3], dir: [0.1, 0.05, 1] }, windup: 0.2, extendUntil: 0.48, duration: 0.95, twist: -0.9, lean: 0.07, shift: 0.06, cost: 0.042, mass: { arm: 0.65, body: 0.05 }, rotation: 0.85, zones: ['body', 'head'], reach: 'weapon', contactAt: 0.72 },
+  zweiUnterhau: { kind: 'strike', limb: 'rHand', path: 'blade', refWeapon: 'zweihander', mode: 'swing', grip: 'two', from: { hand: [0.12, 0.4, -0.24], dir: [0.3, -0.6, -0.7] }, mid: [0.9, 0.1, 0], to: { hand: [0.12, 0.9, 0.14], dir: [0.3, 0.8, 0.5] }, windup: 0.18, extendUntil: 0.44, duration: 0.85, twist: 0.35, lean: 0.05, shift: 0.05, cost: 0.036, mass: { arm: 0.6, body: 0.035 }, rotation: 0.85, zones: ['body'], reach: 'weapon', contactAt: 0.7 },
+  zweiStich: { kind: 'strike', limb: 'rHand', path: 'blade', refWeapon: 'zweihander', mode: 'thrust', grip: 'two', from: { hand: [0.08, 0.55, -0.04], dir: [1, 0.2, 0] }, windup: 0.1, extendUntil: 0.38, duration: 0.65, twist: -0.25, lean: 0.18, shift: 0.12, depth: 0.3, step: 2.0, cost: 0.03, mass: { arm: 0.65, body: 0.06 }, rotation: 0.6, zones: ['body', 'head'], reach: 'weapon' },
+  ricassoStich: { kind: 'strike', limb: 'rHand', path: 'blade', refWeapon: 'zweihander', mode: 'thrust', grip: 'two', offAlong: 0.2, from: { hand: [-0.12, 0.56, -0.1], dir: [1, 0.35, 0] }, windup: 0.12, extendUntil: 0.36, duration: 0.62, twist: -0.35, lean: 0.24, shift: 0.14, depth: 0.25, step: 1.4, cost: 0.03, mass: { arm: 0.75, body: 0.1 }, rotation: 0.5, zones: ['body', 'head'], reach: 'close' },
+});
+// The Doppelsöldner's zweihander (weapons.js zweihander): a drilled swordsman's ways, as the long sword's (its share of blocks,
+// how often he answers a blow), with the zweihander's own cuts and thrusts. The guard is the low one of the sparring clip
+// (the long sword's Pflug: hilt at the right hip, the point up at his face), the long blade keeping a man off; the wheel
+// (zweiOberhau into zweiOberhauLinks) the commonest chain. Nothing here is set to make it block better: it blocks as often
+// as the long sword's man chooses to, and whether the block holds is the blade's and the hilt's (physics.js clashWeapons,
+// physics/hilt.js, physics/deflect.js). Rests between cuts a little longer than the long sword's (`tempo` 1.1 to its 1).
+STYLES.zweihander = {
+  label: 'Zweihander', weapon: 'zweihander', fallback: 'mix',
+  cadence: { work: 1.3, move: 0.7, burst: 0.65, mobility: 0.55 },
+  stance: { blade: 0.42, crouch: 0.06, width: 1.25, lean: 0.06, guardHeight: 0 },
+  weaponGuard: { hand: [0.15, 0.55, -0.05], dir: [1, 0.5, 0.03] },
+  idle: { bounce: 0.15, sway: 0.4, rock: 0.3 },
+  attacks: { zweiOberhau: 0.28, zweiOberhauLinks: 0.1, zweiMittelhau: 0.24, zweiUnterhau: 0.1, zweiStich: 0.2, ricassoStich: 0.08 },
+  combos: { 'zweiOberhau zweiOberhauLinks': 0.35, 'zweiMittelhau zweiOberhau': 0.2, 'zweiStich zweiOberhau': 0.2, 'zweiUnterhau zweiOberhau': 0.15, 'zweiOberhauLinks zweiOberhau': 0.1 },
+  comboChance: 0.5,
+  tempo: 1.1,
+  defences: { weaponBlock: 0.7, stepBack: 0.25, guard: 0.05 },
+  defendChance: 0.8,
+  headMovement: 0.08,
+  plans: { outboxer: 1.4, counter: 1.1, pressure: 0.9, brawler: 0.4 },
+  pressure: 0.08,
+  rangeInside: 0.15,
+};
 // The dangpa's man: the spear's ways, but the fork held up to meet the blow (catch a blade between the prongs and beat it
 // down) before the thrust, the heavy head slower to bring round (Jixiao xinshu: the dangpa guards the spears' flank).
 STYLES.dangpa = { ...STYLES.spear, label: 'Dangpa', weapon: 'dangpa', tempo: 0.9, defences: { weaponBlock: 0.65, stepBack: 0.35 }, defendChance: 0.8, attacks: { spearThrust: 0.5, spearJab: 0.3, spearSweep: 0.2 } };
