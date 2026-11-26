@@ -16,6 +16,8 @@
 import { P } from '../body.js';
 import { HELMETS, outfitOf } from '../outfits.js';
 import { protectionAt } from '../physics.js';
+import { WORLD } from '../physics/config.js';
+import { buildOf } from '../weapons.js';
 import { surfaceAt, surfaceUnder } from './surface.js';
 
 /** How many events the log keeps: a reader more than this far behind has lost the oldest. */
@@ -143,12 +145,16 @@ export function weaponStriker(mix) {
 }
 
 /**
- * The part of a weapon two weapons met at, `along` m from the hand: its shaft or grip short of where it strikes from (a haft), else its
- * head: an edge or a point (blade) or a weight (blunt).
+ * The part of a weapon two weapons met at, `along` m from the hand: wood (`haft`: a spear's or a polearm's shaft, the whole of a staff,
+ * a gun's stock, a bow or a crossbow), else its head: an edge or a point (blade) or a weight (blunt). A sword's grip and guard short of
+ * its blade are steel, a weight, not wood.
  */
 export function weaponPart(weapon, along) {
   const spec = weapon.spec;
-  if (along < spec.strikeFrom) return 'haft';
+  const build = buildOf(spec, WORLD.wear.shaftFrom);
+  // (A staff is all pole, its striking length behind the hands: all of it wood.)
+  if (build.shaft && !build.edge && spec.strikeFrom < 0) return 'haft';
+  if (along < spec.strikeFrom) return build.shaft || spec.ranged || spec.bow ? 'haft' : 'blunt';
   const harm = spec.harm ?? {};
   return (harm.swing?.cut ?? 0) > 0 || (harm.thrust?.pierce ?? 0) > 0 || (harm.thrust?.cut ?? 0) > 0 ? 'blade' : 'blunt';
 }
