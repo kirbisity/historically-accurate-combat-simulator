@@ -88,7 +88,11 @@ test('fat and muscle cushion where they lie: a belly a great deal, a skull, a sh
 });
 
 test('the same staff blow on the arm: it breaks a starved man\'s and an old man\'s, bruises an ordinary man\'s, and a strong man\'s less', () => {
-  const staff = { ...PRESETS.staff, outfit: undefined };
+  // Struck by a weak man (the starved build with the staff): ~50 J and ~1.6 kN on the arm. The monk's own two-handed blow,
+  // the staff held at its middle grip (physics/polegrip.js), comes in at ~17 m/s, ~150 J and ~3 kN, and breaks any bare
+  // forearm, as a full staff blow does (the nightstick fracture of the ulna comes from a lighter baton): the gradient by body
+  // is shown under it.
+  const staff = { ...starved, style: 'staff' };
   const taken = (defender) => {
     const rows = [];
     for (const distance of [1.6, 1.9, 2.2]) {

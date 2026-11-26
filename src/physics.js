@@ -26,6 +26,7 @@ import { createArtillery, stepArtillery } from './physics/artillery.js';
 import { climbLadder, createLadders, LADDERS, ladderPose, stepLadders } from './physics/ladders.js';
 import { brushKeepsOff, brushTouch, caughtBlade, holdBrushes, pinnedByBrush, tangled } from './physics/brush.js';
 import { carryStuck, lodgeBlade, lodgeDepth, skullLeft } from './physics/lodge.js';
+import { offHandSide, slidingHandAlong, stepPoleGrip } from './physics/polegrip.js';
 import { artTurn, beakMix, coiledTwist, hiltCrush, hiltKnob, hiltMix, hookPull, rangeDrive, rangeOff, retreatDrive, strikeSpan, turningMass, turnsWithBlow } from './physics/arts.js';
 import { footingOn, lyingLow, partUnder, treadOn } from './physics/footing.js';
 import { clearHeight, clearStep, planCrossing, STEPOVER } from './physics/stepover.js';
@@ -1211,7 +1212,9 @@ function interceptBlock(world, fighter, weapon = fighter.weapon) {
   // The off hand's blade is held from its own side: the hand on the left of the line.
   if (weapon === fighter.offWeapon) across = vec.scale(across, -1);
   across = vec.normalize(vec.add(vec.normalize(across), [0, 0.6, 0]));
-  const hand = vec.sub(meet, vec.scale(across, weapon.spec.length * (weapon === fighter.offWeapon ? WORLD.offMeetAlong : WORLD.meetAlong)));
+  // (A staff meets it between its hands, held across in both: the hands either side of the meeting point, LEAD_GRIP.)
+  const along = weapon.gripBase ? 0 : weapon.spec.length * (weapon === fighter.offWeapon ? WORLD.offMeetAlong : WORLD.meetAlong);
+  const hand = vec.sub(meet, vec.scale(across, along));
   return { hand: toLocal(fighter, hand), dir: yawRotate(across, -fighter.yaw) };
 }
 
@@ -1459,7 +1462,7 @@ function weaponIntent(world, fighter, intent) {
     else if (style.oneHandAim) intent[`${weapon.off}Hand`] = vec.scale([-0.14, 0.52, weapon.off === 'l' ? 0.06 : -0.06], H);
     else intent[`${weapon.off}Hand`] = vec.add(target.hand, vec.scale(SUPPORT_GRIP, H));
   } else if (weapon.spec.bow) weapon.draw = 0;
-  if (weapon.spec.leadAhead) target = { ...target, hand: vec.sub(target.hand, vec.scale(target.dir, weapon.spec.spacing * LEAD_GRIP.rearShare)) };
+  if (weapon.spec.leadAhead) target = { ...target, hand: vec.sub(target.hand, vec.scale(target.dir, weapon.spec.spacing * LEAD_GRIP.rearShare * offHandSide(weapon))) };
   intent[`${main}Hand`] = target.hand;
   intent.bladeDir = target.dir;
   // A turret on a robot's back (a weapon's `turret`) is laid on the mark itself, by its motors (physics/mounted.js
@@ -1478,7 +1481,7 @@ function weaponIntent(world, fighter, intent) {
   intent.twoHanded = !oneHanded;
   // (At the half-sword, physics.js halfGripped: the off hand on the middle of the blade, where it lies now.)
   weapon.half = !oneHanded && halfGripped(fighter, weapon);
-  if (!oneHanded) intent[`${weapon.off}Hand`] = vec.add(target.hand, vec.scale(target.dir, offHandAlong(weapon.spec, weapon.half)));
+  if (!oneHanded) intent[`${weapon.off}Hand`] = vec.add(target.hand, vec.scale(target.dir, offHandAlong(weapon.spec, weapon.half) * offHandSide(weapon)));
   const alone = oneHanded && !off && !fighter.shield && !fighter.net?.held && !weapon.spec.ranged;
   if (alone) heldOut(fighter, weapon, intent, style, stroke, blocker === weapon);
   // A lunge: the free arm flung back behind him as a counterweight, out and back with the stroke.
@@ -1746,6 +1749,8 @@ export function turnLimit(spec) {
  * hands, the off hand is held to the handle a grip behind the main one.
  */
 function updateWeapon(fighter, h, weapon = fighter.weapon) {
+  // (A staff's hands slide along it and either end strikes: physics/polegrip.js.)
+  if (weapon.spec.slides || weapon.gripBase) stepPoleGrip(fighter, weapon, strokeOf(fighter, weapon), STYLES[fighter.style], h);
   const spec = weapon.spec;
   if (spec.turret && fighter.mount) {
     stepTurret(fighter, weapon, weapon.turretMark ?? null, h);
@@ -1822,7 +1827,8 @@ function updateWeapon(fighter, h, weapon = fighter.weapon) {
     let along = offHandAlong(spec, weapon.half);
     if (spec.leadAhead) {
       const reached = vec.dot(vec.sub(point(fighter.x, off), point(fighter.x, main)), dir);
-      along = Math.min(spec.strikeFrom - WORLD.grip.headClear, Math.max(spec.spacing * WORLD.grip.shortest, reached));
+      // (A staff is all shaft, both ends free: the front hand on whichever side of the other it is, short of either end.)
+      along = weapon.gripBase ? slidingHandAlong(weapon, reached, spec.spacing * WORLD.grip.shortest, WORLD.grip.headClear) : Math.min(spec.strikeFrom - WORLD.grip.headClear, Math.max(spec.spacing * WORLD.grip.shortest, reached));
     }
     const handle = vec.add(point(fighter.x, main), vec.scale(dir, along));
     let offset = vec.sub(point(fighter.x, off), handle);

@@ -777,10 +777,17 @@ export const WEAPONS = {
   // A long wooden staff (the Shaolin gun): held near its middle, both ends
   // striking (`strikeFrom` reaches back past the hands to the butt). Wood
   // only: blunt harm, a softer contact than steel; its length makes it quick
-  // at the ends, a little more than a baton.
+  // at the ends, a little more than a baton. Its hands slide along it and
+  // either end leads (`slides`, `ends` 2: physics/polegrip.js): the middle
+  // grip for quick blows, the end grip for the long ones.
+  // Its make: the qimeigun, the eyebrow-high staff, ~1.8 m, of white-wax wood (`build`: MATERIALS waxwood), ~3.6 cm at its
+  // middle thinning to ~2.8 cm at the ends (`radius` the mean). Its mass is that wood's: ~1.5 litres of it at ~770 kg/m³
+  // (privet, Ligustrum lucidum, the wax tree, air-dry 790 kg/m³: Çavuş 2021, Mobilya ve Ahşap Malzeme
+  // Araştırmaları Dergisi; Chinese ash a little lighter), ~1.2 kg (it was 1.6, a density of ~1100 kg/m³ for its size, which no such wood has).
   staff: {
     art: 'artCrushClub',
-    label: 'Staff', hands: 'two', length: 0.95, strikeFrom: -0.85, handle: 0.85, spacing: 0.5, leadAhead: true, mass: 1.6, balance: 0.05, radius: 0.016,
+    label: 'Staff', hands: 'two', length: 0.95, strikeFrom: -0.85, handle: 0.85, spacing: 0.5, leadAhead: true, slides: true, ends: 2, mass: 1.2, balance: 0.05, radius: 0.016,
+    build: { shaft: 'waxwood' },
     harm: { swing: { blunt: 1 }, thrust: { blunt: 0.8 } },
     contactSeconds: 0.007, rotation: 0.9, wrist: { omega: 18, zeta: 0.8 }, threat: 3.8, grip: 0.6,
   },
