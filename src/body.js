@@ -617,10 +617,10 @@ export const PRESETS = {
   // A modern infantry rifleman: the M4 (the AR-15 family), the combat uniform, helmet and plate carrier, and one frag
   // grenade (his kit's: outfits.js infantry). A young soldier of ordinary size, fit from the army's training, ~78 kg.
   // A British line infantryman of the 1830s-40s (the 18th Royal Irish and the 26th Cameronians at Canton and Amoy, 1841):
-  // a little over the recruit's ~168 cm (the army's 5 ft 6 in standard, a fusilier regiment's man somewhat above it),
-  // hardened by drill and the march, on the ration and what his pay bought (~3800 kcal); drilled to the bayonet (0.55).
+  // a tall man of the ranks, 176 cm (the user's call, 2026-11-26), hardened by drill and the march, on the ration and
+  // what his pay bought (~4150 kcal); drilled to the bayonet (0.55).
   lineInfantry: {
-    name: 'Pte. Joseph Wood', style: 'flintlock', sex: 'male', heightCm: 172, frame: 'medium', age: 24, exercise: 0.8, calories: 3845, skill: 0.55,
+    name: 'Pte. Joseph Wood', style: 'flintlock', sex: 'male', heightCm: 176, frame: 'medium', age: 24, exercise: 0.82, calories: 4150, skill: 0.55,
     outfit: { kind: 'lineInfantry', design: 0 }, accessories: [],
     look: { skinTone: 'light', hairStyle: 'cleanShort', hairColor: '#4a3020', facialHair: 'none', eyeColor: 'blue' },
   },
