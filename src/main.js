@@ -33,7 +33,7 @@ import { fightUiWireToggle } from './fightui/toggle.js';
 import { cameraRoom, createFollowCam } from './followcam.js';
 import { createCameraRig } from './camerarig.js';
 import { BONE } from './rig.js';
-import { adaptiveSize, createAdaptiveResolution } from './adaptres.js';
+import { adaptiveSize, createAdaptiveResolution, readDynamicResolution, writeDynamicResolution } from './adaptres.js';
 import { keepDetailLoad, newDetailLoad } from './detailload.js';
 import { sceneryLodOn, sceneryLodStats, setSceneryLod } from './scenerylod.js';
 import { createTapper, createWatchCam, focusOn, frameAll, pickMan, stepAuto, stepFree, zoomBy, zoomLimits } from './watchcam.js';
@@ -63,7 +63,8 @@ import { blastEvent, createBlastScreen, fragmentEvent, updateThrown } from './bl
 import { artilleryFired, artilleryHit, updateArtillery } from './artilleryview.js';
 import { DETAIL_MAPS } from './detailmaps.js';
 import { setHelmStyle } from './helmstyle.js';
-import { bareCrowdHead, BODY_STYLE, FULL_MODELS, BODY_STYLES, buildFighterView, clearCrowdTemplates, releaseUnusedCrowdTemplates, prefetchSkins, pumpSkinBuilds, setBodyStyle, setSkinQuality, SKIN_BUILD, skinBuildStats, PLACE_ARENAS, createScene, disposeFighterView, forgetPlaces, placeCamera, reapplyPlace, render, resize, selectCrowdDraw, setLayer, setPlace, setPlaceSteps, showImpact, updateFighterView, updateProps, updateSpray, warmSevered } from './render.js';
+import { CROWD_BATCH, fillCrowdBodies } from './crowdbatch.js';
+import { bareCrowdHead, BODY_STYLE, CROWD_BATCH_PAINT, FULL_MODELS, BODY_STYLES, buildFighterView, clearCrowdTemplates, releaseUnusedCrowdTemplates, prefetchSkins, pumpSkinBuilds, setBodyStyle, setSkinQuality, SKIN_BUILD, skinBuildStats, PLACE_ARENAS, createScene, disposeFighterView, forgetPlaces, placeCamera, reapplyPlace, render, resize, selectCrowdDraw, setLayer, setPlace, setPlaceSteps, showImpact, updateFighterView, updateProps, updateSpray, warmSevered } from './render.js';
 import { buildHorseView, disposeHorseView, updateHorseView } from './horseview.js';
 import { releaseSkinTextures } from './skintex.js';
 import { placeMounted } from './physics/mounted.js';
@@ -1047,8 +1048,10 @@ function setWalking(on) {
 }
 
 let last = performance.now();
-// A battle is drawn at no more than ratio 1.5, and with fewer pixels if it cannot keep up (adaptres.js); a duel waiting on the graphics card down to 1.5, no lower.
+// A battle is drawn at no more than ratio 1.5, and with fewer pixels when the graphics card cannot keep up (adaptres.js: down to half the screen's
+// ratio, a duel to three quarters). On unless turned off in the settings, remembered.
 const resolution = createAdaptiveResolution();
+resolution.set(readDynamicResolution(typeof localStorage === 'undefined' ? null : localStorage));
 // The quality of a stage's picture (levelmode/quality.js): 'auto' (the frame times pick the rung of the ladder: pixels, then tiers), or one held: 'high', 'low'. Remembered.
 let qualityMode = readQuality(typeof localStorage === 'undefined' ? null : localStorage);
 // (A held quality is the town kit's tier too, on a phone as on a desk: the controller only tells it of a change, and a held 'high' never changes.)
@@ -1128,7 +1131,13 @@ function frame(now) {
     if (stageSectionsMissing()) return;
     // (Under the boot screen, while the first frame's programs link: nothing drawn.)
     if (bootScreen && state.world && bootLinking()) return;
-    draw(dt);
+    // (The graphics card's own time for the drawing, where the browser has a timer: the adaptive resolution's measure of the pixels' cost.)
+    resolution.gpuBegin(scene.renderer);
+    try {
+      draw(dt);
+    } finally {
+      resolution.gpuEnd();
+    }
     // The page's boot screen (index.html) away once the first frame is drawn under the menu.
     if (bootScreen && state.world) {
       bootScreen.remove();
@@ -1225,6 +1234,10 @@ let detailLoad = newDetailLoad();
 // A share held (boxer.detailLoad(share), for a review): null, the step times choose.
 let detailPinned = null;
 
+// Each tick's steps and ms (boxer.tickLog: the spread of the simulation's cost over frames, for the profiling tools), the last TICK_LOG_SIZE.
+const TICK_LOG_SIZE = 4096;
+const tickLog = [];
+
 function tick(seconds, { budget = SIM_BUDGET_MS } = {}) {
   // The training yard begins again when a man in it is out (between frames: never while one is drawn).
   if (state.game === 'tutorial' && yard.restart) newBout();
@@ -1249,6 +1262,8 @@ function tick(seconds, { budget = SIM_BUDGET_MS } = {}) {
   }
   // (Over real time between frames, not the world's: a battle that cannot keep up runs slower than real time.)
   const now = performance.now();
+  tickLog.push([now, steps, now - started]);
+  if (tickLog.length > TICK_LOG_SIZE) tickLog.shift();
   if (steps && tableOn(state.world)) state.world.detailShare = detailPinned ?? keepDetailLoad(detailLoad, (now - started) / steps, Math.min(0.25, (now - (detailLoad.at ?? now)) / 1000));
   detailLoad.at = now;
   consumeEvents();
@@ -1748,6 +1763,8 @@ function drawWorld(dt, drawIt = true) {
   updateProps(scene, state.views, world);
   updateDebris(scene, world);
   endCrowdBatches(scene);
+  // The far men's batches filled from their bones, posed above (crowdbatch.js).
+  fillCrowdBodies(scene, CROWD_BATCH_PAINT);
   updateArrows(scene, world);
   updateNets(scene, world, dt * (state.paused ? 0 : state.speed));
   updateThrown(scene, world);
@@ -4411,6 +4428,8 @@ const menuGame = {
   hitFeel: { settings: hitFeel.settings, save: () => saveHitFeel(hitFeelStorage, hitFeel.settings) },
   // The picture's quality (levelmode/quality.js), for the settings: the modes, the one held, and holding another.
   quality: { modes: QUALITY_MODES, get: () => qualityMode, set: (mode) => boxer.quality(mode) },
+  // The adaptive resolution (adaptres.js), for the settings: on or off, remembered.
+  dynamicResolution: { get: () => resolution.enabled, set: (on) => boxer.adaptiveResolution(on) },
 };
 const menus = installMenus(menuGame);
 // The sound bench straight from the address (?bench=sound).
@@ -4712,15 +4731,24 @@ const boxer = window.boxer = {
     if (on !== undefined) state.autopilot = Boolean(on);
     return Boolean(state.autopilot);
   },
+  // Each tick's [time, steps, ms] (the last 4096); `clear` empties it after reading.
+  tickLog: (clear) => {
+    const kept = tickLog.slice();
+    if (clear) tickLog.length = 0;
+    return kept;
+  },
   // A large battle's circle of men in full (detailload.js): the share now and the smoothed ms a step. `detailLoad(share)` holds a
   // share (1: never shrunk), null lets the step times choose again.
   detailLoad: (share) => {
     if (share !== undefined) detailPinned = share;
     return { ...detailLoad, share: state.world.detailShare ?? 1, pinned: detailPinned, on: tableOn(state.world) };
   },
-  // Adaptive resolution (adaptres.js): on or off (off: the full pixel ratio, kept), and what it is doing now; no argument: just that.
+  // Adaptive resolution (adaptres.js): on or off (off: the full pixel ratio, kept; remembered), and what it is doing now; no argument: just that.
   adaptiveResolution: (on) => {
-    if (on !== undefined) resolution.set(on, scene);
+    if (on !== undefined) {
+      resolution.set(on, scene);
+      writeDynamicResolution(typeof localStorage === 'undefined' ? null : localStorage, resolution.enabled);
+    }
     return resolution.info(scene);
   },
   // The open air (env/): put a weather on ('clear', 'cloudy', 'overcast', 'rain', 'mist', 'snow', 'dust'; null: each place's own), or with no
@@ -4911,6 +4939,11 @@ const boxer = window.boxer = {
   lod: (on) => {
     if (on !== undefined) crowdLod.enabled = Boolean(on);
     return crowdLod.enabled;
+  },
+  // The far men drawn in batches (crowdbatch.js) on or off, to compare the two in one page; returns whether it is on.
+  crowdBatch: (on) => {
+    if (on !== undefined) CROWD_BATCH.on = Boolean(on);
+    return CROWD_BATCH.on;
   },
   // What the scene holds in memory (memstats.js): geometry and texture bytes, the biggest, a man's own by tier; three's own counts.
   memory: (options) => ({ ...memoryStats(scene.scene, state.views, options), info: { ...scene.renderer.info.memory, programs: scene.renderer.info.programs?.length ?? 0 }, men: state.world?.fighters.length ?? 0 }),

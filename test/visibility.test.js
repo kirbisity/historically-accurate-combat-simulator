@@ -231,13 +231,14 @@ test('outside a stage the rungs are pixels alone, and the tier is high', () => {
   assert.equal(controller.tier, 'high');
 });
 
-test('a 1x screen has no pixels to give, so the tiers carry it', () => {
+test('a 1x screen gives pixels down to half its ratio, and the tiers with them', () => {
+  // (Before 2026-11-26 a 1x screen kept every pixel and only the tiers carried it.)
   const view = fakeView(1);
   const controller = createAdaptiveResolution();
   run(controller, view, 12, 45);
-  assert.equal(view.renderer.ratio, 1);
+  assert.equal(view.renderer.ratio, 0.5);
   assert.equal(controller.tier, 'low');
-  assert.equal(rungsFor(1).length, 3);
+  assert.equal(rungsFor(1).length, 3, 'with the old floor of 1: the tiers alone');
 });
 
 test('a section that is active only (the crypt) is painted in detail only while it is active, never through a portal', () => {

@@ -46,9 +46,12 @@ function poleBaseOf(weapon) {
 export function poleGripSpec(base, lead, flipped) {
   let byGrip = poleSpecs.get(base);
   if (!byGrip) poleSpecs.set(base, (byGrip = new Map()));
-  const key = `${flipped ? 'b' : 'a'}${Math.round(lead / POLE_GRIP.quantum)}`;
+  const steps = Math.round(lead / POLE_GRIP.quantum);
+  const key = `${flipped ? 'b' : 'a'}${steps}`;
   let spec = byGrip.get(key);
   if (!spec) {
+    // Built from the grip its key stands for, not the first caller's: else a fight would hang on what was fought before.
+    lead = steps * POLE_GRIP.quantum;
     const whole = base.length + base.handle;
     // Its centre of mass from end A (the listed tip): the hand's place less the balance; from end B, the rest of it.
     const fromA = base.length - base.balance;

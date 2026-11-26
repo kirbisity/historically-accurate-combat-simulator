@@ -3,6 +3,7 @@
 // and the place's keeping each frame (the sun following the camera so the fighters' shadows fall wherever they go,
 // the buildings' own shadow baked once, the mirror the puddles show taken once).
 
+import { shadowCacheAlong } from '../shadowcache.js';
 import { ktShadow, ktShadowBake } from '../levelmode/kitshadow.js';
 import { placeWind } from '../wind.js';
 import { freeOnUpload, packedColours, packedNormals } from '../meshpack.js';
@@ -359,6 +360,8 @@ export function tkKeep(root, meshes, { sun, shadow = 0.8, sky = null, rain = nul
     const over = focus.x * up[0] + focus.y * up[1] + focus.z * up[2];
     const [da, db] = [Math.round(along / texel) * texel - along, Math.round(over / texel) * texel - over];
     light.target.position.set(focus.x + right[0] * da + up[0] * db, focus.y + up[1] * db, focus.z + right[2] * da + up[2] * db);
+    // (And a whole step at a time along the sun's way: shadowcache.js.)
+    shadowCacheAlong(light.target.position, [dir.x, dir.y, dir.z]);
     light.position.copy(light.target.position).addScaledVector(dir, TK_PLACE.sun.distance);
     light.target.updateMatrixWorld();
   };

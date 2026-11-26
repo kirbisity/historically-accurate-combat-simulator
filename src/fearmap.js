@@ -46,16 +46,25 @@ function makeFearMap(world, spec, strengthOf, inFight) {
   const sides = {};
   for (const corner of corners) sides[corner] = { own: new Float32Array(nx * nz), knot: new Float32Array(nx * nz), nearest: new Int32Array(nx * nz).fill(-1) };
   const weight = (apart) => Math.max(0, Math.min(1, 1 - (apart - spec.group) / spec.groupFade));
-  const lay = (into, x, z, strength) => {
+  // A man laid on his side's map, and on its map of the men in the fight too (`knot`, unless null): the cells within a knot's
+  // reach of him, each by how fully he counts there. (A cell past the reach, its square distance over the reach's, counts
+  // nothing and is passed by without its distance worked out: the map is the same, made in about half the time.)
+  const reachSquared = reach * reach * (1 + 1e-9);
+  const lay = (own, knot, x, z, strength) => {
     const span = reach + cell;
     const fromI = Math.max(0, Math.floor((x - span - originX) / cell));
     const toI = Math.min(nx - 1, Math.ceil((x + span - originX) / cell));
     const fromK = Math.max(0, Math.floor((z - span - originZ) / cell));
     const toK = Math.min(nz - 1, Math.ceil((z + span - originZ) / cell));
     for (let k = fromK; k <= toK; k += 1) {
+      const dz = originZ + k * cell - z;
       for (let i = fromI; i <= toI; i += 1) {
-        const share = weight(Math.hypot(originX + i * cell - x, originZ + k * cell - z));
-        if (share > 0) into[k * nx + i] += share * strength;
+        const dx = originX + i * cell - x;
+        if (dx * dx + dz * dz > reachSquared) continue;
+        const share = weight(Math.hypot(dx, dz));
+        if (share <= 0) continue;
+        own[k * nx + i] += share * strength;
+        if (knot) knot[k * nx + i] += share * strength;
       }
     }
   };
@@ -68,9 +77,9 @@ function makeFearMap(world, spec, strengthOf, inFight) {
     if (!side || fighter.dormant) continue;
     const [x, z] = [hipX(index), hipZ(index)];
     const strength = strengthOf(fighter);
-    lay(side.own, x, z, strength);
-    if (fighter.hidden || !inFight(fighter)) continue;
-    lay(side.knot, x, z, strength);
+    const fighting = !fighter.hidden && inFight(fighter);
+    lay(side.own, fighting ? side.knot : null, x, z, strength);
+    if (!fighting) continue;
     // Each cell's nearest man in the fight: first the men in it, then passed on to the cells round (two sweeps, as a distance map is made).
     const at = Math.round((z - originZ) / cell) * nx + Math.round((x - originX) / cell);
     const held = side.nearest[at];
@@ -86,13 +95,17 @@ function makeFearMap(world, spec, strengthOf, inFight) {
         const centreZ = originZ + k * cell;
         let best = nearest[here];
         let bestApart = best < 0 ? Infinity : Math.hypot(hipX(best) - centreX, hipZ(best) - centreZ);
-        for (const [di, dk] of steps) {
-          const [ti, tk] = [i + di, k + dk];
+        for (let index = 0; index < steps.length; index += 1) {
+          const ti = i + steps[index][0];
+          const tk = k + steps[index][1];
           if (ti < 0 || tk < 0 || ti >= nx || tk >= nz) continue;
           const other = nearest[tk * nx + ti];
           if (other < 0 || other === best) continue;
           const apart = Math.hypot(hipX(other) - centreX, hipZ(other) - centreZ);
-          if (apart < bestApart) [best, bestApart] = [other, apart];
+          if (apart < bestApart) {
+            best = other;
+            bestApart = apart;
+          }
         }
         nearest[here] = best;
       }
