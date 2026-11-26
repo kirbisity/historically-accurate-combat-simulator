@@ -630,6 +630,8 @@ export const AI = {
   overHeadsFrom: 1,
   // m: how far off a shooter looks for another mark when his own is fouled (clearMark).
   markWithin: 60,
+  // A man holding his fire (a style's `ranged.holdFire`) walks on to his gun's effective range at this share of a full step.
+  holdFireWalk: 0.6,
   pastTarget: 0.45, // m: a team-mate this close behind my man is in the line too
   kickClearance: 1.3, // m: no kicks or knees with a team-mate this close, beside or ahead
   // The crowd (physics/press.js). `leanWithin` (m, hips to hips): a comrade this near before him on the line to his man, and no way
@@ -3686,6 +3688,12 @@ function gunfight(world, fighter, opponent, distance, gun, dt) {
   // trigger let go and held (another of them in reach and not alight taken instead), unless his man is near and still coming on.
   if (gun.spareAlight !== undefined && spareTheBurning(world, fighter, opponent, distance, gun)) {
     if (fighter.punch?.burst) fighter.punch.burst.left = 0;
+    return;
+  }
+  // A drilled line (`ranged.holdFire`: the flintlock's line infantry) holds his fire until his man is within the gun's
+  // effective range (effectiveRange, as a drilled formation's DRILL.holdFire), walking on to it with the gun levelled.
+  if (gun.holdFire && !fighter.punch && distance > effectiveRange(weapon)) {
+    fighter.move = AI.holdFireWalk;
     return;
   }
   if (fighter.punch || fighter.cooldown > 0) return;

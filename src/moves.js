@@ -2216,7 +2216,9 @@ STYLES.yari = { ...STYLES.spear, label: 'Yari', weapon: 'yari' };
 // Its bayonet fixed, a man on him is met with the point, the musket kept (`emptyStyle`: ai.js, as the three-eyed gun is
 // kept to club with): the drill books' bayonet exercise (the British 1805 and the French), the spear's thrusts and jabs with
 // the musket in both hands, the butt swung when he is too close for the point.
-STYLES.flintlock = { ...STYLES.matchlock, label: 'Flintlock musket', weapon: 'flintlock', emptyStyle: 'bayonet', ratedAs: 'matchlock' };
+// Drilled to hold his fire (`holdFire`: ai.js gunfight): the line's volley given at the range the musket carries true, not
+// thrown away at the distance (the British drill of the 1800s-40s: the fire held, a volley close, then the bayonet).
+STYLES.flintlock = { ...STYLES.matchlock, label: 'Flintlock musket', weapon: 'flintlock', emptyStyle: 'bayonet', ratedAs: 'matchlock', ranged: { ...STYLES.matchlock.ranged, holdFire: true } };
 STYLES.bayonet = { ...STYLES.spear, label: 'Bayonet', hidden: true, weapon: 'flintlock', fallback: 'mix',
   attacks: { spearThrust: 0.55, spearJab: 0.3, spearSweep: 0.15 } };
 // The cuirassier's heavy straight sword (weapons.js heavySword): on foot, the arming sword's plain cuts and thrusts, the point
