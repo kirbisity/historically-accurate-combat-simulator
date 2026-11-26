@@ -46,6 +46,7 @@ import { capsules, capsuleEnds, halfPoints, point, WORLD } from './physics.js';
 import { BONE, BONES, bindPoints, boneFrames, coherentFrames, frameMatrix, fromFrame, toFrame } from './rig.js';
 import { bakePieces, clusterColors, CROWD_VIEW, crowdBatch, crowdKey, crowdShapeKey, frameAt, HEAD_VARIANT, onlyVariant, simplifyTemplate, stretchedInverses, topologyOf, withoutVariant } from './crowdview.js';
 import { chooseDraw, crowdLod } from './crowdlod.js';
+import { batchMan, beginCrowdBodies, disposeCrowdBodies, unbatchMan, warmCrowdBody } from './crowdbatch.js';
 import { geometryArrays, materialTextures, textureBytes } from './memstats.js';
 import { MESH_PACK, packedColours, packedNormals, packedWeights } from './meshpack.js';
 import { tkTier } from './townkit/place.js';
@@ -2495,7 +2496,10 @@ export function buildFighterView(view, fighter, { simple: crowd = false } = {}) 
     view.crowdTemplates ??= new Map();
     const key = crowdKey(fighter);
     if (!view.crowdTemplates.has(key)) view.crowdTemplates.set(key, bakeCrowdTemplate(view, fighter, crowdShapeKey(fighter)));
-    return wetDress(crowdView(view, fighter, view.crowdTemplates.get(key)));
+    const crowdMan = wetDress(crowdView(view, fighter, view.crowdTemplates.get(key)));
+    // (The far batch he will be drawn in, made now so that its programs link while his army loads: crowdbatch.js.)
+    warmCrowdBody(view, crowdMan, CROWD_BATCH_PAINT);
+    return crowdMan;
   }
   // (Sweat, water and mud drawn on everything he is made of: wetview.js, laid before any other sweep of his materials.)
   return wetDress(detailedView(view, fighter, false));
@@ -3565,6 +3569,8 @@ function crowdView(view, fighter, template) {
     fighter, group, layers, bones, built: { bindFrames: template.frames }, skinMesh, skinOutline, muscle: null, skeleton: boneGroups, attachments, shells: [], near, far,
     baseColors: template.colors, vertexSegment: template.vertexSegment, damageVersion: -1, headProps, dangles: [], steelMesh,
     head: { group: headGroup, shell: { dent() {} }, update() {}, hideHair() {} }, layer: 'skin', frames, baked: true, banner, signs, template,
+    // (His skin's colour, for the tint of his copy in a far batch: crowdbatch.js.)
+    skinColor,
     // Drawn bare-headed (bareCrowdHead): his helmet knocked off.
     bareHead: false,
   };
@@ -3680,6 +3686,7 @@ function releaseTemplate(template, keep = new Set()) {
 export function clearCrowdTemplates(view) {
   for (const template of view.crowdTemplates?.values() ?? []) releaseTemplate(template);
   for (const batch of view.crowdBatches?.values() ?? []) batch.dispose();
+  disposeCrowdBodies(view);
   view.crowdTemplates = new Map();
   view.crowdShapes = new Map();
   view.crowdBatches = new Map();
@@ -4032,6 +4039,7 @@ export function selectCrowdDraw(view, fighterViews, safe, config = CROWD_VIEW) {
   const lit = crowdLod.enabled ? shadowCasters(view) : 0;
   drawSphere.radius = config.cullRadius;
   const inkRange = config.inkDistance * config.inkDistance;
+  beginCrowdBodies(view);
   for (const fighterView of fighterViews) {
     if (!fighterView.baked) continue;
     const fighter = fighterView.fighter;
@@ -4047,6 +4055,7 @@ export function selectCrowdDraw(view, fighterViews, safe, config = CROWD_VIEW) {
     // Another layer (muscle, bone, physics) shows the full body, ghosted: the view is as built.
     if (!crowdLod.enabled || fighterView.layer !== 'skin' || fighterView.severedBones?.size || fighterView.trunkSplit) {
       Object.assign(draw, { culled: false, far: false, shadow: true });
+      unbatchMan(fighterView);
     } else {
       drawSphere.center.set(px, py, pz);
       chooseDraw(draw, {
@@ -4062,10 +4071,34 @@ export function selectCrowdDraw(view, fighterViews, safe, config = CROWD_VIEW) {
     if (draw.culled) continue;
     const ink = dx * dx + dy * dy + dz * dz < inkRange;
     const skinLayer = fighterView.layer === 'skin';
-    showBody(fighterView.near, !draw.far, ink, draw.shadow, skinLayer);
-    showBody(fighterView.far, draw.far, ink, draw.shadow, skinLayer);
+    // Far enough, drawn as one copy of his look's batch (crowdbatch.js), his own meshes hidden: the same bones, posed as ever.
+    const batched = crowdLod.enabled && skinLayer && batchMan(view, fighterView, draw, Math.sqrt(dx * dx + dy * dy + dz * dz), safe.has(fighter.id));
+    showBody(fighterView.near, !draw.far && !batched, ink, draw.shadow, skinLayer);
+    showBody(fighterView.far, draw.far && !batched, ink, draw.shadow, skinLayer);
   }
 }
+
+/**
+ * A far batch's materials (crowdbatch.js), made as a crowd man's are (crowdView): the skin's and the steel's, each given the
+ * batch's bones first (`patch`), then the wetness and marks a man's take (drawn dry and unmarked: wetview.js wetWarm), so
+ * the program is a man's with only the skinning changed. `shade`: the open air's figure shade on them, as the men have it
+ * (env/index.js sweeps only what casts a shadow; a batch casts none).
+ */
+export const CROWD_BATCH_PAINT = {
+  make(view, template, patch) {
+    const skin = surface(0xffffff, { vertexColors: true, roughness: 0.55 });
+    const steel = doubleSided(steelMaterial(view.steelEnv, { ...template.lacquer }));
+    for (const material of [skin, steel]) {
+      patch(material);
+      wetWarm(material, true);
+    }
+    return { skin, steel };
+  },
+  shade(view, materials) {
+    if (!view.env?.on || view.env.place !== view.place) return;
+    for (const material of materials) sweepFigureShade({ traverse: (visit) => visit({ isMesh: true, castShadow: true, receiveShadow: false, material }) });
+  },
+};
 
 /** One of a man's two bodies: shown or not, with its ink and its shadow (the ghosted layers set their own, see setLayer). */
 function showBody(body, shown, ink, shadow, skinLayer) {

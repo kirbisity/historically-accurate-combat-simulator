@@ -63,7 +63,8 @@ import { blastEvent, createBlastScreen, fragmentEvent, updateThrown } from './bl
 import { artilleryFired, artilleryHit, updateArtillery } from './artilleryview.js';
 import { DETAIL_MAPS } from './detailmaps.js';
 import { setHelmStyle } from './helmstyle.js';
-import { bareCrowdHead, BODY_STYLE, FULL_MODELS, BODY_STYLES, buildFighterView, clearCrowdTemplates, releaseUnusedCrowdTemplates, prefetchSkins, pumpSkinBuilds, setBodyStyle, setSkinQuality, SKIN_BUILD, skinBuildStats, PLACE_ARENAS, createScene, disposeFighterView, forgetPlaces, placeCamera, reapplyPlace, render, resize, selectCrowdDraw, setLayer, setPlace, setPlaceSteps, showImpact, updateFighterView, updateProps, updateSpray, warmSevered } from './render.js';
+import { CROWD_BATCH, fillCrowdBodies } from './crowdbatch.js';
+import { bareCrowdHead, BODY_STYLE, CROWD_BATCH_PAINT, FULL_MODELS, BODY_STYLES, buildFighterView, clearCrowdTemplates, releaseUnusedCrowdTemplates, prefetchSkins, pumpSkinBuilds, setBodyStyle, setSkinQuality, SKIN_BUILD, skinBuildStats, PLACE_ARENAS, createScene, disposeFighterView, forgetPlaces, placeCamera, reapplyPlace, render, resize, selectCrowdDraw, setLayer, setPlace, setPlaceSteps, showImpact, updateFighterView, updateProps, updateSpray, warmSevered } from './render.js';
 import { buildHorseView, disposeHorseView, updateHorseView } from './horseview.js';
 import { releaseSkinTextures } from './skintex.js';
 import { placeMounted } from './physics/mounted.js';
@@ -1756,6 +1757,8 @@ function drawWorld(dt, drawIt = true) {
   updateProps(scene, state.views, world);
   updateDebris(scene, world);
   endCrowdBatches(scene);
+  // The far men's batches filled from their bones, posed above (crowdbatch.js).
+  fillCrowdBodies(scene, CROWD_BATCH_PAINT);
   updateArrows(scene, world);
   updateNets(scene, world, dt * (state.paused ? 0 : state.speed));
   updateThrown(scene, world);
@@ -4924,6 +4927,11 @@ const boxer = window.boxer = {
   lod: (on) => {
     if (on !== undefined) crowdLod.enabled = Boolean(on);
     return crowdLod.enabled;
+  },
+  // The far men drawn in batches (crowdbatch.js) on or off, to compare the two in one page; returns whether it is on.
+  crowdBatch: (on) => {
+    if (on !== undefined) CROWD_BATCH.on = Boolean(on);
+    return CROWD_BATCH.on;
   },
   // What the scene holds in memory (memstats.js): geometry and texture bytes, the biggest, a man's own by tier; three's own counts.
   memory: (options) => ({ ...memoryStats(scene.scene, state.views, options), info: { ...scene.renderer.info.memory, programs: scene.renderer.info.programs?.length ?? 0 }, men: state.world?.fighters.length ?? 0 }),
