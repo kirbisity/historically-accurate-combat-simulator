@@ -210,6 +210,24 @@ export function installMenus(game) {
       draw();
       panel.append(el('section', { className: 'audio-mixer quality-row', ariaLabel: t('settings.quality') }, el('h2', { textContent: t('settings.quality') }), seg, note));
     }
+    // Adaptive resolution (adaptres.js): on, the picture is drawn with fewer pixels while the graphics card cannot keep up; off, always the full pixels.
+    if (game.dynamicResolution) {
+      const note = el('p', { className: 'quality-note' });
+      const seg = el('div', { className: 'seg dynres-seg', role: 'radiogroup' });
+      const draw = () => {
+        const held = game.dynamicResolution.get();
+        note.textContent = t(`settings.dynres.${held ? 'on' : 'off'}.text`);
+        seg.replaceChildren(...[true, false].map((value) => {
+          const on = value === held;
+          const button = el('button', { type: 'button', className: on ? 'on' : '', textContent: t(`settings.dynres.${value ? 'on' : 'off'}`), role: 'radio', ariaChecked: String(on) });
+          button.dataset.dynres = value ? 'on' : 'off';
+          button.onclick = () => { game.dynamicResolution.set(value); draw(); };
+          return button;
+        }));
+      };
+      draw();
+      panel.append(el('section', { className: 'audio-mixer quality-row dynres-row', ariaLabel: t('settings.dynres') }, el('h2', { textContent: t('settings.dynres') }), seg, note));
+    }
     if (game.audio) panel.append(audioMixer(game.audio));
     if (game.hitFeel) panel.append(hitFeelPanel(game.hitFeel.settings, game.hitFeel.save));
     panel.append(el('button', { className: 'bench-open', type: 'button', icon: 'headset', textContent: t('settings.bench'), onclick: () => game.soundBench?.() }));

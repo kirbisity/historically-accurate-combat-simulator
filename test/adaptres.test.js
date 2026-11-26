@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { ADAPTIVE_RESOLUTION as CONFIG, adaptiveSize, newAdaptiveState, ratioSteps, stepAdaptive } from '../src/adaptres.js';
+import { ADAPTIVE_RESOLUTION as CONFIG, adaptiveSize, newAdaptiveState, ratioFloor, ratioSteps, readDynamicResolution, stepAdaptive, writeDynamicResolution } from '../src/adaptres.js';
 
 const run = (state, seconds, ms, { fighters = 100, work = 8 } = {}) => {
   let level = state.level;
@@ -10,29 +10,42 @@ const run = (state, seconds, ms, { fighters = 100, work = 8 } = {}) => {
 
 test('the steps are descending, never under the floor, and a low full ratio has fewer', () => {
   assert.deepEqual(ratioSteps(2, { ...CONFIG, battleRatioMost: Infinity }), [2, 1.5, 1.25, 1]);
-  assert.deepEqual(ratioSteps(1.5), [1.5, 1.125, 1]);
-  assert.deepEqual(ratioSteps(1), [1]);
+  assert.deepEqual(ratioSteps(1.5), [1.5, 1.125, 0.938, 0.75]);
+  assert.deepEqual(ratioSteps(1), [1, 0.75, 0.625, 0.5]);
   for (const full of [3, 2, 1.75, 1.25, 1]) {
     const ratios = ratioSteps(full);
-    assert.ok(ratios.every((ratio) => ratio >= CONFIG.floor && ratio <= full), `${full}: ${ratios}`);
+    assert.ok(ratios.every((ratio) => ratio >= ratioFloor(full) && ratio <= full), `${full}: ${ratios}`);
     assert.deepEqual(ratios, [...ratios].sort((a, b) => b - a));
   }
 });
 
-test('a battle starts at no more than 1.5; a ratio-1 screen is never touched', () => {
-  assert.deepEqual(ratioSteps(2), [1.5, 1.125, 1], 'a 2x screen: the battle is drawn at 1.5 at best, its steps shares of that');
-  assert.deepEqual(ratioSteps(3), [1.5, 1.125, 1]);
-  assert.deepEqual(ratioSteps(1.25), [1.25, 1]);
-  assert.deepEqual(ratioSteps(1), [1]);
+test('a battle starts at no more than 1.5 and goes down to half the screen ratio', () => {
+  assert.deepEqual(ratioSteps(2), [1.5, 1.125, 1], 'a 2x screen: the battle is drawn at 1.5 at best, its floor 1 (half of 2)');
+  assert.deepEqual(ratioSteps(3), [1.5]);
+  assert.deepEqual(ratioSteps(1.25), [1.25, 0.938, 0.781, 0.625]);
+  assert.deepEqual(ratioSteps(1), [1, 0.75, 0.625, 0.5], 'a 1x screen now gives pixels too');
   for (const full of [3, 2, 1.5, 1.25, 1]) assert.ok(ratioSteps(full)[0] <= CONFIG.battleRatioMost && ratioSteps(full)[0] <= full);
 });
 
-test('a duel steps down only to its floor, and a 1.5x or 1x screen not at all', () => {
+test('the readable minimum: never fewer drawing-buffer rows than minRows', () => {
+  assert.equal(ratioFloor(1, CONFIG, { rows: 1440 }), 0.5, '1440 rows: half is 720, over the minimum');
+  assert.equal(ratioFloor(1, CONFIG, { rows: 900 }), 0.6, '900 rows: 540 of them at least');
+  assert.deepEqual(ratioSteps(1, CONFIG, { rows: 900 }), [1, 0.75, 0.625, 0.6]);
+  assert.deepEqual(ratioSteps(1, CONFIG, { rows: 400 }), [1], 'a canvas shorter than the minimum: never under its own rows');
+  for (const rows of [300, 540, 720, 900, 1080, 1440, 2160]) {
+    for (const full of [1, 1.5, 2]) {
+      // (Never under the minimum, nor under the ladder's own top: a battle's cap of 1.5 is its best.)
+      const ratios = ratioSteps(full, CONFIG, { rows });
+      assert.ok(ratios.at(-1) * rows >= Math.min(CONFIG.minRows, rows * ratios[0]) - 1, `${full} x ${rows}: ${ratios}`);
+    }
+  }
+});
+
+test('a duel steps down only to three quarters of the screen ratio', () => {
   assert.deepEqual(ratioSteps(2, CONFIG, { duel: true }), [2, 1.5]);
-  assert.deepEqual(ratioSteps(3, CONFIG, { duel: true }), [3, 2.25, 1.875, 1.5]);
-  assert.deepEqual(ratioSteps(1.5, CONFIG, { duel: true }), [1.5]);
-  assert.deepEqual(ratioSteps(1, CONFIG, { duel: true }), [1]);
-  assert.deepEqual(ratioSteps(2, { ...CONFIG, duelFloor: undefined }, { duel: true }), [2], 'no duel floor: a duel is never adapted');
+  assert.deepEqual(ratioSteps(1.5, CONFIG, { duel: true }), [1.5, 1.125]);
+  assert.deepEqual(ratioSteps(1, CONFIG, { duel: true }), [1, 0.75]);
+  assert.deepEqual(ratioSteps(2, { ...CONFIG, duelFloorShare: undefined }, { duel: true }), [2], 'no duel floor: a duel is never adapted');
 });
 
 test('a duel waiting on the graphics card adapts on its own ladder; a battle that shrinks to one starts it again from the top', () => {
@@ -129,14 +142,102 @@ test('a frame far behind steps down within half a second, one step at a time', (
   assert.ok(levels.indexOf(2) > first, 'one step at a time');
 });
 
-test('a rung ladder: pixels first, then the tier, and a 1x screen has the tiers alone', async () => {
+test('a rung ladder: pixels first, then the tier; a 1x screen has the tiers alone at a floor of 1, and pixels too at the floor of half', async () => {
   const { rungsFor, QUALITY_RUNGS } = await import('../src/levelmode/quality.js');
   assert.deepEqual(rungsFor(2).map((r) => `${r.ratio}${r.tier[0]}`), ['2h', '1.5h', '1.5m', '1.25m', '1l']);
   assert.deepEqual(rungsFor(1).map((r) => `${r.ratio}${r.tier[0]}`), ['1h', '1m', '1l']);
   assert.equal(rungsFor(2, 1, QUALITY_RUNGS).length, 5);
+  assert.deepEqual(rungsFor(1, ratioFloor(1)).map((r) => `${r.ratio}${r.tier[0]}`), ['1h', '0.75h', '0.75m', '0.625m', '0.5l']);
   for (const full of [3, 2, 1.5, 1]) {
     const rungs = rungsFor(full);
     assert.ok(rungs.every((r) => r.ratio >= 1 && r.ratio <= full), `${full}`);
     assert.deepEqual(rungs.map((r) => r.ratio), rungs.map((r) => r.ratio).sort((a, b) => b - a));
   }
+});
+
+// The graphics card's own clock (the timer query): its time decides whether the frame waits on the pixels, and predicts a step up.
+const fill = (full) => (level) => full * [1, 0.75, 0.625, 0.5][level] ** 2;
+// Frames of the card's time `gpu` (a number, or by the level: a load that is in the pixels, which pays when stepped down) and the page's `work`;
+// each frame as long as the longer of the two (they run side by side), never under a 60 Hz frame.
+const runTimed = (state, seconds, gpu, { fighters = 100, work = 8, levels = 4, upCost = 1.78 } = {}) => {
+  for (let time = 0; time < seconds; ) {
+    const card = typeof gpu === 'function' ? gpu(state.level) : gpu;
+    const ms = Math.max(16.7, card, work);
+    stepAdaptive(state, { ms, fighters, levels, work, gpu: card, upCost: state.level > 0 ? upCost : null });
+    time += ms / 1000;
+  }
+  return state.level;
+};
+
+test('with the card timed: slow and the card busy steps down; slow and the card idle does not', () => {
+  assert.equal(runTimed(newAdaptiveState(), 20, fill(60), { work: 30 }), 3, 'the card took 60 of the frame: pixels, whatever the page did');
+  assert.equal(runTimed(newAdaptiveState(), 20, 8, { work: 33 }), 0, 'the card took 8 of 33 ms: the simulation is the long pole, the picture is kept');
+});
+
+test('with the card timed: a step up when the step\'s pixels are predicted to fit, and none that would come straight back down', () => {
+  const state = newAdaptiveState();
+  runTimed(state, 20, fill(80));
+  assert.equal(state.level, 3);
+  assert.equal(runTimed(state, 10, 9), 3, '9 ms x 1.78 = 16 ms is over 0.6 of the frame: no room');
+  assert.equal(runTimed(state, CONFIG.gpuUpSeconds - 0.5, 5), 3, 'room, but not for long enough yet');
+  assert.equal(runTimed(state, 1, 5), 2, '5 ms x 1.78 = 9 ms fits: one step up, without a blind try');
+});
+
+test('with the card timed and the page the long pole, a step up is taken while the frames stay slow', () => {
+  const state = newAdaptiveState();
+  runTimed(state, 20, fill(80));
+  assert.equal(state.level, 3);
+  assert.equal(runTimed(state, 30, 4, { work: 30 }), 0, 'the simulation holds the frame at 30 ms: the card has room for the full picture');
+});
+
+test('no oscillation: a load held steady settles on one rung', () => {
+  // The card's time is its fill (8 ms of pixels at the full ratio, times the share of them) plus 6 ms that the pixels do not change.
+  const ratios = [1, 0.75, 0.625, 0.5];
+  const state = newAdaptiveState();
+  const seen = [];
+  for (let frame = 0; frame < 60 * 120; frame += 1) {
+    const gpu = 6 + 20 * ratios[state.level] ** 2;
+    const ms = Math.max(16.7, gpu);
+    const level = stepAdaptive(state, { ms, fighters: 100, levels: 4, work: 8, gpu, upCost: state.level > 0 ? (ratios[state.level - 1] / ratios[state.level]) ** 2 : null });
+    seen.push(level);
+  }
+  const tail = seen.slice(-60 * 60);
+  assert.ok(tail.every((level) => level === tail[0]), `the last minute on one rung: ${[...new Set(tail)]}`);
+  assert.ok(tail[0] >= 1, 'and a step down from the full one (26 ms at 1)');
+});
+
+test('the setting is on unless turned off, and remembered', () => {
+  const store = new Map();
+  const storage = { getItem: (key) => store.get(key) ?? null, setItem: (key, value) => store.set(key, value) };
+  assert.equal(readDynamicResolution(storage), true);
+  writeDynamicResolution(storage, false);
+  assert.equal(readDynamicResolution(storage), false);
+  writeDynamicResolution(storage, true);
+  assert.equal(readDynamicResolution(storage), true);
+  assert.equal(readDynamicResolution(null), true);
+  assert.equal(readDynamicResolution({ getItem: () => { throw new Error('private window'); } }), true);
+});
+
+test('with the card timed: a step down that does not shorten the card\'s work is undone, and the next held off', () => {
+  // The card's 30 ms are the shadows and the vertices: the same at every ratio.
+  const state = newAdaptiveState();
+  const seen = [];
+  for (let frame = 0; frame < 60 * 60; frame += 1) seen.push(stepAdaptive(state, { ms: 33, fighters: 100, levels: 4, work: 8, gpu: 30, upCost: state.level > 0 ? 1.78 : null }));
+  assert.ok(seen.includes(1), 'it tried');
+  // (3600 frames of 33 ms: two minutes. Tries after 0.8 s, then 15, 30 and 60 s held off.)
+  const tries = seen.filter((level, i) => i > 0 && level > seen[i - 1]).length;
+  assert.ok(tries <= 4, `a few tries in two minutes, each held off longer: ${tries}`);
+  assert.ok(seen.filter((level) => level === 0).length > 0.8 * seen.length, 'the full picture most of the time');
+  assert.ok(!seen.includes(2), 'never a second step down on a step that did not pay');
+});
+
+test('with the card timed: a step down that pays is kept', () => {
+  const ratios = [1, 0.75, 0.625, 0.5];
+  const state = newAdaptiveState();
+  for (let frame = 0; frame < 60 * 30; frame += 1) {
+    const gpu = 2 + 28 * ratios[state.level] ** 2;
+    stepAdaptive(state, { ms: Math.max(16.7, gpu), fighters: 100, levels: 4, work: 8, gpu, upCost: state.level > 0 ? (ratios[state.level - 1] / ratios[state.level]) ** 2 : null });
+  }
+  assert.ok(state.level >= 1, `kept down: level ${state.level}`);
+  assert.equal(state.unpaid, 0);
 });
