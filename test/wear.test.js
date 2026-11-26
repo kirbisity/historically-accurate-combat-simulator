@@ -16,7 +16,7 @@ test('what each weapon is made of comes from its material data, not its name', (
   assert.deepEqual([build('armingSword').edge, build('armingSword').blade, build('armingSword').shaft], ['steel', 'steel', null]);
   assert.deepEqual([build('longSpear').edge, build('longSpear').blade, build('longSpear').shaft], ['steel', null, 'hardwood']);
   assert.equal(build('gladius').blade, 'iron', 'Roman-era iron');
-  assert.equal(build('staff').shaft, 'hardwood', 'all pole');
+  assert.equal(build('staff').shaft, 'waxwood', 'all pole, of white-wax wood');
   assert.equal(build('manchuLance').shaft, 'waxwood');
   assert.equal(build('flangedMace').shaft, null, 'an iron haft');
   assert.equal(build('macuahuitl').edge, null, 'obsidian chips on its own (physics.js chip)');

@@ -7,6 +7,7 @@
 import { P } from './body.js';
 import { floorUnder, SEVER_PARTS, point, quatRotate, shieldDisc } from './physics.js';
 import { reloadProps } from './physics/ranged.js';
+import { gripDrawing } from './physics/polegrip.js';
 import { unpackedComponent } from './meshpack.js';
 import { BONE } from './rig.js';
 import { disposeObject, doubleSided, outlineFor, surface, unskinnedCopy } from './toon.js';
@@ -2230,7 +2231,12 @@ function drawHeld(view, fighterView, arms, weapon, time) {
     }
     const flat = along.clone().cross(edge);
     arms.weapon.matrixAutoUpdate = false;
-    arms.weapon.matrix.makeBasis(flat, along, edge).setPosition(hand[0], hand[1], hand[2]);
+    // (A staff held where the hands now have it, either end leading: drawn as listed, moved along and turned to that grip.)
+    const grip = gripDrawing(weapon);
+    if (grip) {
+      const endA = grip.flipped ? along.clone().negate() : along;
+      arms.weapon.matrix.makeBasis(endA.clone().cross(edge), endA, edge).setPosition(hand[0] + endA.x * grip.shift, hand[1] + endA.y * grip.shift, hand[2] + endA.z * grip.shift);
+    } else arms.weapon.matrix.makeBasis(flat, along, edge).setPosition(hand[0], hand[1], hand[2]);
     arms.weapon.matrixWorldNeedsUpdate = true;
     arms.weapon.visible = showing;
     if (arms.weapon.userData.bow) drawString(arms.weapon, fighter);

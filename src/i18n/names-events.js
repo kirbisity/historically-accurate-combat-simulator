@@ -17,6 +17,7 @@ export const NAMES_EVENTS = {
   'Lance thrust': '骑枪突刺', 'Lance at the face': '骑枪挑面', 'Lance jab': '骑枪点刺', 'Lance charge': '骑枪冲锋',
   'Stab': '捅刺', 'Rising stab': '上挑刺', 'High stab': '高刺', 'Finisher': '了结',
   'Quick thrust': '快刺', 'Flick cut': '腕挑', 'Hooked cut': '钩斩', 'Crescent slash': '新月斩', 'Butt strike': '杆尾击',
+  'Staff chop': '劈棍', 'Rising blow': '撩棍', 'Beat': '拨棍', 'Staff thrust': '戳棍', 'Long smash': '抡劈', 'Flat wheel': '抡扫', 'Low sweep': '扫堂棍',
   'Shot': '射击', 'Volley': '齐射', 'Arrow loosed': '放箭',
   // Blows from the other side (control.js mirrorName).
   'Switch elbow': '换架肘击', 'Switch low kick': '换架低扫', 'Switch roundhouse': '换架鞭腿', 'Switch spinning kick': '换架转身踢',

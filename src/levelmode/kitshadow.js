@@ -95,9 +95,12 @@ float kitSunShade(vec3 p, vec3 n) {
  * What was baked, and the texture holding it (one: a look changes it, leaving the stage frees it). The map is drawn
  * into a render target of its own with a depth buffer, its colour copied into `texture`, and the target let go: a
  * target kept with its depth buffer held that buffer as long as the map (16 to 33 MB more on the card for a town's
- * 4096 map, never read after the bake).
+ * 4096 map, never read after the bake). `depth`: the material the map is drawn with, made once and kept: disposed after
+ * each bake, its program (a double-sided depth no other draw uses) was let go with it and built again at the next
+ * (140 to 260 ms on an M1 where the browser has not kept the link: levelmode/sectionstream.js createResourceLedger), at
+ * each district a streamed town takes up (places/pyongyang.js), where the draw itself is 4 to 8 ms on an M1 Pro.
  */
-const baked = { texture: null, key: '' };
+const baked = { texture: null, key: '', depth: null };
 
 /** No shadow any more (a look without one, or the stage left): the map is let go. */
 export function ktShadowRelease() {
@@ -166,7 +169,7 @@ export function ktShadowBake(renderer, root, casters, dir, strength, key = '', s
     baked.texture.name = 'kit-shadow';
   }
   // Draw: the casters with the depth material, nothing else, white (the far plane) behind.
-  const depth = new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking, side: THREE.DoubleSide });
+  const depth = (baked.depth ??= new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking, side: THREE.DoubleSide }));
   const kept = [];
   root.traverse((object) => {
     if (!(object.isMesh || object.isLine || object.isPoints || object.isSprite)) return;
@@ -190,7 +193,6 @@ export function ktShadowBake(renderer, root, casters, dir, strength, key = '', s
     object.material = material;
     object.visible = visible;
   }
-  depth.dispose();
   // What the shader needs: world to map (0..1 across, 0..1 along the light), the map's axes, the texel and the depth range in metres.
   const matrix = ktShadow.uKitShadowMat.value;
   matrix.makeTranslation(0.5, 0.5, 0.5).multiply(new THREE.Matrix4().makeScale(0.5, 0.5, 0.5)).multiply(camera.projectionMatrix).multiply(camera.matrixWorldInverse);
