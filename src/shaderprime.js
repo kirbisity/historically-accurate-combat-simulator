@@ -8,9 +8,9 @@
 //
 // A prime is a short window in which a scene is drawn as it will be (so three makes every program it will want, with the
 // very lights, targets and materials it will draw them with) but nothing of it is drawn: each draw of the scene is handed
-// an empty geometry, which three's renderBufferDirect passes over once it has set the program up; and no question is asked
-// of a program still linking: three is told it has no uniforms yet (ACTIVE_UNIFORMS 0). Only the scenes named are primed:
-// anything else drawn in the window (a cube camera's picture of the place for its mirrors, the prefiltering of a sky, a
+// an empty geometry, which three's renderBufferDirect passes over once it has set the program up; and a program still
+// linking is neither asked a question nor bound (either waits for the link): three is told it has no uniforms yet
+// (ACTIVE_UNIFORMS 0). Only the scenes named are primed: anything else drawn in the window (a cube camera's picture of the place for its mirrors, the prefiltering of a sky, a
 // bake into a texture) is drawn in full as ever, so that no picture kept for later is ever taken of nothing. As each
 // primed draw ends, what three noted of a program still linking (its empty uniform table, and the material's list built
 // from it) is let go, so the next draw reads the program again: once its link is done that read is the true one, and
@@ -61,7 +61,7 @@ export function openShaderPrime(renderer, { scenes, only = null }) {
   const gl = renderer.getContext();
   const ext = gl.getExtension('KHR_parallel_shader_compile');
   primeEmptyGeometry ??= new THREE.BufferGeometry();
-  const own = { linkProgram: gl.linkProgram, getProgramParameter: gl.getProgramParameter, render: renderer.render, compile: renderer.compile, renderBufferDirect: renderer.renderBufferDirect, check: renderer.debug.checkShaderErrors };
+  const own = { linkProgram: gl.linkProgram, getProgramParameter: gl.getProgramParameter, useProgram: gl.useProgram, render: renderer.render, compile: renderer.compile, renderBufferDirect: renderer.renderBufferDirect, check: renderer.debug.checkShaderErrors };
   const done = (program) => own.getProgramParameter.call(gl, program, ext.COMPLETION_STATUS_KHR) === true;
   const primed = new Set(scenes);
   const linked = new Set();
@@ -90,6 +90,16 @@ export function openShaderPrime(renderer, { scenes, only = null }) {
     }
     return own.getProgramParameter.call(gl, program, name);
   };
+  // Nor is a program still linking bound (binding it waits for the link, as ANGLE has to know it linked): three's own
+  // note of the program bound is then put right after the draw (`renderer.state.useProgram(null)`), so its next draw binds.
+  let unbound = false;
+  gl.useProgram = function useProgram(program) {
+    if (priming && program && primeLinked.has(program) && !done(program)) {
+      unbound = true;
+      return undefined;
+    }
+    return own.useProgram.call(gl, program);
+  };
   // A primed piece of work: three's own error check off (it reads the link's log, which waits), and after it, the
   // material's program, if put off, given a fresh table to build when next asked, the material owed a new list.
   const primedFor = (materials, work) => {
@@ -100,6 +110,8 @@ export function openShaderPrime(renderer, { scenes, only = null }) {
     } finally {
       priming = false;
       renderer.debug.checkShaderErrors = own.check;
+      if (unbound) renderer.state.useProgram(null);
+      unbound = false;
       for (const material of materials) if (primeLetGo(renderer, gl, unread, material)) owed.add(material);
     }
   };
@@ -143,7 +155,7 @@ export function openShaderPrime(renderer, { scenes, only = null }) {
     close() {
       if (!open) return;
       open = false;
-      Object.assign(gl, { linkProgram: own.linkProgram, getProgramParameter: own.getProgramParameter });
+      Object.assign(gl, { linkProgram: own.linkProgram, getProgramParameter: own.getProgramParameter, useProgram: own.useProgram });
       Object.assign(renderer, { render: own.render, compile: own.compile, renderBufferDirect: own.renderBufferDirect });
       renderer.debug.checkShaderErrors = own.check;
       for (const material of owed) primeOwe(renderer, material);

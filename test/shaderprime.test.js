@@ -21,6 +21,8 @@ function standIn({ parallel = true } = {}) {
     getExtension: (name) => (parallel && name === 'KHR_parallel_shader_compile' ? { COMPLETION_STATUS_KHR: COMPLETION } : null),
     createProgram: () => { const handle = { id: next++ }; programs.set(handle, { done: false, ok: true, uniforms: 5 }); return handle; },
     linkProgram(program) { programs.get(program).linked = true; },
+    // (Binding a program still linking waits for it too.)
+    useProgram(program) { if (program && !programs.get(program).done) { gl.waited += 1; programs.get(program).done = true; } gl.bound = program; },
     getProgramParameter(program, name) {
       const p = programs.get(program);
       if (name === COMPLETION) return p.done;
@@ -47,6 +49,7 @@ function standIn({ parallel = true } = {}) {
     target: null,
     drawn: [],
     getContext: () => gl,
+    state: { current: null, useProgram(program) { if (this.current === program) return false; gl.useProgram(program); this.current = program; return true; } },
     getRenderTarget() { return this.target; },
     properties: { get: (material) => { if (!properties.has(material)) properties.set(material, {}); return properties.get(material); } },
     // three's getProgram: a program found by its key or made (linked; its log read if checking), its uniforms asked at once.
@@ -66,6 +69,7 @@ function standIn({ parallel = true } = {}) {
       props.list = program.getUniforms().count;
       props.currentProgram = program;
       props.version = material.version;
+      this.state.useProgram(program.program);
       return program;
     },
     renderBufferDirect(camera, scene, geometry, material, object) {
@@ -101,6 +105,7 @@ test('a primed scene: its programs made and linking, nothing drawn, no question 
   assert.equal(prime.linked().length, 2);
   assert.equal(renderer.debug.checkShaderErrors, true);
   assert.equal(renderer.render.name, 'render', 'its own methods given back');
+  assert.equal(renderer.state.current, null, 'three\'s note of the bound program put right: the next draw binds');
   assert.equal(primeLinksDone(renderer, prime.linked()), false);
   for (const program of prime.linked()) gl.finish(program);
   assert.equal(primeLinksDone(renderer, prime.linked()), true);

@@ -4339,5 +4339,12 @@ export function render(view) {
  */
 function compileHidden(view) {
   view.compileDue = false;
-  view.renderer.compile(view.scene, view.camera);
+  // (Primed, shaderprime.js: what it makes is not drawn now, so its programs link side by side while play goes on, and are
+  // read when first drawn, done by then; where there is no prime, built one after another here as before.)
+  const prime = openShaderPrime(view.renderer, { scenes: [view.scene] });
+  try {
+    view.renderer.compile(view.scene, view.camera);
+  } finally {
+    prime?.close();
+  }
 }
