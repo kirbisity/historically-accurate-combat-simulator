@@ -54,6 +54,7 @@ export const NAMES_WORLD = {
   'Espada y rodela': '剑与圆盾',
   'Revolver': '左轮',
   'Tai chi': '太极',
+  'Jeet kune do': '截拳道',
   'Taekwondo': '跆拳道',
   'Judo': '柔道',
   'Wolf-tooth mace and buckler': '狼牙棒与铁盾',

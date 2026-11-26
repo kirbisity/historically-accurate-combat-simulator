@@ -2837,6 +2837,8 @@ export const OUTFITS = {
     palette: [['white', 'white'], ['black', 'black'], ['navy', 'black'], ['wine', 'black']],
     designs: [
       { label: 'Silk suit', top: { kind: 'flannel', color: '#e8e4d8' }, bottom: { kind: 'pants', color: '#e8e4d8' }, feet: { kind: 'clothBoot', color: '#161616' } },
+      // The black high-collared student's tunic of the 1910s, as the films of the 1970s dressed their fighters.
+      { label: 'Student tunic', top: { kind: 'flannel', color: '#121214' }, bottom: { kind: 'pants', color: '#121214' }, feet: { kind: 'clothBoot', color: '#0c0c0c' } },
     ],
   },
   // A Shaolin monk: the robe, leggings bound at the shin, the head shaven.
@@ -3576,7 +3578,8 @@ export function outfitSets(kind) {
   if (!setsByKind.has(kind)) {
     const spec = OUTFITS[kind];
     const listed = OUTFIT_SETS[kind];
-    setsByKind.set(kind, listed ?? [{ key: 'own', name: spec.label, blurb: OUTFIT_BLURBS[kind] ?? '', designs: spec.designs.map((_, index) => index), patch: {} }]);
+    // A listed set with no blurb of its own (`blurb: null`) takes the outfit's (OUTFIT_BLURBS).
+    setsByKind.set(kind, listed?.map((set) => ({ ...set, blurb: set.blurb ?? OUTFIT_BLURBS[kind] ?? '' })) ?? [{ key: 'own', name: spec.label, blurb: OUTFIT_BLURBS[kind] ?? '', designs: spec.designs.map((_, index) => index), patch: {} }]);
   }
   return setsByKind.get(kind);
 }

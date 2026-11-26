@@ -385,6 +385,12 @@ export const PRESETS = {
     outfit: { kind: 'kungfu', design: 0 }, accessories: [],
     look: { skinTone: 'lightTan', hairStyle: 'cleanShort', hairColor: '#4a4a48', facialHair: 'beard', eyeColor: 'brown' },
   },
+  // A Hong Kong martial artist of the 1960s-70s (jeet kune do): 172 cm and lean, ~62 kg, trained daily to the bone.
+  martialArtist: {
+    name: 'Chan Wai-keung', style: 'jeetKuneDo', sex: 'male', heightCm: 172, frame: 'small', age: 30, exercise: 0.95, calories: 3300, skill: 0.85,
+    outfit: { kind: 'kungfu', design: 1 }, accessories: [],
+    look: { skinTone: 'lightTan', hairStyle: 'cleanShort', hairColor: '#120d0a', facialHair: 'none', eyeColor: 'brown', faceRegion: 'china' },
+  },
   // A taekwondo fighter: long legs, light.
   taekwondo: {
     name: 'Kim Min-jun', style: 'taekwondo', sex: 'male', heightCm: 181, frame: 'small', age: 23, exercise: 0.78, calories: 4325,

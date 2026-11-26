@@ -22,6 +22,15 @@ const CUMAN_BLURB = { en: 'Plated mail and hinged steel face of a Cuman of a kha
 const BAYARA_BLURB = { en: 'Armour of the Bayara, the banner guard. Brocade over iron plates, a steel mirror over the heart, gilt at the shoulders.\nThe guard was picked from every company. Wherever the line broke, they went in first; whenever a city fell, they were paid first.\nIn 1619 four Ming columns were swallowed one by one. The silver owed to the Ming garrisons had long gathered dust in the palace vaults of Beijing.\nLoyalty was never free. The Khan simply paid on time.', zh: '八旗护军巴牙喇的铠甲。锦缎为面，铁叶为里，心口悬一面护心镜，肩头鎏金。\n护军由各牛录挑选而出。阵中凡有缺口，必是他们先入；城破之日，财货先分护军。\n一六一九年，明军四路，被逐一吞没。而那些本该发给明军的饷银，早已在京城内库里积了尘。\n忠诚并非无价。只是大汗从不拖欠。' };
 
 export const OUTFIT_SETS = {
+  // The kung fu suit: the master's silk (its own card, OUTFIT_BLURBS.kungfu), and the student's tunic of the films.
+  kungfu: [
+    { key: 'silk', designs: [0], name: 'Kung fu suit', blurb: null, patch: {} },
+    {
+      key: 'tunic', designs: [1], name: 'Student tunic',
+      blurb: { en: 'A black high-collared tunic, the dress of a Chinese student of the 1910s, and a fighting art that kept only what worked: a boxer\u2019s footwork, a fencer\u2019s lunge, the straight punch of Wing Chun, kicks from the length of the leg.\nHong Kong and California, the 1960s. A young teacher taught kung fu to anyone who came, foreigners too. The old masters, so the story goes, told him to stop. He fought one of them for the right to go on teaching. It was over in three minutes, or in twenty, depending on who tells it.\nIn a 1972 film a Shanghai student carries a framed sign back into a Japanese dojo. It reads Sick Man of East Asia.\nHe makes them eat the paper.', zh: '一件黑色立领学生装，一九一〇年代中国学生的打扮；一门只留管用之物的功夫：拳击的步法，击剑的弓步，咏春的直拳，腿长有多远就踢多远。\n一九六〇年代，香港与加州。一个年轻的师傅，谁来都教，洋人也教。据说老一辈的师傅叫他住手。他为了能接着教下去，同其中一人比了一场。三分钟就分了胜负，也有人说是二十分钟，看是谁在讲。\n一九七二年的一部电影里，一个上海学生把一块镶框的牌匾送回日本道场。匾上写着“东亚病夫”。\n他叫他们把纸吃了下去。' },
+      patch: {},
+    },
+  ],
   // The Bayara: the open helmet (no mask among the Jurchen: the user's call, 2026-11-20).
   bayara: [
     { key: 'open', designs: [0, 1, 2, 3], name: 'Bayara guard — open helmet', blurb: BAYARA_BLURB, patch: {} },

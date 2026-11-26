@@ -251,6 +251,7 @@ export const NAMES_KIT = {
   'Crimson and green': '绯红配绿',
   'Kung fu suit': '功夫服',
   'Silk suit': '丝绸功夫服',
+  'Student tunic': '学生装',
   'Shaolin monk': '少林武僧',
   'Robe': '僧袍',
   'Taekwondo dobok': '跆拳道服',

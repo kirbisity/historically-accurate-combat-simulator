@@ -48,6 +48,13 @@ export const MOVES = {
   // the way round, back to him, before the heel whips through: a big swing
   // of mass and a long, open windup.
   spinKick: { kind: 'strike', limb: 'rFoot', path: 'roundhouse', windup: 0.24, extendUntil: 0.5, duration: 0.95, twist: -2.1, lean: -0.3, cost: 0.06, mass: { leg: 0.62, body: 0.05 }, rotation: 1.65, zones: ['head', 'body'], reach: 'leg' },
+  // Jeet kune do's lead: the straight lead from the strong side forward, the step behind it (the fencer's lunge), quicker
+  // than a jab and with more of the body; the finger jab at the eyes (harm little, the flinch the point); the side kick
+  // and the low stop kick into an incoming knee from the lead leg, the longest weapons on the shortest line.
+  straightLead: { kind: 'strike', limb: 'lHand', path: 'straight', windup: 0, extendUntil: 0.17, duration: 0.3, twist: 0.2, shift: 0.09, step: 0.5, cost: 0.014, mass: { arm: 0.6, body: 0.02 }, rotation: 0.9, zones: ['head', 'body'], reach: 'arm' },
+  fingerJab: { kind: 'strike', limb: 'lHand', path: 'straight', windup: 0, extendUntil: 0.15, duration: 0.28, twist: 0.1, shift: 0.07, cost: 0.01, mass: { arm: 0.35 }, rotation: 0.6, harm: 0.3, zones: ['head'], reach: 'arm' },
+  sideKick: { kind: 'strike', limb: 'lFoot', path: 'teep', windup: 0.1, extendUntil: 0.3, duration: 0.56, twist: 0.6, lean: -0.26, cost: 0.035, mass: { leg: 0.55, body: 0.14 }, rotation: 0.6, push: true, zones: ['body'], reach: 'leg' },
+  stopKick: { kind: 'strike', limb: 'lFoot', path: 'teep', windup: 0.04, extendUntil: 0.2, duration: 0.42, twist: 0.3, lean: -0.1, cost: 0.02, mass: { leg: 0.4, body: 0.08 }, rotation: 0.5, push: true, zones: ['legs'], reach: 'leg' },
   // Tai chi's push (an): both palms from the hips, the whole body behind them, rooted.
   taichiPush: { kind: 'strike', limb: 'rHand', path: 'pushBoth', windup: 0.18, extendUntil: 0.42, duration: 0.7, twist: 0, shift: 0.1, lean: 0.12, dip: 0.04, step: 0.6, cost: 0.02, mass: { arm: 0.9, body: 0.12 }, rotation: 0.2, push: true, shove: 0.9, harm: 0.15, contactSeconds: 0.06, zones: ['body'], reach: 'arm' },
   // A palm strike, open hand, short and soft (harm), more push than blow.
@@ -1384,6 +1391,27 @@ export const STYLES = {
     headMovement: 0.05,
     plans: { outboxer: 2, counter: 1, pressure: 0.2, brawler: 0.1 },
     pressure: 0,
+  },
+  // Jeet kune do (Hong Kong and California, the 1960s): only what worked kept. The strong side forward, light on the
+  // balls of the feet (a boxer's bounce, a fencer's distance), the straight lead and the stop hit meeting a man as he
+  // comes in (`counter`), Wing Chun's chain punches and its slapping parry (pak sao: `parry`), kicks from the lead leg.
+  jeetKuneDo: {
+    art: 'artRoundhouse',
+    label: 'Jeet kune do',
+    ratedAs: 'kickboxing',
+    cadence: { work: 1.4, move: 1.2, burst: 0.7, mobility: 0.75 },
+    stance: { blade: 0.6, crouch: 0.04, width: 0.9, lean: 0.08, guardHeight: 0 },
+    idle: { bounce: 1.1, sway: 0.6, rock: 0.3 },
+    attacks: { straightLead: 0.28, fingerJab: 0.06, cross: 0.12, hook: 0.08, uppercut: 0.04, sideKick: 0.14, stopKick: 0.1, roundhouse: 0.1, rush: 0.006 },
+    combos: { 'straightLead cross straightLead cross': 0.25, 'stopKick straightLead': 0.2, 'fingerJab cross hook': 0.15, 'straightLead sideKick': 0.2, 'straightLead straightLead cross': 0.2 },
+    comboChance: 0.55,
+    tempo: 1.5,
+    defences: { parry: 0.3, slip: 0.25, stepBack: 0.25, leanBack: 0.1, guard: 0.1 },
+    defendChance: 0.85,
+    headMovement: 0.7,
+    counter: 0.6,
+    plans: { counter: 1.8, outboxer: 1.4, pressure: 0.8, brawler: 0.3 },
+    pressure: 0.15,
   },
   // Tai chi: rooted, low, the hands soft before the body; it meets nearly
   // every attack (a parry turns it, a step takes the body off its line) and
