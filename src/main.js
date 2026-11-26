@@ -4572,6 +4572,8 @@ const boxer = window.boxer = {
   menuGame,
   // Story mode's test hooks (src/story/storyview.js): open, begin, answer(i), autoplay(on), endBattle, skipLine, state(), language(l).
   story: story.hooks,
+  // Any work behind the loading screen as a story button does it (storyview.js behindLoad): `work` a function or generator.
+  loading: (info, work) => loadInto(info, work),
   scene,
   // Last Stand Squad at this level ('samurai', 'knight', 'mongol', 'police': lastgate.js LAST_GATE_MODES), from anywhere
   // (tests, shots); `setup` its squad ({ men, places }), else the level's own five at their posts.
