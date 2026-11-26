@@ -1396,12 +1396,19 @@ function blendStance(from, to, share) {
  */
 export function halfGripped(fighter, weapon = fighter.weapon) {
   if (!weapon?.held || weapon !== fighter.weapon || !weapon.spec.halfSword) return false;
+  // (A blow with the hilt from it, the mordschlag (moves.js `hilt`): swung from the grip in this model, the hands back on it.)
+  if (fighter.punch?.spec.hilt) return false;
   return Boolean(fighter.punch?.spec.half) || Boolean(fighter.halfSword);
 }
 
-/** The half-sword's guard between thrusts (weapons.js `halfSword.guard`): the hilt over his head, the point down at his man. */
+/**
+ * The half-sword's guard between thrusts (weapons.js `halfSword.guard`): the hilt over his head, the point down at his man;
+ * or the low guard (`halfSword.low`, the hilt at the hip and the point rising) when his mind is on it (`fighter.halfSword.guard`,
+ * ai.js halfGuardFor).
+ */
 function halfGuard(fighter, weapon) {
-  const guard = weapon.spec.halfSword.guard;
+  const grip = weapon.spec.halfSword;
+  const guard = fighter.halfSword?.guard === 'low' && grip.low ? grip.low.guard : grip.guard;
   return { hand: vec.scale(guard.hand, fighter.body.heightM), dir: vec.normalize(guard.dir) };
 }
 
@@ -2550,6 +2557,15 @@ export function aimPoint(target, zone, spec = null) {
   // (His sights: the front of his head at his eyes, where a closed helm's slits are, an open helmet's face; physics/gaps.js visor.)
   if (zone === 'sights') return vec.add(point(target.x, P.head), vec.scale(yawRotate([1, 0, 0], target.yaw), target.body.lengths.headRadius * 0.8));
   if (zone === 'hand') return point(target.x, P[`${target.weapon?.held ? target.weapon.main : 'r'}Hand`]);
+  // (His groin: between his hips at their height and out at the front of his belly, under the fauld; the inside of his left
+  // thigh, high on it and turned to the other leg: the half-sword's low marks, physics/gaps.js groin.)
+  if (zone === 'groin') return vec.add(vec.lerp(point(target.x, P.lHip), point(target.x, P.rHip), 0.5), vec.scale(yawRotate([1, 0, 0], target.yaw), target.body.segments.trunk.skinRadius * 0.7));
+  if (zone === 'thigh') {
+    const high = vec.lerp(point(target.x, P.lHip), point(target.x, P.lKnee), 0.15);
+    const inward = vec.sub(point(target.x, P.rHip), point(target.x, P.lHip));
+    const width = vec.length(inward);
+    return width > 1e-6 ? vec.add(high, vec.scale(inward, (target.body.segments.lThigh.skinRadius * 0.9) / width)) : high;
+  }
   if (zone === 'armpit') {
     const side = vec.sub(point(target.x, P.lShoulder), point(target.x, P.rShoulder));
     const width = vec.length(side);
@@ -10496,6 +10512,10 @@ function clashWeapons(world, first, second, a = first.weapon, b = second.weapon)
   world.pendingImpulses.push({ fighter: first, shares: [[mainA, 1], [P[`${a.main}Elbow`], 0.5]], direction: normal, impulse });
   world.pendingImpulses.push({ fighter: second, shares: [[mainB, 1], [P[`${b.main}Elbow`], 0.5]], direction: vec.scale(normal, -1), impulse });
   const parried = cutting(strokeA) && !strokeB ? [second, b, first, strokeA] : cutting(strokeB) && !strokeA ? [first, a, second, strokeB] : null;
+  // (Both blades met in their strokes, one of them live and the other's under way too (in its wind-up, its blow or coming
+  // back): a clash of two blows, not a parry of one by a blade held still. Who had the strong of it is read off where each
+  // was met, `along`, ai.js AI.halfSword clash.)
+  const struck = Boolean(strokeA && strokeB) && (cutting(strokeA) || cutting(strokeB));
   // A blow met by a much lighter blade is not stopped by it: what speed the meeting leaves it (its effective mass against the
   // blade's, braced: BLADES.beatThrough) it goes on with, the parrying blade driven back before it and his block broken.
   let beaten = parried && beatenThrough(parried[2] === first ? massA : massB, parried[2] === first ? massB : massA);
@@ -10526,7 +10546,7 @@ function clashWeapons(world, first, second, a = first.weapon, b = second.weapon)
   // across the other as they met (`slide`, m/s: the way its edge scrapes, and the sparks it tears off fly). Read by nothing here.)
   const parts = [weaponPart(a, one.along), weaponPart(b, two.along)];
   const slide = vec.length(one.velocity) >= vec.length(two.velocity) ? vec.sub(one.velocity, two.velocity) : vec.sub(two.velocity, one.velocity);
-  world.events.push({ time: world.time, kind: 'clash', fighter: first.id, other: second.id, point: met, normal, impulse, parts, slide, deflect: deflected || undefined, hilt: caught ? true : undefined, hiltOf: caught?.of, effects: ['blades meet'] });
+  world.events.push({ time: world.time, kind: 'clash', fighter: first.id, other: second.id, point: met, normal, impulse, parts, slide, deflect: deflected || undefined, hilt: caught ? true : undefined, hiltOf: caught?.of, struck: struck || undefined, along: [one.along, two.along], energy: 0.5 * ((massA * massB) / (massA + massB)) * Math.max(0, closing) ** 2, effects: ['blades meet'] });
   // Heard: how fast they met, what of each (an edge, a haft, a head), and whether a point was turned along the blade (a scrape).
   // (The man played's deflect, and whether big: WORLD.deflect.big; its own sound, audio/sfx/sampled.js.)
   const deflectedBy = deflected ? parried[0] : null;
