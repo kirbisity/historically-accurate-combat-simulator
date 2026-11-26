@@ -1245,8 +1245,11 @@ function tick(seconds, { budget = SIM_BUDGET_MS } = {}) {
     advance(state.world, STEP, thinkForBout, STEP);
     state.accumulator -= STEP;
     steps += 1;
-    if (performance.now() - started > budget) {
-      // Out of time: what is left is dropped, not owed to the next frame.
+    // Out of time, or no time for another step as long as those this frame took: what is left is dropped, not owed to the next
+    // frame. (Checked only after a step had begun past the budget, a frame of 15 ms steps took two, 30 ms, and the next one: a
+    // battle that cannot keep up went in frames of one step and two by turns, 18 and 36 ms at 500 men.)
+    const spent = performance.now() - started;
+    if (spent + spent / steps > budget) {
       state.accumulator = Math.min(state.accumulator, STEP * 0.999);
       break;
     }
