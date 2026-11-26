@@ -409,7 +409,14 @@ export const WEAPONS = {
     // and forward at his face and throat, the left hand on the blade before the chin (as Ringeck's third guard of the half-sword
     // and as fencers in harness hold it to drive the point down at the sights, the throat, the armpit). `move`: the thrust made
     // from it (moves.js). Who grips it so and when: ai.js AI.halfSword, weaponarts.js (the player's art); physics.js halfGripped.
-    halfSword: { along: 0.5, guard: { hand: [0.04, 1.02, -0.08], dir: [0.72, -0.69, 0.02] }, move: 'halfSword' },
+    // `low`: the other guard of the half-sword the AI takes (ai.js halfGuardFor), Ringeck's first: the hilt low at the right hip,
+    // the left hand on the blade before the belly and the point rising at his face, from which the point is driven up under
+    // his bevor, into the armpit, the groin under the fauld or the inside of the thigh (Ringeck's gloss of Liechtenauer's
+    // armoured fight, Dresden Mscr. C 487, 'the four guards of the half-sword': the first at the right side, the second at the
+    // left, the third over the head with the point down at his face, the fourth on the knee; Lew's and von Danzig's glosses
+    // and Kal's Fechtbuch, Cgm 1507, show the same low and high holds). The second and fourth are the low guard on the other
+    // side and the low guard rested on the knee: the same lines for the point, so one low guard stands for them here.
+    halfSword: { along: 0.5, guard: { hand: [0.04, 1.02, -0.08], dir: [0.72, -0.69, 0.02] }, move: 'halfSword', low: { guard: { hand: [0.02, 0.52, -0.15], dir: [0.8, 0.58, 0.14] }, move: 'halfSwordLow' } },
   },
   // Two hands always: the sharper, shorter blade cuts deeper, stabs less. Its sori a shallow 2 cm (`curve`: BLADES.slice),
   // the ōdachi's 3, the wakizashi's a little over 1.
@@ -1859,7 +1866,9 @@ export const BLADES = {
     // The marks that are themselves a gap's place (physics.js aimPoint), and the gap each is: a point laid on one is at the
     // opening, not at the plate (ai.js harmThrough, a point `placed` there; physics/gaps.js markGap). The sights of a closed
     // helm, or an open helmet's face.
-    marks: { armpit: 'armpit', throat: 'neck', sights: { closed: 'visor', open: 'face' } },
+    // The half-sword's low marks: the groin under the fauld, and the inside of the thigh high up, where the cuisse leaves it (the
+    // groin zone's thigh shape).
+    marks: { armpit: 'armpit', throat: 'neck', sights: { closed: 'visor', open: 'face' }, groin: 'groin', thigh: 'groin' },
     // Never a gap, not even at the lacing: the middle of the breast, the back, the crown.
     solid: { trunk: [{ height: [0.08, 1.1], round: [0, 50] }, { height: [-1, 1.1], round: [125, 180] }], head: [{ rise: [0.4, 1], round: [0, 180] }] },
   },
