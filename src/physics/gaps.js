@@ -151,6 +151,18 @@ export function gapUnder(gear, zone, covered) {
 }
 
 /**
+ * The gap a point laid on mark `mark` (BLADES.gaps.marks: the armpit, the throat, the sights) is at in this kit, by name; null
+ * for a mark that is no gap's place, or a gap this kit has closed (its `gaps.closed`) or its helmet does not have.
+ */
+export function markGap(gear, mark) {
+  const named = BLADES.gaps.marks[mark];
+  const zone = typeof named === 'object' && named ? named[gear.helmFace ?? 'open'] : named;
+  if (!zone || gapsOf(gear).closed?.includes(zone)) return null;
+  const helm = BLADES.gaps.zones[zone]?.helm;
+  return helm && helm !== (gear.helmFace ?? 'open') ? null : zone;
+}
+
+/**
  * In expectation, for a man weighing a blow at part `key` of this kit (ai.js harmThrough): the share of such blows that
  * meet a gap's opening before the striker's own terms (the share that lands in a zone, BLADES.gaps.aimed, × gapChance
  * there), and what is under it (`under`, as the zone most such blows meet: an open face, the throat, the armpit, the elbow).

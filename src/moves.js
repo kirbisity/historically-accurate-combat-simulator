@@ -91,6 +91,13 @@ export const MOVES = {
   zwerchhau: { kind: 'strike', limb: 'rHand', path: 'blade', mode: 'swing', grip: 'two', sweep: true, from: { hand: [0.03, 0.72, -0.28], dir: [-0.25, 0.15, -1] }, mid: [1, 0.05, 0], to: { hand: [0.2, 0.68, 0.28], dir: [0.15, 0.05, 1] }, windup: 0.16, extendUntil: 0.42, duration: 0.8, twist: -0.8, lean: 0.06, shift: 0.05, cost: 0.036, mass: { arm: 0.6, body: 0.04 }, rotation: 0.8, zones: ['body', 'head'], reach: 'weapon' },
   unterhau: { kind: 'strike', limb: 'rHand', path: 'blade', mode: 'swing', grip: 'two', from: { hand: [0.14, 0.4, -0.2], dir: [0.4, -0.6, -0.6] }, mid: [0.9, 0.1, 0], to: { hand: [0.12, 0.86, 0.12], dir: [0.3, 0.8, 0.5] }, windup: 0.14, extendUntil: 0.38, duration: 0.74, twist: 0.3, lean: 0.04, shift: 0.04, cost: 0.03, mass: { arm: 0.55, body: 0.03 }, rotation: 0.8, zones: ['body'], reach: 'weapon' },
   lunge: { kind: 'strike', limb: 'rHand', path: 'blade', mode: 'thrust', grip: 'one', from: { hand: [0.1, 0.62, -0.08], dir: [1, 0.15, 0] }, windup: 0.1, extendUntil: 0.36, duration: 0.62, twist: -0.6, lean: 0.2, shift: 0.15, depth: 0.25, step: 2.4, cost: 0.03, mass: { arm: 0.6, body: 0.05 }, rotation: 0.6, zones: ['body', 'head'], reach: 'weapon' },
+  // The half-sword thrust (`half`: the left hand on the middle of the blade, weapons.js `halfSword`; physics.js halfGripped):
+  // from the half-sword's high guard, the right hand over the head and the point down at him, the point driven down and in
+  // along the line to a gap (his throat under the bevor, his armpit, the sights) by both arms with the trunk leaning in and
+  // dropping behind it, a short step under him (`step`, a third less than a lunge's: the feet are close at this range). Laid
+  // in by the hand on the blade, it finds the gap as a point placed does (`placed`, as a finisher's), not as one thrown from a
+  // metre out. Not in any style's `attacks`: ai.js takes it up only at the half-sword (AI.halfSword).
+  halfSword: { kind: 'strike', limb: 'rHand', path: 'blade', mode: 'thrust', grip: 'two', half: true, placed: 0.8, from: { hand: [0.02, 1.04, -0.08], dir: [0.72, -0.69, 0.02] }, windup: 0.22, extendUntil: 0.46, duration: 0.82, twist: 0.3, lean: 0.12, dip: 0.03, shift: 0.08, depth: 0.16, step: 0.8, extendShare: 0.6, cost: 0.03, mass: { arm: 0.85, body: 0.22 }, rotation: 0.4, zones: ['throat', 'sights', 'armpit'], reach: 'close' },
   // Police baton: forehand strikes high and low, and a short jab with the tip.
   overhand: { kind: 'strike', limb: 'rHand', path: 'blade', mode: 'swing', grip: 'one', from: { hand: [-0.02, 0.92, -0.2], dir: [-0.6, 0.6, -0.3] }, mid: [0.9, 0.2, 0.1], to: { hand: [0.3, 0.55, 0.1], dir: [0.5, -0.6, 0.4] }, windup: 0.14, extendUntil: 0.36, duration: 0.58, twist: -0.7, lean: 0.12, shift: 0.05, cost: 0.024, mass: { arm: 0.6, body: 0.015 }, rotation: 1.15, zones: ['head', 'body'], reach: 'weapon', contactAt: 0.7 },
   forehand: { kind: 'strike', limb: 'rHand', path: 'blade', mode: 'swing', grip: 'one', from: { hand: [0.0, 0.72, -0.3], dir: [-0.4, 0.3, -0.85] }, mid: [1, 0.05, 0], to: { hand: [0.25, 0.62, 0.15], dir: [0.3, 0, 0.95] }, windup: 0.14, extendUntil: 0.36, duration: 0.56, twist: -0.85, lean: 0.06, shift: 0.04, cost: 0.024, mass: { arm: 0.6, body: 0.015 }, rotation: 1.3, zones: ['body', 'head'], reach: 'weapon', contactAt: 0.7 },
@@ -254,10 +261,10 @@ export const MOVES = {
   // behind it, measured to his distance (`range`): what an edge cannot do to plate. (The hands stay on the grip in this model:
   // the hilt's lever is the grip's, not half the blade's.)
   artMordhau: { kind: 'strike', limb: 'rHand', path: 'blade', mode: 'swing', grip: 'two', art: true, hilt: 'cross', from: { hand: [-0.1, 1.05, 0.18], dir: [0.6, -0.8, 0] }, mid: [-0.6, 0.5, 0], to: { hand: [0.4, 0.8, 0.18], dir: [-0.3, 0.95, 0] }, windup: 0.3, extendUntil: 0.5, duration: 0.95, twist: -1, coil: 0.5, lean: 0.2, dip: 0.1, shift: 0.12, step: 2.4, stepLead: 0.04, range: 0.6, meet: 0.6, cost: 0.15, mass: { arm: 0.85, body: 0.25 }, rotation: 1.2, zones: ['head', 'body'], reach: 'close' },
-  // The half-sword thrust: the left hand on the middle of the blade, the hilt drawn back low by the hip and the point laid short
-  // and rising, steered up under his bevor into the throat or under the arm (the gaps in his plate), the body leaning in behind
-  // it: guided by the hand on the blade, it finds the gap as a point laid in does (`placed`, as a finisher's), not as one thrown.
-  artHalfSword: { kind: 'strike', limb: 'rHand', path: 'blade', mode: 'thrust', grip: 'two', art: true, placed: 0.8, from: { hand: [-0.25, 0.45, -0.05], dir: [1, 0.6, 0] }, windup: 0.18, extendUntil: 0.45, duration: 0.85, twist: -0.5, coil: 0.3, lean: 0.3, shift: 0.2, depth: 0.2, step: 1.6, extendShare: 0.6, cost: 0.12, mass: { arm: 0.85, body: 0.25 }, rotation: 0.4, zones: ['throat', 'armpit', 'head'], reach: 'close' },
+  // The half-sword thrust as an art (the player's, weaponarts.js): the plain thrust (`halfSword`, above), made with his blood up
+  // from wherever his sword is: the wind-up long enough (`windup`) for the hilt to go up over his head and the left hand to
+  // let go of the grip and take the blade at its middle (physics.js updateWeapon: the arm's own pace) before the point goes in.
+  artHalfSword: { kind: 'strike', limb: 'rHand', path: 'blade', mode: 'thrust', grip: 'two', art: true, half: true, placed: 0.8, from: { hand: [0.02, 1.04, -0.08], dir: [0.72, -0.69, 0.02] }, windup: 0.34, extendUntil: 0.62, duration: 1.0, twist: 0.35, coil: 0.2, lean: 0.14, dip: 0.04, shift: 0.1, depth: 0.18, step: 0.9, extendShare: 0.6, cost: 0.12, mass: { arm: 0.9, body: 0.28 }, rotation: 0.4, zones: ['throat', 'sights', 'armpit'], reach: 'close' },
   // Kesagiri as an art: the sword raised high over the right shoulder, the hips wound and the body turned off him, then the
   // diagonal cut from his left shoulder down through to his right hip with a deep step, the whole body turning back behind it.
   artKesagiri: { kind: 'strike', limb: 'rHand', path: 'blade', mode: 'swing', grip: 'two', art: true, turn: 0.7, from: { hand: [0.02, 1.0, -0.2], dir: [-0.5, 0.6, -0.6] }, mid: [0.9, 0.15, 0.1], to: { hand: [0.27, 0.42, 0.22], dir: [0.45, -0.7, 0.55] }, windup: 0.28, extendUntil: 0.56, duration: 1.0, twist: -0.7, coil: 0.55, lean: 0.16, dip: 0.08, shift: 0.12, step: 2.2, stepLead: 0.04, range: 1.1, meet: 0.62, bodyAt: 0.75, cost: 0.15, mass: { arm: 0.8, body: 0.21 }, rotation: 0.9, zones: ['body', 'head'], reach: 'weapon', contactAt: 0.8 },
@@ -2386,6 +2393,9 @@ export function moveRange(move, body, weapon = null) {
   // A whip strikes with its thong's tip: its own `reach`, not its handle's length.
   if (move.reach === 'weapon' && weapon?.reach) return body.reach * 1.05 + weapon.reach;
   if (move.reach === 'weapon') return body.reach * 1.05 + (weapon?.length ?? 0) * (move.mode === 'thrust' ? 0.9 : 0.85) + (move.lunge ?? 0) * body.heightM;
+  // At the half-sword (`half`, weapons.js `halfSword`): a short spear, the hand on the blade reaching as far as a hand does
+  // and the point only the blade beyond it.
+  if (move.half && weapon?.halfSword) return body.reach * 1.05 + weapon.length * (1 - weapon.halfSword.along);
   if (move.reach === 'leg') return legReach * 1.25;
   if (move.reach === 'close') return body.reach * 0.95;
   return body.reach * 1.3;
