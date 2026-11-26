@@ -33,6 +33,27 @@ export function packedColours(colours) {
   return new THREE.BufferAttribute(packed, 3, true);
 }
 
+/**
+ * Skin weights (four a vertex, each 0..1, summing to 1) as unsigned bytes, each vertex's four rounded so that they still sum
+ * to 255 (the rounding's remainder to its largest): a body's skin neither shrinks nor swells where it blends bones. Read on
+ * the page through unpackedComponent (three's own boneTransform would read the bytes as they are).
+ */
+export function packedWeights(weights) {
+  if (!MESH_PACK.on) return new THREE.BufferAttribute(weights, 4);
+  const packed = new Uint8Array(weights.length);
+  for (let at = 0; at < weights.length; at += 4) {
+    let sum = 0;
+    let largest = at;
+    for (let k = at; k < at + 4; k += 1) {
+      packed[k] = Math.round(Math.max(0, Math.min(1, weights[k])) * 255);
+      sum += packed[k];
+      if (weights[k] > weights[largest]) largest = k;
+    }
+    if (sum > 0) packed[largest] = Math.max(0, Math.min(255, packed[largest] + 255 - sum));
+  }
+  return new THREE.BufferAttribute(packed, 4, true);
+}
+
 /** An attribute whose page copy is let go once it is on the card (three r128 calls `onUploadCallback` after sending it). */
 export function freeOnUpload(attribute) {
   if (!MESH_PACK.on) return attribute;

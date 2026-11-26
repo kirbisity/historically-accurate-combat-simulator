@@ -2640,8 +2640,7 @@ function liftTriangles(mesh, boneIndices, origin) {
   for (const triangle of keep) {
     for (let corner = 0; corner < 3; corner += 1) {
       const vertex = index[triangle + corner];
-      posed.fromBufferAttribute(geometry.attributes.position, vertex);
-      mesh.boneTransform(vertex, posed);
+      skinnedAt(mesh, vertex, posed);
       posed.applyMatrix4(mesh.matrixWorld).sub(origin);
       positions.push(posed.x, posed.y, posed.z);
       // (A crowd body's colours are packed in bytes: read as the card reads them.)
@@ -2656,6 +2655,29 @@ function liftTriangles(mesh, boneIndices, origin) {
   const result = new THREE.Mesh(lifted, unskinnedCopy(mesh.material));
   result.castShadow = true;
   return result;
+}
+
+const skinnedBase = new THREE.Vector3();
+const skinnedPart = new THREE.Vector3();
+const skinnedBone = new THREE.Matrix4();
+
+/**
+ * A skinned vertex where it is drawn now, in the mesh's space: three r128's SkinnedMesh.boneTransform, with its weights and
+ * bones read as the card reads them (a crowd body's are packed in bytes: render.js packCrowdBody, meshpack.js).
+ */
+function skinnedAt(mesh, vertex, target) {
+  const { geometry, skeleton } = mesh;
+  const { skinIndex, skinWeight } = geometry.attributes;
+  skinnedBase.fromBufferAttribute(geometry.attributes.position, vertex).applyMatrix4(mesh.bindMatrix);
+  target.set(0, 0, 0);
+  for (let k = 0; k < 4; k += 1) {
+    const weight = unpackedComponent(skinWeight, vertex, k);
+    if (weight === 0) continue;
+    const bone = unpackedComponent(skinIndex, vertex, k);
+    skinnedBone.multiplyMatrices(skeleton.bones[bone].matrixWorld, skeleton.boneInverses[bone]);
+    target.addScaledVector(skinnedPart.copy(skinnedBase).applyMatrix4(skinnedBone), weight);
+  }
+  return target.applyMatrix4(mesh.bindMatrixInverse);
 }
 
 const stumpWay = new THREE.Vector3();

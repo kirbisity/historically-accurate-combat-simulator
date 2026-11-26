@@ -47,7 +47,7 @@ import { BONE, BONES, bindPoints, boneFrames, coherentFrames, frameMatrix, fromF
 import { bakePieces, clusterColors, CROWD_VIEW, crowdBatch, crowdKey, crowdShapeKey, frameAt, HEAD_VARIANT, onlyVariant, simplifyTemplate, stretchedInverses, topologyOf, withoutVariant } from './crowdview.js';
 import { chooseDraw, crowdLod } from './crowdlod.js';
 import { geometryArrays, materialTextures, textureBytes } from './memstats.js';
-import { MESH_PACK, packedColours, packedNormals } from './meshpack.js';
+import { MESH_PACK, packedColours, packedNormals, packedWeights } from './meshpack.js';
 import { tkTier } from './townkit/place.js';
 import { SoftShell } from './soft.js';
 import { FatSlosh } from './fatslosh.js';
@@ -3297,18 +3297,20 @@ function splitHeads(template) {
 
 /**
  * A crowd body's vertices packed small (meshpack.js), once its far body and its two heads are made from the floats: the
- * normals in three signed bytes, the bones in a byte each (a skeleton has fewer than 256), and the indices in 16 bits where
+ * normals in three signed bytes, the bones and their weights in a byte each (a skeleton has fewer than 256 bones; the
+ * weights still sum to one: packedWeights), and the indices in 16 bits where
  * its vertices fit (its colours and bare-skin marks are packed as they are made: crowdView). On the page and the card
  * alike: unlike a town's, these stay on the page, read again by a limb cut off (weaponview.js liftTriangles), a trunk cut
- * (woundview.js) and the fallen baked after a battle (fallenview.js), which read a packed attribute by its scale. The
- * weights stay floats: three's own boneTransform reads them as stored. Measured 2026-11-25, the story's Pyongyang
- * (chapter 3, 88 crowd men, each his own template): 64 bytes a vertex and 4 an index were 27 and 2.
+ * (woundview.js) and the fallen baked after a battle (fallenview.js), which read a packed attribute by its scale.
+ * Measured 2026-11-25, the story's Pyongyang (chapter 3, 88 crowd men, each his own template): 64 bytes a vertex and 4 an
+ * index were 15 and 2.
  */
 function packCrowdBody(body) {
   if (!MESH_PACK.on || body.packed) return;
   body.packed = true;
-  const { normal, skinIndex } = body.attributes;
+  const { normal, skinIndex, skinWeight } = body.attributes;
   if (normal && normal.array instanceof Float32Array) body.attributes.normal = packedNormals(normal.array);
+  if (skinWeight && skinWeight.array instanceof Float32Array) body.attributes.skinWeight = packedWeights(skinWeight.array);
   if (skinIndex && skinIndex.array.every((bone) => bone < 256)) body.attributes.skinIndex = new THREE.Uint8BufferAttribute(Uint8Array.from(skinIndex.array), 4);
   if (!(body.vertices <= 65536)) return;
   const narrow = (indices) => (indices instanceof Uint16Array ? indices : Uint16Array.from(indices));
