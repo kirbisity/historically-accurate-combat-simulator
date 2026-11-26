@@ -7,12 +7,15 @@
 // The schema is docs/oracle.md. Not part of the game.
 //
 // Usage: node tools/oracle.js [--out oracle/baseline.json] [--workers 8] [--seeds 8] [--seed-base 1] [--only duel,reference,battle]
-//        [--quick]   (--quick: 3 seeds, the battles 2 seeds and 20 s: a smoke run, not a baseline)
+//        [--battle-seeds 3] [--quick] [--rebuild FILE] [--perturb 'module.js:TABLE.key*factor']
+//        (--quick: 3 seeds, the battles 2 seeds and 20 s: a smoke run, not a baseline. --rebuild: the metrics derived again from
+//        the fights kept in FILE, nothing fought: after a change to how a fight is read into metrics, not to what is read.
+//        --perturb: one number of a sim table scaled first, a control run to measure what the oracle can tell apart.)
 // A worker is `node tools/oracle.js worker` (forked; jobs come by message).
 
 import { fork } from 'node:child_process';
 import { execSync } from 'node:child_process';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -101,7 +104,24 @@ function readBout(world, me, foe, boutWinner) {
 
 // ---- The jobs (one fight each) ---------------------------------------------------------------------------------------------
 
+// A perturbation (--perturb 'weapons.js:PUNCTURE.joules*0.7'): one number of an exported table scaled before any fight, so
+// that the oracle's power to tell a changed sim from this one can be measured (a control, never a baseline).
+let perturbed = null;
+async function perturb(spec) {
+  if (!spec || perturbed === spec) return;
+  const [, file, path, factor] = spec.match(/^([\w/.-]+\.js):([\w.$]+)\*([-\d.e]+)$/) ?? [];
+  if (!file) throw new Error(`--perturb ${spec}: expected module.js:TABLE.key.key*factor`);
+  const keys = path.split('.');
+  let holder = await import(`../src/${file}`);
+  for (const key of keys.slice(0, -1)) holder = holder[key];
+  const last = keys.at(-1);
+  if (typeof holder?.[last] !== 'number') throw new Error(`--perturb ${spec}: not a number`);
+  holder[last] *= Number(factor);
+  perturbed = spec;
+}
+
 async function runJob(job) {
+  await perturb(job.perturb);
   const { thinkAll } = await import('../src/ai.js');
   const physics = await import('../src/physics.js');
   const { advance, boutWinner, placeFighter, throwPunch, step } = physics;
@@ -234,6 +254,16 @@ function metricsFrom(results) {
     const bouts = of((job) => job.type === 'matrix' && job.weapon === weapon && job.armour === armour);
     if (bouts.length) Object.assign(metrics, boutMetrics(`duel/${weapon}/${armour}`, bouts, `the ${weapon}'s man`));
   }
+  // The matrix pooled by row and by column: a cell's eight bouts tell a rate only to about a fifth either way, a row's or a
+  // column's three or four times as many bouts to half that (where a port that drifts a little shows first).
+  for (const weapon of MATRIX.weapons) {
+    const bouts = of((job) => job.type === 'matrix' && job.weapon === weapon);
+    if (bouts.length) Object.assign(metrics, boutMetrics(`duel/${weapon}/any`, bouts, `the ${weapon}'s man`));
+  }
+  for (const armour of MATRIX.armours) {
+    const bouts = of((job) => job.type === 'matrix' && job.armour === armour);
+    if (bouts.length) Object.assign(metrics, boutMetrics(`duel/any/${armour}`, bouts, 'the row weapon\'s man'));
+  }
   for (const [a, b] of PAIRS) {
     const bouts = of((job) => job.type === 'pair' && job.a === a && job.b === b);
     if (bouts.length) Object.assign(metrics, boutMetrics(`pair/${a}/${b}`, bouts, a));
@@ -301,11 +331,14 @@ async function main() {
   const only = new Set(option(args, '--only', 'duel,reference,battle').split(','));
   const battleSeeds = Number(option(args, '--battle-seeds', quick ? 2 : 3));
   const battleSeconds = quick ? 20 : undefined;
-  const jobs = jobsFor({ seeds, seedBase, only, battleSeeds, battleSeconds }).sort((a, b) => b.cost - a.cost);
+  const rebuild = option(args, '--rebuild', null);
+  const kept = rebuild ? JSON.parse(readFileSync(resolve(rebuild), 'utf8')) : null;
+  const perturbation = option(args, '--perturb', null);
+  const jobs = kept ? kept.fights.map(({ job }) => job) : jobsFor({ seeds, seedBase, only, battleSeeds, battleSeconds }).sort((a, b) => b.cost - a.cost).map((job) => (perturbation ? { ...job, perturb: perturbation } : job));
   const started = Date.now();
-  const results = [];
-  let next = 0;
-  await Promise.all(Array.from({ length: Math.min(workers, jobs.length) }, () => new Promise((done, fail) => {
+  const results = kept ? kept.fights.map(({ job, out: record }) => ({ job, out: record })) : [];
+  let next = kept ? jobs.length : 0;
+  if (!kept) await Promise.all(Array.from({ length: Math.min(workers, jobs.length) }, () => new Promise((done, fail) => {
     const worker = fork(HERE, ['worker']);
     const give = () => {
       if (next >= jobs.length) {
@@ -331,14 +364,17 @@ async function main() {
   try { commit = execSync('git rev-parse --short HEAD', { cwd: ROOT }).toString().trim(); } catch { /* not a checkout */ }
   const baseline = {
     schema: 'hacs-oracle/1',
-    producer: { engine: 'hacs-js', commit, node: process.version, date: new Date().toISOString(), seeds, seedBase, battleSeeds, quick, jobs: jobs.length, wallSeconds: Math.round((Date.now() - started) / 1000) },
+    producer: kept ? { ...kept.producer, rebuilt: new Date().toISOString(), rebuiltAt: commit } : { engine: 'hacs-js', commit, ...(perturbation ? { perturbed: perturbation } : {}), node: process.version, date: new Date().toISOString(), seeds, seedBase, battleSeeds, quick, jobs: jobs.length, wallSeconds: Math.round((Date.now() - started) / 1000) },
     tolerance: TOLERANCE,
     corpus: { matrix: MATRIX, pairs: PAIRS, pairSeconds: PAIR_SECONDS, staffSmash: STAFF_SMASH, battles: BATTLES, woundKinds: Object.fromEntries(Object.entries(WOUND_KINDS).map(([kind, pattern]) => [kind, pattern.source])) },
     metrics,
+    // Every fight's own record (the job and what was read off it): the distributions behind the metrics, to compare in other
+    // ways than means, or to derive new metrics from without fighting again (--rebuild).
+    fights: results.map(({ job: { cost, ...job }, out: record }) => ({ job, out: record })),
   };
   mkdirSync(dirname(out), { recursive: true });
   writeFileSync(out, `${JSON.stringify(baseline, null, 1)}\n`);
-  console.log(`${Object.keys(metrics).length} metrics from ${jobs.length} fights in ${baseline.producer.wallSeconds} s -> ${out}`);
+  console.log(`${Object.keys(metrics).length} metrics from ${jobs.length} fights${kept ? ' (rebuilt)' : ` in ${baseline.producer.wallSeconds} s`} -> ${out}`);
 }
 
 if (process.argv[2] === 'worker') {
