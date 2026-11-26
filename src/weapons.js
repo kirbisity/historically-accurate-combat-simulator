@@ -845,6 +845,8 @@ export const WEAPONS = {
     label: 'Macuahuitl', hands: 'one', length: 0.7, strikeFrom: 0.18, handle: 0.16, mass: 1.15, balance: 0.36, radius: 0.028, brittle: 0.55, cleave: 0.4,
     harm: { swing: { cut: 1.0, blunt: 0.4 }, thrust: { blunt: 0.3 } },
     contactSeconds: 0.004, rotation: 0.85, wrist: { omega: 21, zeta: 0.8 }, threat: 3.2,
+    // (All of it wood: a weapon meeting it anywhere knocks on wood, audio/log.js weaponPart.)
+    build: { wooden: true },
   },
   // The tepoztopilli: a broad wooden head edged with obsidian flakes on a
   // short shaft, more a thrusting club than a steel spear: the flakes cut
@@ -880,6 +882,8 @@ export const WEAPONS = {
     label: 'Kanabo', hands: 'two', length: 1.15, strikeFrom: 0.25, handle: 0.35, spacing: 0.17, mass: 5, balance: 0.68, radius: 0.05,
     harm: { swing: { blunt: 1.4 }, thrust: { blunt: 0.4 } },
     contactSeconds: 0.006, rotation: 1.25, wrist: { omega: 8, zeta: 0.85 }, threat: 4.4, art: 'artCrushClub', crush: 0.5,
+    // (All of it wood: a weapon meeting it anywhere knocks on wood, audio/log.js weaponPart.)
+    build: { wooden: true },
   },
   // One-handed maces, the horseman's answer to armour (swords skate off it):
   // a short iron-bound haft and a heavy head, swung with the wrist and arm
@@ -1217,6 +1221,8 @@ export const WEAPONS = {
     label: 'Baseball bat', hands: 'two', length: 0.6, strikeFrom: 0.32, handle: 0.24, spacing: 0.09, mass: 0.9, balance: 0.42, radius: 0.033,
     harm: { swing: { blunt: 1.25 }, thrust: { blunt: 0.4 } },
     contactSeconds: 0.005, rotation: 1.0, wrist: { omega: 16, zeta: 0.85 }, threat: 3.4,
+    // (All of it wood: a weapon meeting it anywhere knocks on wood, audio/log.js weaponPart.)
+    build: { wooden: true },
   },
   // Guan Yu's Green Dragon Crescent Blade (qinglong yanyue dao): the guandao
   // of the legend, its weight a legend too (82 jin); fought here at a real

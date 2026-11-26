@@ -711,4 +711,5 @@ test('the wood of a weapon is its shaft, a staff, a gun\'s stock or a bow; a swo
   assert.equal(at('flintlock', 0.6), 'haft');
   assert.equal(at('flintlock', 1.3), 'blade', 'the bayonet');
   assert.equal(at('longsword', 0.05), 'blunt');
+  for (const club of ['kanabo', 'bat', 'macuahuitl']) assert.equal(at(club, WEAPONS[club].length * 0.8), 'haft', club);
 });

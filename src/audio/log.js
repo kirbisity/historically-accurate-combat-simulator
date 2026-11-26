@@ -145,13 +145,15 @@ export function weaponStriker(mix) {
 }
 
 /**
- * The part of a weapon two weapons met at, `along` m from the hand: wood (`haft`: a spear's or a polearm's shaft, the whole of a staff,
- * a gun's stock, a bow or a crossbow), else its head: an edge or a point (blade) or a weight (blunt). A sword's grip and guard short of
+ * The part of a weapon two weapons met at, `along` m from the hand: wood (`haft`: a spear's or a polearm's shaft, the whole of a staff
+ * or a wooden club, a gun's stock, a bow or a crossbow), else its head: an edge or a point (blade) or a weight (blunt). A sword's grip and guard short of
  * its blade are steel, a weight, not wood.
  */
 export function weaponPart(weapon, along) {
   const spec = weapon.spec;
   const build = buildOf(spec, WORLD.wear.shaftFrom);
+  // (A club of wood, a bat, a macuahuitl's body: wood from end to end.)
+  if (spec.build?.wooden) return 'haft';
   // (A staff is all pole, its striking length behind the hands: all of it wood.)
   if (build.shaft && !build.edge && spec.strikeFrom < 0) return 'haft';
   if (along < spec.strikeFrom) return build.shaft || spec.ranged || spec.bow ? 'haft' : 'blunt';
