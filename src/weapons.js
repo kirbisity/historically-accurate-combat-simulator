@@ -2073,6 +2073,16 @@ export const BLADES = {
   // light sword easy.
   gripImpulsePerNewton: 0.12,
   gripHold: 0.6,
+  // Where on the weapon the knock comes (physics.js gripLoad): a weapon is torn from the hands by being twisted out of them,
+  // not pushed through them. A knock at `along` m from the main hand is held by two grip points, `span` apart: the hand
+  // nearer it takes half the push and the whole of the twist, J (1/2 + r / span), r its distance from the middle of the
+  // grip. Two hands on the grip are the two points, each a whole hand's grip and as far apart as they are on the handle
+  // (a zweihander's 0.32 m, a katana's 0.17); one hand holds with the two sides of its own fist (`palm`, m: the breadth of
+  // a man's hand round a grip, ~8-9 cm), each with half the hand's grip. So a blow caught at the cross, beside the hands,
+  // only pushes them, and one met out at the point of a sword held in one hand twists it out; two hands well apart on a long
+  // grip resist the twist several times better than one, as they were meant to (the two-hand sword's long grip). `reference`
+  // (m): where a one-hand sword is met, mid-blade, the meeting `gripImpulsePerNewton` is reckoned for, the lever's share 1 there.
+  gripLever: { palm: 0.09, reference: 0.45 },
   gripLeak: 0.5, // per second
   armHitShare: 0.6, // a blow to the forearm or upper arm, against one to the weapon
   // Blades meeting: how much bounce, and the closing speed (m/s) that counts as a clash.
