@@ -1385,6 +1385,22 @@ function blendStance(from, to, share) {
   return out;
 }
 
+/**
+ * Whether his off hand holds his weapon at the half-sword (weapons.js `halfSword`): a weapon that can be so held, his main one,
+ * and either a half-sword move of his under way (moves.js `half`) or his mind set on the half-sword (`fighter.halfSword`: ai.js
+ * AI.halfSword, the player's art after it).
+ */
+export function halfGripped(fighter, weapon = fighter.weapon) {
+  if (!weapon?.held || weapon !== fighter.weapon || !weapon.spec.halfSword) return false;
+  return Boolean(fighter.punch?.spec.half) || Boolean(fighter.halfSword);
+}
+
+/** The half-sword's guard between thrusts (weapons.js `halfSword.guard`): the hilt over his head, the point down at his man. */
+function halfGuard(fighter, weapon) {
+  const guard = weapon.spec.halfSword.guard;
+  return { hand: vec.scale(guard.hand, fighter.body.heightM), dir: vec.normalize(guard.dir) };
+}
+
 function weaponIntent(world, fighter, intent) {
   const style = STYLES[fighter.style];
   const H = fighter.body.heightM;
@@ -1430,7 +1446,7 @@ function weaponIntent(world, fighter, intent) {
     // Engaging, the gun stays up on him between shots; a shot raises it from wherever it is.
     const held = fighter.aimAt !== undefined && world.fighters[fighter.aimAt] ? raisedAim(fighter, toLocal(fighter, aimPoint(world.fighters[fighter.aimAt], 'body'))) : guardTargets(style, fighter.body);
     target = punch?.spec.path === 'aim' ? aimTargets(world, fighter, punch, held) : held;
-  } else target = guardTargets(style, fighter.body);
+  } else target = halfGripped(fighter, weapon) ? halfGuard(fighter, weapon) : guardTargets(style, fighter.body);
   if (fighter.runPose > 0 && !punch && !blocking) target = carriedTargets(fighter, weapon, target);
   const main = weapon.main;
   // A pistol up and aimed is held in both hands: the support hand wraps the
@@ -1460,7 +1476,9 @@ function weaponIntent(world, fighter, intent) {
   const atWaist = fighter.runPose > 0.5 && !punch && !blocking && carryKind(weapon.spec) === 'waist';
   const oneHanded = atWaist || weapon.spec.hands === 'one' || (weapon.spec.hands === 'hybrid' && (fighter.net?.held || (punch?.spec.path === 'blade' && punch.spec.grip === 'one' && punch.t <= punch.spec.extendUntil)));
   intent.twoHanded = !oneHanded;
-  if (!oneHanded) intent[`${weapon.off}Hand`] = vec.add(target.hand, vec.scale(target.dir, offHandAlong(weapon.spec)));
+  // (At the half-sword, physics.js halfGripped: the off hand on the middle of the blade, where it lies now.)
+  weapon.half = !oneHanded && halfGripped(fighter, weapon);
+  if (!oneHanded) intent[`${weapon.off}Hand`] = vec.add(target.hand, vec.scale(target.dir, offHandAlong(weapon.spec, weapon.half)));
   const alone = oneHanded && !off && !fighter.shield && !fighter.net?.held && !weapon.spec.ranged;
   if (alone) heldOut(fighter, weapon, intent, style, stroke, blocker === weapon);
   // A lunge: the free arm flung back behind him as a counterweight, out and back with the stroke.
@@ -1744,6 +1762,19 @@ function updateWeapon(fighter, h, weapon = fighter.weapon) {
   if (fighter.intent.twoHanded && able && !second) {
     const gap = vec.length(vec.sub(point(fighter.x, main), point(fighter.x, off)));
     twoHands = gap < spec.spacing * 2.5;
+    // (A hand changing its hold, to the half-sword or back off it, `gripAlong` where it held: on the weapon again only once it
+    // has come to its new place, WORLD.halfGrip; till then the sword is in the one hand. Held there, it is held as any grip
+    // is, the arms' lag taken up by the grip below.)
+    if (spec.halfSword) {
+      const wanted = offHandAlong(spec, weapon.half);
+      const place = vec.add(point(fighter.x, main), vec.scale(previous, wanted));
+      const from = vec.length(vec.sub(point(fighter.x, off), place));
+      // (At the half-sword the hands are apart by the half blade: held while the off hand stays near its place, as near as an
+      // ordinary grip's hands must be to each other.)
+      if ((weapon.gripAlong ?? offHandAlong(spec)) !== wanted) twoHands = from < WORLD.halfGrip.retake;
+      else if (weapon.half) twoHands = from < spec.spacing * 2.5;
+      if (twoHands) weapon.gripAlong = wanted;
+    }
   }
   const want = bladeDir && able ? yawRotate(bladeDir, fighter.yaw) : previous;
   const axis = vec.cross(previous, want);
@@ -1788,7 +1819,7 @@ function updateWeapon(fighter, h, weapon = fighter.weapon) {
     // slides through the front hand: it holds the line wherever along the
     // shaft it is (short of the head), so a thrust driven by the rear hand
     // is not dragged back by a front arm that cannot reach any further.
-    let along = offHandAlong(spec);
+    let along = offHandAlong(spec, weapon.half);
     if (spec.leadAhead) {
       const reached = vec.dot(vec.sub(point(fighter.x, off), point(fighter.x, main)), dir);
       along = Math.min(spec.strikeFrom - WORLD.grip.headClear, Math.max(spec.spacing * WORLD.grip.shortest, reached));
@@ -2508,6 +2539,8 @@ export function aimPoint(target, zone, spec = null) {
   // weapon hand (else his right); his left armpit (high on his side under the arm, at the edge of his chest, where the plates
   // part: physics/gaps.js); his shield's face (else his legs); his shins (a sweep at the feet).
   if (zone === 'throat') return vec.lerp(point(target.x, P.neck), point(target.x, P.head), 0.35);
+  // (His sights: the front of his head at his eyes, where a closed helm's slits are, an open helmet's face; physics/gaps.js visor.)
+  if (zone === 'sights') return vec.add(point(target.x, P.head), vec.scale(yawRotate([1, 0, 0], target.yaw), target.body.lengths.headRadius * 0.8));
   if (zone === 'hand') return point(target.x, P[`${target.weapon?.held ? target.weapon.main : 'r'}Hand`]);
   if (zone === 'armpit') {
     const side = vec.sub(point(target.x, P.lShoulder), point(target.x, P.rShoulder));

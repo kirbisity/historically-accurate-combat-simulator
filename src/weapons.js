@@ -402,6 +402,14 @@ export const WEAPONS = {
     label: 'Long sword', hands: 'hybrid', length: 0.98, strikeFrom: 0.14, handle: 0.24, spacing: 0.15, mass: 1.45, balance: 0.11, radius: 0.012,
     harm: { swing: { cut: 1, blunt: 0.5 }, thrust: { pierce: 1, cut: 0.15, blunt: 0.15 } },
     contactSeconds: 0.004, rotation: 0.8, wrist: { omega: 17, zeta: 0.8 }, threat: 4, art: 'artPommel',
+    // The half-sword (Liechtenauer's armoured fight, Ringeck's and Talhoffer's Kampffechten): the left hand let go of the grip and
+    // laid round the middle of the blade (`along`: that share of the blade out from the guard hand), the right kept on the grip,
+    // the sword held as a short spear whose point the hand on the blade steers into a gap. `guard`: how it is held between
+    // thrusts (hand in heights, local; dir where the point goes): the right hand raised over the head, the point steeply down
+    // and forward at his face and throat, the left hand on the blade before the chin (as Ringeck's third guard of the half-sword
+    // and as fencers in harness hold it to drive the point down at the sights, the throat, the armpit). `move`: the thrust made
+    // from it (moves.js). Who grips it so and when: ai.js AI.halfSword, weaponarts.js (the player's art); physics.js halfGripped.
+    halfSword: { along: 0.5, guard: { hand: [0.04, 1.02, -0.08], dir: [0.72, -0.69, 0.02] }, move: 'halfSword' },
   },
   // Two hands always: the sharper, shorter blade cuts deeper, stabs less. Its sori a shallow 2 cm (`curve`: BLADES.slice),
   // the ōdachi's 3, the wakizashi's a little over 1.
@@ -1812,6 +1820,10 @@ export const BLADES = {
     // thrown at: the armpit for the body, the throat for the head (Fiore's and the half-sword's marks: the face, the armpit,
     // the hand, where the plates part; physics.js aimPoint).
     aimFor: { body: 'armpit', head: 'throat' },
+    // The marks that are themselves a gap's place (physics.js aimPoint), and the gap each is: a point laid on one is at the
+    // opening, not at the plate (ai.js harmThrough, a point `placed` there; physics/gaps.js markGap). The sights of a closed
+    // helm, or an open helmet's face.
+    marks: { armpit: 'armpit', throat: 'neck', sights: { closed: 'visor', open: 'face' } },
     // Never a gap, not even at the lacing: the middle of the breast, the back, the crown.
     solid: { trunk: [{ height: [0.08, 1.1], round: [0, 50] }, { height: [-1, 1.1], round: [125, 180] }], head: [{ rise: [0.4, 1], round: [0, 180] }] },
   },
@@ -2211,9 +2223,12 @@ export function bulletRegion(capsuleKey) {
  * Where the off hand holds, along the weapon from the main hand (m): a
  * sword's pommel hand below and behind the guard hand; on a polearm
  * (`leadAhead`) the front hand reaches up the shaft ahead of the rear one,
- * as spears and hammers are held, so neither arm folds back.
+ * as spears and hammers are held, so neither arm folds back. At the
+ * half-sword (`half`, a weapon with a `halfSword` grip): round the middle of
+ * the blade, out ahead of the guard hand.
  */
-export function offHandAlong(spec) {
+export function offHandAlong(spec, half = false) {
+  if (half && spec.halfSword) return spec.halfSword.along * spec.length;
   return spec.leadAhead || spec.supportAhead ? spec.spacing : -spec.spacing;
 }
 

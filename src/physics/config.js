@@ -55,6 +55,11 @@ export const WORLD = {
   // A polearm's front hand slides along the shaft: no closer to the rear
   // hand than this share of its usual spacing, and this far short of the head (m).
   grip: { shortest: 0.4, headClear: 0.08 },
+  // The hand that changes its hold to the half-sword (weapons.js `halfSword`) or back takes it again once it is within `retake`
+  // m of its new place on the weapon (a hand's width: closed round the blade there); till then it is off the weapon, reaching
+  // for that place by its own arm, and the sword is in the one hand (physics.js updateWeapon). How long the change takes is
+  // the arm's own speed, not a set time.
+  halfGrip: { retake: 0.1 },
   // A weapon's haft, from the hands out to where its head strikes from (`strikeFrom`): wood (or an iron-bound
   // shaft) that meets a man who has come inside the head, or that the head carries past him. It strikes as
   // any part of a rigid weapon does, at its own speed (the line from the hand's to the tip's: slow near the
