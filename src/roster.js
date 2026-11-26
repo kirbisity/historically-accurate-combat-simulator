@@ -98,6 +98,7 @@ export const UNIT_NAMES = {
   lineInfantry: 'Fusilier',
   cuirassier: 'Cuirassier',
   greenStandard: 'Qing Musketeer',
+  guangxiBrave: 'Guangxi Brave',
   hunter: 'Hunter',
   doppelsoeldner: 'Doppelsöldner',
   mingEliteSpear: 'Qi Long Spearman',
@@ -260,6 +261,7 @@ export const WARRIORS = [
   warrior('bannerSpear', 'Ilan', PRESETS.bannerBow, { name: 'Ilan', style: 'spear', outfit: { kind: 'bannerArmour', design: 6 } }),
   // The Qing's Green Standard of the Opium War (1840-42): the matchlock, the waist sabre at his side.
   warrior('greenStandard', 'Huang Fu', PRESETS.greenStandard),
+  warrior('guangxiBrave', 'Wei Ah-sheng', PRESETS.guangxiBrave),
   warrior('arquebus', 'Hans Brenner', PRESETS.contender, { name: 'Hans Brenner', calories: 4050, exercise: 0.75, sex: 'male', style: 'matchlock', outfit: { kind: 'footman', design: 1 }, accessories: [] }),
   // A longbowman trained at the butts from boyhood by statute (the Archery Acts): a professional's skill (0.45), his people's
   // build (peoples.js english).

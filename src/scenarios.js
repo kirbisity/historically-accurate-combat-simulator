@@ -10,6 +10,7 @@ import { STYLES } from './moves.js';
 import { SUBWAY_ARENA } from './props/subway.js';
 import { pyongyangTownTerrain } from './places/pyongyang.js';
 import { atahualpa, bannerman, conquistadorHorseman, drilledSoldier, englishArcher, englishManAtArms, europeanSoldier, footSoldier, frenchFoot, frenchKnight, pikeman, hanHorseman, hospitaller, incaMan, mingHorseman, mingSoldier, mountedKnight, nobleKnight, ottomanSoldier, rebel, romanHorseman, roninWarrior, samuraiHorseman, sengokuWarrior, swatOfficer, wokouRaider, wokouSamurai, yakuza } from './cast.js';
+import { britishSoldier, qingMan } from './cast.js';
 import { gallicHorseman, gothWarrior, hunRider, infantrySoldier, lateRomanSoldier, parthianRider, republicanLegionary, xiongnuRider } from './cast.js';
 
 // Rome against Han: thirty-five a side (every level's armies are kept to about seventy men in all: the
@@ -1178,6 +1179,119 @@ const CERIGNOLA_LEVEL = {
   fighters: [],
 };
 
+// ---- The Opium War: Canton and Sanyuanli, May 1841 ----
+
+// Canton, 25 May 1841: Gough's force (some 2,400, the 49th, the 26th Cameronians, the 18th Royal Irish, the Madras Native
+// Infantry, marines and seamen) landed up the river at Tsingpu and went up the heights north of the city against the four
+// forts on them and the Green Standard camped below its walls (Bingham 1842; Ouchterlony 1844; Lin Zexu's successor's
+// memorials as quoted in Fay, The Opium War, 1975). The garrison fired its matchlocks and gingals from far off and broke
+// when the line came on; the British lost some fifteen killed and a hundred and twelve wounded in the whole of the
+// operations. Here: eighteen of Gough's (fourteen of the line, four sepoys) against thirty-six of the Green Standard,
+// two to one: the line walks on holding its fire (the flintlock's `holdFire`: ai.js gunfight; DRILL.holdFire), fires
+// close, and closes with the bayonet; the undernourished garrison (body.js greenStandard, `courage` 0.25) fires at will.
+const CANTON = {
+  arena: { halfX: 22, halfZ: 11 },
+  british: { line: { flintlock: 14 }, sepoy: { flintlock: 4 } },
+  qing: { greenStandard: { matchlock: 20, spear: 10, dao: 6 } },
+  front: { british: 15, qing: 6 },
+};
+// The line goes forward drilled and dressed, holding its fire until the enemy is within the musket's effective range.
+const ADVANCE_HOLDING_FIRE = { advance: true, holdFire: true };
+// The garrison holds where it stands and fires as it likes.
+const CANTON_WEATHER = { fog: [14, 120], sky: 0.8, pale: 0.55, sun: 0.85 };
+
+// Sanyuanli, 30 May 1841: the villagers of a hundred and three villages north of Canton (the 三元里 temple's banner), after
+// the British dug into their graves and plundered the villages, came out in thousands; in a storm of rain a company of the
+// 37th Madras Native Infantry under two British officers was cut off, its muskets wet and hardly firing, and stood with
+// the bayonet until two companies of marines with percussion muskets brought it out (Bingham 1842; Ouchterlony 1844; the
+// villagers' proclamations, as given in Wakeman, Strangers at the Gate, 1966). Here the marines do not come: fourteen
+// sepoys and two of the line in the rain (`rules.rain`: weapons.js `rainMisfire`), close together, holding their ground,
+// against fifty-two villagers with spear, hoe, sword and carrying pole.
+const SANYUANLI = {
+  arena: { halfX: 20, halfZ: 11 },
+  british: { sepoy: { flintlock: 14 }, line: { flintlock: 2 } },
+  villagers: { spear: 18, pitchfork: 14, dao: 10, staff: 10 },
+  front: { british: 7, villagers: 8 },
+};
+const SANYUANLI_WEATHER = { fog: [5, 50], sky: 0.38, pale: 0.8, sun: 0.2 };
+
+/** Gough's men at Canton or Sanyuanli, the British line first (`styles`: { rank: { style: count } }). */
+function goughsMen(random, ranks) {
+  return Object.entries(ranks).flatMap(([rank, styles]) => company(styles, (style) => britishSoldier(random, style, rank)));
+}
+
+const CANTON_LEVEL = {
+  title: 'Canton',
+  place: 'The heights north of Canton · 25 May 1841',
+  blurb: {
+    en: "Gough's force has landed up the river and comes up the heights north of the city against its forts. Fourteen of the British line in red and four Madras sepoys walk on in two ranks, their muskets levelled and unfired. Thirty-six of the Green Standard wait on the slope: matchlocks in front, spears and swords behind, thin men on a short ration, many of them smokers of the opium the red coats came to sell. The matchlocks go off at sixty paces. The line does not answer until it is close enough to hit.\nThe city paid six million dollars not to be stormed.",
+    zh: "郭富的部队溯江登岸，攻上广州城北的高地，直取城外诸炮台。英军线列步兵十四人、马德拉斯土兵四人，分作两列向前，枪口平端，一枪不发。绿营三十六人守在坡上：鸟枪在前，长矛、腰刀在后；都是口粮短少的瘦弱之人，许多人抽的鸦片，正是这些红衣兵来卖的。鸟枪在六十步外就放了。英军的队列一枪不回，直到近得打得中。\n广州城付了六百万元，免于被攻。",
+  },
+  scene: 'sengoku',
+  weather: CANTON_WEATHER,
+  climate: 'jiangnan',
+  arena: { ...CANTON.arena, camps: false },
+  camera: { yaw: -0.5, pitch: 0.42, distance: 20, maxDistance: 27 },
+  roster: { en: 'Fourteen of the British line and four Madras sepoys · thirty-six of the Green Standard: twenty matchlocks, ten spears, six swords', zh: '英军线列步兵十四人、马德拉斯土兵四人 · 绿营三十六人：鸟枪二十、长矛十、腰刀六' },
+  formation: {
+    red: { front: CANTON.front.british, spacing: 0.8, rowSpacing: 1.0, perRow: 9, loose: 0.06, drill: ADVANCE_HOLDING_FIRE },
+    blue: { front: CANTON.front.qing, spacing: 1.2, rowSpacing: 1.5, shootersFront: SHOOTERS_FRONT_GAP, perRow: 12, loose: 0.4, drill: HOLD_GROUND },
+  },
+  cast: (random) => ({
+    red: goughsMen(random, CANTON.british),
+    blue: Object.entries(CANTON.qing).flatMap(([rank, styles]) => company(styles, (style) => qingMan(random, style, rank))),
+  }),
+  armies: { red: ['british1841'], blue: ['qing1841'] },
+  fighters: [],
+};
+
+const SANYUANLI_LEVEL = {
+  title: 'Sanyuanli',
+  place: 'Sanyuanli, north of Canton · 30 May 1841',
+  blurb: {
+    en: "The British on the heights have dug into the villagers' family graves and plundered their villages. The gong has gone round a hundred and three of them, and the men have come out under the temple's banner with spears, hoes, swords and carrying poles. A storm breaks over the paddies. Fourteen sepoys of the 37th Madras Native Infantry and two of the line are cut off in it, and close up together. Their powder is wet: most of their muskets will not fire. Fifty-two villagers come on through the rain.\nIn 1841 two companies of marines with percussion muskets came and brought the sepoys out. Not here.",
+    zh: "高地上的英军掘了乡民的祖坟，又抢了村子。铜锣传遍一百零三乡，各乡男丁聚到古庙的旗下，拿着长矛、锄头、刀和扁担出来。水田上空下起暴雨。马德拉斯第三十七土著步兵团的土兵十四人、英军两人被困在雨里，挤成一团。他们的火药湿了：多半的枪打不响。五十二个乡民冒雨围了上来。\n一八四一年，两连带着火帽枪的英国海军陆战队赶来，把这队土兵接了出去。这里没有。",
+  },
+  scene: 'sengoku',
+  weather: SANYUANLI_WEATHER,
+  climate: 'jiangnan',
+  rules: { rain: true },
+  arena: { ...SANYUANLI.arena, camps: false },
+  camera: { yaw: -0.5, pitch: 0.42, distance: 18, maxDistance: 25 },
+  roster: { en: 'Fourteen Madras sepoys and two of the British line, in the rain · fifty-two villagers: spears, hoes, swords and carrying poles', zh: '马德拉斯土兵十四人、英军线列步兵两人，困于雨中 · 乡民五十二人：长矛、锄头、刀、扁担' },
+  formation: {
+    red: { front: SANYUANLI.front.british, spacing: 0.75, rowSpacing: 0.9, perRow: 4, loose: 0.05, drill: HOLD_GROUND },
+    blue: { front: SANYUANLI.front.villagers, spacing: 1.1, rowSpacing: 1.3, perRow: 13, loose: 0.6 },
+  },
+  cast: (random) => ({
+    red: goughsMen(random, SANYUANLI.british),
+    blue: company(SANYUANLI.villagers, (style) => qingMan(random, style, 'villager')),
+  }),
+  armies: { red: ['british1841'], blue: ['qing1841'] },
+  fighters: [],
+};
+
+// Their armies, for the setup screen (muster.js): Gough's men, and the Qing side's: the garrison, the villagers and, from
+// forty years on, Feng Zicai's Guangxi braves (the army that beat the French at Zhennan Pass in 1885), for a Canton
+// fought by better men.
+Object.assign(ARMIES, {
+  british1841: {
+    label: "Gough's force, 1841",
+    ranks: {
+      line: { label: 'British line', kinds: ['lineInfantry'], designs: [0, 1], styles: ['flintlock'], make: (random, style) => britishSoldier(random, style, 'line') },
+      sepoy: { label: 'Madras sepoy', kinds: ['lineInfantry'], designs: [5], styles: ['flintlock'], make: (random, style) => britishSoldier(random, style, 'sepoy') },
+    },
+  },
+  qing1841: {
+    label: 'The Qing of Guangdong',
+    ranks: {
+      greenStandard: { label: 'Green Standard', kinds: ['greenStandard'], designs: [0, 1, 2, 3], styles: ['matchlock', 'spear', 'dao'], make: (random, style) => qingMan(random, style, 'greenStandard') },
+      villager: { label: 'Villager of Sanyuanli', kinds: ['cantonVillager'], styles: ['spear', 'pitchfork', 'dao', 'staff'], make: (random, style) => qingMan(random, style, 'villager') },
+      brave: { label: 'Guangxi brave (1885)', kinds: ['greenStandard'], designs: [4], styles: ['dao', 'spear', 'matchlock'], make: (random, style) => qingMan(random, style, 'brave') },
+    },
+  },
+});
+
 // Their armies, for the setup screen (muster.js): each the kinds of men the level's own side is drawn from.
 Object.assign(ARMIES, {
   england: {
@@ -1361,6 +1475,8 @@ export const SCENARIOS = {
   },
   agincourt: AGINCOURT_LEVEL,
   cerignola: CERIGNOLA_LEVEL,
+  canton: CANTON_LEVEL,
+  sanyuanli: SANYUANLI_LEVEL,
   sekigahara: {
     title: 'Sekigahara',
     place: 'Sekigahara, Mino · 21 October 1600',

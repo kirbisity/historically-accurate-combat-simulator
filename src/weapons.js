@@ -158,6 +158,10 @@ export const MATCHLOCK = {
   spread: ballGunSpread(MATCHLOCK_LOAD),
   movingSpread: 0.035,
   misfire: 0.08,
+  // In rain (a level's `rules.rain`: physics/ranged.js fire): the match put out and the pan's powder wet, most pulls fail.
+  // Sanyuanli, 30 May 1841: in the downpour the 37th Madras Native Infantry's muskets would hardly fire at all (Bingham,
+  // Narrative of the Expedition to China, 1842; Ouchterlony, The Chinese War, 1844); a match is worse off in it than a flint.
+  rainMisfire: 0.85,
   reloadSeconds: 15,
   // A bandolier of a dozen wooden charges, each a measure of powder ("the twelve apostles"), a flask for more and a
   // pouch of balls: ~20-30 shots (an ashigaru's cartridge box held about as many). In all, the loaded one counted.
@@ -180,6 +184,8 @@ export const FLINTLOCK = {
   recoil: 12,
   spread: ballGunSpread(FLINTLOCK_LOAD),
   misfire: 0.1,
+  // The flint strikes its spark, but on a wet pan and a damp charge (rainMisfire, as the matchlock's): about two pulls in three fail.
+  rainMisfire: 0.65,
   reloadSeconds: 10,
   // A cartridge box of 24-36 rounds (the British soldier's 60 in two boxes in the field): 30.
   ammo: 30,

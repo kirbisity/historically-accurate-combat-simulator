@@ -36,6 +36,7 @@ export const NAMES_PEOPLE = {
   'Shaolin Staff Monk': '少林棍僧',
   'Tai Chi Master': '太极宗师',
   'Martial Artist': '武术家',
+  'Guangxi Brave': '广西勇',
   'Iron Pagoda': '铁浮屠',
   'Han Crossbowman': '汉军弩手',
   'Wuxia Swordsman': '武侠剑客',

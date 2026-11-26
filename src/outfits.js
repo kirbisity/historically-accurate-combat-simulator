@@ -1755,6 +1755,8 @@ export const OUTFITS = {
       lineDesign('French line, 1812', '#1f2f6a', '#a8201e', '#e8e4da', '#a8161a'),
       lineDesign('Prussian musketeer', '#1c2440', '#a8201e', '#3a3a40', '#e8e4da'),
       lineDesign('Russian line', '#1f3a2a', '#a8201e', '#e8e4da', '#1c1c20'),
+      // The Madras Native Infantry (the 37th at Canton, 1841): the red coat with its facings, white trousers, the sepoy's black cap.
+      lineDesign('Madras native infantry', '#a8201e', '#e8d48a', '#e8e4da', '#141414'),
     ],
   },
   // The cuirassier (the French heavy horse of 1804-1815, the Russian and the Saxon after them): a cuirass of breast and back
@@ -1793,6 +1795,22 @@ export const OUTFITS = {
       cuirassierDesign('Russian cuirassier, 1812', '#e8e4da', '#26262a', '#26262a', '#0e0c0b'),
     ],
   },
+  // A Cantonese villager of 1841 (Sanyuanli): the farmer's hemp jacket and trousers, undyed or indigo, a cloth round the
+  // head, bare feet for the paddies; what he fights with is what he farms with, or a blade from the village's hall. No
+  // drill (`skill` 0.15); but his own fields, his family's graves, his village behind him (`courage` 0.6).
+  cantonVillager: {
+    skill: 0.15,
+    faction: 'manchu',
+    label: 'Cantonese villager', movement: 'excellent', fists: 'bare',
+    protection: { blunt: 0.04, cut: 0.04, pierce: 0, bullet: { head: 0, torso: 0, limb: 0 } },
+    courage: 0.6,
+    designs: [
+      { label: 'Undyed hemp', top: { kind: 'flannel', color: '#b8ad94' }, bottom: { kind: 'pants', color: '#4a4034' }, head: { kind: 'clothWrap', color: '#3a3326' }, feet: { kind: 'bare' } },
+      { label: 'Indigo hemp', top: { kind: 'flannel', color: '#3e4a5c' }, bottom: { kind: 'pants', color: '#2f2c28' }, feet: { kind: 'bare' } },
+      { label: 'Brown jacket', top: { kind: 'tunic', color: '#5e5648' }, bottom: { kind: 'pants', color: '#3a3326' }, head: { kind: 'clothWrap', color: '#ece6d6' }, feet: { kind: 'bare' } },
+      { label: 'Stripped to the waist', bottom: { kind: 'pants', color: '#4a4034' }, head: { kind: 'clothWrap', color: '#3a3326' }, feet: { kind: 'bare' } },
+    ],
+  },
   // The Green Standard (绿营): the Qing's standing army of Han Chinese, garrisons over every province, the most of the men who
   // fought the British in 1840-42: a cotton jacket over the robe, the corps' character on a white disc on its breast, the
   // summer hat; the matchlock (鸟枪) and the waist sabre. Ill-paid and seldom drilled by the 1830s (`skill` 0.3, `courage`
@@ -1811,6 +1829,8 @@ export const OUTFITS = {
       greenStandardDesign('Red jacket, black border', '#9a1f1a', '#1c1c20'),
       greenStandardDesign('Yellow jacket, red border', '#b8922e', '#9a1f1a'),
       greenStandardDesign('Black jacket, red border', '#1c1c20', '#9a1f1a'),
+      // Feng Zicai's Guangxi braves (萃军, 1885): its own set (outfitsets.js), fed, paid and drilled by their general.
+      greenStandardDesign('Guangxi brave', '#2a2a2e', '#c9a23a'),
     ],
   },
   // The hunter of the Upper Palaeolithic (Europe, ~30,000-15,000 years ago): tailored hides and furs, the spear-thrower and

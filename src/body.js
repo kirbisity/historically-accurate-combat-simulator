@@ -644,6 +644,13 @@ export const PRESETS = {
     outfit: { kind: 'greenStandard', design: 0 }, accessories: [],
     look: { skinTone: 'lightTan', hairStyle: 'buzz', hairColor: '#120d0a', facialHair: 'mustache', eyeColor: 'brown', faceRegion: 'china' },
   },
+  // One of Feng Zicai's Guangxi braves (萃军), 1885: a southern man of the hills (peoples.js qing1841 brave), fed and
+  // paid by his general and drilled by him, the dao for the charge over the wall at Zhennan Pass.
+  guangxiBrave: {
+    name: 'Wei Ah-sheng', style: 'dao', sex: 'male', heightCm: PEOPLES.mingSouth.heightCm + 1, frame: 'medium', age: 27, exercise: 0.75, calories: 3500, skill: 0.5,
+    outfit: { kind: 'greenStandard', design: 4 }, accessories: [],
+    look: { skinTone: 'tan', hairStyle: 'buzz', hairColor: '#120d0a', facialHair: 'none', eyeColor: 'brown', faceRegion: 'china' },
+  },
   infantry: {
     name: 'Spc. Luis Herrera', style: 'rifle', sex: 'male', heightCm: 176, frame: 'medium', age: 23, exercise: 0.62, calories: 3600,
     outfit: { kind: 'infantry', design: 0 }, accessories: [],

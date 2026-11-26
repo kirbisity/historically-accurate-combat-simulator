@@ -1058,7 +1058,8 @@ export function fire(world, fighter, weapon = fighter.weapon, aimedAt = null, ai
       world.events.push({ time: world.time, kind: 'hangfire', fighter: fighter.id, effects: ['the charge smoulders and does not go'] });
       return;
     }
-    if (!world.stage && random() < shot.misfire) {
+    // In rain (a level's `rules.rain`), a gun's wet powder: its own `rainMisfire`.
+    if (!world.stage && random() < (world.rules?.rain ? shot.rainMisfire ?? shot.misfire : shot.misfire)) {
       world.events.push({ time: world.time, kind: 'misfire', fighter: fighter.id, effects: ['flash in the pan'] });
       return;
     }

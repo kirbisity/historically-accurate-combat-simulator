@@ -208,6 +208,29 @@ export const PEOPLES = {
       knight: { heightCm: 4, weightKg: 9, exercise: 0.16 },
     },
   },
+  // The British line of 1841 (the 18th, 26th, 49th and 55th in China): the recruit's ~168 cm (lifted as above) and the
+  // fusilier's preset above it (body.js lineInfantry: the user's taller man), hardened by drill and the march, on the ration.
+  british1841: {
+    heightCm: 174, weightKg: 70, exercise: 0.8,
+    ranks: { line: {}, officer: { heightCm: 2, weightKg: 3, exercise: -0.1 } },
+  },
+  // The Madras Native Infantry: sepoys of the south of India (the army's standard ~5 ft 5 in, ~165 cm, lifted as above),
+  // light men, drilled as the British line was.
+  madras: {
+    heightCm: 168, weightKg: 58, exercise: 0.78,
+    ranks: { sepoy: {} },
+  },
+  // Guangdong and Guangxi, 1841-85: southern Han (mingSouth's build). The Green Standard of Canton undernourished (the
+  // ration short and late, opium in the camps: body.js greenStandard); the villagers of Sanyuanli farmers of every age,
+  // worked hard and fed little better; Feng Zicai's Guangxi braves (萃军, 1885) men of his own hills, fed and paid by him.
+  qing1841: {
+    of: 'mingSouth',
+    ranks: {
+      greenStandard: { weightKg: -9, exercise: -0.3, skill: 0.25 },
+      villager: { weightKg: -3, exercise: 0.15, skill: 0.15, spread: 1.4, ages: [[1, 16, 60]] },
+      brave: { heightCm: 1, weightKg: 4, exercise: 0.25, skill: 0.5 },
+    },
+  },
   // The Swiss and the Landsknechts of 1500 a little shorter than the English (~168 cm), hardened by years of
   // campaigning; the Swiss the harder drilled.
   swiss: { heightCm: 170, weightKg: 69, exercise: 0.8, ranks: { pike: {} } },

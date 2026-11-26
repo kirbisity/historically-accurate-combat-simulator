@@ -740,3 +740,42 @@ export function frenchFoot(random = Math.random, style = 'crossbow') {
   const name = `${pickOne(['Arnaud', 'Bernard', 'Guilhem', 'Peyre', 'Ramon', 'Bertrand', 'Sans', 'Joan'], random)} ${pickOne(['de Lescun', 'Barrère', 'Lafitte', 'Cazaux', 'Labat', 'Pujol', 'Darrigrand', 'Lacoste'], random)}`;
   return builtLike({ ...base, name }, PERIOD_BUILD.french.foot, random);
 }
+
+// ---- The Opium War, 1841 (scenarios.js canton, sanyuanli) ----
+
+const QING_NAMES = [['Huang', 'Chen', 'Li', 'Liang', 'He', 'Lin', 'Wong', 'Lai', 'Tam', 'Mak', 'Ho', 'Lo'], ['Ah-fook', 'Ah-sing', 'Kam', 'Wing', 'Yau', 'Cheung', 'Hing', 'Sang', 'Tai', 'Wah', 'Kwong', 'Ming']];
+
+/**
+ * A Qing man of Guangdong, 1841-85 (peoples.js qing1841): a Green Standard soldier of Canton's garrison (`greenStandard`,
+ * undernourished, in his corps' jacket), a villager of Sanyuanli (`villager`, any age, in his farm clothes), or one of Feng
+ * Zicai's Guangxi braves (`brave`, the Green Standard's jacket on fed and drilled men: OUTFIT_SETS.greenStandard).
+ */
+export function qingMan(random = Math.random, style = 'matchlock', rank = 'greenStandard') {
+  const base = varyCharacter(rank === 'brave' ? PRESETS.guangxiBrave : PRESETS.greenStandard, random, { sex: 'male' });
+  const kind = rank === 'villager' ? 'cantonVillager' : 'greenStandard';
+  const design = rank === 'villager' ? randomDesign(kind, random) : rank === 'brave' ? 4 : Math.floor(random() * 4);
+  const name = `${pickOne(QING_NAMES[0], random)} ${pickOne(QING_NAMES[1], random)}`;
+  const look = { ...base.look, skinTone: pickOne(['lightTan', 'lightTan', 'tan', 'medium'], random), hairColor: '#120d0a', hairStyle: 'buzz', faceRegion: 'china' };
+  const soldier = { ...base, sex: 'male', name, style, outfit: { kind, design }, accessories: [], look };
+  if (rank === 'villager') delete soldier.skill;
+  return builtLike(soldier, PERIOD_BUILD.qing1841[rank], random);
+}
+
+const BRITISH_NAMES = [['John', 'William', 'Thomas', 'James', 'George', 'Patrick', 'Michael', 'Robert', 'Henry', 'Samuel'], ['Smith', 'Brown', 'Kelly', 'Murphy', 'Walker', 'Wilson', 'Hughes', 'Taylor', 'Byrne', 'Campbell']];
+const SEPOY_NAMES = [['Ramaswamy', 'Muniappa', 'Venkata', 'Subbiah', 'Kuppusamy', 'Shaik', 'Abdul', 'Narayan', 'Chinnaswamy', 'Govinda'], ['Naidu', 'Pillai', 'Khan', 'Rao', 'Reddy', 'Mudali', 'Beg', 'Chetty']];
+
+/**
+ * A soldier of Gough's force at Canton, 1841: a man of the British line (`line`, in his regiment's red with buff or blue
+ * facings) or a sepoy of the Madras Native Infantry (`sepoy`); the flintlock, the bayonet when they close.
+ */
+export function britishSoldier(random = Math.random, style = 'flintlock', rank = 'line') {
+  const base = varyCharacter(PRESETS.lineInfantry, random, { sex: 'male' });
+  const sepoy = rank === 'sepoy';
+  const names = sepoy ? SEPOY_NAMES : BRITISH_NAMES;
+  const name = `${pickOne(names[0], random)} ${pickOne(names[1], random)}`;
+  const look = sepoy
+    ? { ...base.look, skinTone: pickOne(['tan', 'tan', 'deep', 'medium'], random), hairColor: '#120d0a', eyeColor: 'brown', faceRegion: 'southIndia', facialHair: pickOne(['mustache', 'mustache', 'none'], random) }
+    : { ...base.look, skinTone: pickOne(['light', 'light', 'lightTan'], random), facialHair: pickOne(['none', 'none', 'stubble', 'mustache'], random) };
+  const soldier = { ...base, sex: 'male', name, style, outfit: { kind: 'lineInfantry', design: sepoy ? 5 : Math.floor(random() * 2) }, accessories: [], look };
+  return builtLike(soldier, sepoy ? PERIOD_BUILD.madras.sepoy : PERIOD_BUILD.british1841[rank], random);
+}
