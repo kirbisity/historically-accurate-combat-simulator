@@ -39,6 +39,10 @@ Options for `oraclecheck.js`:
 ## The corpus
 
 All fights run at 1/60 s steps: think (the AI), then step. Bouts run in whole seconds until `boutWinner` or the limit.
+Each fight is fought in a fresh process. The sim keeps some state between worlds in its modules: `TABLE_DUEL.enabled`,
+and physics/polegrip.js's grip cache, which makes a staff's grip depend on who held a staff first. So a fight's record must
+not depend on what its process fought before. A port should fight each job from a clean state too. Run twice, in any
+order and on any number of workers, the same jobs give identical records (`--reverse` checks it).
 
 1. **Weapon x armour matrix** (`corpus.matrix`).
    - In each cell both men are the same reference body: the roster's `plate` warrior (178 cm, trained), with only
