@@ -27,7 +27,7 @@ export const HILT = {
  * - a disc or cup round the blade (`round`, its `radius`: a tsuba, the dao's round guard, a rapier's cup): its radius whatever the
  *   turn of the grip.
  */
-export function partReach(part) {
+export function guardPartReach(part) {
   if (part.round) return part.radius;
   return HILT.plane * Math.hypot(part.half ?? 0, part.flat ?? 0);
 }
@@ -36,7 +36,7 @@ export function partReach(part) {
 export function guardBars(spec) {
   const guard = spec?.crossGuard;
   if (!guard) return [];
-  return Object.values(guard).map((part) => ({ at: part.at, reach: partReach(part) }));
+  return Object.values(guard).map((part) => ({ at: part.at, reach: guardPartReach(part) }));
 }
 
 /**
