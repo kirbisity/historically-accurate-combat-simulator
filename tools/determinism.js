@@ -8,11 +8,13 @@
 //   A2    the case fought a second time in A's process: whether one world's run leaves module state that changes the next.
 //   I     two worlds of the case stepped by turns in one process (a server fighting several bouts at once): whether module
 //         state kept outside the world (physics.js seenExchanges, ai.js's grids, walkfield.js's heap...) leaks between them.
+//   P     the case fought after another fight in the same process (a monk's staff against a knight for 20 s): whether a
+//         cache keeps what an earlier, different fight put in it (it does: physics/polegrip.js poleGripSpec, seen in 'staff').
 //
 // Each run also counts, by calling site, what the fight reaches for outside the world: Math.random, performance.now, Date.now
 // (a clock read by the sim is a branch on the machine's speed), split into the world's making and its stepping.
 // Usage: node tools/determinism.js [case,...] [--steps N] [--json FILE]
-//        cases: duel 2v2 battle60 custom500 (default all); a child run is `node tools/determinism.js run <case> <steps> <mathSeed> once|twice|interleave`
+//        cases: duel 2v2 battle60 custom500 staff (default all); a child run is `node tools/determinism.js run <case> <steps> <mathSeed> once|twice|interleave|after`
 
 import { fork } from 'node:child_process';
 import { writeFileSync } from 'node:fs';
@@ -26,6 +28,8 @@ const CASES = {
   '2v2': { steps: 2400, make: (c) => c.team(['plate', 'footSpear'], ['tosei', 'mingDao'], 7) },
   battle60: { steps: 1800, make: (c) => c.scaledBattle('sarhu', 60, 7) },
   custom500: { steps: 2400, make: (c) => c.custom(500, 7) },
+  // A staff against a long sword, unarmoured: the case the polegrip cache shows in.
+  staff: { steps: 900, make: (c) => c.kitDuel({ style: 'staff', outfit: 'commoner' }, { style: 'longsword', outfit: 'commoner' }, 1, 'plate') },
 };
 
 /** A seeded stand-in for Math.random (the same generator as physics.js seededRandom), counted by calling site. */
@@ -149,6 +153,14 @@ async function child(caseKey, steps, mathSeed, mode) {
     return { hashes };
   };
   if (mode === 'interleave') return process.send({ first: interleaved(), sites: probe.sites });
+  if (mode === 'after') {
+    const other = cases.duel('shaolin', 'plate', 1);
+    for (let index = 0; index < 1200; index += 1) {
+      thinkAll(other, 1 / 60);
+      step(other, 1 / 60);
+    }
+    return process.send({ first: runOnce(), sites: probe.sites });
+  }
   const first = runOnce();
   const second = mode === 'twice' ? runOnce() : null;
   process.send({ first, second, sites: probe.sites });
@@ -179,7 +191,8 @@ async function main() {
   for (const key of keys) {
     const steps = stepsAt >= 0 ? Number(args[stepsAt + 1]) : CASES[key].steps;
     // (The interleaved pair costs two worlds' memory and time: not run for the 500-man case.)
-    const [a, b, c, i] = await Promise.all([spawn(key, steps, 1, 'twice'), spawn(key, steps, 1, 'once'), spawn(key, steps, 99, 'once'), key === 'custom500' ? null : spawn(key, steps, 1, 'interleave')]);
+    const big = key === 'custom500';
+    const [a, b, c, i, p] = await Promise.all([spawn(key, steps, 1, 'twice'), spawn(key, steps, 1, 'once'), spawn(key, steps, 99, 'once'), big ? null : spawn(key, steps, 1, 'interleave'), big ? null : spawn(key, steps, 1, 'after')]);
     const sitesRun = Object.entries(a.sites.run).sort((x, y) => y[1] - x[1]);
     const sitesBuild = Object.entries(a.sites.build).sort((x, y) => y[1] - x[1]);
     report[key] = {
@@ -193,12 +206,13 @@ async function main() {
       otherMathRandom: firstApart(a.first.hashes, c.first.hashes) ?? 'identical',
       secondRunSameProcess: firstApart(a.first.hashes, a.second.hashes) ?? 'identical',
       interleavedWithAnother: i ? firstApart(a.first.hashes, i.first.hashes) ?? 'identical' : 'not run',
+      afterAnotherFight: p ? firstApart(a.first.hashes, p.first.hashes) ?? 'identical' : 'not run',
       finalHash: a.first.hashes.at(-1),
       outsideCallsWhileStepping: Object.fromEntries(sitesRun.slice(0, 30)),
       outsideCallsWhileBuilding: Object.fromEntries(sitesBuild.slice(0, 30)),
     };
     const r = report[key];
-    console.log(`${key.padEnd(10)} ${String(r.men).padStart(4)} men ${steps} steps ${r.msPerStep} ms/step down ${r.down} | fresh-process ${r.sameSeedFreshProcess} | other Math.random ${r.otherMathRandom} | same-process rerun ${r.secondRunSameProcess} | interleaved ${r.interleavedWithAnother} | stepping: ${sitesRun.reduce((sum, [, n]) => sum + n, 0)} outside calls, building: ${sitesBuild.reduce((sum, [, n]) => sum + n, 0)}`);
+    console.log(`${key.padEnd(10)} ${String(r.men).padStart(4)} men ${steps} steps ${r.msPerStep} ms/step down ${r.down} | fresh-process ${r.sameSeedFreshProcess} | other Math.random ${r.otherMathRandom} | same-process rerun ${r.secondRunSameProcess} | interleaved ${r.interleavedWithAnother} | after another fight ${r.afterAnotherFight} | stepping: ${sitesRun.reduce((sum, [, n]) => sum + n, 0)} outside calls, building: ${sitesBuild.reduce((sum, [, n]) => sum + n, 0)}`);
     for (const [site, n] of sitesRun.slice(0, 8)) console.log(`    run   ${String(n).padStart(7)} ${site}`);
     for (const [site, n] of sitesBuild.slice(0, 8)) console.log(`    build ${String(n).padStart(7)} ${site}`);
   }
