@@ -28,6 +28,7 @@ import { ENV, ENV_PLACE_PLAIN, ENV_WEATHER, PLACE_ENV } from './config.js';
 import { envAirState, envAirToUniforms, envInstallTone, envSkyAt, envSunWay, envToneExposure, envUniforms } from './air.js';
 import { envNoiseAt } from './noise.js';
 import { envBuildSky } from './sky.js';
+import { shadowCacheAlong } from '../shadowcache.js';
 import { envBuildNearMap, envBuildTerrain, envHeightField, envInstallShadow, envSunPast } from './terrain.js';
 import { envBuildGrass, envGrassQuality } from './grass.js';
 import { worksOf } from '../physics/fieldworks.js';
@@ -684,6 +685,8 @@ function envCarryShadow(view, state, box) {
   const dr = Math.round(right / texel) * texel - right;
   const du = Math.round(up / texel) * texel - up;
   sun.target.position.set(fx + rx * dr + ux * du, fy + uy * du, fz + rz * dr + uz * du);
+  // (And a whole step at a time along the sun's way, so the still shadows drawn once go on fitting it: shadowcache.js.)
+  shadowCacheAlong(sun.target.position, state.air.sun);
   sun.position.set(sx, sy, sz).multiplyScalar(box.depth).add(sun.target.position);
   sun.target.updateMatrixWorld();
 }
@@ -741,6 +744,7 @@ function envCarryFiner(view, state, near) {
   const dr = Math.round(right / texel) * texel - right;
   const du = Math.round(up / texel) * texel - up;
   light.target.position.set(fx + rx * dr + ux * du, fy + uy * du, fz + rz * dr + uz * du);
+  shadowCacheAlong(light.target.position, state.air.sun);
   light.position.set(sx, sy, sz).multiplyScalar(sun.position.distanceTo(sun.target.position)).add(light.target.position);
   light.target.updateMatrixWorld();
   const deep = camera.far - camera.near;
