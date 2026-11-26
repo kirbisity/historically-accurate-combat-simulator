@@ -7,11 +7,11 @@
 // The schema is docs/oracle.md. Not part of the game.
 //
 // Usage: node tools/oracle.js [--out oracle/baseline.json] [--workers 8] [--seeds 8] [--seed-base 1] [--only duel,reference,battle]
-//        [--battle-seeds 3] [--quick] [--rebuild FILE] [--perturb 'module.js:TABLE.key*factor']
+//        [--battle-seeds 3] [--quick] [--rebuild FILE] [--perturb 'module.js:TABLE.key*factor'] [--reverse]
 //        (--quick: 3 seeds, the battles 2 seeds and 20 s: a smoke run, not a baseline. --rebuild: the metrics derived again from
 //        the fights kept in FILE, nothing fought: after a change to how a fight is read into metrics, not to what is read.
 //        --perturb: one number of a sim table scaled first, a control run to measure what the oracle can tell apart.)
-// A worker is `node tools/oracle.js worker` (forked; jobs come by message).
+// A worker is `node tools/oracle.js worker` (forked for one job, which comes by message).
 
 import { fork } from 'node:child_process';
 import { execSync } from 'node:child_process';
@@ -120,13 +120,16 @@ async function perturb(spec) {
   perturbed = spec;
 }
 
-async function runJob(job) {
+export async function runJob(job) {
   await perturb(job.perturb);
   const { thinkAll } = await import('../src/ai.js');
   const physics = await import('../src/physics.js');
   const { advance, boutWinner, placeFighter, throwPunch, step } = physics;
   const cases = await import('./simcases.js');
   const { TABLE_DUEL } = await import('../src/tableduel.js');
+  // TABLE_DUEL.enabled is module state: only a battle job turns it on (runJob called twice in one process, as a test may, must
+  // not carry a battle's switch into a duel: it did once, when one worker fought many jobs).
+  TABLE_DUEL.enabled = false;
   const fightOut = (world, seconds) => {
     for (let second = 0; second < seconds && !boutWinner(world); second += 1) advance(world, 1, (current, dt) => thinkAll(current, dt));
   };
@@ -335,36 +338,46 @@ async function main() {
   const kept = rebuild ? JSON.parse(readFileSync(resolve(rebuild), 'utf8')) : null;
   const perturbation = option(args, '--perturb', null);
   const jobs = kept ? kept.fights.map(({ job }) => job) : jobsFor({ seeds, seedBase, only, battleSeeds, battleSeconds }).sort((a, b) => b.cost - a.cost).map((job) => (perturbation ? { ...job, perturb: perturbation } : job));
+  // (--reverse: the jobs in the other order, so each worker fights other jobs before each: a fight must not depend on that.)
+  if (args.includes('--reverse')) jobs.reverse();
   const started = Date.now();
   const results = kept ? kept.fights.map(({ job, out: record }) => ({ job, out: record })) : [];
   let next = kept ? jobs.length : 0;
-  if (!kept) await Promise.all(Array.from({ length: Math.min(workers, jobs.length) }, () => new Promise((done, fail) => {
+  // Each fight in a fresh process: a fight must not depend on what its process fought before, and the sim keeps state between
+  // worlds in modules (TABLE_DUEL.enabled; physics/polegrip.js poleGripSpec keeps the first exact grip of each centimetre's
+  // key, so a staff's grip depends on who held a staff first). A process costs about 0.2 s to load.
+  const fightOne = (index) => new Promise((done, fail) => {
     const worker = fork(HERE, ['worker']);
-    const give = () => {
-      if (next >= jobs.length) {
-        worker.send({ stop: true });
-        return;
-      }
-      worker.send({ job: jobs[next], index: next });
-      next += 1;
-    };
-    worker.on('message', ({ index, out: result, error }) => {
+    worker.on('message', ({ out: result, error }) => {
       if (error) return fail(new Error(`${JSON.stringify(jobs[index])}: ${error}`));
       results.push({ job: jobs[index], out: result });
       if (results.length % 25 === 0) process.stderr.write(`${results.length}/${jobs.length} jobs, ${((Date.now() - started) / 1000).toFixed(0)} s\n`);
-      give();
     });
-    worker.on('exit', done);
+    worker.on('exit', (code) => (code ? fail(new Error(`${JSON.stringify(jobs[index])}: worker exited ${code}`)) : done()));
     worker.on('error', fail);
-    give();
-  })));
+    worker.send({ job: jobs[index] });
+  });
+  if (!kept) {
+    await Promise.all(Array.from({ length: Math.min(workers, jobs.length) }, async () => {
+      while (next < jobs.length) {
+        const index = next;
+        next += 1;
+        await fightOne(index);
+      }
+    }));
+  }
   const metrics = metricsFrom(results);
   for (const metric of Object.values(metrics)) metric.tolerance = round(toleranceOf(metric));
   let commit = null;
-  try { commit = execSync('git rev-parse --short HEAD', { cwd: ROOT }).toString().trim(); } catch { /* not a checkout */ }
+  let srcTree = null;
+  try {
+    commit = execSync('git rev-parse --short HEAD', { cwd: ROOT }).toString().trim();
+    // (The sim's own tree: two commits that differ only outside src/ fight alike.)
+    srcTree = execSync('git rev-parse --short HEAD:src', { cwd: ROOT }).toString().trim();
+  } catch { /* not a checkout */ }
   const baseline = {
     schema: 'hacs-oracle/1',
-    producer: kept ? { ...kept.producer, rebuilt: new Date().toISOString(), rebuiltAt: commit } : { engine: 'hacs-js', commit, ...(perturbation ? { perturbed: perturbation } : {}), node: process.version, date: new Date().toISOString(), seeds, seedBase, battleSeeds, quick, jobs: jobs.length, wallSeconds: Math.round((Date.now() - started) / 1000) },
+    producer: kept ? { ...kept.producer, rebuilt: new Date().toISOString(), rebuiltAt: commit } : { engine: 'hacs-js', commit, srcTree, ...(perturbation ? { perturbed: perturbation } : {}), node: process.version, date: new Date().toISOString(), seeds, seedBase, battleSeeds, quick, jobs: jobs.length, wallSeconds: Math.round((Date.now() - started) / 1000) },
     tolerance: TOLERANCE,
     corpus: { matrix: MATRIX, pairs: PAIRS, pairSeconds: PAIR_SECONDS, staffSmash: STAFF_SMASH, battles: BATTLES, woundKinds: Object.fromEntries(Object.entries(WOUND_KINDS).map(([kind, pattern]) => [kind, pattern.source])) },
     metrics,
@@ -378,12 +391,12 @@ async function main() {
 }
 
 if (process.argv[2] === 'worker') {
-  process.on('message', async ({ job, index, stop }) => {
-    if (stop) return process.exit(0);
+  // One job, then gone (see fightOne).
+  process.once('message', async ({ job }) => {
     try {
-      process.send({ index, out: await runJob(job) });
+      process.send({ out: await runJob(job) }, () => process.exit(0));
     } catch (error) {
-      process.send({ index, error: String(error?.stack ?? error) });
+      process.send({ error: String(error?.stack ?? error) }, () => process.exit(0));
     }
   });
 } else if (process.argv[1] === HERE) main();
