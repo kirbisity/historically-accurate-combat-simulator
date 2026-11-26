@@ -178,8 +178,10 @@ test('in a fight the katana seldom finds the knight\'s gaps and does not run him
   assert.ok(katana.thrust.gaps / katana.thrust.rigid < 0.2, `into a gap ${katana.thrust.gaps} of ${katana.thrust.rigid} (was ~0.35 when a gap was anywhere)`);
   const chest = katana.deaths.filter((end) => end.loser === 'b' && end.target === 'trunk' && end.oneShot);
   assert.equal(chest.length, 0, 'never one blow through the chest');
-  const hammer = pairing('hammer', 'plate', 3);
-  assert.ok(hammer.deaths.filter((end) => end.loser === 'b').length >= 2, 'the hammer: plate is not proof against a blow');
+  // (8 bouts, most of them: a knight at the half-sword holds out longer, so three bouts were too few to tell.)
+  const hammer = pairing('hammer', 'plate', 8);
+  const felled = hammer.deaths.filter((end) => end.loser === 'b').length;
+  assert.ok(felled >= 5, `the hammer: plate is not proof against a blow (${felled} of 8)`);
 });
 
 test('the finisher\'s dagger looks for a gap in a knight on the floor (the throat, the sights, the armpit, the groin) and goes in at it; put to the breast, never', () => {
