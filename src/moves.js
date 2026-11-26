@@ -122,6 +122,35 @@ export const MOVES = {
   // The staff's butt end: the far end swings back and the butt rises
   // through him (the staff points away as it passes through the aim).
   staffButt: { kind: 'strike', limb: 'rHand', path: 'blade', mode: 'swing', grip: 'two', from: { hand: [0.14, 0.55, -0.12], dir: [0.8, 0.5, -0.2] }, mid: [-0.9, 0.35, 0], to: { hand: [0.18, 0.75, 0.1], dir: [-0.6, -0.7, 0.2] }, windup: 0.1, extendUntil: 0.36, duration: 0.6, twist: 0.5, lean: 0.06, shift: 0.05, cost: 0.03, mass: { arm: 0.55, body: 0.04 }, rotation: 0.9, zones: ['body', 'head'], reach: 'weapon' },
+  // The Shaolin staff's own play (the gun; physics/polegrip.js: the hands slide along it, `lead` m of it out ahead of the main
+  // hand, and either end strikes, whichever the hands bring round the sooner). Two grips. The middle grip (`lead` 1.15: the
+  // hands either side of its middle, a third of it out ahead of the front hand) for the quick blows with both ends: a short
+  // chop, the rising blow from below that the turn brings up as the other end, the snapped beat at his weapon. The end grip
+  // (`lead` ~1.5-1.6: the rear hand drawn to the butt, the whole staff out ahead) for the long blows, the far end whipped
+  // round from overhead or from the side or along the ground at his legs: reach and a fast end, bought with the time the
+  // hands take to slide there and the staff's slow turn when held from its end (turnLimit, from its inertia about the hand).
+  // `fits` (ai.js moveFit): the moment each is for, as the AI sees it: `near`, inside most of its reach; `far`, at the end of
+  // it; `inLine`, his weapon's point on the line between them; `open`, not; `guardHigh`, his hands held high.
+  // The chop (pi gun): from the middle grip, down and across from his right, a short wind-up.
+  staffChop: { kind: 'strike', limb: 'rHand', path: 'blade', refWeapon: 'staff', mode: 'swing', grip: 'two', lead: 1.15, from: { hand: [0.02, 0.9, -0.16], dir: [-0.4, 0.75, -0.45] }, mid: [0.9, 0.2, 0.1], to: { hand: [0.28, 0.48, 0.14], dir: [0.5, -0.65, 0.5] }, windup: 0.12, extendUntil: 0.32, duration: 0.6, twist: -0.45, lean: 0.1, shift: 0.05, cost: 0.026, mass: { arm: 0.6, body: 0.03 }, rotation: 0.85, zones: ['head', 'body'], reach: 'weapon', contactAt: 0.8, fits: { near: 1.6, far: 0.6 } },
+  // The rising blow (liao gun): from below on his left up through him; after a blow down from the right the other end is the
+  // one already low, and it is that end that comes up.
+  staffRise: { kind: 'strike', limb: 'rHand', path: 'blade', refWeapon: 'staff', mode: 'swing', grip: 'two', lead: 1.15, from: { hand: [0.12, 0.42, 0.16], dir: [0.4, -0.6, 0.6] }, mid: [0.9, 0.1, 0], to: { hand: [0.14, 0.86, -0.12], dir: [0.35, 0.8, -0.45] }, windup: 0.1, extendUntil: 0.3, duration: 0.56, twist: 0.35, lean: 0.04, shift: 0.04, cost: 0.024, mass: { arm: 0.55, body: 0.025 }, rotation: 0.8, zones: ['body', 'head'], reach: 'weapon', contactAt: 0.8, fits: { near: 1.6, far: 0.5, guardHigh: 1.5 } },
+  // The beat (lan / bo): a short snap across at his weapon's middle to knock it off the line (zones 'blade'), made when his
+  // point is in line; the thrust or the chop goes in behind it (the style's combos).
+  staffBeat: { kind: 'strike', limb: 'rHand', path: 'blade', refWeapon: 'staff', mode: 'swing', grip: 'two', lead: 1.15, from: { hand: [0.08, 0.74, 0.1], dir: [0.3, 0.7, 0.6] }, mid: [0.7, -0.2, -0.7], to: { hand: [0.24, 0.58, -0.12], dir: [0.55, -0.45, -0.65] }, windup: 0.06, extendUntil: 0.22, duration: 0.4, twist: 0.25, lean: 0.06, shift: 0.04, cost: 0.02, mass: { arm: 0.6, body: 0.03 }, rotation: 0.6, zones: ['blade'], reach: 'weapon', contactAt: 0.7, fits: { inLine: 3, open: 0.05 } },
+  // The thrust with the sliding grip (chuo gun): the rear hand drawn back to the butt and driving the staff out through the
+  // front hand, which only guides it (physics.js updateWeapon: the front hand holds the line wherever along the staff it is),
+  // the body stepping in behind it. Its reach is the staff's whole length out ahead.
+  staffThrust: { kind: 'strike', limb: 'rHand', path: 'blade', refWeapon: 'staff', mode: 'thrust', grip: 'two', lead: 1.45, from: { hand: [-0.16, 0.58, -0.1], dir: [1, 0.08, 0] }, windup: 0.14, extendUntil: 0.38, duration: 0.64, twist: -0.4, lean: 0.18, shift: 0.14, depth: 0.3, step: 1.8, cost: 0.026, extendShare: 0.6, mass: { arm: 0.8, body: 0.18 }, rotation: 0.5, zones: ['body', 'head'], reach: 'weapon', fits: { far: 1.6, near: 0.5, inLine: 0.4 } },
+  // The long smash (the reference clip's blow): the rear hand slid to the butt, the staff raised over the head and whipped down
+  // with the far end; the most reach and the fastest end of any, and the longest to make.
+  staffSmash: { kind: 'strike', limb: 'rHand', path: 'blade', refWeapon: 'staff', mode: 'swing', grip: 'two', lead: 1.6, from: { hand: [-0.02, 0.98, -0.12], dir: [-0.55, 0.8, -0.1] }, mid: [0.85, 0.4, 0], to: { hand: [0.3, 0.52, 0.05], dir: [0.6, -0.8, 0.05] }, windup: 0.26, extendUntil: 0.54, duration: 0.95, twist: -0.45, lean: 0.18, shift: 0.09, step: 0.6, cost: 0.044, mass: { arm: 0.7, body: 0.06 }, rotation: 1.2, zones: ['head', 'body'], reach: 'weapon', contactAt: 0.88, fits: { far: 2, near: 0.25 } },
+  // The long wheel (heng sao): the same end grip swung round flat from his right at the head or the ribs, carrying on through.
+  staffWheel: { kind: 'strike', limb: 'rHand', path: 'blade', refWeapon: 'staff', mode: 'swing', grip: 'two', lead: 1.55, sweep: true, from: { hand: [0.02, 0.72, -0.3], dir: [-0.3, 0.25, -0.92] }, mid: [1, 0.12, 0], to: { hand: [0.22, 0.66, 0.26], dir: [0.2, 0.05, 1] }, windup: 0.24, extendUntil: 0.52, duration: 0.92, twist: -0.9, lean: 0.08, shift: 0.06, cost: 0.044, mass: { arm: 0.7, body: 0.06 }, rotation: 1.4, zones: ['head', 'body'], reach: 'weapon', contactAt: 0.88, fits: { far: 1.8, near: 0.3 } },
+  // The low sweep (sao tang gun): from the end grip, the far end along the ground at his shins; a blow that lands takes his feet
+  // from under him (`hook` 'reap': physics.js hookLeg) or at least the leg; made most when his guard is up.
+  staffSweep: { kind: 'strike', limb: 'rHand', path: 'blade', refWeapon: 'staff', mode: 'swing', grip: 'two', lead: 1.5, sweep: true, from: { hand: [0.0, 0.62, -0.3], dir: [-0.2, -0.15, -1] }, mid: [1, -0.4, 0], to: { hand: [0.16, 0.5, 0.25], dir: [0.3, -0.3, 1] }, windup: 0.22, extendUntil: 0.5, duration: 0.9, twist: -0.8, lean: 0.2, dip: 0.12, shift: 0.07, cost: 0.04, mass: { arm: 0.75, body: 0.08 }, rotation: 1, zones: ['shins'], reach: 'weapon', contactAt: 0.85, hook: 'reap', fits: { guardHigh: 2.5, far: 1.3, near: 0.4 } },
   // The war hammer's top spike driven in a full stroke, as a spear's point is (spearThrust): the hands drawn back to the
   // hip, the spike driven half a metre past the mark and out early (`extendShare`), more of the body behind it. Braking at
   // the skin (depth 0.25, from the guard), it met him at a walk: in bouts a median ~3 m/s and ~15 J, a shove; now ~5 m/s, ~30 J.
@@ -1410,10 +1439,13 @@ export const STYLES = {
     label: 'Staff', weapon: 'staff', fallback: 'mix',
     cadence: { work: 1.3, move: 0.8, burst: 0.75, mobility: 0.6 },
     stance: { blade: 0.45, crouch: 0.07, width: 1.25, lean: 0.06, guardHeight: 0 },
-    weaponGuard: { hand: [0.1, 0.58, -0.06], dir: [1, 0.3, 0.05] },
+    // (Held at the middle grip between blows, `lead` m out ahead of the main hand: the hands either side of its middle, the
+    // middle between them to block with: physics/polegrip.js.)
+    weaponGuard: { hand: [0.1, 0.58, -0.06], dir: [1, 0.3, 0.05], lead: 1.15 },
     idle: { bounce: 0.25, sway: 0.5, rock: 0.3 },
-    attacks: { naginataSweep: 0.25, naginataCut: 0.2, staffButt: 0.25, spearJab: 0.2, naginataRising: 0.1 },
-    combos: { 'naginataCut staffButt': 0.35, 'staffButt naginataSweep': 0.3, 'spearJab staffButt naginataCut': 0.35 },
+    attacks: { staffChop: 0.2, staffRise: 0.15, staffThrust: 0.15, spearJab: 0.1, staffSmash: 0.12, staffWheel: 0.1, staffSweep: 0.08, staffBeat: 0.1 },
+    // Runs from one end to the other (the turn brings the other end round: physics/polegrip.js), and the beat's openings.
+    combos: { 'staffChop staffRise': 0.3, 'staffRise staffChop staffThrust': 0.2, 'staffBeat staffThrust': 0.35, 'staffBeat staffChop': 0.25, 'spearJab staffChop staffRise': 0.2, 'staffSweep staffSmash': 0.2 },
     comboChance: 0.6,
     tempo: 0.85,
     defences: { weaponBlock: 0.7, stepBack: 0.3 },
@@ -2385,7 +2417,8 @@ export function moveRange(move, body, weapon = null) {
   if (move.reach === 'gun') return 30;
   // A whip strikes with its thong's tip: its own `reach`, not its handle's length.
   if (move.reach === 'weapon' && weapon?.reach) return body.reach * 1.05 + weapon.reach;
-  if (move.reach === 'weapon') return body.reach * 1.05 + (weapon?.length ?? 0) * (move.mode === 'thrust' ? 0.9 : 0.85) + (move.lunge ?? 0) * body.heightM;
+  // (A sliding grip's move reaches with the length it holds out ahead, `lead`: physics/polegrip.js.)
+  if (move.reach === 'weapon') return body.reach * 1.05 + (move.lead ?? weapon?.length ?? 0) * (move.mode === 'thrust' ? 0.9 : 0.85) + (move.lunge ?? 0) * body.heightM;
   if (move.reach === 'leg') return legReach * 1.25;
   if (move.reach === 'close') return body.reach * 0.95;
   return body.reach * 1.3;

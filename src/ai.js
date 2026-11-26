@@ -2,6 +2,7 @@
 // starting, its own stamina) and issues the same commands a player would,
 // choosing from its style's moves those that reach from where it stands.
 
+import { fitSense, moveFit } from './movefit.js';
 import { finishTarget, startFinisher, updateFinisher } from './finisher.js';
 import { CROWD_GRID, crowdAnyAlong, crowdEach, crowdFirst, crowdNear, withCrowdGrid } from './crowdgrid.js';
 import { ghostStill, joinTable, keepTable, keptInFull, TABLE_DUEL, tableEligible, tableOn } from './tableduel.js';
@@ -4290,6 +4291,8 @@ function decide(world, fighter, dt) {
   const closing = reachOut ? closingSpeed(fighter, opponent, distance) : 0;
   const timed = closing > AI.press.timedFrom && !paced ? closing * AI.press.timing : 0;
   const choices = {};
+  let fitSeen = null;
+  const fitOf = {};
   for (const [name, weight] of Object.entries(style.attacks)) {
     const spec = MOVES[name];
     if (fighter.clinch) {
@@ -4326,7 +4329,8 @@ function decide(world, fighter, dt) {
     // (Pressing, a lunging blow is thrown from as far as its step carries him in: AI.press lunge.)
     const reach = moveRange(spec, fighter.body, held) + opponent.body.lengths.headRadius + (reachOut ? lungeReach(spec) + timed * spec.extendUntil : 0);
     // Close-range moves only when close; long ones only when there is room.
-    if (distance <= reach && (spec.reach !== 'leg' || distance > fighter.body.reach * 0.9)) choices[name] = weight;
+    // (As the moment fits it, a move that says what it is for: movefit.js.)
+    if (distance <= reach && (spec.reach !== 'leg' || distance > fighter.body.reach * 0.9)) choices[name] = weight * (fitOf[name] = spec.fits ? moveFit(spec, (fitSeen ??= fitSense(fighter, opponent)), distance, reach) : 1);
   }
   // Holding him by the neck with one hand, the other hammers.
   if (fighter.clinch && style.clinchStrikes) {
@@ -4338,8 +4342,10 @@ function decide(world, fighter, dt) {
   if (!move) return;
   // Open a combination that starts with a punch that reaches from here (as often as its moves get through his kit).
   let combo = null;
+  // (A combination opens as its first move fits the moment: movefit.js.)
+  const openerFit = (sequence) => fitOf[sequence.split(' ')[0]] ?? 1;
   const comboWorth = (sequence) => sequence.split(' ').reduce((sum, name) => sum + worth(name), 0) / sequence.split(' ').length;
-  const openers = style.combos && !fighter.clinch ? Object.fromEntries(Object.entries(style.combos).filter(([sequence]) => choices[sequence.split(' ')[0]]).map(([sequence, weight]) => [sequence, weight * comboWorth(sequence)])) : null;
+  const openers = style.combos && !fighter.clinch ? Object.fromEntries(Object.entries(style.combos).filter(([sequence]) => choices[sequence.split(' ')[0]]).map(([sequence, weight]) => [sequence, weight * comboWorth(sequence) * openerFit(sequence)])) : null;
   // (None open from here: tried as ever, and come to nothing.)
   const comboOdds = openers && Object.keys(openers).length ? Math.max(...Object.keys(openers).map(comboWorth)) : 1;
   if (openers && random() < (style.comboChance ?? 0) * comboOdds) {
