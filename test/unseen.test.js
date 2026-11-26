@@ -35,7 +35,8 @@ test('an exchange the player does not perceive is stepped unseen, both men of it
       assert.notEqual(fighter.id, player.id);
       const [x, , z] = hips(fighter);
       const [px, , pz] = hips(player);
-      assert.ok(Math.hypot(x - px, z - pz) > AI.perceive.close, `unseen man ${fighter.id} within ${AI.perceive.close} m of the player`);
+      // (With the same slack: the men read at the step's end, perceived at its start.)
+      assert.ok(Math.hypot(x - px, z - pz) > AI.perceive.close - SLACK, `unseen man ${fighter.id} within ${AI.perceive.close} m of the player`);
       for (const other of [fighter.punch?.target, fighter.focus]) {
         if (other === undefined || other === null) continue;
         const [ox, , oz] = hips(world.fighters[other]);
