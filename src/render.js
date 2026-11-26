@@ -46,7 +46,7 @@ import { capsules, capsuleEnds, halfPoints, point, WORLD } from './physics.js';
 import { BONE, BONES, bindPoints, boneFrames, coherentFrames, frameMatrix, fromFrame, toFrame } from './rig.js';
 import { bakePieces, clusterColors, CROWD_VIEW, crowdBatch, crowdKey, crowdShapeKey, frameAt, HEAD_VARIANT, onlyVariant, simplifyTemplate, stretchedInverses, topologyOf, withoutVariant } from './crowdview.js';
 import { chooseDraw, crowdLod } from './crowdlod.js';
-import { batchMan, beginCrowdBodies, disposeCrowdBodies, unbatchMan } from './crowdbatch.js';
+import { batchMan, beginCrowdBodies, disposeCrowdBodies, unbatchMan, warmCrowdBody } from './crowdbatch.js';
 import { geometryArrays, materialTextures, textureBytes } from './memstats.js';
 import { MESH_PACK, packedColours, packedNormals, packedWeights } from './meshpack.js';
 import { tkTier } from './townkit/place.js';
@@ -2496,7 +2496,10 @@ export function buildFighterView(view, fighter, { simple: crowd = false } = {}) 
     view.crowdTemplates ??= new Map();
     const key = crowdKey(fighter);
     if (!view.crowdTemplates.has(key)) view.crowdTemplates.set(key, bakeCrowdTemplate(view, fighter, crowdShapeKey(fighter)));
-    return wetDress(crowdView(view, fighter, view.crowdTemplates.get(key)));
+    const crowdMan = wetDress(crowdView(view, fighter, view.crowdTemplates.get(key)));
+    // (The far batch he will be drawn in, made now so that its programs link while his army loads: crowdbatch.js.)
+    warmCrowdBody(view, crowdMan, CROWD_BATCH_PAINT);
+    return crowdMan;
   }
   // (Sweat, water and mud drawn on everything he is made of: wetview.js, laid before any other sweep of his materials.)
   return wetDress(detailedView(view, fighter, false));

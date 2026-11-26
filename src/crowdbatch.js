@@ -31,6 +31,10 @@ export const CROWD_BATCH = {
   rowsStep: 128,
   // A copy's capacity in a batch grows by doubling from this.
   capacity: 32,
+  // A batch made with its army (warmCrowdBody) is drawn empty, no copy in it, for this many frames of play: its programs are
+  // linked while the army loads (the load's frames draw what is shown), not on the frame the first man goes far (4 programs,
+  // a 70-100 ms frame in a battle of 500 on an M1 Pro, measured 2026-11-26).
+  warmFrames: 10,
 };
 
 // Texels a man takes in the bone texture: four (a matrix's columns) for each bone.
@@ -204,7 +208,7 @@ function makeBatch(view, template, paint) {
   const state = bodiesOf(view);
   const far = template.far;
   const capacity = CROWD_BATCH.capacity;
-  const batch = { template, capacity, count: 0, meshes: [], materials: [] };
+  const batch = { template, capacity, count: 0, meshes: [], materials: [], warm: CROWD_BATCH.warmFrames };
   batch.slots = new THREE.InstancedBufferAttribute(new Float32Array(capacity), 1).setUsage(THREE.DynamicDrawUsage);
   batch.tints = new THREE.InstancedBufferAttribute(new Float32Array(capacity * 3), 3).setUsage(THREE.DynamicDrawUsage);
   const { skin, steel } = paint.make(view, template, (material) => patchBatchMaterial(material, state.uniforms));
@@ -216,7 +220,6 @@ function makeBatch(view, template, paint) {
     mesh.frustumCulled = false;
     mesh.matrixAutoUpdate = false;
     mesh.castShadow = false;
-    mesh.visible = false;
     mesh.userData.crowdBatch = true;
     view.scene.add(mesh);
     batch.meshes.push(mesh);
@@ -263,7 +266,7 @@ function makePropBatch(view, owner, worn) {
     if (!mesh.isMesh || mesh.userData.outline) return;
     parts.push({ geometry: mesh.geometry, material: mesh.material, local: new THREE.Matrix4().multiplyMatrices(toWorn, mesh.matrixWorld), instanced: null });
   });
-  const batch = { owner, headRadius: owner.fighter.body.lengths.headRadius, parts, capacity: 0, count: 0 };
+  const batch = { owner, headRadius: owner.fighter.body.lengths.headRadius, parts, capacity: 0, count: 0, warm: CROWD_BATCH.warmFrames };
   allocateProps(view, batch, CROWD_BATCH.capacity);
   return batch;
 }
@@ -375,8 +378,10 @@ export function fillCrowdBodies(view, paint) {
   const state = view.crowdBodies;
   if (!state) return;
   state.frame += 1;
-  for (const batch of state.batches.values()) batch.count = 0;
-  for (const batch of state.props.values()) batch.count = 0;
+  for (const batch of [...state.batches.values(), ...state.props.values()]) {
+    batch.count = 0;
+    batch.warm = Math.max(0, batch.warm - 1);
+  }
   if (state.frame % 60 === 0) freeRows(state);
   const men = state.men.filter((fighterView) => fighterView.group.visible && fighterView.layers.skin.visible && !fighterView.disposed);
   let written = false;
@@ -413,7 +418,7 @@ export function fillCrowdBodies(view, paint) {
   if (written) state.texture.needsUpdate = true;
   for (const [key, batch] of state.batches) {
     for (const mesh of batch.meshes) {
-      mesh.visible = batch.count > 0;
+      mesh.visible = batch.count > 0 || batch.warm > 0;
       mesh.geometry.instanceCount = batch.count;
     }
     batch.slots.needsUpdate = batch.count > 0;
@@ -428,9 +433,30 @@ export function fillCrowdBodies(view, paint) {
   for (const batch of state.props.values()) {
     for (const part of batch.parts) {
       part.instanced.count = batch.count;
-      part.instanced.visible = batch.count > 0;
+      part.instanced.visible = batch.count > 0 || batch.warm > 0;
       if (batch.count) part.instanced.instanceMatrix.needsUpdate = true;
     }
+  }
+}
+
+/**
+ * The batches a man will be drawn in once far, made with his view (render.js crowdView), so that their programs are linked
+ * while his army loads (CROWD_BATCH.warmFrames). Nothing is drawn of him in them until he is far.
+ */
+export function warmCrowdBody(view, fighterView, paint) {
+  if (!CROWD_BATCH.on || !batchable(fighterView)) return;
+  const state = bodiesOf(view);
+  const key = (fighterView.batchKey ??= batchKey(fighterView));
+  const batch = state.batches.get(key);
+  if (!batch || !(batch.template.users > 0)) {
+    if (batch) disposeBatch(view, batch);
+    const made = makeBatch(view, fighterView.template, paint);
+    made.skinColor = fighterView.skinColor;
+    state.batches.set(key, made);
+  }
+  for (const prop of fighterView.headProps ?? []) {
+    const propKey = `${key}|${prop.kind}`;
+    if (!state.props.has(propKey) && prop.worn.parent) state.props.set(propKey, makePropBatch(view, fighterView, prop.worn));
   }
 }
 
