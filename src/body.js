@@ -640,14 +640,14 @@ export const PRESETS = {
   // arrears and pocketed by his officers, opium among the camps (the Lianzhou campaign of 1832 lost, its troops' smoking
   // blamed), too weak, it was said, to draw a bow; the garrison's little drill (0.25).
   greenStandard: {
-    name: 'Huang Fu', style: 'matchlock', sex: 'male', heightCm: PEOPLES.mingSouth.heightCm, frame: 'medium', age: 30, exercise: 0.2, calories: 1800, skill: 0.25,
+    name: 'Huang Fu', style: 'matchlock', sex: 'male', heightCm: 168, frame: 'medium', age: 30, exercise: 0.13, calories: 1650, skill: 0.25,
     outfit: { kind: 'greenStandard', design: 0 }, accessories: [],
     look: { skinTone: 'lightTan', hairStyle: 'buzz', hairColor: '#120d0a', facialHair: 'mustache', eyeColor: 'brown', faceRegion: 'china' },
   },
   // One of Feng Zicai's Guangxi braves (萃军), 1885: a southern man of the hills (peoples.js qing1841 brave), fed and
   // paid by his general and drilled by him, the dao for the charge over the wall at Zhennan Pass.
   guangxiBrave: {
-    name: 'Wei Ah-sheng', style: 'dao', sex: 'male', heightCm: PEOPLES.mingSouth.heightCm + 1, frame: 'medium', age: 27, exercise: 0.75, calories: 3500, skill: 0.5,
+    name: 'Wei Ah-sheng', style: 'dao', sex: 'male', heightCm: 167, frame: 'medium', age: 27, exercise: 0.47, calories: 2370, skill: 0.4,
     outfit: { kind: 'greenStandard', design: 4 }, accessories: [],
     look: { skinTone: 'tan', hairStyle: 'buzz', hairColor: '#120d0a', facialHair: 'none', eyeColor: 'brown', faceRegion: 'china' },
   },
