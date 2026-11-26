@@ -60,6 +60,18 @@ test('the sections near: beyond each link within reach, two links deep at most',
   assert.deepEqual([...sectionsNear(graph, ['a'], [18, 0, 0], 25)].find(([id]) => id === 'c')[1], 21);
 });
 
+test('a portal always: the section beyond wanted from anywhere in its own, however far, and only from there; one closer, from nearer', () => {
+  const graph = rowGraph();
+  graph.links[0].always = true;
+  assert.ok(sectionsNear(graph, ['a'], [-200, 0, 0], 18, 1).has('b'));
+  assert.ok(!sectionsNear(graph, ['b'], [40, 0, 0], 18, 1).has('a'));
+  assert.ok(!sectionsNear(rowGraph(), ['a'], [-200, 0, 0], 18, 1).has('b'));
+  // (One `closer`: the section beyond only from that much nearer.)
+  graph.links[1].closer = 10;
+  assert.ok(!sectionsNear(graph, ['b'], [30, 0, 0], 18, 1).has('c'));
+  assert.ok(sectionsNear(graph, ['b'], [32, 0, 0], 18, 1).has('c'));
+});
+
 test('the next room is built while he walks up to its gate, within the budget a frame', () => {
   const { stream, log } = streamOf({ lead: 18, budgetMs: 1, urgentMs: 1 }, 3);
   stream.update(0.016, { position: [0, 0, 0], active: ['a'] });
@@ -113,6 +125,29 @@ test('a room left is held while he is near its gate and for a while after; walki
   for (let k = 0; k < 60 * 2; k += 1) stream.update(1 / 60, { position: [55, 0, 0], active: ['c'] });
   assert.ok(!stream.built('a'));
   assert.ok(stream.built('b'));
+});
+
+test('a build no longer wanted is set aside, taken up again if wanted again, and given up after the linger', () => {
+  const { stream } = streamOf({ lead: 10, keep: 30, linger: 1, budgetMs: 1, urgentMs: 1, hops: 1 }, 10);
+  stream.update(0.016, { position: [18, 0, 0], active: ['a'] });
+  for (let k = 0; k < 12; k += 1) stream.pump();
+  assert.ok(stream.built('a') && stream.stats().building.includes('b'));
+  // He turns back: b is no longer wanted, and nothing more of it is built.
+  stream.update(0.016, { position: [2, 0, 0], active: ['a'] });
+  const before = stream.stats().steps;
+  for (let k = 0; k < 20; k += 1) stream.pump();
+  assert.equal(stream.stats().steps, before);
+  // Back at the gate within the linger: it goes on where it was.
+  stream.update(0.5, { position: [18, 0, 0], active: ['a'] });
+  for (let k = 0; k < 20; k += 1) stream.pump();
+  assert.ok(stream.built('b'));
+  // Begun and left for longer than the linger: given up, never finished.
+  stream.update(0.016, { position: [38, 0, 0], active: ['b'] });
+  stream.pump();
+  assert.ok(stream.stats().building.includes('c'));
+  for (let k = 0; k < 90; k += 1) stream.update(1 / 60, { position: [21, 0, 0], active: ['b'] });
+  assert.ok(!stream.stats().building.includes('c') && !stream.built('c'));
+  assert.equal(stream.stats().abandoned, 1);
 });
 
 test('what the picture asks for is built, and a pin holds a room whatever else', () => {

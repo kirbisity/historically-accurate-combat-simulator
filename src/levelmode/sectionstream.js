@@ -13,7 +13,9 @@
 //   - those the picture asks for (`seen`: painted in detail through an opening, visibility.js) and those `pinned` by the
 //     game (the place a scene is about to cut to);
 // and lets go of a section once none of that has held for `linger` seconds and no link into it is within `keep` m: two reaches
-// and a wait, so that walking back and forth at a gate does not build and free the same room again and again.
+// and a wait, so that walking back and forth at a gate does not build and free the same room again and again. A build no
+// longer wanted (he turned back before it was done, or it was begun from where he was a moment ago) is set aside, and given
+// up after the same `linger` if nothing wants it again: finished, it would be held for nothing until the wait let it go.
 // The building is the caller's: `build(id)` a generator (it yields between its pieces of work) whose return value is what
 // `free(id, made)` is later handed. `pump(budgetMs)` runs the builds a slice at a time each frame, the most wanted first;
 // nothing here touches the scene, so it is tested in Node.
@@ -59,7 +61,8 @@ export function sectionsNear(graph, active, position, reach, hops = SECTION_STRE
       for (const link of graph.near[id] ?? []) {
         const other = link.a === id ? link.b : link.a;
         const distance = nearestBoxDistance(link.boxes, x, y, z);
-        if (distance > reach) continue;
+        // (Or seen from all of the section it leads out of, the portal `always`; or only from nearer, `closer`: visibility.js sectionGraph.)
+        if (distance > reach - (link.closer ?? 0) && !(link.always && link.a === id)) continue;
         if (!found.has(other)) next.push(other);
         found.set(other, Math.min(found.get(other) ?? Infinity, distance));
       }
@@ -73,7 +76,7 @@ export function sectionsNear(graph, active, position, reach, hops = SECTION_STRE
  * The order the builds go in: what he stands in first, then what the picture and the game ask for, then the rest by how near
  * the link to it is. Lower first.
  */
-const STREAM_RANK = { active: 0, seen: 1, pinned: 1, near: 2 };
+const STREAM_RANK = { active: 0, seen: 1, pinned: 1, near: 2, unwanted: 3 };
 
 /**
  * A stream over `graph` (visibility.js sectionGraph). `build(id, { now })`: a generator building section `id`, returning what was made
@@ -89,7 +92,7 @@ export function createSectionStream({ graph, build, free, config = {}, now = () 
   const idle = new Map();
   const pins = new Set();
   const wanted = new Map();
-  const counts = { builds: 0, frees: 0, steps: 0, longestStepMs: 0, longestStep: null, buildMs: 0, lastPumpMs: 0 };
+  const counts = { builds: 0, frees: 0, abandoned: 0, steps: 0, longestStepMs: 0, longestStep: null, buildMs: 0, lastPumpMs: 0 };
 
   const start = (id, rank, now = false) => {
     if (built.has(id)) return;
@@ -127,7 +130,17 @@ export function createSectionStream({ graph, build, free, config = {}, now = () 
     for (const id of pins) if (!wanted.has(id)) wanted.set(id, STREAM_RANK.pinned);
     for (const [id, distance] of sectionsNear(graph, active, position, numbers.lead, numbers.hops)) if (!wanted.has(id)) wanted.set(id, distance <= numbers.urgent ? STREAM_RANK.seen : STREAM_RANK.near);
     for (const [id, rank] of wanted) start(id, rank);
-    for (const [id, job] of jobs) job.rank = wanted.get(id) ?? STREAM_RANK.near + 1;
+    for (const [id, job] of [...jobs]) {
+      // (One built at once behind the loading screen, ensureSteps, is its runner's to finish.)
+      if (job.now) continue;
+      job.rank = wanted.get(id) ?? STREAM_RANK.unwanted;
+      job.unwanted = job.rank === STREAM_RANK.unwanted ? (job.unwanted ?? 0) + dt : 0;
+      if (job.unwanted >= numbers.linger) {
+        job.steps.return?.();
+        jobs.delete(id);
+        counts.abandoned += 1;
+      }
+    }
     const held = sectionsNear(graph, active, position, numbers.keep, numbers.hops);
     for (const id of [...built.keys()]) {
       if (wanted.has(id) || held.has(id)) {
@@ -140,10 +153,10 @@ export function createSectionStream({ graph, build, free, config = {}, now = () 
     }
   };
 
-  /** The build to work on now: the most wanted, and of those the one begun first (a build is finished before the next of its rank starts). */
+  /** The build to work on now: the most wanted, and of those the one begun first (a build is finished before the next of its rank starts); none set aside. */
   const nextJob = () => {
     let best = null;
-    for (const [id, job] of jobs) if (job.waiting) continue;
+    for (const [id, job] of jobs) if (job.waiting || job.rank >= STREAM_RANK.unwanted) continue;
     else if (!best || job.rank < best[1].rank || (job.rank === best[1].rank && job.ms > best[1].ms)) best = [id, job];
     return best;
   };
@@ -156,7 +169,9 @@ export function createSectionStream({ graph, build, free, config = {}, now = () 
     job.waiting = next.value === STREAM_FRAME;
     job.ms += took;
     job.count = (job.count ?? 0) + 1;
-    if (took > counts.longestStepMs) counts.longestStep = `${id}#${job.count}`;
+    // (Named by what the build said it had done before it (a yield's value: 'houses', a decor piece's kind), so a tool can tell which piece is long.)
+    if (took > counts.longestStepMs) counts.longestStep = `${id}#${job.count}${job.said ? ` after ${job.said}` : ''}`;
+    if (typeof next.value === 'string' && next.value !== STREAM_FRAME) job.said = next.value;
     counts.steps += 1;
     counts.buildMs += took;
     counts.longestStepMs = Math.max(counts.longestStepMs, took);
