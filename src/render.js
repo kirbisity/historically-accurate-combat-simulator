@@ -71,6 +71,8 @@ import { envDress } from './env/air.js';
 import { envFbm, envValueNoise } from './env/noise.js';
 import { wetDress, wetWarm } from './wetview.js';
 import { markDamage } from './markview.js';
+import { canPrimeShaders, openShaderPrime } from './shaderprime.js';
+import { sweepFigureShade } from './looks/kit.js';
 import { COLOSSEUM } from './props/arenasize.js';
 import { buildPyongyang, buildPyongyangTown, PYONGYANG_LIGHT } from './places/pyongyang.js';
 // (The kit's door to the open air: townkit/air.js puts env/'s registration where the kit's places find it.)
@@ -3148,13 +3150,11 @@ function swapSkin(view, fighterView, style, made = null) {
   if (fighterView.disposed || fighterView.severedBones?.size || fighterView.headDetached || fighterView.trunkSplit) return false;
   const built = readySkin(fighterView.fighter.body, style) ?? (made ? { ...made, positions: made.positions.slice() } : null);
   if (!built) return false;
+  // (A skin still held from the swap before is let go first: its old one is dropped now.)
+  releaseSkin(view, fighterView);
   const old = [fighterView.skinMesh, fighterView.skinOutline, fighterView.steelMesh, fighterView.steelOutline, ...(fighterView.detailMeshes ?? []), ...(fighterView.detailOutlines ?? [])].filter(Boolean);
   const skin = skinParts(view, fighterView.fighter, built, style, fighterView.bones, { machine: fighterView.machine, lacquer: fighterView.lacquer, soft: !fighterView.rigid });
   const { layers } = fighterView;
-  for (const mesh of old) layers.skin.remove(mesh);
-  const holder = new THREE.Group();
-  holder.add(...old);
-  disposeObject(holder);
   if (skin.steelMesh) layers.skin.add(skin.steelMesh, skin.steelOutline);
   for (const mesh of [...skin.detailMeshes, ...skin.detailOutlines]) layers.skin.add(mesh);
   layers.skin.add(skin.skinMesh, skin.skinOutline);
@@ -3165,7 +3165,74 @@ function swapSkin(view, fighterView, style, made = null) {
   // As he was drawn: ghosted or not, his ink, his shadow; and as wet (wetview.js).
   setLayer(fighterView, fighterView.layer);
   wetDress(fighterView);
+  // (In the open air the figure shade is laid on what he wears every few frames (env/index.js envUpdate): laid on the new
+  // skin now, before its programs are made, or they were made once without it and again with it a few frames later.)
+  if (view.env?.on && view.env.place === view.place) sweepFigureShade(fighterView.group);
+  holdSkin(view, fighterView, old, [skin.skinMesh, skin.skinOutline, skin.steelMesh, skin.steelOutline, ...skin.detailMeshes, ...skin.detailOutlines].filter(Boolean));
   return true;
+}
+
+// ---- a new skin held unseen while its programs link ---------------------------------------------------------------------
+//
+// A man's new skin brings programs not built before (its maps, its cloth's sway, the wetness over it: five to seven in a
+// duel, a battle or the castle, at one swap a second or so into play), and building them where it is first drawn stalled
+// that frame for all of them, one after another (ANGLE on Metal: tens of ms each on a quiet card, a few hundred on a busy
+// one). So the new skin is put on with the old one still drawn, and is itself only primed each frame (shaderprime.js: set
+// up, not drawn, its programs linking alongside one another) until a frame finds every program it is drawn with done; the
+// old one is dropped then, and the new one drawn from the next frame. What he wears and how he is posed is the same in
+// either (the bones are one): only which mesh is seen, for the few frames of the links, differs.
+
+/** `maxMs`: the longest a new skin is held before it is shown anyway (a program not done by then is waited for where it is drawn, as before). */
+export const SKIN_HOLD = { maxMs: 3000 };
+
+function holdSkin(view, fighterView, old, fresh) {
+  if (!canPrimeShaders(view.renderer)) {
+    dropSkin(fighterView, old);
+    return;
+  }
+  // (Primed wherever the camera looks, so that the links are begun at once: frustum culling off while held.)
+  const kept = fresh.map((mesh) => [mesh, mesh.frustumCulled]);
+  for (const mesh of fresh) mesh.frustumCulled = false;
+  (view.skinHolds ??= new Map()).set(fighterView, { old, fresh, kept, since: performance.now() });
+}
+
+/** The held skin of `fighterView` shown: its old one dropped, its culling as it was. */
+function releaseSkin(view, fighterView) {
+  const hold = view.skinHolds?.get(fighterView);
+  if (!hold) return;
+  view.skinHolds.delete(fighterView);
+  for (const [mesh, culled] of hold.kept) mesh.frustumCulled = culled;
+  if (!fighterView.disposed) dropSkin(fighterView, hold.old);
+}
+
+function dropSkin(fighterView, old) {
+  for (const mesh of old) fighterView.layers.skin.remove(mesh);
+  const holder = new THREE.Group();
+  holder.add(...old);
+  disposeObject(holder);
+}
+
+/** The frame drawn with the held skins primed, not drawn; each one whose programs were all done in it shown from the next frame. */
+function drawHoldingSkins(view) {
+  const held = new Set();
+  for (const hold of view.skinHolds.values()) for (const mesh of hold.fresh) held.add(mesh);
+  const prime = openShaderPrime(view.renderer, { scenes: [view.scene], only: (object) => held.has(object) });
+  if (!prime) {
+    for (const fighterView of [...view.skinHolds.keys()]) releaseSkin(view, fighterView);
+    drawFrame(view);
+    return;
+  }
+  try {
+    drawFrame(view);
+  } finally {
+    prime.close();
+  }
+  const now = performance.now();
+  for (const [fighterView, hold] of [...view.skinHolds]) {
+    // (A mesh not drawn at all, hidden or out of the picture, is not waited for: its programs are built where it is first drawn.)
+    const done = hold.fresh.every((mesh) => !prime.seen(mesh) || prime.clean(mesh));
+    if (done || fighterView.disposed || now - hold.since > SKIN_HOLD.maxMs) releaseSkin(view, fighterView);
+  }
 }
 
 /** The physics layer: particles, constraints, motor targets, collision capsules. */
@@ -4254,7 +4321,8 @@ export function render(view) {
   // A place that moves (rain, a ship at anchor) moves with the clock.
   view.places?.[view.place]?.userData.tick?.(performance.now() / 1000);
   updateSceneryLod(view);
-  drawFrame(view);
+  if (view.skinHolds?.size) drawHoldingSkins(view);
+  else drawFrame(view);
   // The warmers have done their work once drawn a few times; seven calls a frame for nothing after that.
   if (view.warmFrames > 0 && (view.warmFrames -= 1) === 0 && view.warmers) {
     view.warmers.visible = false;
@@ -4271,5 +4339,12 @@ export function render(view) {
  */
 function compileHidden(view) {
   view.compileDue = false;
-  view.renderer.compile(view.scene, view.camera);
+  // (Primed, shaderprime.js: what it makes is not drawn now, so its programs link side by side while play goes on, and are
+  // read when first drawn, done by then; where there is no prime, built one after another here as before.)
+  const prime = openShaderPrime(view.renderer, { scenes: [view.scene] });
+  try {
+    view.renderer.compile(view.scene, view.camera);
+  } finally {
+    prime?.close();
+  }
 }
