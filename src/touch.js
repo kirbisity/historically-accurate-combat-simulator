@@ -15,7 +15,8 @@
 // elsewhere stay selectable and scroll as usual.
 
 import { P } from './body.js';
-import { hurtShare, paintHealth } from './ai.js';
+import { hurtShare } from './ai.js';
+import { paintHealth } from './healthbar.js';
 import { ACTIONS, askExecution, CONTROL, contextAction, crawlReady, horseAction, lockCandidate, moveName, toggleCrawl } from './control.js';
 import { createRecognizer, stickZone } from './gesture.js';
 import { inFight, jumpNow, opponentFor, point, reachOf, sidearmSwapReady } from './physics.js';

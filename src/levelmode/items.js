@@ -8,7 +8,7 @@
 import { soundEvent } from '../audio/log.js';
 import { P } from '../body.js';
 import { LEVEL_CONFIG } from './config.js';
-import { t, tname } from '../i18n.js';
+import { t, tname } from '../i18n/words.js';
 
 export const ITEM_KINDS = ['bandage', 'tonic'];
 

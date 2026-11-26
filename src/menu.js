@@ -254,7 +254,7 @@ export function installMenus(game) {
     // The prize fight pairs by weight (every man fights mixed, gloved); the arena by rating: one of each kind of man, the nearer his rating to yours the likelier.
     const arenaOpponent = () => {
       const kinds = GLADIATORS.map((key) => ({ key, inputs: PRESETS[key] }));
-      const { key } = pairedOpponent(player, kinds.map((kind) => ({ ...kind.inputs, key: kind.key })));
+      const { key } = pairedOpponent(player, kinds.map((kind) => ({ ...kind.inputs, key: kind.key })), Math.random);
       return randomGladiator(Math.random, key);
     };
     const opponent = () => (eventKey === 'boxing' ? randomBoxer(Math.random, { weightKg: weightOf(player) }) : arenaOpponent());

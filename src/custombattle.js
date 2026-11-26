@@ -11,7 +11,7 @@ import { STYLES } from './moves.js';
 import { FACTIONS } from './outfits.js';
 import { WARRIORS } from './roster.js';
 import { drawUp, intoZone, MUSTER, zoneOf } from './muster.js';
-import { tname } from './i18n.js';
+import { tname } from './i18n/words.js';
 import { SUBWAY_ARENA } from './props/arenasize.js';
 import { wallWorks } from './story/ground/walls.js';
 import { pyongyangPlan } from './places/pyongyang.js';
@@ -279,8 +279,11 @@ export function firstBattle() {
   return settleBattle({ map, factions, sides: Object.fromEntries(CUSTOM_CORNERS.map((corner) => [corner, freshSide(map, factions[corner], corner)])) });
 }
 
-/** The last custom battle set up in this browser (settled), or a first visit's; a storage that cannot be read is no memory. */
-export function readCustomBattle(storage = globalThis.localStorage) {
+/**
+ * The last custom battle set up in this browser (settled), or a first visit's; a storage that cannot be read is no memory.
+ * (`storage` is the page's, handed in by the setup screen, custombattleview.js: the battle itself is plain data.)
+ */
+export function readCustomBattle(storage) {
   try {
     const text = storage?.getItem(CUSTOM_BATTLE.storageKey);
     if (text) return settleBattle(JSON.parse(text));
@@ -291,7 +294,7 @@ export function readCustomBattle(storage = globalThis.localStorage) {
 }
 
 /** Keep a custom battle in this browser, for the next visit; false where the browser will not keep it. */
-export function writeCustomBattle(battle, storage = globalThis.localStorage) {
+export function writeCustomBattle(battle, storage) {
   try {
     storage.setItem(CUSTOM_BATTLE.storageKey, JSON.stringify(settleBattle(battle)));
     return true;

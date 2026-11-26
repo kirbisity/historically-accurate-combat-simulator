@@ -7,7 +7,8 @@ import { uiIconHtml } from './uiicons.js';
 import { logPart, logWords } from './i18n/names-log.js';
 import { buildBody, fighterFile, FRAMES, normaliseInputs, P, PRESETS, SEGMENTS } from './body.js';
 import { calorieRange, caloriesForWeight, deriveStats, exerciseHours } from './physiology.js';
-import { paintHealth, thinkAll } from './ai.js';
+import { thinkAll } from './ai.js';
+import { paintHealth } from './healthbar.js';
 import { withTanks } from './physics/flame.js';
 import { CUSTOM_STYLE_KEYS, MOVES, STRATEGIES, STYLE_KEYS, STYLES } from './moves.js';
 import { armourSpotAt, wearArmour, wearWork } from './physics/armourwear.js';
@@ -17,7 +18,7 @@ import { DEFAULT_LOOK, LOOK_OPTIONS } from './face.js';
 import { activateLook, activateLookNow, activeLook, DEFAULT_LOOK_ID, drawFrame, OFFICIAL_LOOK_ID, flattenView, loadLook, lookById, lookIdFromSearch, lookList, LOOKS, rememberedLookId, rememberLook } from './looks.js';
 import { installLooksBench } from './looksbench.js';
 import { randomCharacter, randomGladiator, varyCharacter } from './cast.js';
-import { ratingOf, WARRIORS } from './roster.js';
+import { addTestUnits, ratingOf, WARRIORS } from './roster.js';
 import { builderCharacters, WEAPON_KINDS, weaponCategoryOf } from './pickgroups.js';
 import { installMenus } from './menu.js';
 import { LEVEL_PRESETS, levelPreset } from './levelmode/presets.js';
@@ -131,6 +132,9 @@ import { mountCameraTuner } from './camtuner.js';
 import { mountDeflectTuner } from './deflecttuner.js';
 import { memoryStats } from './memstats.js';
 import { watchContextLoss } from './contextloss.js';
+
+// The test units, when the address asks for them (roster.js: the roster reads no page itself).
+addTestUnits(location.hash);
 
 const STEP = 1 / 60;
 const $ = (selector) => document.querySelector(selector);
@@ -610,7 +614,7 @@ function buildQueuedViews() {
 
 const lastGateView = createLastGateView($('.arena'));
 // The best runs, kept in this browser (behind list/add, so a server's board can take its place).
-const lastGateBoard = createLastGateBoard(browserStorage());
+const lastGateBoard = createLastGateBoard(browserStorage(), { today: () => new Date().toISOString() });
 
 /**
  * Into Last Stand Squad at this level, as its hero (lastgate.js LAST_GATE_MODES), with the squad set up on its screens
