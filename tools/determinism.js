@@ -6,11 +6,13 @@
 //   A, B  two fresh processes, the same seed: exact replay on one machine.
 //   C     a fresh process whose Math.random is seeded otherwise: whether anything in the fight draws on Math.random.
 //   A2    the case fought a second time in A's process: whether one world's run leaves module state that changes the next.
+//   I     two worlds of the case stepped by turns in one process (a server fighting several bouts at once): whether module
+//         state kept outside the world (physics.js seenExchanges, ai.js's grids, walkfield.js's heap...) leaks between them.
 //
 // Each run also counts, by calling site, what the fight reaches for outside the world: Math.random, performance.now, Date.now
 // (a clock read by the sim is a branch on the machine's speed), split into the world's making and its stepping.
 // Usage: node tools/determinism.js [case,...] [--steps N] [--json FILE]
-//        cases: duel 2v2 battle60 custom500 (default all); a child run is `node tools/determinism.js run <case> <steps> <mathSeed> [twice]`
+//        cases: duel 2v2 battle60 custom500 (default all); a child run is `node tools/determinism.js run <case> <steps> <mathSeed> once|twice|interleave`
 
 import { fork } from 'node:child_process';
 import { writeFileSync } from 'node:fs';
@@ -98,12 +100,12 @@ export function hashWorld(world, draws = 0) {
   return hash.value;
 }
 
-async function child(caseKey, steps, mathSeed, twice) {
+async function child(caseKey, steps, mathSeed, mode) {
   const probe = instrument(mathSeed);
   const cases = await import('./simcases.js');
   const { thinkAll } = await import('../src/ai.js');
   const { step } = await import('../src/physics.js');
-  const runOnce = () => {
+  const build = () => {
     probe.phase.now = 'build';
     const world = CASES[caseKey].make(cases);
     // The world's seeded random, counted (createFighter's own copies draw on the same generator's state through it).
@@ -113,6 +115,11 @@ async function child(caseKey, steps, mathSeed, twice) {
       draws += 1;
       return random();
     };
+    return { world, draws: () => draws };
+  };
+  const runOnce = () => {
+    const { world, draws: drawn } = build();
+    const draws = () => drawn();
     probe.phase.now = 'run';
     const hashes = [];
     const started = probe.realNow();
@@ -120,14 +127,30 @@ async function child(caseKey, steps, mathSeed, twice) {
     for (let index = 0; index < steps; index += 1) {
       thinkAll(world, 1 / 60);
       step(world, 1 / 60);
-      hashes.push(hashWorld(world, draws).toString(16).padStart(8, '0'));
+      hashes.push(hashWorld(world, draws()).toString(16).padStart(8, '0'));
     }
     probe.counting.on = false;
     const down = world.fighters.filter((fighter) => fighter.state !== 'up').length;
-    return { hashes, ms: Math.round(probe.realNow() - started), men: world.fighters.length, down, events: world.events.length, draws };
+    return { hashes, ms: Math.round(probe.realNow() - started), men: world.fighters.length, down, events: world.events.length, draws: draws() };
   };
+  // Two worlds by turns: the first one's hashes.
+  const interleaved = () => {
+    const one = build();
+    const two = build();
+    probe.phase.now = 'run';
+    const hashes = [];
+    for (let index = 0; index < steps; index += 1) {
+      for (const { world } of [one, two]) {
+        thinkAll(world, 1 / 60);
+        step(world, 1 / 60);
+      }
+      hashes.push(hashWorld(one.world, one.draws()).toString(16).padStart(8, '0'));
+    }
+    return { hashes };
+  };
+  if (mode === 'interleave') return process.send({ first: interleaved(), sites: probe.sites });
   const first = runOnce();
-  const second = twice ? runOnce() : null;
+  const second = mode === 'twice' ? runOnce() : null;
   process.send({ first, second, sites: probe.sites });
 }
 
@@ -137,8 +160,8 @@ const firstApart = (a, b) => {
   return a.length === b.length ? null : length + 1;
 };
 
-const spawn = (caseKey, steps, mathSeed, twice) => new Promise((resolve, reject) => {
-  const run = fork(HERE, ['run', caseKey, String(steps), String(mathSeed), twice ? 'twice' : 'once']);
+const spawn = (caseKey, steps, mathSeed, mode) => new Promise((resolve, reject) => {
+  const run = fork(HERE, ['run', caseKey, String(steps), String(mathSeed), mode]);
   run.on('message', resolve);
   run.on('error', reject);
   run.on('exit', (code) => code && reject(new Error(`${caseKey}: child exited ${code}`)));
@@ -155,7 +178,8 @@ async function main() {
   // Each case's three processes at once; the cases one after another (a 500-man world is a few hundred MB a process).
   for (const key of keys) {
     const steps = stepsAt >= 0 ? Number(args[stepsAt + 1]) : CASES[key].steps;
-    const [a, b, c] = await Promise.all([spawn(key, steps, 1, true), spawn(key, steps, 1, false), spawn(key, steps, 99, false)]);
+    // (The interleaved pair costs two worlds' memory and time: not run for the 500-man case.)
+    const [a, b, c, i] = await Promise.all([spawn(key, steps, 1, 'twice'), spawn(key, steps, 1, 'once'), spawn(key, steps, 99, 'once'), key === 'custom500' ? null : spawn(key, steps, 1, 'interleave')]);
     const sitesRun = Object.entries(a.sites.run).sort((x, y) => y[1] - x[1]);
     const sitesBuild = Object.entries(a.sites.build).sort((x, y) => y[1] - x[1]);
     report[key] = {
@@ -168,17 +192,18 @@ async function main() {
       sameSeedFreshProcess: firstApart(a.first.hashes, b.first.hashes) ?? 'identical',
       otherMathRandom: firstApart(a.first.hashes, c.first.hashes) ?? 'identical',
       secondRunSameProcess: firstApart(a.first.hashes, a.second.hashes) ?? 'identical',
+      interleavedWithAnother: i ? firstApart(a.first.hashes, i.first.hashes) ?? 'identical' : 'not run',
       finalHash: a.first.hashes.at(-1),
       outsideCallsWhileStepping: Object.fromEntries(sitesRun.slice(0, 30)),
       outsideCallsWhileBuilding: Object.fromEntries(sitesBuild.slice(0, 30)),
     };
     const r = report[key];
-    console.log(`${key.padEnd(10)} ${String(r.men).padStart(4)} men ${steps} steps ${r.msPerStep} ms/step down ${r.down} | fresh-process ${r.sameSeedFreshProcess} | other Math.random ${r.otherMathRandom} | same-process rerun ${r.secondRunSameProcess} | stepping: ${sitesRun.reduce((sum, [, n]) => sum + n, 0)} outside calls, building: ${sitesBuild.reduce((sum, [, n]) => sum + n, 0)}`);
+    console.log(`${key.padEnd(10)} ${String(r.men).padStart(4)} men ${steps} steps ${r.msPerStep} ms/step down ${r.down} | fresh-process ${r.sameSeedFreshProcess} | other Math.random ${r.otherMathRandom} | same-process rerun ${r.secondRunSameProcess} | interleaved ${r.interleavedWithAnother} | stepping: ${sitesRun.reduce((sum, [, n]) => sum + n, 0)} outside calls, building: ${sitesBuild.reduce((sum, [, n]) => sum + n, 0)}`);
     for (const [site, n] of sitesRun.slice(0, 8)) console.log(`    run   ${String(n).padStart(7)} ${site}`);
     for (const [site, n] of sitesBuild.slice(0, 8)) console.log(`    build ${String(n).padStart(7)} ${site}`);
   }
   if (jsonAt >= 0) writeFileSync(args[jsonAt + 1], JSON.stringify(report, null, 2));
 }
 
-if (process.argv[2] === 'run') child(process.argv[3], Number(process.argv[4]), Number(process.argv[5]), process.argv[6] === 'twice');
+if (process.argv[2] === 'run') child(process.argv[3], Number(process.argv[4]), Number(process.argv[5]), process.argv[6]);
 else if (process.argv[1] === HERE) main();
