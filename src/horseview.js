@@ -23,6 +23,7 @@ import { buildRobotDogView, disposeRobotDogView, updateRobotDogView } from './ro
 import { HORSE_BASE_DATA } from './horsebase-data.js';
 import { horseBaseFit, horseBaseMesh } from './horsebase.js';
 import { SoftShell } from './soft.js';
+import { softSwingOf } from './drawnstate.js';
 
 const HORSE_LOOK = {
   outline: 0.005,
@@ -937,7 +938,7 @@ export function updateHorseView(view, world = null, frameDt = null) {
   if (view.swaying) {
     // Only under a man who has the soft swing now (main.js softSwing: the man played, the two of a duel); else at rest.
     const rider = world?.fighters.find((fighter) => fighter.id === horse.rider) ?? null;
-    if (!world || rider?.softSwing) {
+    if (!world || (rider && softSwingOf(rider))) {
       updateBardSwing(view.swaying, view.frame, dt);
       updateBardTwist(view.swaying, horse.yaw, dt);
     } else if (view.swaying.at) {

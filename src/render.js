@@ -80,6 +80,7 @@ import { buildPyongyang, buildPyongyangTown, PYONGYANG_LIGHT } from './places/py
 // (The kit's door to the open air: townkit/air.js puts env/'s registration where the kit's places find it.)
 import './townkit/air.js';
 import { installShadowCache } from './shadowcache.js';
+import { softSwingOf } from './drawnstate.js';
 
 const LAYERS = ['skin', 'muscle', 'bone', 'physics'];
 const CORNER_COLORS = { red: 0xc8262c, blue: 0x2457c5 };
@@ -3913,7 +3914,7 @@ export function updateFighterView(fighterView, dt, time) {
     for (const twin of split.twins) twin.castShadow = twin.parent.castShadow;
   }
   // (The soft swing where the man has it: main.js softSwing, the man played and the two of a duel; clothsway.js `soft`.)
-  if (fighterView.bones.swing) fighterView.bones.swing.softWanted = fighter.softSwing ? 1 : 0;
+  if (fighterView.bones.swing) fighterView.bones.swing.softWanted = softSwingOf(fighter) ? 1 : 0;
   fighterView.bones.swing?.update(frames, dt);
   // Bones whose part was cut off: what skin is left on them shrinks into the joint.
   for (const index of fighterView.severedBones ?? []) {
@@ -3956,7 +3957,7 @@ export function updateFighterView(fighterView, dt, time) {
   for (const dangle of fighterView.dangles) dangle.update(step, colliders.slice(1));
   // A helmet's tassel, plume or feathers swing after the head (chinahelmview.js); still while paused (dt 0).
   // (An armour's soft swing, `soft`, only where the man has it: main.js softSwing.)
-  if (!fighterView.headDetached) for (const swing of fighterView.swings ?? []) swing.update(step, fighter.hitAt?.[P.head] ?? null, time, fighter.softSwing !== false);
+  if (!fighterView.headDetached) for (const swing of fighterView.swings ?? []) swing.update(step, fighter.hitAt?.[P.head] ?? null, time, softSwingOf(fighter) !== false);
   if (fighterView.layer === 'physics') updatePhysicsLayer(fighterView);
 }
 

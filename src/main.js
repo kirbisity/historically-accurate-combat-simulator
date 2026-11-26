@@ -130,6 +130,7 @@ import { mountDeflectTuner } from './deflecttuner.js';
 import { memoryStats } from './memstats.js';
 import { watchContextLoss } from './contextloss.js';
 import { applyAction, createRecorder, createSim, newCommand, simLevel, stepSim, WALK_KEYS } from './sim.js';
+import { drawnOf } from './drawnstate.js';
 
 // The test units, when the address asks for them (roster.js: the roster reads no page itself).
 addTestUnits(location.hash);
@@ -1645,7 +1646,7 @@ function drawWorld(dt, drawIt = true) {
   // The armour's soft swing (horseview.js BARD_SWAY, wardrobe.js PAGODA_SWAY): always on the man played, on both men of a duel,
   // on no one else of a crowd (its cost kept to the one or two men looked at).
   const duel = world.fighters.length <= 2;
-  for (const fighter of world.fighters) fighter.softSwing = Boolean(fighter.player) || duel;
+  for (const fighter of world.fighters) drawnOf(fighter).softSwing = Boolean(fighter.player) || duel;
   for (const view of state.horseViews ?? []) updateHorseView(view, world, state.paused ? 0 : dt * state.speed * fightPace());
   const safe = safeMen(world, followed);
   selectCrowdDraw(scene, state.views, safe, world.stage ? STAGE_CROWD_VIEW : CROWD_VIEW);
