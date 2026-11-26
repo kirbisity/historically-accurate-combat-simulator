@@ -8,6 +8,66 @@ export const RATINGS = {
  "bouts": 24,
  "totalBouts": 25420,
  "characters": {
+  "doppelsoeldner": {
+   "title": "Doppelsöldner",
+   "faction": "knights",
+   "type": "zweihander|landsknecht",
+   "records": {
+    "maximus": {
+     "wins": 4,
+     "losses": 0,
+     "draws": 0,
+     "score": 3.913292259509166
+    },
+    "taichi": {
+     "wins": 4,
+     "losses": 0,
+     "draws": 0,
+     "score": 3.8650981324227054
+    },
+    "mexica": {
+     "wins": 4,
+     "losses": 0,
+     "draws": 0,
+     "score": 3.527117057145132
+    },
+    "halberdier": {
+     "wins": 4,
+     "losses": 0,
+     "draws": 0,
+     "score": 3.9645013107507645
+    },
+    "cuman": {
+     "wins": 1,
+     "losses": 7,
+     "draws": 0,
+     "score": 1.193079361664818
+    },
+    "mingEliteGun": {
+     "wins": 0,
+     "losses": 4,
+     "draws": 0,
+     "score": 0.2635516343009444
+    },
+    "kanabo": {
+     "wins": 0,
+     "losses": 4,
+     "draws": 0,
+     "score": 0.009977494608415433
+    }
+   },
+   "score": 230,
+   "provisional": 230,
+   "kd": {
+    "maximus": 9,
+    "taichi": 9,
+    "mexica": 9,
+    "halberdier": 9,
+    "cuman": 0.2,
+    "mingEliteGun": 0.111,
+    "kanabo": 0.111
+   }
+  },
   "exoArmoured": {
    "title": "Pvt. Owen Kade",
    "faction": "machines",
@@ -3002,6 +3062,7 @@ export const RATINGS = {
   "crossbow|footman": 267,
   "spear|footman": 158,
   "halberd|footman": 130,
+  "zweihander|landsknecht": 230,
   "shotgun|swat": 1343,
   "matchlock|ashigaru": 429,
   "archerYumi|ashigaru": 134,
