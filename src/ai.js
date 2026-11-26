@@ -7,7 +7,7 @@ import { finishTarget, startFinisher, updateFinisher } from './finisher.js';
 import { CROWD_GRID, crowdAnyAlong, crowdEach, crowdFirst, crowdNear, withCrowdGrid } from './crowdgrid.js';
 import { ghostStill, joinTable, keepTable, keptInFull, TABLE_DUEL, tableEligible, tableOn } from './tableduel.js';
 import { keepFearMap, nearestOnMap, readMap } from './fearmap.js';
-import { aheadOfSlot, DRILL, fallIn, fromSlot, moveFormations, moveWings, volleyDue, walkToSlot, WINGS } from './formation.js';
+import { aheadOfSlot, DRILL, fallIn, fromSlot, moveFormations, moveWings, volleyCalled, volleyDue, walkToSlot, WINGS } from './formation.js';
 import { keepOrders, obeyOrder, orderedFocus, orderKeepsPlace } from './command.js';
 import { P } from './body.js';
 import { MOVES, pointRoomOf, STRATEGIES, STYLES, moveRange } from './moves.js';
@@ -1293,7 +1293,8 @@ function holdRank(world, fighter, opponent, style, dt) {
       // effective range (DRILL.holdFire). Fouled, he lays on another man in range whose lane is clear (clearLane), or
       // leans out of his place for one (DRILL.lean), or waits.
       const within = formation.drill.holdFire ? effectiveRange(weapon) : AI.markWithin;
-      if (distance > within) return true;
+      // His rank's volley called, he fires with it whatever his own man's distance (formation.js volleyCalled).
+      if (distance > within && !volleyCalled(world, formation, fighter)) return true;
       const blocked = laneFouled(world, fighter, opponent);
       if (blocked) {
         const other = clearLane(world, fighter, within);

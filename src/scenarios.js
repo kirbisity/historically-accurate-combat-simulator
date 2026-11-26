@@ -1197,7 +1197,8 @@ const CANTON = {
 };
 // The line goes forward drilled and dressed, holding its fire until the enemy is within the musket's effective range.
 const ADVANCE_HOLDING_FIRE = { advance: true, holdFire: true };
-// The garrison holds where it stands and fires as it likes.
+// The garrison holds where it stands and fires as it likes, each man when he is ready (`atWill`: formation.js volleyDue).
+const HOLD_AT_WILL = { advance: false, atWill: true };
 const CANTON_WEATHER = { fog: [14, 120], sky: 0.8, pale: 0.55, sun: 0.85 };
 
 // Sanyuanli, 30 May 1841: the villagers of a hundred and three villages north of Canton (the 三元里 temple's banner), after
@@ -1235,7 +1236,7 @@ const CANTON_LEVEL = {
   roster: { en: 'Fourteen of the British line and four Madras sepoys · thirty-six of the Green Standard: twenty matchlocks, ten spears, six swords', zh: '英军线列步兵十四人、马德拉斯土兵四人 · 绿营三十六人：鸟枪二十、长矛十、腰刀六' },
   formation: {
     red: { front: CANTON.front.british, spacing: 0.8, rowSpacing: 1.0, perRow: 9, loose: 0.06, drill: ADVANCE_HOLDING_FIRE },
-    blue: { front: CANTON.front.qing, spacing: 1.2, rowSpacing: 1.5, shootersFront: SHOOTERS_FRONT_GAP, perRow: 12, loose: 0.4, drill: HOLD_GROUND },
+    blue: { front: CANTON.front.qing, spacing: 1.2, rowSpacing: 1.5, shootersFront: SHOOTERS_FRONT_GAP, perRow: 12, loose: 0.4, drill: HOLD_AT_WILL },
   },
   cast: (random) => ({
     red: goughsMen(random, CANTON.british),

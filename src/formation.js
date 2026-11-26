@@ -346,7 +346,8 @@ function rankOf(ranks, slot) {
  */
 export function volleyDue(world, formation, fighter) {
   const shot = fighter.weapon?.spec.shot;
-  if (!shot || (formation.drill.squad && fighter.inFront)) return true;
+  // Men not drilled to it (a drill with `atWill`: the Green Standard at Canton) fire each as he is ready.
+  if (!shot || formation.drill.atWill || (formation.drill.squad && fighter.inFront)) return true;
   const volley = (formation.volley ??= { opened: -Infinity, rank: null, ranks: null });
   volley.ranks ??= shotRanks(world, formation);
   const rank = rankOf(volley.ranks, fighter.slot);
@@ -355,6 +356,17 @@ export function volleyDue(world, formation, fighter) {
   volley.opened = world.time;
   volley.rank = rank;
   return true;
+}
+
+/**
+ * Whether his rank's volley has been called (a drill with `holdFire`): the first of the rank to have his man within the
+ * gun's effective range opens it (volleyDue), and on the word every loaded man of the rank gives fire with him, wherever
+ * his own mark stands: the rank's fire at once, as the line's drill had it ("Make ready, present, fire").
+ */
+export function volleyCalled(world, formation, fighter) {
+  const volley = formation.volley;
+  if (!formation.drill.holdFire || !volley?.ranks || world.time >= volley.opened + DRILL.volleyWindow) return false;
+  return rankOf(volley.ranks, fighter.slot) === volley.rank;
 }
 
 /**

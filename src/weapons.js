@@ -211,6 +211,16 @@ export const FLINTLOCK = {
 export const NIAOCHONG = { ...MATCHLOCK, spread: 0.018, misfire: 0.12 };
 
 /**
+ * The Qing bird gun of 1840 (鸟枪, niaoqiang): the Ming's gun two centuries on, by then the older for it. Many pieces in the
+ * Canton garrison's stores were of the Kangxi and Qianlong reigns, their bores worn and pitted and never rebored, the
+ * balls cast loose to go down a fouled barrel; the powder of the Board's mills weak and coarse, its saltpetre short (the
+ * British accounts: matchlocks "of rude construction", their powder poor: Ouchterlony, The Chinese War, 1844; Lin Zexu's
+ * and Qishan's memorials on the state of the guns, as given in Fay, The Opium War, 1975). Wider than the Ming bird gun
+ * (`spread` 0.022, its 0.018) and failing more often (`misfire` 0.15). The make for the Qing's men (WEAPONS.matchlock `makes`).
+ */
+export const NIAOQIANG = { ...MATCHLOCK, spread: 0.022, misfire: 0.15 };
+
+/**
  * The san yan chong (三眼銃, "three-eyed gun"): three short iron barrels in
  * a triangle on the end of a wooden shaft, each with its own touch-hole, lit
  * one after another for a quick volley (`barrels`, `between` s apart). Short
@@ -682,8 +692,8 @@ export const WEAPONS = {
     // The muzzle from the trigger hand (along the barrel, above it), m.
     muzzle: [1.0, 0.02],
     shot: MATCHLOCK,
-    // As each people made it (physics.js madeSpec, by his kit's faction): the Ming arsenals' bird gun (NIAOCHONG).
-    makes: { chinese: { shot: NIAOCHONG } },
+    // As each people made it (physics.js madeSpec, by his kit's faction): the Ming arsenals' bird gun (NIAOCHONG), the Qing's (NIAOQIANG).
+    makes: { chinese: { shot: NIAOCHONG }, manchu: { shot: NIAOQIANG } },
   },
   // The flintlock musket (FLINTLOCK) with its socket bayonet fixed: ~4.7 kg, the bayonet's 43 cm triangular blade past the
   // muzzle (`length` to its point), so a thrust in close goes in as a spear's does; swung, the butt and the barrel club.
