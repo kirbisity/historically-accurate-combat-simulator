@@ -520,14 +520,14 @@ function shade(hex, share) {
 // Conquistadors: the doublet, the breeches, the helmet (morion, cabasset, pot helmet).
 // The conquistadors' cabasset is drawn in its measured design (helmforms.js DESIGN_FORMS.cabassetSpanish); the comb morion by its own measures (wardrobe.js MORION).
 const helmDesign = (helmet) => (helmet === 'cabasset' ? { design: 'spanish' } : {});
-// The line infantryman: the coat (the Regency cut: high in front, tails behind), its facings at the collar and cuffs, a
-// white waistcoat and the black stock; trousers or breeches; the crossbelts; the shako with the company's pompom.
+// The line infantryman: the coatee in the coat's colour, its facings down the front, at the collar and the cuffs; the
+// crossbelts over it; trousers or breeches; the shako with the company's pompom.
 function lineDesign(label, coat, facing, trousers, pompom) {
   return {
     label,
-    top: { kind: 'suit', color: coat, shirt: '#ece8dc', tie: '#141414', cut: 'regency', cravat: true, square: false, vest: '#ece8dc', collar: facing, brass: true, stuff: 'broadcloth' },
+    top: { kind: 'longsleeve', color: coat },
     bottom: { kind: 'pants', color: trousers, fallFront: true },
-    armor: { kind: 'crossbelts', color: '#ece8dc', leather: '#ece8dc', gold: '#c9a24a' },
+    armor: { kind: 'crossbelts', color: coat, cloth: coat, cloth2: facing, leather: '#ece8dc', gold: '#c9a24a' },
     head: { kind: 'shako', color: '#141414', gold: '#c9a24a', plume: pompom },
     feet: { kind: 'dressShoe', color: '#141414' },
   };

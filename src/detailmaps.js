@@ -504,7 +504,7 @@ export const CLOTH_GARMENTS = {
     templar: { '*': 'wool', armor: 'none' },
     brigandine: { '*': 'wool', armor: 'none', pad: 'quiltedFine' },
     breastplate: { '*': 'wool', armor: 'none', pad: 'quiltedFine' },
-    crossbelts: { '*': 'leather', gold: 'none' },
+    crossbelts: { '*': 'broadcloth', leather: 'leather', gold: 'none' },
     cuirass: { '*': 'none', leather: 'leather' },
     // The Qing soldier's cotton jacket; the hunter's tunic of hide edged in fur.
     qingHaoyi: { '*': 'cotton' },

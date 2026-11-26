@@ -1747,10 +1747,13 @@ export const ARMOR_KINDS = {
     trunk: [-0.04, 0.96, 1.19, 'steel'], skirt: [0.22, 0.3, 1.2, { rows: ['steel', 'steel2'] }], knee: [0.82, 1.05, 1.45, 'steel'],
     rigidBreastplate: [0.32, 0.96],
   },
-  // The line infantryman's crossbelts (the Napoleonic wars to the 1840s): two broad belts of pipeclayed buff leather over the
-  // coat, one from each shoulder to the other hip (the cartridge box's and the bayonet's), crossed on the breast and the
-  // back, a brass plate where they cross.
+  // The line infantryman's coatee (the Napoleonic wars to the 1840s): wool to the waist in front, short tails behind (here
+  // the skirt all round to the top of the thigh), the regiment's facings down the front, at the collar and the cuffs; over it two
+  // broad belts of pipeclayed buff leather, one from each shoulder to the other hip (the cartridge box's and the bayonet's),
+  // crossed on the breast and the back, a brass plate where they cross.
   crossbelts: {
+    trunk: [-0.06, 0.99, 1.1, { panel: [-0.06, 0.96, 0.985, 'cloth2'], base: 'cloth' }], skirt: [0.42, 0.45, 1.16, 'cloth'], collar: 'cloth2',
+    forearm: [0.72, 0, 1.12, 'cloth2'],
     straps: [[0.98, 0.5, 0.12, -1.35, 0.06, 1.2, 'leather'], [0.98, -0.5, 0.12, 1.35, 0.06, 1.2, 'leather'], [0.98, Math.PI - 0.5, 0.12, Math.PI + 1.35, 0.06, 1.2, 'leather'], [0.98, Math.PI + 0.5, 0.12, Math.PI - 1.35, 0.06, 1.2, 'leather']],
     studs: [[0.62, 0, 0.05, 1.24, 'gold']],
   },
