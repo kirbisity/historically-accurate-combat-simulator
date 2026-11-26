@@ -60,12 +60,16 @@ test('the sections near: beyond each link within reach, two links deep at most',
   assert.deepEqual([...sectionsNear(graph, ['a'], [18, 0, 0], 25)].find(([id]) => id === 'c')[1], 21);
 });
 
-test('a portal always: the section beyond wanted from anywhere in its own, however far, and only from there', () => {
+test('a portal always: the section beyond wanted from anywhere in its own, however far, and only from there; one closer, from nearer', () => {
   const graph = rowGraph();
   graph.links[0].always = true;
   assert.ok(sectionsNear(graph, ['a'], [-200, 0, 0], 18, 1).has('b'));
   assert.ok(!sectionsNear(graph, ['b'], [40, 0, 0], 18, 1).has('a'));
   assert.ok(!sectionsNear(rowGraph(), ['a'], [-200, 0, 0], 18, 1).has('b'));
+  // (One `closer`: the section beyond only from that much nearer.)
+  graph.links[1].closer = 10;
+  assert.ok(!sectionsNear(graph, ['b'], [30, 0, 0], 18, 1).has('c'));
+  assert.ok(sectionsNear(graph, ['b'], [32, 0, 0], 18, 1).has('c'));
 });
 
 test('the next room is built while he walks up to its gate, within the budget a frame', () => {
