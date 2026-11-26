@@ -77,6 +77,7 @@ import { COLOSSEUM } from './props/arenasize.js';
 import { buildPyongyang, buildPyongyangTown, PYONGYANG_LIGHT } from './places/pyongyang.js';
 // (The kit's door to the open air: townkit/air.js puts env/'s registration where the kit's places find it.)
 import './townkit/air.js';
+import { installShadowCache } from './shadowcache.js';
 
 const LAYERS = ['skin', 'muscle', 'bone', 'physics'];
 const CORNER_COLORS = { red: 0xc8262c, blue: 0x2457c5 };
@@ -141,6 +142,8 @@ export function createScene(canvas, { alpha = false } = {}) {
   const view = { renderer, scene, camera, warmers, warmFrames: WARM_FRAMES, orbit: { yaw: -0.5, pitch: 0.2, distance: 5.2, target: new THREE.Vector3(0, 1.1, 0) }, places, lights: { key, rim, sun, hemi }, place: 'ring', steelEnv };
   // What a look will be undone to: the renderer and rig as built here, and the steel's map (built decoded from sRGB too when a linear look wants it).
   captureViewDefaults(view, (linear) => steelEnvironment(renderer, { linear }));
+  // What keeps still is drawn into the sun's shadow once, not every frame (shadowcache.js).
+  installShadowCache(view);
   return view;
 }
 
