@@ -33,6 +33,16 @@ export const OCCLUDERS = {
   slice: 4000,
 };
 
+/**
+ * Whether a geometry is too wide ever to be taken (a mesh wider than `skyWide` is ground or sky, whatever its height): its
+ * vertices need not be kept on the page for the camera (townkit/place.js lets such a mesh's positions go once on the card).
+ */
+export function neverOccludes(geometry, spec = OCCLUDERS) {
+  if (!geometry.boundingBox) geometry.computeBoundingBox();
+  const box = geometry.boundingBox;
+  return !box.isEmpty() && (box.max.x - box.min.x > spec.skyWide || box.max.z - box.min.z > spec.skyWide);
+}
+
 /** The voxel grid: occupied cells by integer key, the coarser cells that hold any of them (to pass empty space in one lookup), and the posts. */
 export function createVoxels(spec = OCCLUDERS) {
   const area = new Map();
@@ -198,6 +208,9 @@ export function voxelsOfPlace(place, spec = OCCLUDERS) {
   const queue = [];
   place.traverse((mesh) => {
     if (!mesh.isMesh || mesh.isSkinnedMesh || !mesh.geometry || !mesh.geometry.attributes.position || mesh.userData.seeThrough === false || mesh.visible === false) return;
+    // Fine detail drawn only near the camera over what stands for it further off (a town kit's tile rolls and rafters over its
+    // roofs and walls, townkit/place.js): the wall under it is taken, and its vertices are let go once on the card.
+    if (mesh.userData.nearDetail) return;
     for (let above = mesh.parent; above && above !== place; above = above.parent) if (above.visible === false || above.userData.seeThrough === false) return;
     if ([].concat(mesh.material).some((material) => material.transparent || !material.depthWrite)) return;
     const geometry = mesh.geometry;

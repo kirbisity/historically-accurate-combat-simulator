@@ -297,7 +297,9 @@ function woundSplitGeometry(geometry, plane, boneUpper) {
     }
   }
   // A point's bones on one part: a limb's bone that went with the other part pulls nothing here (its share is the rest's).
-  const own = (index, weight, at, upper) => {
+  // (A packed body's weights are bytes, 255 the whole: render.js packCrowdBody. `one` is the whole in the arrays at hand.)
+  const one = attributes.skinWeight.normalized ? 255 : 1;
+  const own = (index, weight, at, upper, whole = one) => {
     let total = 0;
     let kept = 0;
     for (let k = 0; k < 4; k += 1) {
@@ -308,7 +310,7 @@ function woundSplitGeometry(geometry, plane, boneUpper) {
     if (kept <= 1e-6) {
       // (All of it another part's limb: the trunk's own bone there holds it.)
       index[at] = upper ? BONE.chest : BONE.pelvis;
-      weight[at] = total || 1;
+      weight[at] = total || whole;
       return;
     }
     for (let k = 0; k < 4; k += 1) weight[at + k] *= total / kept;
@@ -338,8 +340,9 @@ function woundSplitGeometry(geometry, plane, boneUpper) {
   };
   // (The rim's bones, read from the first geometry while it is still there.)
   const bound = (vertex, upper) => {
-    const found = { index: [0, 1, 2, 3].map((k) => skinIndex.array[vertex * 4 + k]), weight: [0, 1, 2, 3].map((k) => attributes.skinWeight.array[vertex * 4 + k]) };
-    own(found.index, found.weight, 0, upper);
+    // (As floats: the cut face is skinned by them in a geometry of its own.)
+    const found = { index: [0, 1, 2, 3].map((k) => skinIndex.array[vertex * 4 + k]), weight: [0, 1, 2, 3].map((k) => attributes.skinWeight.array[vertex * 4 + k] / one) };
+    own(found.index, found.weight, 0, upper, 1);
     return found;
   };
   for (const point of rim) {

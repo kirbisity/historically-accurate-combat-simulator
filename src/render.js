@@ -47,6 +47,7 @@ import { BONE, BONES, bindPoints, boneFrames, coherentFrames, frameMatrix, fromF
 import { bakePieces, clusterColors, CROWD_VIEW, crowdBatch, crowdKey, crowdShapeKey, frameAt, HEAD_VARIANT, onlyVariant, simplifyTemplate, stretchedInverses, topologyOf, withoutVariant } from './crowdview.js';
 import { chooseDraw, crowdLod } from './crowdlod.js';
 import { geometryArrays, materialTextures, textureBytes } from './memstats.js';
+import { MESH_PACK, packedColours, packedNormals, packedWeights } from './meshpack.js';
 import { tkTier } from './townkit/place.js';
 import { SoftShell } from './soft.js';
 import { FatSlosh } from './fatslosh.js';
@@ -3272,6 +3273,8 @@ function shareShape(view, shapeKey, template) {
   template.far = farTemplate(template);
   splitHeads(template);
   splitHeads(template.far);
+  packCrowdBody(template);
+  packCrowdBody(template.far);
   if (shapeKey !== null && !shape) view.crowdShapes.set(shapeKey, template);
   return template;
 }
@@ -3290,6 +3293,29 @@ function splitHeads(template) {
     template.bare[name] = onlyVariant(template[name], template.variant, HEAD_VARIANT.bare);
     template[name] = withoutVariant(template[name], template.variant, HEAD_VARIANT.bare);
   }
+}
+
+/**
+ * A crowd body's vertices packed small (meshpack.js), once its far body and its two heads are made from the floats: the
+ * normals in three signed bytes, the bones and their weights in a byte each (a skeleton has fewer than 256 bones; the
+ * weights still sum to one: packedWeights), and the indices in 16 bits where
+ * its vertices fit (its colours and bare-skin marks are packed as they are made: crowdView). On the page and the card
+ * alike: unlike a town's, these stay on the page, read again by a limb cut off (weaponview.js liftTriangles), a trunk cut
+ * (woundview.js) and the fallen baked after a battle (fallenview.js), which read a packed attribute by its scale.
+ * Measured 2026-11-25, the story's Pyongyang (chapter 3, 88 crowd men, each his own template): 64 bytes a vertex and 4 an
+ * index were 15 and 2.
+ */
+function packCrowdBody(body) {
+  if (!MESH_PACK.on || body.packed) return;
+  body.packed = true;
+  const { normal, skinIndex, skinWeight } = body.attributes;
+  if (normal && normal.array instanceof Float32Array) body.attributes.normal = packedNormals(normal.array);
+  if (skinWeight && skinWeight.array instanceof Float32Array) body.attributes.skinWeight = packedWeights(skinWeight.array);
+  if (skinIndex && skinIndex.array.every((bone) => bone < 256)) body.attributes.skinIndex = new THREE.Uint8BufferAttribute(Uint8Array.from(skinIndex.array), 4);
+  if (!(body.vertices <= 65536)) return;
+  const narrow = (indices) => (indices instanceof Uint16Array ? indices : Uint16Array.from(indices));
+  for (const name of TEMPLATE_INDICES) body[name] = narrow(body[name]);
+  if (body.bare) for (const name of TEMPLATE_INDICES) body.bare[name] = narrow(body.bare[name]);
 }
 
 /** The template's far body (see simplifyTemplate), as GPU attributes shared by every man who uses it. */
@@ -3348,9 +3374,16 @@ function crowdView(view, fighter, template) {
     // His colours are his template's, shared with every man of that colouring: nothing paints a crowd man's vertices once
     // built (his wounds and blood are marks laid over them: markview.js), and a cut or a helmet knocked off gives him his
     // own index (setIndex), never a change to the shared one.
-    geometry.setAttribute('color', (source.colorAttribute ??= new THREE.BufferAttribute(source.colors, 3)));
-    // (Which points are bare skin, shared by the crowd as the rest is: wetview.js.)
-    geometry.setAttribute('wetSkin', (source.attributes.wetSkin ??= new THREE.BufferAttribute(Float32Array.from(source.vertexSegment, (segment) => (segment ? 1 : 0)), 1)));
+    // (In bytes, packedColours: the floats are let go then, as nothing reads a crowd colouring's again but through this.)
+    if (!source.colorAttribute) {
+      source.colorAttribute = packedColours(source.colors);
+      if (source.colorAttribute.array !== source.colors) source.colors = null;
+    }
+    geometry.setAttribute('color', source.colorAttribute);
+    // (Which points are bare skin, shared by the crowd as the rest is: wetview.js. A byte each, read as 0 or 1.)
+    geometry.setAttribute('wetSkin', (source.attributes.wetSkin ??= MESH_PACK.on
+      ? new THREE.BufferAttribute(Uint8Array.from(source.vertexSegment, (segment) => (segment ? 255 : 0)), 1, true)
+      : new THREE.BufferAttribute(Float32Array.from(source.vertexSegment, (segment) => (segment ? 1 : 0)), 1)));
     shareIndex(geometry, source, 'bodyIndex');
     geometry.userData.sharedAttributes = [...Object.keys(source.attributes), 'color'];
     const skinned = (meshGeometry, material) => {
@@ -3491,7 +3524,7 @@ export function bareCrowdHead(fighterView) {
 /** A geometry's index (as he is drawn now: a part cut off stays off) without the helmet, with `bare` added. */
 function bareIndex(geometry, source, bare) {
   const kept = withoutVariant(geometry.index.array, source.variant, HEAD_VARIANT.helmed);
-  const index = new Uint32Array(kept.length + bare.length);
+  const index = new (source.vertices <= 65536 ? Uint16Array : Uint32Array)(kept.length + bare.length);
   index.set(kept);
   index.set(bare, kept.length);
   geometry.setIndex(new THREE.BufferAttribute(index, 1));

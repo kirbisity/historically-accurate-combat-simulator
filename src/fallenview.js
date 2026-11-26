@@ -8,10 +8,11 @@
 // merged meshes are drawn with copies of the bodies' own materials, unskinned, so they are lit, inked and shadowed as the
 // bodies were; being their own, they can be dressed for the open air (`dress`) without touching any later battle's men.
 
+import { unpackedComponent } from './meshpack.js';
+
 const KEPT = ['position', 'normal', 'color', 'uv'];
-// (r128's attributes read a component by name only.)
-const READ = ['getX', 'getY', 'getZ', 'getW'];
-const component = (attribute, index, k) => attribute[READ[k]](index);
+// (r128's attributes read a component by name only, and a packed one as its integer: read as the card reads it, meshpack.js.)
+const component = (attribute, index, k) => unpackedComponent(attribute, index, k);
 
 /** One body's skinned corners: positions and normals as drawn, and each corner's push for an outline, in the mesh's space. */
 function skinnedCorners(mesh) {

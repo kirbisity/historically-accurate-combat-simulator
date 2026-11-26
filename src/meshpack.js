@@ -33,6 +33,27 @@ export function packedColours(colours) {
   return new THREE.BufferAttribute(packed, 3, true);
 }
 
+/**
+ * Skin weights (four a vertex, each 0..1, summing to 1) as unsigned bytes, each vertex's four rounded so that they still sum
+ * to 255 (the rounding's remainder to its largest): a body's skin neither shrinks nor swells where it blends bones. Read on
+ * the page through unpackedComponent (three's own boneTransform would read the bytes as they are).
+ */
+export function packedWeights(weights) {
+  if (!MESH_PACK.on) return new THREE.BufferAttribute(weights, 4);
+  const packed = new Uint8Array(weights.length);
+  for (let at = 0; at < weights.length; at += 4) {
+    let sum = 0;
+    let largest = at;
+    for (let k = at; k < at + 4; k += 1) {
+      packed[k] = Math.round(Math.max(0, Math.min(1, weights[k])) * 255);
+      sum += packed[k];
+      if (weights[k] > weights[largest]) largest = k;
+    }
+    if (sum > 0) packed[largest] = Math.max(0, Math.min(255, packed[largest] + 255 - sum));
+  }
+  return new THREE.BufferAttribute(packed, 4, true);
+}
+
 /** An attribute whose page copy is let go once it is on the card (three r128 calls `onUploadCallback` after sending it). */
 export function freeOnUpload(attribute) {
   if (!MESH_PACK.on) return attribute;
@@ -62,6 +83,22 @@ export function packForCard(geometry, { keep = ['position'] } = {}) {
   if (color && !color.isInterleavedBufferAttribute && color.array instanceof Float32Array && color.itemSize === 3) geometry.setAttribute('color', packedColours(color.array));
   for (const [name, attribute] of Object.entries(geometry.attributes)) if (!keep.includes(name) && !attribute.isInterleavedBufferAttribute) freeOnUpload(attribute);
   return geometry;
+}
+
+// The largest value of each integer type, which a normalized attribute of it reads as 1 on the card.
+const PACKED_ONE = new Map([[Int8Array, 127], [Uint8Array, 255], [Int16Array, 32767], [Uint16Array, 65535]]);
+const PACKED_READ = ['getX', 'getY', 'getZ', 'getW'];
+
+/**
+ * Component `k` (0..3) of vertex `index` as the card reads it: a packed (normalized) attribute's integer scaled back to
+ * 0..1 (unsigned) or -1..1 (signed), as WebGL does. three r128's getX gives the integer as stored, so a page reader of an
+ * attribute that may be packed (a crowd body's colours: render.js packCrowdBody) reads it through this.
+ */
+export function unpackedComponent(attribute, index, k) {
+  const value = attribute[PACKED_READ[k]](index);
+  if (!attribute.normalized) return value;
+  const one = PACKED_ONE.get((attribute.isInterleavedBufferAttribute ? attribute.data.array : attribute.array).constructor);
+  return one ? Math.max(value / one, -1) : value;
 }
 
 /** Whether a geometry has packed or uploaded-and-freed attributes (it must not be merged, cloned or read). */

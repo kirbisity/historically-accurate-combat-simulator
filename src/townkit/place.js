@@ -6,6 +6,7 @@
 import { ktShadow, ktShadowBake } from '../levelmode/kitshadow.js';
 import { placeWind } from '../wind.js';
 import { freeOnUpload, packedColours, packedNormals } from '../meshpack.js';
+import { neverOccludes } from '../occluders.js';
 import { tkgBuilder } from './geo.js';
 import { TK_LAY, tkLayBake, tkLayTextures } from './lay.js';
 import { tkMaterials, tkSetAir, tkSetLay, tkSetLook, tkSetWeather, tkWeather } from './weather.js';
@@ -89,13 +90,18 @@ function tkGeometry(batch) {
   const geometry = new THREE.BufferGeometry();
   // (The batch's views are its own copies of what was laid: taken as they are.)
   // The normals and colours packed in bytes, and they and the uvs let go on the page once on the card (meshpack.js): a town
-  // is millions of vertices that only the card reads again. The positions stay: the camera's room reads them (occluders.js).
-  geometry.setAttribute('position', new THREE.BufferAttribute(batch.position, 3));
+  // is millions of vertices that only the card reads again. The positions stay where the camera's room reads them
+  // (occluders.js): not for the fine detail, which it does not take (a wall under it is taken), nor for a mesh too wide for
+  // it to take (the ground and the far hills). Measured 2026-11-25 in the story's Pyongyang (chapter 3): of the town's 70 MB
+  // on the page, 13 MB were the ground's positions and 23 MB the detail's.
+  const position = new THREE.BufferAttribute(batch.position, 3);
+  geometry.setAttribute('position', position);
   geometry.setAttribute('normal', freeOnUpload(packedNormals(batch.normal)));
   geometry.setAttribute('uv', freeOnUpload(new THREE.BufferAttribute(batch.uv, 2)));
   geometry.setAttribute('color', freeOnUpload(packedColours(batch.colour)));
   geometry.computeBoundingBox();
   geometry.computeBoundingSphere();
+  if (batch.level === 'near' || neverOccludes(geometry)) freeOnUpload(position);
   return geometry;
 }
 
@@ -123,6 +129,8 @@ export function* tkMeshesSteps(blocks, materials, { tier = 'high', every = Infin
       mesh.receiveShadow = true;
       mesh.matrixAutoUpdate = false;
       mesh.name = `townkit:${batch.material}:${batch.level}`;
+      // (Not the camera's to take: occluders.js. Its positions are let go once on the card, tkGeometry.)
+      if (batch.level === 'near') mesh.userData.nearDetail = true;
       group.add(mesh);
       if (batch.level === 'all' && !wide && batch.material !== 'water') casters.push(mesh);
       if (batch.level !== 'all') {
