@@ -1091,14 +1091,36 @@ export function breakShield(world, fighter) {
   dropShield(world, fighter, 'split');
 }
 
+/**
+ * How hard a knock on a held weapon at `along` m from the main hand bears on the grip, against a knock on a one-hand sword
+ * met mid-blade (1: BLADES.gripLever). Two grip points `span` apart hold it: the nearer takes J (1/2 + r / span), r the
+ * knock's distance from the middle of the grip. In two hands they are the hands, where they are on the weapon now (the
+ * off hand behind on the grip, up on a ricasso or round the blade at the half-sword: wherever it holds), each with its
+ * whole grip (strikeForce); in one hand the two sides of the fist, a palm's breadth apart, each with half the hand's.
+ */
+function gripLoad(fighter, weapon, along) {
+  const { palm, reference } = BLADES.gripLever;
+  const mainForce = fighter.body.strikeForce[P[`${weapon.main}Hand`]];
+  const oneHand = (0.5 + reference / palm) / (mainForce / 2);
+  if (!weapon.twoHanded) return (0.5 + Math.abs(along) / palm) / (mainForce / 2) / oneHand;
+  const off = vec.dot(vec.sub(point(fighter.x, P[`${weapon.off}Hand`]), point(fighter.x, P[`${weapon.main}Hand`])), weapon.dir);
+  const span = Math.max(palm, Math.abs(off));
+  const middle = off / 2;
+  // (The hand on the knock's side of the middle takes the push and the twist together.)
+  const nearer = (along - middle) * off > 0 ? weapon.off : weapon.main;
+  return (0.5 + Math.abs(along - middle) / span) / fighter.body.strikeForce[P[`${nearer}Hand`]] / oneHand;
+}
+
 /** A blow jars the grip (of the weapon, or of the off hand's blade); strained past what the hand can hold, it goes. */
-export function strainGrip(world, fighter, impulse, push = [0, 0, 0], weapon = fighter.weapon) {
+export function strainGrip(world, fighter, impulse, push = [0, 0, 0], weapon = fighter.weapon, along = null) {
   if (!weapon?.held || impulse <= 0) return;
   // A long lever off the hands is easier to tear away (`grip` < 1); the weapon's own mass soaks its share (BLADES.gripHold).
   const limbs = fighter.body.limbKg;
   const hands = BLADES.gripHold * (limbs[`${weapon.main}Arm`] + (weapon.twoHanded ? limbs[`${weapon.off}Arm`] : 0));
   const handShare = hands / (hands + (weapon.spec.mass ?? 0));
-  weapon.strain += (impulse * handShare) / (BLADES.gripImpulsePerNewton * (weapon.spec.grip ?? 1) * fighter.body.strikeForce[P[`${weapon.main}Hand`]]);
+  // Met on the weapon (`along`, m from the main hand): what of it twists the grip, against the hands holding it (gripLoad).
+  const lever = along === null ? 1 : gripLoad(fighter, weapon, along);
+  weapon.strain += (impulse * handShare * lever) / (BLADES.gripImpulsePerNewton * (weapon.spec.grip ?? 1) * fighter.body.strikeForce[P[`${weapon.main}Hand`]]);
   if (weapon.strain < 1) return;
   // Torn from his hands, a weapon on a hose to his back (`tethered`) is not knocked away: it swings on the hose and he has it again.
   if (weapon.spec.tethered) {
@@ -10164,7 +10186,7 @@ function registerBladeBlock(world, attacker, defender, striker, closest, away, w
   const chain = striker.shin ? [[P[`${side}Foot`], 1], [P[`${side}Knee`], 0.7]] : (RECOIL[striker.key.slice(1)] ?? RECOIL.Hand).map(([part, share]) => [P[`${side}${part}`], share]);
   world.pendingImpulses.push({ fighter: attacker, shares: chain, direction: away, impulse });
   world.pendingImpulses.push({ fighter: defender, shares: [[P[`${weapon.main}Hand`], 1], [P[`${weapon.main}Elbow`], 0.6]], direction: vec.scale(away, -1), impulse });
-  strainGrip(world, defender, impulse * 0.3, [0, 0, 0], weapon);
+  strainGrip(world, defender, impulse * 0.3, [0, 0, 0], weapon, along);
   world.events.push(event);
   // Heard: the limb driven onto the blade (the blade is what strikes it), and the cut it took.
   if (world.ear) {
@@ -10576,8 +10598,9 @@ function clashWeapons(world, first, second, a = first.weapon, b = second.weapon)
       else if (snapped) broken.push([owner, blade, 'shaft', snapped]);
     }
   }
-  if (!broken.some(([owner]) => owner === first)) strainGrip(world, first, impulse, normal, a);
-  if (!broken.some(([owner]) => owner === second)) strainGrip(world, second, impulse, vec.scale(normal, -1), b);
+  // (Each grip jarred by the meeting where it came on that blade: at its cross, beside the hands, it hardly twists them.)
+  if (!broken.some(([owner]) => owner === first)) strainGrip(world, first, impulse, normal, a, one.along);
+  if (!broken.some(([owner]) => owner === second)) strainGrip(world, second, impulse, vec.scale(normal, -1), b, two.along);
   for (const [owner, blade, part, reason] of broken) breakWeapon(world, owner, blade, part, reason, met);
 }
 

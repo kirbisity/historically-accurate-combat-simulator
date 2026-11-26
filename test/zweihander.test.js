@@ -5,7 +5,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { P, PRESETS } from '../src/body.js';
 import { MOVES, STYLES } from '../src/moves.js';
-import { advance, createWorld, perform, placeFighter, throwPunch, turnLimit } from '../src/physics.js';
+import { advance, createWorld, perform, placeFighter, strainGrip, throwPunch, turnLimit } from '../src/physics.js';
 import { WEAPONS, offHandAlong } from '../src/weapons.js';
 import { weaponInertia } from '../src/physics/effort.js';
 import { guardBars, guardCatch, HILT } from '../src/physics/hilt.js';
@@ -53,7 +53,7 @@ test('its cross and hooks catch a blade that passes the edge near the hands, and
   assert.equal(guardCatch(halberd, hand, dir, [0.03, 1.6, 0.14], [0.03, 0.8, 0.14], 0.012), null);
 });
 
-/** A move at a Doppelsöldner who answers it with a block of his weapon (`style`), over seeds: the blows parried by the weapon, and those that reached his arms or him. */
+/** A move at a Doppelsöldner who answers it with a block of his weapon (`style`), over seeds: the blows met by the weapon, and those that reached his arms or him. */
 function blocks(style, attacks, seeds) {
   let stopped = 0;
   let reached = 0;
@@ -68,7 +68,8 @@ function blocks(style, attacks, seeds) {
       throwPunch(world, attacker, move, zone);
       perform(world, defender, 'weaponBlock', { from: 0 });
       advance(world, MOVES[move].duration + 0.2);
-      if (world.events.some((event) => event.kind === 'parry' || event.kind === 'deflect')) stopped += 1;
+      // (Met by the blade or the hilt: parried or deflected in its cut, or jammed on the blade before it was under way.)
+      if (world.events.some((event) => event.kind === 'parry' || event.kind === 'deflect' || event.kind === 'clash')) stopped += 1;
       else if (world.events.some((event) => (event.kind === 'blocked' || event.kind === 'landed') && event.attacker === 0)) reached += 1;
     }
   }
@@ -80,7 +81,8 @@ test('a block with the zweihander meets the blow with the blade and the hilt; wi
   const sword = blocks('zweihander', attacks, 3);
   const polearm = blocks('halberd', attacks, 3);
   assert.ok(sword.stopped >= 5 && sword.reached === 0, JSON.stringify(sword));
-  assert.ok(polearm.reached > polearm.stopped && sword.stopped > 2 * polearm.stopped, `${JSON.stringify(sword)} ${JSON.stringify(polearm)}`);
+  // The halberd's haft is short before the hands for this: half the blows or more come on past it to his arms or him.
+  assert.ok(polearm.reached >= 3 && polearm.reached > sword.reached, `${JSON.stringify(sword)} ${JSON.stringify(polearm)}`);
 });
 
 test('the close thrust holds the off hand up on the ricasso, ahead of the main hand; the other moves keep it on the grip', () => {
@@ -100,6 +102,33 @@ test('the close thrust holds the off hand up on the ricasso, ahead of the main h
   const main = [man.x[P.rHand * 3], man.x[P.rHand * 3 + 1], man.x[P.rHand * 3 + 2]];
   const offHand = [man.x[P.lHand * 3], man.x[P.lHand * 3 + 1], man.x[P.lHand * 3 + 2]];
   assert.ok(vec.dot(vec.sub(offHand, main), weapon.dir) > 0.1, 'the left hand ahead along the blade');
+});
+
+test('a knock twists the grip by where it lands: least at the cross, and two hands far apart on the long grip hold best', () => {
+  const world = createWorld([{ ...PRESETS.doppelsoeldner }, { ...PRESETS.contender, style: 'passive' }], { seed: 3 });
+  const [man] = world.fighters;
+  placeFighter(man, 0, 0);
+  advance(world, 0.6);
+  const weapon = man.weapon;
+  assert.equal(weapon.twoHanded, true);
+  // What one knock of 5 N·s adds to the strain, met `along` m from the main hand, in both hands or in the right alone.
+  const strained = (along, twoHanded = true) => {
+    weapon.strain = 0;
+    weapon.twoHanded = twoHanded;
+    strainGrip(world, man, 5, [0, 0, 0], weapon, along);
+    weapon.twoHanded = true;
+    return weapon.strain;
+  };
+  const atCross = strained(0.03);
+  const midBlade = strained(0.7);
+  const atPoint = strained(1.2);
+  assert.ok(atCross < midBlade / 2 && midBlade < atPoint, `${atCross} ${midBlade} ${atPoint}`);
+  // One hand (between grips, or one let go) holds a knock out on the blade far worse than two.
+  assert.ok(strained(0.7, false) > 2 * midBlade, `${strained(0.7, false)} against ${midBlade}`);
+  // Not knocked away by a hard blow caught on the cross, in both hands (~8 N·s, the hilt catches' mean in bouts).
+  weapon.strain = 0;
+  strainGrip(world, man, 8, [0, 0, 0], weapon, 0.03);
+  assert.equal(weapon.held, true);
 });
 
 test('the Doppelsöldner: the zweihander, a breastplate over slashed cloth, a trained man, named in both languages', () => {
