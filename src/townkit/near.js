@@ -20,10 +20,11 @@ import { tkgNearReplay } from './geo.js';
  * ahead: place.js TK_PLACE.near, tkKeep). `build`: made from this near, `show` and a run's 8 m besides (at 5 m/s a
  * block a few hundred milliseconds of work in slices is made in about 1.5 s). `keep`: let go past this (more than
  * `build`, so that a step back across a block's edge frees nothing). `budgetMs`: a frame's slice of making;
- * `urgentMs` while a block within `show` is not made yet; `stepMs`: a slice is cut after a piece once it has run
- * this long (each piece is a few hundred triangles: a slice stays short).
+ * `urgentMs` while a block within `show` is not made yet (at 8 a walk through the heaviest blocks, the gate square's
+ * and the compound's, missed a frame in four: 33 ms frames, 2026-11-26, M1 Pro); `stepMs`: a slice is cut after a
+ * piece once it has run this long (each piece is a few hundred triangles: a slice stays short).
  */
-export const TK_NEAR = { show: 40, build: 48, keep: 58, budgetMs: 3, urgentMs: 8, stepMs: 2 };
+export const TK_NEAR = { show: 40, build: 48, keep: 58, budgetMs: 2, urgentMs: 4, stepMs: 1 };
 
 /** What a build yields to wait for the next frame to be drawn (a lot sent to the graphics card): the pump stops for this frame. */
 export const TK_NEAR_FRAME = 'frame';
@@ -197,6 +198,20 @@ export function tkNearLayer({ cell, meshOf, group, attach, upload = null, free, 
       }
       counts.lastPumpMs = now() - begun;
       return counts.lastPumpMs;
+    },
+    /**
+     * The blocks within `build` of `at` ([x, z]) made now (a generator for the loading screen's runner): where the
+     * player will first stand, so that the first picture has its detail and its materials' programs are built behind
+     * the screen, not in the first frames of play.
+     */
+    *ensureSteps(at) {
+      for (const block of [...blocks()]) {
+        if (built.has(block.id) || tknBoxDistance(block.box, at[0], at[1]) >= numbers.build) continue;
+        abandon(block.id);
+        start(block, 0, true);
+        const job = jobs.get(block.id);
+        while (!step(block.id, job)) yield;
+      }
     },
     /** Every block of every part made now (a generator for the loading screen's runner): a battle's whole near detail. */
     *allSteps() {

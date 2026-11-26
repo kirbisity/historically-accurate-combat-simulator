@@ -1901,7 +1901,12 @@ function* pyDrawPlace(blocks, woods, plan, tier, stir, layOf) {
   // The wall: its two walked runs, and beyond them, unwalked: east along the hill's crest from the corner, and on south.
   // (Its face laid in jobs of different stone along it: TK_WORKS.masonry.)
   const masonry = TK_WORKS.masonry;
-  for (const [index, run] of plan.runs.entries()) tkRampart(blocks.at(run[0][0], run[0][1]), run, { ...wall, gaps: index ? plan.gaps : [], masonry, seed: index + 1 });
+  // (A yield after each long piece: drawn while he walks, the west gate quarter's first step was 25 ms, its walls, gate
+  // and pavilions at once.)
+  for (const [index, run] of plan.runs.entries()) {
+    tkRampart(blocks.at(run[0][0], run[0][1]), run, { ...wall, gaps: index ? plan.gaps : [], masonry, seed: index + 1 });
+    yield 'rampart';
+  }
   const crest = pyFoot(t.wall.z[0]);
   tkRampart(blocks.wide, Array.from({ length: 13 }, (_, k) => [PY_FAR_TOWN.wall - k * ((PY_FAR_TOWN.wall - wall.x) / 12), t.wall.z[0], crest, crest + wall.high]), { ...wall, inner: () => crest, masonry, seed: 7 });
   tkRampart(blocks.wide, pySouthRun(), { ...wall, inner: (node) => node[2], masonry, seed: 9 });
@@ -1923,8 +1928,10 @@ function* pyDrawPlace(blocks, woods, plan, tier, stir, layOf) {
   const gate = blocks.at(wall.x, t.gate.z);
   tkGatehouse(gate, plan.gateFrame, t.gate);
   for (const [from, to] of pyGateStairs()) tkWorksStair(gate, from, to, wall.high, t.gate.high, { wide: wall.walk - wall.thick });
+  yield 'gatehouse';
   const pavilions = pyPavilions();
   const eave = tkPavilion(gate, pavilions.gate, { storeys: t.pavilion });
+  yield 'gate pavilion';
   tkPavilion(blocks.at(wall.x, t.wall.z[0]), pavilions.corner, { storeys: t.corner, board: false, overhang: 1.2 });
   yield 'walls';
   // The town (places/pyongyang-city.js): its houses, halls, pavilions, terraces, walls, gates, pagoda, lanterns, paving;
@@ -2305,8 +2312,11 @@ export function* buildPyongyangSteps(arena = null, { shift = [0, 0], key = 'pyon
   };
   // (Built for the roam, it streams from the first frame: render.js asks holdFor only of a place already built. Built
   // for a battle, the near detail of all it holds is made now.)
-  if (!hold && pyHoldFor(arena, key) === PY_HOLDS.roam) startStream();
-  else {
+  if (!hold && pyHoldFor(arena, key) === PY_HOLDS.roam) {
+    startStream();
+    // (And the near detail where the roam begins, made behind the loading screen: PYONGYANG_PLACE.start.)
+    yield* near.ensureSteps([t.start.at[0], t.start.at[2]]);
+  } else {
     near.setMode('all');
     yield* near.allSteps();
   }

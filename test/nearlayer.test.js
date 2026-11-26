@@ -149,3 +149,11 @@ test('near layer: everything made at once for a battle, each mesh then shown by 
   layer.detail({}, 46, false);
   assert.ok(layer.made().every(({ made }) => !made.visible), 'none on the low tier');
 });
+
+test('near layer: the blocks where the player will first stand made at once, behind the loading screen', () => {
+  const { layer } = fakeLayer();
+  const steps = layer.ensureSteps([2, 10]);
+  for (let next = steps.next(); !next.done; next = steps.next());
+  const want = Array.from({ length: 10 }, (_, k) => k).filter((k) => tknBoxDistance([k * 24 + 2, 2, k * 24 + 20, 20], 2, 10) < TK_NEAR.build).map((k) => `W|${k},0`);
+  assert.deepEqual(layer.made().map((each) => each.id).sort(), want.sort());
+});
