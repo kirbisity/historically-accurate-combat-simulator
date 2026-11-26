@@ -69,3 +69,13 @@ export function guardCatch(spec, hand, dir, from, to, radius) {
 export function guardShelters(spec, hand, dir, from, to, radius) {
   return guardCatch(spec, hand, dir, from, to, radius) !== null;
 }
+
+/**
+ * Whether a stroke (a blade's, physics.js strokeOf; null for one held still) is in its wind-up or coming back, not in its live
+ * part (before `windup`, or past `liveUntil(spec)`, physics.js strikeLiveUntil). Gathered, a blade is carried round a path the
+ * man chooses and steers clear of the other's hilt, which stands close by his own blade near the hands at a fencing distance;
+ * driven in its blow it goes where its momentum takes it, and a cross in the way catches it.
+ */
+export function gatheredPast(stroke, liveUntil) {
+  return Boolean(stroke) && (stroke.t < stroke.spec.windup || stroke.t > liveUntil(stroke.spec));
+}

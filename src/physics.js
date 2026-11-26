@@ -43,7 +43,7 @@ import { climateOf, freshHeat, heatMark, heatRecovery, heatStrength, stepHeat } 
 import { recoverUnder, stepNausea } from './physics/afflictions.js';
 import { bowShotCost, strokeHeft, swingEffort } from './physics/effort.js';
 import { bigDeflect, breakOpen, deflecting, deflectsWith, deflectWindow, guardHold, noteGuard } from './physics/deflect.js';
-import { guardCatch, guardShelters } from './physics/hilt.js';
+import { gatheredPast, guardCatch, guardShelters } from './physics/hilt.js';
 import { jumpBlocked, jumpLanding, jumpOf } from './physics/jump.js';
 import { bendShare, BLUNT, bluntPart, faceThrough, guardGives, guardMeets } from './physics/blunt.js';
 import { formUp, placeWings, WINGS } from './formation.js';
@@ -10461,7 +10461,11 @@ function clashWeapons(world, first, second, a = first.weapon, b = second.weapon)
   let caught = null;
   // Missed along their lines, one may still be caught on the other's cross or hooks near the hands (physics/hilt.js).
   if (distance >= reach) {
-    caught = hiltMeeting(first, a, b1, b2, b.spec.radius, false) ?? hiltMeeting(second, b, a1, a2, a.spec.radius, true);
+    // (A sword being gathered for its blow or brought back after it, hilt and blade, is steered round the other man's, close by
+    // his hands as they pass at a fencing distance: a guard catches a blow in its live part, or a blade held still, and only
+    // while its own sword is not being gathered either: physics/hilt.js gatheredPast.)
+    const steered = gatheredPast(strokeOf(first, a), strikeLiveUntil) || gatheredPast(strokeOf(second, b), strikeLiveUntil);
+    if (!steered) caught = hiltMeeting(first, a, b1, b2, b.spec.radius, false) ?? hiltMeeting(second, b, a1, a2, a.spec.radius, true);
     if (caught) ({ closest, offset, distance, reach } = caught);
   }
   const key = `${first.id}${a === first.offWeapon ? 'o' : ''}:${second.id}${b === second.offWeapon ? 'o' : ''}`;

@@ -7,7 +7,7 @@ import { PRESETS } from '../src/body.js';
 import { MOVES } from '../src/moves.js';
 import { advance, createWorld, perform, placeFighter, throwPunch } from '../src/physics.js';
 import { WEAPONS } from '../src/weapons.js';
-import { guardBars, guardCatch, guardShelters, HILT, guardPartReach } from '../src/physics/hilt.js';
+import { gatheredPast, guardBars, guardCatch, guardShelters, HILT, guardPartReach } from '../src/physics/hilt.js';
 import { PARRY_KEEN, parryKeen, parryWilling, timedParryAt } from '../src/parrykeen.js';
 
 const hand = [0, 1.2, 0];
@@ -129,4 +129,23 @@ test('a trained man times the beat of some parries, an untrained one never; not 
   assert.ok(trained > 20 && master > trained, `${trained} ${master}`);
   me.guardUp = true;
   assert.equal(tries(1), 0);
+});
+
+test('a sword being gathered or brought back is steered past the other man\'s hilt; a blow in its live part, or a blade held still, is caught', () => {
+  const liveUntil = (spec) => spec.extendUntil;
+  const stroke = (t) => ({ t, spec: { windup: 0.3, extendUntil: 0.5 } });
+  assert.equal(gatheredPast(null, liveUntil), false);
+  assert.equal(gatheredPast(stroke(0.1), liveUntil), true);
+  assert.equal(gatheredPast(stroke(0.4), liveUntil), false);
+  assert.equal(gatheredPast(stroke(0.7), liveUntil), true);
+  // The long sword's mordhau, turned in the hands close by a knight's sword: its wind-up passes his cross and the blow lands.
+  const world = createWorld([{ ...PRESETS.contender, style: 'longsword' }, { ...PRESETS.contender, style: 'longsword', outfit: { kind: 'knight', design: 0 } }], { seed: 1 });
+  const [a, d] = world.fighters;
+  placeFighter(a, -0.65, 0);
+  placeFighter(d, 0.65, 0);
+  advance(world, 0.8);
+  world.events.length = 0;
+  throwPunch(world, a, 'artMordhau', 'head');
+  advance(world, 0.3);
+  assert.ok(!world.events.some((e) => e.kind === 'clash' && e.hilt), JSON.stringify(world.events.map((e) => e.kind)));
 });
