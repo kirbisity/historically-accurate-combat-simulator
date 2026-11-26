@@ -430,7 +430,13 @@ export function fillCrowdBodies(view, paint) {
       state.batches.delete(key);
     }
   }
-  for (const batch of state.props.values()) {
+  for (const [key, batch] of state.props) {
+    // (A prop batch whose first man is gone holds his prop's geometry: let go once no copy is drawn from it.)
+    if (!batch.count && batch.owner.disposed) {
+      disposePropBatch(view, batch);
+      state.props.delete(key);
+      continue;
+    }
     for (const part of batch.parts) {
       part.instanced.count = batch.count;
       part.instanced.visible = batch.count > 0 || batch.warm > 0;
