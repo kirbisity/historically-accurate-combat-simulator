@@ -349,6 +349,13 @@ test('pyongyang: the districts are the drawing\'s sections, each portal at a gat
   const graph = sectionGraph({ sections });
   assert.ok(sectionsNear(graph, ['W'], [40, 0, -50], PY_STREAM.lead, PY_STREAM.hops).has('G'));
   assert.ok(!sectionsNear(graph, ['F'], [-100, 0, 5], PY_STREAM.lead, PY_STREAM.hops).has('G'));
+  // The west gate quarter from anywhere on the field; the field from the quarter through its gate, from its wall and its
+  // hill, not from the streets the wall hides it from.
+  assert.ok(sectionsNear(graph, ['F'], [-140, 0, 120], PY_STREAM.lead, PY_STREAM.hops).has('W'));
+  assert.ok(sectionsNear(graph, ['W'], [40, 0, -50], PY_STREAM.lead, PY_STREAM.hops).has('F'));
+  assert.ok(sectionsNear(graph, ['W'], [5, 0, 60], PY_STREAM.lead, PY_STREAM.hops).has('F'));
+  assert.ok(sectionsNear(graph, ['W'], [40, 0, -110], PY_STREAM.lead, PY_STREAM.hops).has('F'));
+  assert.ok(!sectionsNear(graph, ['W'], [61, 0, 32], PY_STREAM.keep, PY_STREAM.hops).has('F'));
   // On the west wall's walk he is in W and at F's portal: both active.
   assert.deepEqual(activeSections({ sections }, [3.3, 4.5, 2]).sort(), ['F', 'W']);
 });

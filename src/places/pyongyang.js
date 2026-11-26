@@ -939,10 +939,11 @@ export function pyongyangStage() {
  * W's way to F is two portals: the gate's passage, through which the field is seen down the avenue (the stream's
  * lead), and the wall's line with the hill's upper slopes (PY_FIELD_SEEN), from which it is seen over the wall: from
  * the streets the wall hides it (the field's boulders, camps and trees: its ground is the backdrop's), so F is held
- * there only near them. F's portal to W is `always`: the west wall and its gate tower face the whole field, and W's skyline draws the gate
- * as a block with no passage and a plain roof, plain to see at any distance across the field (compared from the
- * roam's start 100 m out, 2026-11-25), so W is held wherever he is before the wall (it was let go 5 s after the roam
- * began and taken up again 60 m from the wall, the gate changing before his eyes).
+ * there only near them. F's portal to W, along the wall's line, is the same `closer` from W's side, and `always` from
+ * F's: the west wall and its gate tower face the whole field, and W's skyline draws the gate as a block with no
+ * passage and a plain roof, plain to see at any distance across the field (compared from the roam's start 100 m out,
+ * 2026-11-25), so W is held wherever he is before the wall (it was let go 5 s after the roam began and taken up again
+ * 60 m from the wall, the gate changing before his eyes).
  */
 export function pyDistrictSections() {
   const box = (x0, x1, z0, z1) => ({ at: [(x0 + x1) / 2, (z0 + z1) / 2], size: [x1 - x0, z1 - z0] });
@@ -952,7 +953,7 @@ export function pyDistrictSections() {
   const gate = (x, z, wide, deep) => box(x - wide / 2, x + wide / 2, z - deep / 2, z + deep / 2);
   const [gateZ, hill] = [PYONGYANG_PLACE.gate.z, PY_FIELD_SEEN.hill];
   return [
-    { id: 'F', name: 'Before the west wall', bounds: box(-150, d.west, north, d.river), portals: [{ to: 'W', area: box(-6, 15, -122, 125), always: true }, { to: 'R', area: box(-150, d.west, d.river - 4, d.river + 4) }] },
+    { id: 'F', name: 'Before the west wall', bounds: box(-150, d.west, north, d.river), portals: [{ to: 'W', area: box(-6, 15, -122, 125), always: true, closer: PY_FIELD_SEEN.closer }, { to: 'R', area: box(-150, d.west, d.river - 4, d.river + 4) }] },
     { id: 'W', name: 'The west gate quarter', bounds: box(d.west, d.wg, north, d.south), portals: [{ to: 'F', area: box(-6, 15, gateZ - 8, gateZ + 8) }, { to: 'F', area: [box(-6, 15, -122, 125), box(d.west, d.wg, north, hill)], closer: PY_FIELD_SEEN.closer }, { to: 'G', area: [gate(d.wg, -50, 8, 9), gate(d.wg, 0, 8, 20)] }, { to: 'M', area: [gate(south[0].x, d.south, 10, 16), box(d.west, 15, d.south - 8, d.south + 2)] }] },
     { id: 'G', name: 'The governor\'s quarter', bounds: box(d.wg, d.east, north, d.south), portals: [{ to: 'M', area: gate(south[1].x, d.south, 8, 14) }] },
     { id: 'M', name: 'The middle city', bounds: box(d.west, d.east, d.south, d.river), portals: [{ to: 'R', area: box(d.west, d.east, d.river - 4, d.river + 2) }] },
