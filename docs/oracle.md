@@ -32,6 +32,7 @@ Options for `oraclecheck.js`:
 | `--baseline FILE` | `oracle/baseline.json` | the baseline to judge against |
 | `--z Z` | 3 | standard errors allowed |
 | `--allow N` | 1% of the checked metrics, at least 1 | failures allowed |
+| `--group-limit L` | 3.5 | the most a group's mean squared z may be |
 | `--only PREFIX` | | check only metrics whose key starts with PREFIX |
 | `--all` | | list every metric, not only failing ones |
 | `--json FILE` | | write the result |
@@ -169,17 +170,37 @@ the standard error of the difference of two independent estimates:
 `tolerance` in the baseline file is that bound for a candidate of the same `n` and value, for reading only. A rate's
 spread uses each side's own rate, so a candidate whose rate has moved toward 0 or 1 gets a slightly tighter bound.
 
-The verdict is PASS when no metric is missing and at most `--allow` metrics fail. By default that is 1% of the metrics
-checked, and at least one. At z = 3 about 0.3% of the metrics would fail by chance alone if they were independent normal
-estimates; with small n and heavy tails it is a little more. A metric with no samples on either side (a mean over decided
-bouts when none was decided) is skipped. The draw rate carries that difference.
+The verdict is PASS when three things hold:
 
-### What the tolerances can tell apart
+- no metric is missing;
+- at most `--allow` metrics fail. By default that is 1% of the metrics checked, and at least one. At z = 3 about 0.3% of
+  the metrics would fail by chance alone if they were independent normal estimates; with small n and heavy tails it is a
+  little more;
+- no group of metrics has drifted together. A group is a weapon's row, an armour's column, a pair, a battle, or the staff's
+  set piece. Its mean squared z must stay within `--group-limit` (default 3.5, `GROUP_LIMIT` in tools/oraclecheck.js).
+  Under no change a metric's z is about standard normal. The metrics of a group are correlated, though (one long bout moves
+  its landed count, wounds and time together), so a group's mean wanders more than a chi-square's would.
+
+A metric with no samples on either side (a mean over decided bouts when none was decided) is skipped. The draw rate
+carries that difference.
+
+### What the oracle can tell apart (measured 2026-11-26)
 
 They are wide for one cell: 8 bouts give a win rate to about ±0.25 either way, so a cell's tolerance is about 0.6. The
-pooled rows and columns (32 and 48 bouts) are about twice as tight. The many metrics together are what make the oracle
-sensitive: a real change shows as several failures in one row, column or battle. A `--perturb` control measures it (see
-the numbers in the port notes). For a stricter judge, fight more seeds on both sides: the tolerance shrinks as 1/sqrt(n).
+pooled rows and columns (32 and 48 bouts) are about twice as tight. The measurements, against the baseline (seeds 1 to 8):
+
+| candidate | failed (allowed) | worst group, mean z² | verdict |
+|---|---|---|---|
+| the same sim, independent seeds (101 to 108), whole corpus | 4 (8) | pair hammer/plate 2.79; Sarhu 600 1.54 | PASS |
+| `WEAPONS.warhammer.mass` x 2, seeds 101 on, duels | 3 (7) | row warhammer 0.67 | PASS: not detected |
+| `PUNCTURE.joules` x 0.7, seeds 1 on, duels | 0 (7) | column samurai 0.64 | PASS: not detected |
+| `PUNCTURE.joules` x 0.3, seeds 101 on, duels | 10 (7) | column samurai 3.72 | FAIL |
+
+So at 8 seeds the oracle catches a gross change (a port that gets armour's puncture badly wrong, units, or a broken
+mechanism). It does not catch a change of the size a tuning pass makes: twice the hammer's mass moved its cells' win rates
+by 0.25 to 0.4, inside a cell's ±0.6. Fight more seeds on both sides for a stricter judge (the tolerance shrinks as
+1/sqrt(n): 32 seeds halves it, at four times the cost, about 20 minutes on 8 workers). The group limit is calibrated on
+one independent run only. Recalibrate it when the corpus or the seeds change.
 
 ## Changing the corpus
 
