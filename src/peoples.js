@@ -26,9 +26,11 @@ export const PEOPLES = {
     ranks: {
       garrison: {},
       // The regulars in brigandine: paid men, picked a little for size, drilled.
-      brigandine: { heightCm: 3, weightKg: 3, exercise: 0.18 },
+      // (Each fighting rank a little stronger, harder worked and heavier with it: the Ming sides were weaker than their
+      // battles' outcomes, Pyongyang's above all: the user's call, 2026-11-26; was +3 kg and +0.18, the elite +7 and +0.25.)
+      brigandine: { heightCm: 3, weightKg: 5, exercise: 0.28 },
       // The generals' household men (jiading): picked for size, fed by their master, at arms all their lives.
-      elite: { heightCm: 6, weightKg: 7, exercise: 0.25 },
+      elite: { heightCm: 6, weightKg: 9, exercise: 0.35 },
     },
   },
   // Southern Han (Zhejiang, Fujian): a little shorter and lighter than northern men (southern Ming-Qing series about
@@ -36,12 +38,15 @@ export const PEOPLES = {
   mingSouth: {
     heightCm: 168, weightKg: 63, exercise: 0.5,
     ranks: {
-      garrison: {},
-      brigandine: { heightCm: 2, weightKg: 3, exercise: 0.15 },
+      // (Koxinga's and the south's fighting ranks a little stronger, as the north's: the user's call, 2026-11-26; his
+      // garrison men veterans of fifteen years against the Qing, a little harder than a weisuo's; was {}, +3 kg and +0.15,
+      // the elite +11 and +0.3, the iron men +15 and +0.34.)
+      garrison: { weightKg: 2, exercise: 0.1 },
+      brigandine: { heightCm: 2, weightKg: 5, exercise: 0.25 },
       // Koxinga picked his "iron men" by strength (they had to lift a stone lion): his elite is the big men of his army.
-      elite: { heightCm: 7, weightKg: 11, exercise: 0.3 },
+      elite: { heightCm: 7, weightKg: 12, exercise: 0.38 },
       // The iron men themselves, the strongest of those (a stone lion of ~300 jin lifted to be taken): bigger and heavier still.
-      ironMan: { heightCm: 8, weightKg: 15, exercise: 0.34 },
+      ironMan: { heightCm: 8, weightKg: 16, exercise: 0.4 },
       // Sea raiders: short, thick men of the boats and the oar, heavy for their height.
       raider: { heightCm: -3, weightKg: 5, exercise: 0.16 },
     },

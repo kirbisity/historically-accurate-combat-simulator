@@ -22,6 +22,8 @@ const CUMAN_BLURB = { en: 'Plated mail and hinged steel face of a Cuman of a kha
 const BAYARA_BLURB = { en: 'Armour of the Bayara, the banner guard. Brocade over iron plates, a steel mirror over the heart, gilt at the shoulders.\nThe guard was picked from every company. Wherever the line broke, they went in first; whenever a city fell, they were paid first.\nIn 1619 four Ming columns were swallowed one by one. The silver owed to the Ming garrisons had long gathered dust in the palace vaults of Beijing.\nLoyalty was never free. The Khan simply paid on time.', zh: '八旗护军巴牙喇的铠甲。锦缎为面，铁叶为里，心口悬一面护心镜，肩头鎏金。\n护军由各牛录挑选而出。阵中凡有缺口，必是他们先入；城破之日，财货先分护军。\n一六一九年，明军四路，被逐一吞没。而那些本该发给明军的饷银，早已在京城内库里积了尘。\n忠诚并非无价。只是大汗从不拖欠。' };
 
 export const OUTFIT_SETS = {
+  // (The Ming helmets' point figures, 0.55-0.6, were the lowest of the game's iron helmets though their bowls are of the
+  // coat's iron or thicker: brought to the other open iron helmets' 0.75-0.8, 2026-11-26.)
   // The Green Standard's own men (their card OUTFIT_BLURBS.greenStandard), and Feng Zicai's Guangxi braves of 1885 in it:
   // the same jacket on men who stood (`courage`: the men he raised, fed and led himself), the breech-loader's cartridge
   // belt over it (`extraMass`).
@@ -314,22 +316,22 @@ export const OUTFIT_SETS = {
     {
       key: 'bell', designs: [0, 2], name: 'Ming brigandine — bell helmet',
       blurb: { en: 'Brigandine of a Ming foot soldier. Cotton studded with iron rivets; within, a mosaic of hardened steel plates, supple and strong against every weapon of its age, even guns.\nWhen rations ran short, the quartermasters quietly pried the iron out from inside.\nCountless men marched to battle never knowing their armour was an empty shell.\nFrom outside, the cotton looked the same.', zh: '明军步卒的布面甲。棉布面上钉满铁泡，内里层叠淬火钢叶，柔而坚，当世兵器皆可抵挡，火器亦然。\n粮饷一断，管甲库的便悄悄撬走了里面的铁片。\n无数人穿着一副空壳上阵，至死不知。\n外面的棉布，看上去一模一样。' },
-      patch: { protection: { regions: { head: { blunt: 0.55, cut: 0.85, pierce: 0.55 } } } },
+      patch: { protection: { regions: { head: { blunt: 0.55, cut: 0.85, pierce: 0.75 } } } },
     },
     {
       key: 'tube', designs: [1], name: 'Ming brigandine — riveted helmet',
       blurb: { en: 'Brigandine with its hidden plates, under a tall helmet of riveted iron strips. The coat keeps its secrets. The helmet is there for all to see.\nThe inspectors counted helmets, and helmets are easy to count. Hidden plates were not, so the quartermasters sold them to blacksmiths by the pound.\nMany men marched to the Wall with a sound helmet and an empty coat.', zh: '布面甲与铁条高盔。甲里藏着钢叶，盔以铁条铆成。甲守着自己的秘密，盔却明摆着给人看。\n点验的官员只数头盔，头盔好数。甲里的钢叶数不着，管库的便论斤卖给了铁匠。\n许多人上边墙时，头上一顶好盔，身上一领空甲。' },
-      patch: { extraMass: 0.128, helmet: { mass: 1.6, padding: 0.35, curve: 0.75 }, protection: { regions: { head: { blunt: 0.58, cut: 0.87, pierce: 0.58 } } } },
+      patch: { extraMass: 0.128, helmet: { mass: 1.6, padding: 0.35, curve: 0.75 }, protection: { regions: { head: { blunt: 0.58, cut: 0.87, pierce: 0.78 } } } },
     },
     {
       key: 'lamellar', designs: [3, 4], name: 'Ming iron lamellar — pointed helmet',
       blurb: { en: 'Iron plates laced in rows, and a plain pointed helmet. A design older than the dynasty, every plate on the outside where anyone could check it. A border soldier might wear his grandfather’s.\nWith nothing hidden to steal, the quartermaster saved on the laces. Cheap cord rotted in the rainy season.\nKorea, 1593. Ming soldiers met Japanese swordsmen in the spring mud, and the sodden laces gave way.', zh: '明军的札甲与素面尖盔。铁甲片成排编缀，形制比大明还老，片片露在外头，谁都查得到。边军身上的，兴许是祖父那一副。\n无物可偷，管库的便省在绳子上。廉价的绳，到雨季就烂。\n一五九三年，朝鲜。明军在春泥中迎上日本刀手，泡软的甲绳一扯便断。' },
-      patch: { extraMass: 0.15, protection: { blunt: 0.6, cut: 0.83, pierce: 0.85, regions: { head: { blunt: 0.54, cut: 0.86, pierce: 0.6 }, UpperArm: { blunt: 0.6, cut: 0.83, pierce: 0.85 }, Forearm: { blunt: 0.6, cut: 0.83, pierce: 0.85 } } } },
+      patch: { extraMass: 0.15, protection: { blunt: 0.6, cut: 0.83, pierce: 0.85, regions: { head: { blunt: 0.54, cut: 0.86, pierce: 0.78 }, UpperArm: { blunt: 0.6, cut: 0.83, pierce: 0.85 }, Forearm: { blunt: 0.6, cut: 0.83, pierce: 0.85 } } } },
     },
     {
       key: 'scale', designs: [5], name: 'Ming iron scale coat',
       blurb: { en: 'Coat of overlapping iron scales under the bell helmet, running down the chest like a fish’s flank. A blade slides off it as a fish slips from the hand.\nA starving garrison sells its costliest coat first.\nSarhu, 1619. The Ming sent four separate columns against the Manchus, who destroyed them one at a time, stripped the scales from the dead and wore them home.', zh: '明军的鳞甲与钟形盔。铁鳞层层相叠，顺胸而下，如鱼的侧身。刀砍上去会滑开，如鱼从手中溜走。\n卫所饿着肚子时，最先卖掉的就是最贵的甲。\n一六一九年，萨尔浒。明军分兵四路进攻后金，被逐路击破。八旗兵从死人身上剥下鳞甲，穿着回了家。' },
-      patch: { extraMass: 0.15, protection: { blunt: 0.58, cut: 0.84, pierce: 0.85, regions: { head: { blunt: 0.55, cut: 0.85, pierce: 0.55 }, UpperArm: { blunt: 0.58, cut: 0.84, pierce: 0.85 }, Forearm: { blunt: 0.58, cut: 0.84, pierce: 0.85 } } } },
+      patch: { extraMass: 0.15, protection: { blunt: 0.58, cut: 0.84, pierce: 0.85, regions: { head: { blunt: 0.55, cut: 0.85, pierce: 0.75 }, UpperArm: { blunt: 0.58, cut: 0.84, pierce: 0.85 }, Forearm: { blunt: 0.58, cut: 0.84, pierce: 0.85 } } } },
     },
   ],
   // Koxinga's iron men: one set, their scale, the Japanese limb pieces and the iron face.

@@ -1933,7 +1933,7 @@ export const OUTFITS = {
     // as the vest's.
     protection: {
       ...PLATE_VEST, bullet: { head: 0.3, torso: 0.5, limb: 0 },
-      regions: { head: { blunt: 0.58, cut: 0.87, pierce: 0.58, deflects: true }, lForearm: MING_ARM_GUARD },
+      regions: { head: { blunt: 0.58, cut: 0.87, pierce: 0.78, deflects: true }, lForearm: MING_ARM_GUARD },
     },
     helmet: { mass: 1.6, padding: 0.35, curve: 0.75 },
     // Plates in cloth: a point catches in the cloth and the rivet heads and bites (BLADES.bite), as on the retainer's coat;
