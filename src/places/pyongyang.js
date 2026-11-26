@@ -953,11 +953,16 @@ export function pyDistrictSections() {
 }
 
 // The roam's section streamer (levelmode/sectionstream.js SECTION_STREAM, this place's own: Dunnottar's is left as it
-// is). `lead` m: a district beyond a gate is built from this near it. A district is about 1 to 2.5 s of work
-// (PLAN.txt section 7), at the streamer's few milliseconds a frame some 15 to 40 s of frames; walking at 1.4 m/s that is
-// 20 to 55 m, so 60 m of lead has it built before he is through. `keep` m and `linger` s: a district behind him is let
-// go once every gate into it is this far and this long ago, so that a turn back at a gate frees nothing.
-export const PY_STREAM = { lead: 60, keep: 80, linger: 5, hops: 2 };
+// is). `lead` m: a district beyond a gate is built from this near it. A district is 0.35 to 0.45 s of drawing and
+// meshing and some 40 frames of sending to the graphics card, built in steps of under 14 ms at the streamer's 3 ms a
+// frame: 1.6 to 2 s (measured 2026-11-25, M1 Pro); run at 5 m/s that is 8 to 10 m, so a district is taken up some 50 m
+// before he reaches it. Its skyline differs from it in full to the eye at 40 to 60 m (the trees, a pavilion's roof, the
+// west gate's tower: the two compared from the ways in, 2026-11-25), so the lead is not cut. `keep` m (6 more than the lead, with `linger` s):
+// a district behind is let go once every gate into it is this far and this long ago, so that a turn back at a gate frees
+// nothing; it was 80, and a district was held 20 m beyond any distance it was built from. `hops` 1: each district
+// is reached by a gate of the one he is in, never through a passage between (Dunnottar's second hop), and a second
+// hop held the field from the middle city through the west gate quarter, behind two walls.
+export const PY_STREAM = { lead: 60, keep: 66, linger: 5, hops: 1 };
 
 /** The weather the place is seen in (tkSetWeather's argument): snow lying, the air dry and clear. A view's `weather.town` replaces any part of it. */
 export const PYONGYANG_WEATHER = {
@@ -2134,7 +2139,14 @@ export function* buildPyongyangSteps(arena = null, { shift = [0, 0], key = 'pyon
     // (Its moving things are the first build's: those of this drawing are not kept.)
     yield* pyDrawPlace(one, null, plan, tier, pyStirFor(tkStir(3)), () => lay);
     const made = yield* tkMeshesSteps(one.districts[id], materials, { tier, every: now ? Infinity : PY_UPLOAD.meshes });
-    if (!now && kept.view?.renderer) yield* pyUploadSteps(made, uploader, kept.view.renderer);
+    // (Given up half way, the stream no longer wanting it: what was sent to the graphics card is let go.)
+    let done = false;
+    try {
+      if (!now && kept.view?.renderer) yield* pyUploadSteps(made, uploader, kept.view.renderer);
+      done = true;
+    } finally {
+      if (!done) made.traverse((object) => object.geometry?.dispose());
+    }
     meshes.userData.put(id, made);
     meshes.userData.drop(`${id}:skyline`);
     held.add(id);

@@ -115,6 +115,29 @@ test('a room left is held while he is near its gate and for a while after; walki
   assert.ok(stream.built('b'));
 });
 
+test('a build no longer wanted is set aside, taken up again if wanted again, and given up after the linger', () => {
+  const { stream } = streamOf({ lead: 10, keep: 30, linger: 1, budgetMs: 1, urgentMs: 1, hops: 1 }, 10);
+  stream.update(0.016, { position: [18, 0, 0], active: ['a'] });
+  for (let k = 0; k < 12; k += 1) stream.pump();
+  assert.ok(stream.built('a') && stream.stats().building.includes('b'));
+  // He turns back: b is no longer wanted, and nothing more of it is built.
+  stream.update(0.016, { position: [2, 0, 0], active: ['a'] });
+  const before = stream.stats().steps;
+  for (let k = 0; k < 20; k += 1) stream.pump();
+  assert.equal(stream.stats().steps, before);
+  // Back at the gate within the linger: it goes on where it was.
+  stream.update(0.5, { position: [18, 0, 0], active: ['a'] });
+  for (let k = 0; k < 20; k += 1) stream.pump();
+  assert.ok(stream.built('b'));
+  // Begun and left for longer than the linger: given up, never finished.
+  stream.update(0.016, { position: [38, 0, 0], active: ['b'] });
+  stream.pump();
+  assert.ok(stream.stats().building.includes('c'));
+  for (let k = 0; k < 90; k += 1) stream.update(1 / 60, { position: [21, 0, 0], active: ['b'] });
+  assert.ok(!stream.stats().building.includes('c') && !stream.built('c'));
+  assert.equal(stream.stats().abandoned, 1);
+});
+
 test('what the picture asks for is built, and a pin holds a room whatever else', () => {
   const { stream } = streamOf({ lead: 5, keep: 8, linger: 1, budgetMs: 100 }, 1);
   stream.update(0.016, { position: [2, 0, 0], active: ['a'], seen: ['c'] });
