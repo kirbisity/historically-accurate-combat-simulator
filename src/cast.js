@@ -426,7 +426,7 @@ export function wokouRaider(random = Math.random, style = 'dao', people = 'chine
 
 // Builds by people and rank (mean height, weight, training): peoples.js PEOPLES, the one table the named presets
 // (body.js) are drawn from too. Each man varies about his rank's by `CAST.height` cm and a few kilograms (builtLike).
-const PERIOD_BUILD = peopleBuilds();
+export const PERIOD_BUILD = peopleBuilds();
 
 // ---- The Inca at Cajamarca (scenarios.js cajamarca) ----
 

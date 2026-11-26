@@ -1,0 +1,532 @@
+{
+ "version": 1,
+ "source": "src/ai.js",
+ "tables": {
+  "AI": {
+   "gunRush": {
+    "within": 1.1,
+    "weave": 5,
+    "chargeFrom": 3,
+    "chargePerSecond": 1.5
+   },
+   "tieBackPerSecond": 3,
+   "idleThinkEvery": 0.1,
+   "perceive": {
+    "close": 8,
+    "sharp": 25,
+    "side": 1.0471975511965976,
+    "frameSlack": 0.15,
+    "idleEvery": 0.2,
+    "appraiseEvery": 0.3
+   },
+   "net": {
+    "from": 1.3,
+    "to": 3.2,
+    "rate": 1.2
+   },
+   "throwable": {
+    "rate": 0.8,
+    "melee": 3
+   },
+   "cohesion": {
+    "radius": 1.6,
+    "radiusPerSqrt": 1.2,
+    "ramp": 2.5,
+    "strafe": 0.8,
+    "holdBack": 0.9,
+    "engaged": 0.8,
+    "focus": 0.6,
+    "escape": 0.5,
+    "runFor": 1.5
+   },
+   "passive": {
+    "safeDistance": 3.5,
+    "runWhile": 0.2
+   },
+   "gunKite": {
+    "stride": 2.5,
+    "directions": 16,
+    "wallMargin": 0.7,
+    "roomWeight": 0.8,
+    "pastWeight": 2.5,
+    "rethink": 0.4
+   },
+   "bodyShotShare": 0.2,
+   "thighShare": 0.1,
+   "armourSense": {
+    "from": 0.3,
+    "full": 0.7,
+    "power": 3
+   },
+   "gapAim": 0.5,
+   "restMin": 0.9,
+   "restRange": 2,
+   "rangeSlack": 0.12,
+   "rangeExtra": 0.2,
+   "approachBrake": 1,
+   "approachFloor": 0.35,
+   "kickerExtra": 0.15,
+   "rushPerWeight": 1.5,
+   "display": {
+    "within": 6
+   },
+   "chargeInto": 1.1,
+   "charging": {
+    "runFrom": 1.5
+   },
+   "pressureSeconds": 4,
+   "pressureSpellsPerShare": 0.25,
+   "reactionSeconds": 0.15,
+   "reactionTrained": 0.08,
+   "reactionJitter": 0.04,
+   "art": {
+    "readLate": 0.12,
+    "guardRead": 0.5
+   },
+   "couchedWatch": 0.6,
+   "offLine": {
+    "sidestep": 1.2,
+    "stepBack": 0.15,
+    "guard": 0.3
+   },
+   "slipPreference": 3,
+   "evadeHeavy": {
+    "heavyMass": 4,
+    "loaded": 0.6,
+    "defend": 0.6,
+    "move": 3,
+    "block": 0.4
+   },
+   "diveRoll": {
+    "heavy": 0.5,
+    "chance": 0.3,
+    "aside": 0.5
+   },
+   "guardFails": 0.5,
+   "overdraw": {
+    "underFire": 5,
+    "short": 1
+   },
+   "grips": {
+    "within": 1,
+    "through": 0.2,
+    "spent": 0.25,
+    "footing": 0.85,
+    "rate": 0.5
+   },
+   "halfSword": {
+    "change": 0.35,
+    "fresh": 0.25,
+    "within": 0.6,
+    "gain": 1.5,
+    "take": 0.85,
+    "closeShare": 0.85,
+    "hold": 5,
+    "leave": 0.9,
+    "clash": {
+     "strong": 1.5
+    },
+    "guard": {
+     "covered": 0.25,
+     "clear": 0.06,
+     "keep": 1.2
+    },
+    "murder": 1
+   },
+   "strategySeconds": 20,
+   "strategyRange": 20,
+   "strategyMinimum": 6,
+   "finishingHeavy": 0.15,
+   "neutralDistance": 1.8,
+   "range": {
+    "inside": 0.12,
+    "outside": 0.25,
+    "closingSpeed": 0.4,
+    "burstMin": 2,
+    "burstRange": 2
+   },
+   "pointRoom": {
+    "pace": 1.4,
+    "room": 0.15,
+    "patience": 2,
+    "forget": 0.25,
+    "lungeFrom": 0.5,
+    "rankGive": 0.5
+   },
+   "pickup": {
+    "enabled": true,
+    "maxDistance": 3.5,
+    "margin": 0.3,
+    "atFeet": 0.7,
+    "stoopAt": 0.55,
+    "eagerness": 1.5,
+    "shieldClear": 2.5,
+    "reachDown": 0.3
+   },
+   "mix": {
+    "seconds": 10
+   },
+   "pin": {
+    "reach": 0.55,
+    "pinners": 2
+   },
+   "confidenceRatio": 2.5,
+   "crawl": {
+    "from": 0.45,
+    "rate": 0.8,
+    "adrenaline": 0.9,
+    "away": 3,
+    "rethink": 1.5,
+    "arrived": 0.6,
+    "pressed": 2,
+    "limbFrom": 0.45,
+    "limbRate": 0.5,
+    "perArm": 0.6
+   },
+   "panic": {
+    "felt": 0.85,
+    "settle": 2,
+    "outmatched": 0.5,
+    "hurt": 0.9,
+    "perKnockdown": 0.22,
+    "breakAt": 0.86,
+    "rate": 0.42,
+    "adrenalineHolds": 0.55,
+    "calmAt": 0.4,
+    "calmSeconds": 3,
+    "standardDown": 0.35,
+    "leaderLostFor": 6,
+    "brokenArm": 0.2,
+    "brokenLeg": 0.3,
+    "armed": 0.35,
+    "lethalSpan": 4,
+    "ownWeapon": 0.92,
+    "dreadNear": 1.5,
+    "dreadFade": 5,
+    "dreadAtRange": 0.3,
+    "drilled": 0.7,
+    "unproven": 0.4,
+    "unprovenMismatch": 0.75,
+    "proven": 2,
+    "mismatch": 0.7,
+    "ring": 0.45,
+    "brokeBefore": 0.06,
+    "breakAtLeast": 0.5
+   },
+   "rout": {
+    "minSide": 4,
+    "losses": 0.35,
+    "lossesFrom": 0.3,
+    "lossesFull": 0.75,
+    "contagion": 0.1,
+    "contagionMost": 0.3,
+    "within": 5,
+    "close": 1.5,
+    "behind": 0.35,
+    "behindFrom": 1,
+    "edge": 1.6,
+    "clearOf": 4,
+    "follow": {
+     "beside": 3,
+     "rate": 1.3,
+     "followMost": 2,
+     "from": 0.3,
+     "discipline": 0.9
+    },
+    "pace": 0.7,
+    "flight": {
+     "shieldDrop": 0.7
+    },
+    "crawl": {
+     "share": 0.15,
+     "hurt": 0.9,
+     "tired": 0.35,
+     "afraid": 0.4,
+     "most": 0.85
+    },
+    "rally": {
+     "chance": 0.65,
+     "hurt": 1,
+     "again": 0.5,
+     "most": 2,
+     "nerve": 0.35,
+     "steadied": 0.35,
+     "steadyFor": 8,
+     "shaky": 10,
+     "pace": 0.6,
+     "hesitant": 0.7,
+     "guard": 0.5
+    }
+   },
+   "strength": {
+    "weapon": 0.6,
+    "reach": 0.3,
+    "armour": 1.2,
+    "mounted": 2.5,
+    "skill": 1.2,
+    "size": 1,
+    "muscleKg": 28,
+    "hurt": 0.8,
+    "broken": 0.2,
+    "down": 0.1
+   },
+   "standing": {
+    "group": 3,
+    "groupFade": 3,
+    "near": 6,
+    "sight": 16,
+    "parity": 0.25,
+    "span": 0.9,
+    "fear": 0.5,
+    "steady": 0.25
+   },
+   "fieldSlack": 2,
+   "seatSlack": 1.5,
+   "outnumbered": {
+    "from": 1.5,
+    "full": 3,
+    "fear": 0.45,
+    "beyond": 6,
+    "most": 0.8
+   },
+   "general": {
+    "minSide": 8,
+    "threat": 5,
+    "guards": 3,
+    "guardFrom": 10,
+    "heartWithin": 8,
+    "heart": 0.06,
+    "fell": 0.2,
+    "saw": 0.15,
+    "sawWithin": 10,
+    "fellFor": 8,
+    "successorWithin": 8,
+    "body": 0.5,
+    "slack": 1,
+    "foresee": 1.2,
+    "engaged": 0.8,
+    "minMen": 3
+   },
+   "morale": {
+    "near": 2.5,
+    "alone": 0.12,
+    "support": 0.04,
+    "supportMost": 0.12,
+    "worthLeast": 0.5,
+    "worthMost": 3,
+    "formed": 0.1,
+    "formedMost": 0.4,
+    "fallen": 0.12,
+    "fallenMost": 0.36,
+    "fallenWithin": 6,
+    "fallenFor": 8,
+    "shock": 0.4,
+    "shockFull": 0.3,
+    "shockFor": 10,
+    "hesitate": {
+     "range": 0.8,
+     "pressure": 0.8,
+     "tempo": 2
+    },
+    "discipline": 0.6,
+    "breakLater": 0.6
+   },
+   "dismount": {
+    "at": 0.7,
+    "bleeding": 0.5
+   },
+   "recoil": {
+    "within": 4,
+    "near": 2,
+    "seconds": 2,
+    "severed": 1,
+    "killed": 0.8,
+    "least": 0.3,
+    "backOff": 0.7
+   },
+   "breather": {
+    "below": 0.3,
+    "hot": 0.4,
+    "until": 0.7,
+    "margin": 0.4,
+    "pace": 0.8
+   },
+   "hesitation": {
+    "on": true,
+    "band": 2.5,
+    "holdOff": 1.1,
+    "slack": 0.25,
+    "quality": {
+     "levy": 0.25,
+     "elite": 0.7,
+     "power": 1.5
+    },
+    "base": 0.9,
+    "fear": 0.6,
+    "odds": 0.25,
+    "oddsSpan": 1,
+    "support": 0.06,
+    "supportMost": 3,
+    "beside": 2.5,
+    "formed": 0.15,
+    "led": 0.12,
+    "leaderWithin": 6,
+    "go": 0.3,
+    "goLeast": 0.04,
+    "push": 0.1,
+    "follow": 0.4,
+    "followTimid": 0.8,
+    "followFresh": 1.5,
+    "longest": 14,
+    "afterContact": 15,
+    "metAt": 0.6,
+    "shuffle": 0.35,
+    "feint": 0.4,
+    "feintRate": 0.6,
+    "sway": 0.3
+   },
+   "rage": {
+    "skillFrom": 0.6,
+    "adrenalineFrom": 0.35,
+    "chance": 0.4,
+    "seconds": 6,
+    "guard": 0.6,
+    "tempo": 0.5,
+    "pressure": 2,
+    "closer": 0.2,
+    "heavy": 0.3
+   },
+   "shock": {
+    "blast": 0.06,
+    "blastMost": 0.15,
+    "blastNear": 4,
+    "blastFar": 16,
+    "halfLife": 5,
+    "horse": 0.1,
+    "horseNear": 3,
+    "horseFar": 10,
+    "horseSpeed": 3,
+    "horseCone": 0.7,
+    "strange": 3
+   },
+   "ambush": {
+    "spotted": 1.5
+   },
+   "adrenaline": {
+    "knockdown": 0.45,
+    "hardHit": 0.35,
+    "hardFrom": 0.6,
+    "halfLife": 35,
+    "nerve": 0.85,
+    "nerveOutmatched": 0.3,
+    "holdsOutmatched": 0.85
+   },
+   "reachFear": 0.6,
+   "openingAngle": 0.5,
+   "experienceShots": 3,
+   "confidence": {
+    "closer": 0.15,
+    "pressure": 1,
+    "tempo": 0.45,
+    "defend": 0.45,
+    "heavy": 0.08,
+    "cadence": 0.5
+   },
+   "retarget": {
+    "every": 0.3,
+    "margin": 1,
+    "ratio": 0.67,
+    "shooterWithin": 3
+   },
+   "crowdPenalty": 0.7,
+   "pursuit": {
+    "within": 14,
+    "chasers": 3
+   },
+   "mateSpacing": 1,
+   "elbowRoom": {
+    "room": 2.2,
+    "push": 2.5,
+    "hold": 0.9
+   },
+   "lineOfFire": 0.4,
+   "shotLineOfFire": 0.9,
+   "gunCrowd": 1.2,
+   "holdShot": 4,
+   "arrowCrowd": 2,
+   "overHeadsFrom": 1,
+   "markWithin": 60,
+   "holdFireWalk": 0.6,
+   "pastTarget": 0.45,
+   "kickClearance": 1.3,
+   "crowd": {
+    "leanWithin": 0.9,
+    "highGround": 1.5
+   },
+   "blade": {
+    "outreachedBy": 0.25,
+    "margin": 0.3,
+    "slack": 0.12,
+    "surgeSpeed": 1.8,
+    "retreatSpeed": 1.4,
+    "surgeSeconds": 1.4,
+    "stepBackChance": 0.65
+   },
+   "cadence": {
+    "workSeconds": 4.5,
+    "moveSeconds": 1.6,
+    "spread": 0.45,
+    "burstGap": 0.1,
+    "openingChance": 0.7
+   },
+   "machine": {
+    "rest": 0.35
+   },
+   "press": {
+    "on": true,
+    "plans": {
+     "outboxer": 0.5,
+     "pressure": 2,
+     "counter": 0.5,
+     "brawler": 1.5
+    },
+    "tempo": 0.75,
+    "work": 1.6,
+    "move": 0.35,
+    "meet": true,
+    "punish": 0.25,
+    "lunge": 0.8,
+    "timing": 0.6,
+    "timedFrom": 1,
+    "chase": 1.5,
+    "chaseWithin": 1.2,
+    "guardFor": 0.8,
+    "guardHeavy": 0.25,
+    "guardTempo": 0.7
+   },
+   "relentless": {
+    "rest": 0.45,
+    "wallProbe": 1,
+    "sideProbe": 1.6,
+    "outPace": 0.6,
+    "drive": 1
+   },
+   "numbersConfidence": 0.45,
+   "engageSlots": 3,
+   "squad": {
+    "together": 1,
+    "held": 2.5,
+    "longFrom": 1.6,
+    "strikeAt": 0.9
+   },
+   "brush": {
+    "band": 0.25,
+    "give": 0.5,
+    "thrustAfter": 1.5,
+    "thrust": "spearThrust"
+   },
+   "waitingDistance": 0.5,
+   "refocusRate": 0.6
+  }
+ }
+}

@@ -1,0 +1,3938 @@
+{
+ "version": 1,
+ "source": "src/roster.js",
+ "tables": {
+  "WARRIORS": [
+   {
+    "key": "exoArmoured",
+    "title": "Pvt. Owen Kade",
+    "inputs": {
+     "name": "Pvt. Owen Kade",
+     "sex": "male",
+     "heightCm": 180,
+     "frame": "medium",
+     "age": 28,
+     "exercise": 0.6,
+     "calories": 4000,
+     "style": "street",
+     "skill": 0.55,
+     "look": {
+      "skinTone": "lightTan",
+      "hairStyle": "buzz",
+      "hairColor": "#3a2416",
+      "facialHair": "stubble",
+      "eyeColor": "grey"
+     },
+     "outfit": {
+      "kind": "exoArmoured",
+      "design": 0
+     },
+     "accessories": []
+    },
+    "faction": "machines",
+    "line": "Street · armoured"
+   },
+   {
+    "key": "maximilian",
+    "title": "Jousting King",
+    "inputs": {
+     "name": "Jousting King",
+     "sex": "male",
+     "heightCm": 182,
+     "frame": "large",
+     "age": 30,
+     "exercise": 0.7,
+     "calories": 4500,
+     "style": "lance",
+     "skill": 1,
+     "look": {
+      "skinTone": "light",
+      "hairStyle": "midLong",
+      "hairColor": "#5a3a22",
+      "facialHair": "none",
+      "eyeColor": "brown"
+     },
+     "hero": true,
+     "outfit": {
+      "kind": "tournament",
+      "design": 5
+     },
+     "accessories": []
+    },
+    "faction": "knights",
+    "line": "Lance · jousting harness",
+    "legend": {
+     "order": 2.5,
+     "kicker": {
+      "en": "The Last Knight",
+      "zh": "最后的骑士"
+     },
+     "line": {
+      "en": "The jousting emperor in his Stechzeug: the frog-mouthed helm bolted to the breast, and the lance.",
+      "zh": "爱比武的皇帝，披挂比武重甲：蛙嘴盔直接栓死在胸甲上，手里一杆骑枪。"
+     }
+    }
+   },
+   {
+    "key": "ironPagoda",
+    "title": "Iron Pagoda",
+    "inputs": {
+     "name": "Iron Pagoda",
+     "sex": "male",
+     "heightCm": 173,
+     "frame": "large",
+     "age": 38,
+     "exercise": 0.6,
+     "calories": 4550,
+     "style": "jinLance",
+     "skill": 0.6,
+     "look": {
+      "skinTone": "lightTan",
+      "hairStyle": "buzz",
+      "hairColor": "#120d0a",
+      "facialHair": "beard",
+      "eyeColor": "brown"
+     },
+     "hero": true,
+     "outfit": {
+      "kind": "ironPagoda",
+      "design": 0
+     },
+     "accessories": []
+    },
+    "faction": "chinese",
+    "line": "Jin heavy spear · Heavy spear · Jin heavy armour",
+    "legend": {
+     "order": 5,
+     "kicker": {
+      "en": "Wanyan Wuzhu",
+      "zh": "完颜兀术"
+     },
+     "line": {
+      "en": "The Jin heavy guard: heavy spear, wolf-tooth mace at the saddle, armoured head to foot.",
+      "zh": "金国重甲亲军：手持重枪，鞍挂狼牙棒，从头裹到脚。"
+     }
+    }
+   },
+   {
+    "key": "combatBot",
+    "title": "Combat bot",
+    "inputs": {
+     "name": "CB-170 \"Warden\"",
+     "sex": "male",
+     "heightCm": 180,
+     "frame": "large",
+     "age": 27,
+     "exercise": 0.6,
+     "calories": 2800,
+     "style": "combatBot",
+     "skill": 0.6,
+     "look": {
+      "skinTone": "deep",
+      "hairStyle": "bald",
+      "hairColor": "#1e1f22",
+      "facialHair": "none",
+      "eyeColor": "brown",
+      "skinColor": "#1e1f22"
+     },
+     "build": {
+      "massKg": 115,
+      "bodyFat": 0,
+      "strength": 1.5,
+      "aerobic": 1.1,
+      "bulk": 2,
+      "rigid": true
+     },
+     "outfit": {
+      "kind": "combatBot",
+      "design": 0
+     },
+     "accessories": []
+    },
+    "faction": "machines",
+    "line": "Combat bot · Arm rifle and blade",
+    "flagship": true
+   },
+   {
+    "key": "ironManBlade",
+    "title": "Iron Man Swordsman",
+    "inputs": {
+     "name": "Iron Man Swordsman",
+     "sex": "male",
+     "heightCm": 172,
+     "frame": "large",
+     "age": 34,
+     "exercise": 0.6,
+     "calories": 3650,
+     "style": "zhanmadao",
+     "skill": 0.6,
+     "look": {
+      "skinTone": "lightTan",
+      "hairStyle": "bun",
+      "hairColor": "#120d0a",
+      "facialHair": "beard",
+      "eyeColor": "brown"
+     },
+     "outfit": {
+      "kind": "ironMan",
+      "design": 0
+     },
+     "accessories": []
+    },
+    "faction": "chinese",
+    "line": "Zhanmadao · Koxinga's scale and iron face"
+   },
+   {
+    "key": "ironManShield",
+    "title": "Iron Man Shieldbearer",
+    "inputs": {
+     "name": "Iron Man Shieldbearer",
+     "sex": "male",
+     "heightCm": 172,
+     "frame": "large",
+     "age": 30,
+     "exercise": 0.6,
+     "calories": 3650,
+     "style": "swordShield",
+     "skill": 0.6,
+     "look": {
+      "skinTone": "lightTan",
+      "hairStyle": "bun",
+      "hairColor": "#120d0a",
+      "facialHair": "beard",
+      "eyeColor": "brown"
+     },
+     "outfit": {
+      "kind": "ironMan",
+      "design": 1
+     },
+     "accessories": []
+    },
+    "faction": "chinese",
+    "line": "Sword and shield · Dao · Koxinga's scale and iron face"
+   },
+   {
+    "key": "specialForces",
+    "title": "Special Forces Rifleman",
+    "inputs": {
+     "name": "Special Forces Rifleman",
+     "sex": "male",
+     "heightCm": 178,
+     "frame": "large",
+     "age": 32,
+     "exercise": 0.59,
+     "calories": 3975,
+     "style": "rifle",
+     "skill": 0.7,
+     "look": {
+      "skinTone": "light",
+      "hairStyle": "cleanShort",
+      "hairColor": "#4a3020",
+      "facialHair": "beard",
+      "eyeColor": "green"
+     },
+     "outfit": {
+      "kind": "specialForces",
+      "design": 0
+     },
+     "accessories": []
+    },
+    "faction": "law",
+    "line": "AR-15 · plate carrier"
+   },
+   {
+    "key": "flamer",
+    "title": "Flame Trooper",
+    "inputs": {
+     "name": "Flame Trooper",
+     "sex": "male",
+     "heightCm": 178,
+     "frame": "large",
+     "age": 32,
+     "exercise": 0.59,
+     "calories": 3975,
+     "style": "flamethrower",
+     "skill": 0.7,
+     "look": {
+      "skinTone": "light",
+      "hairStyle": "cleanShort",
+      "hairColor": "#2a1c12",
+      "facialHair": "stubble",
+      "eyeColor": "green"
+     },
+     "outfit": {
+      "kind": "specialForces",
+      "design": 0,
+      "extraMass": 0.44969393191458407,
+      "packKg": 30,
+      "carriedShare": 0
+     },
+     "accessories": [],
+     "sidearm": "handgun"
+    },
+    "faction": "law",
+    "line": "Flamethrower · plate carrier"
+   },
+   {
+    "key": "hammer",
+    "title": "Hammer Knight",
+    "inputs": {
+     "name": "Hammer Knight",
+     "sex": "male",
+     "heightCm": 190,
+     "frame": "large",
+     "age": 36,
+     "exercise": 0.65,
+     "calories": 4875,
+     "style": "warhammer",
+     "skill": 0.75,
+     "look": {
+      "skinTone": "light",
+      "hairStyle": "long",
+      "hairColor": "#8a3a1c",
+      "facialHair": "beard",
+      "eyeColor": "grey"
+     },
+     "outfit": {
+      "kind": "knight",
+      "design": 0
+     },
+     "accessories": [
+      "plume"
+     ]
+    },
+    "faction": "knights",
+    "line": "War hammer · full plate"
+   },
+   {
+    "key": "plate",
+    "title": "Noble Knight",
+    "inputs": {
+     "name": "Noble Knight",
+     "sex": "male",
+     "heightCm": 178,
+     "frame": "large",
+     "age": 30,
+     "exercise": 0.68,
+     "calories": 4425,
+     "style": "longsword",
+     "skill": 0.75,
+     "look": {
+      "skinTone": "light",
+      "hairStyle": "midLong",
+      "hairColor": "#c9a25e",
+      "facialHair": "beard",
+      "eyeColor": "blue"
+     },
+     "outfit": {
+      "kind": "knight",
+      "design": 0
+     },
+     "accessories": [
+      "plume"
+     ]
+    },
+    "faction": "knights",
+    "line": "Long sword · full plate"
+   },
+   {
+    "key": "nanban",
+    "title": "Christian Daimyō",
+    "inputs": {
+     "name": "Christian Daimyō",
+     "sex": "male",
+     "heightCm": 167,
+     "frame": "medium",
+     "age": 35,
+     "exercise": 0.7,
+     "calories": 3720,
+     "style": "yari",
+     "skill": 0.7,
+     "look": {
+      "skinTone": "lightTan",
+      "hairStyle": "sakayaki",
+      "hairColor": "#120d0a",
+      "facialHair": "mustache",
+      "eyeColor": "brown",
+      "faceRegion": "japan"
+     },
+     "outfit": {
+      "kind": "samuraiTosei",
+      "design": 8
+     },
+     "accessories": []
+    },
+    "faction": "japanese",
+    "line": "Yari · tōsei gusoku"
+   },
+   {
+    "key": "mingThreeEyed",
+    "title": "Three-Eyed Gunner",
+    "inputs": {
+     "name": "Three-Eyed Gunner",
+     "sex": "male",
+     "heightCm": 172,
+     "frame": "medium",
+     "age": 35,
+     "exercise": 0.6799999999999999,
+     "calories": 3950,
+     "style": "threeEyed",
+     "skill": 0.5,
+     "look": {
+      "skinTone": "lightTan",
+      "hairStyle": "bun",
+      "hairColor": "#120d0a",
+      "facialHair": "mustache",
+      "eyeColor": "brown"
+     },
+     "outfit": {
+      "kind": "mingElite",
+      "design": 1
+     },
+     "accessories": []
+    },
+    "faction": "chinese",
+    "line": "Three-eyed gun · elite brigandine"
+   },
+   {
+    "key": "mingGuandao",
+    "title": "General's Retainer",
+    "inputs": {
+     "name": "General's Retainer",
+     "sex": "male",
+     "heightCm": 180,
+     "frame": "medium",
+     "age": 40,
+     "exercise": 0.6,
+     "calories": 3650,
+     "style": "guandao",
+     "skill": 0.5,
+     "look": {
+      "skinTone": "lightTan",
+      "hairStyle": "bun",
+      "hairColor": "#120d0a",
+      "facialHair": "beard",
+      "eyeColor": "brown"
+     },
+     "outfit": {
+      "kind": "mingElite",
+      "design": 0
+     },
+     "accessories": []
+    },
+    "faction": "chinese",
+    "line": "Guandao · elite brigandine"
+   },
+   {
+    "key": "mingEliteGun",
+    "title": "Ming Elite Musketeer",
+    "inputs": {
+     "name": "Ming Elite Musketeer",
+     "sex": "male",
+     "heightCm": 180,
+     "frame": "medium",
+     "age": 40,
+     "exercise": 0.6,
+     "calories": 3650,
+     "style": "matchlock",
+     "skill": 0.5,
+     "look": {
+      "skinTone": "lightTan",
+      "hairStyle": "bun",
+      "hairColor": "#120d0a",
+      "facialHair": "beard",
+      "eyeColor": "brown"
+     },
+     "outfit": {
+      "kind": "mingElite",
+      "design": 1
+     },
+     "accessories": []
+    },
+    "faction": "chinese",
+    "line": "Matchlock · elite brigandine"
+   },
+   {
+    "key": "infantry",
+    "title": "Infantry Rifleman",
+    "inputs": {
+     "name": "Infantry Rifleman",
+     "sex": "male",
+     "heightCm": 176,
+     "frame": "medium",
+     "age": 23,
+     "exercise": 0.62,
+     "calories": 3600,
+     "style": "rifle",
+     "skill": 0.55,
+     "look": {
+      "skinTone": "tan",
+      "hairStyle": "fade",
+      "hairColor": "#120d0a",
+      "facialHair": "none",
+      "eyeColor": "brown"
+     },
+     "outfit": {
+      "kind": "infantry",
+      "design": 0
+     },
+     "accessories": []
+    },
+    "faction": "law",
+    "line": "AR-15 · combat uniform"
+   },
+   {
+    "key": "kanabo",
+    "title": "Kanabō Brute",
+    "inputs": {
+     "name": "Kanabō Brute",
+     "sex": "male",
+     "heightCm": 168,
+     "frame": "large",
+     "age": 36,
+     "exercise": 0.7,
+     "calories": 4885,
+     "style": "kanabo",
+     "skill": 0.7,
+     "look": {
+      "skinTone": "lightTan",
+      "hairStyle": "sakayaki",
+      "hairColor": "#120d0a",
+      "facialHair": "beard",
+      "eyeColor": "brown"
+     },
+     "outfit": {
+      "kind": "samuraiTosei",
+      "design": 5
+     },
+     "accessories": []
+    },
+    "faction": "japanese",
+    "line": "Kanabo · tōsei gusoku"
+   },
+   {
+    "key": "odachi",
+    "title": "Ōdachi Champion",
+    "inputs": {
+     "name": "Ōdachi Champion",
+     "sex": "male",
+     "heightCm": 172,
+     "frame": "large",
+     "age": 34,
+     "exercise": 0.68,
+     "calories": 4150,
+     "style": "odachi",
+     "skill": 0.7,
+     "look": {
+      "skinTone": "lightTan",
+      "hairStyle": "sakayaki",
+      "hairColor": "#120d0a",
+      "facialHair": "beard",
+      "eyeColor": "brown"
+     },
+     "outfit": {
+      "kind": "samuraiTosei",
+      "design": 1
+     },
+     "accessories": []
+    },
+    "faction": "japanese",
+    "line": "Ōdachi · tōsei gusoku"
+   },
+   {
+    "key": "tosei",
+    "title": "One-Eyed Dragon",
+    "inputs": {
+     "name": "One-Eyed Dragon",
+     "sex": "male",
+     "heightCm": 166,
+     "frame": "medium",
+     "age": 34,
+     "exercise": 0.74,
+     "calories": 3795,
+     "style": "katana",
+     "skill": 0.7,
+     "look": {
+      "skinTone": "lightTan",
+      "hairStyle": "sakayaki",
+      "hairColor": "#120d0a",
+      "facialHair": "mustache",
+      "eyeColor": "brown"
+     },
+     "outfit": {
+      "kind": "samuraiTosei",
+      "design": 2
+     },
+     "accessories": [
+      "crest"
+     ]
+    },
+    "faction": "japanese",
+    "line": "Katana · tōsei gusoku"
+   },
+   {
+    "key": "joan",
+    "title": "Maid of Orléans",
+    "inputs": {
+     "name": "Maid of Orléans",
+     "sex": "female",
+     "heightCm": 159,
+     "frame": "medium",
+     "age": 18,
+     "exercise": 0.75,
+     "calories": 2735,
+     "style": "joan",
+     "skill": 1,
+     "look": {
+      "skinTone": "light",
+      "hairStyle": "cleanShort",
+      "hairColor": "#3a2416",
+      "facialHair": "none",
+      "eyeColor": "brown"
+     },
+     "hero": true,
+     "leads": true,
+     "standardColour": "#f1ece0",
+     "outfit": {
+      "kind": "joan",
+      "design": 0
+     },
+     "accessories": []
+    },
+    "faction": "knights",
+    "line": "Joan of Arc · Arming sword",
+    "legend": {
+     "order": 2,
+     "kicker": {
+      "en": "Joan of Arc",
+      "zh": "贞德"
+     },
+     "line": {
+      "en": "White plate, bareheaded, the arming sword; she bears the standard when she leads.",
+      "zh": "一身白甲，不戴头盔，手握佩剑；冲锋在前时，旗帜由她亲自扛。"
+     }
+    }
+   },
+   {
+    "key": "cuman",
+    "title": "Iron-Faced Cuman",
+    "inputs": {
+     "name": "Iron-Faced Cuman",
+     "sex": "male",
+     "heightCm": 177,
+     "frame": "large",
+     "age": 40,
+     "exercise": 0.92,
+     "calories": 5050,
+     "style": "cumanBow",
+     "skill": 0.6,
+     "look": {
+      "skinTone": "light",
+      "hairStyle": "long",
+      "hairColor": "#4a3020",
+      "facialHair": "mustache",
+      "eyeColor": "brown"
+     },
+     "outfit": {
+      "kind": "cumanHeavy",
+      "design": 0
+     },
+     "accessories": []
+    },
+    "faction": "steppe",
+    "line": "Cuman: bow and sabre · Composite bow · mail and plates, masked helmet"
+   },
+   {
+    "key": "tametomo",
+    "title": "Great-Bow Archer",
+    "inputs": {
+     "name": "Great-Bow Archer",
+     "sex": "male",
+     "heightCm": 170,
+     "frame": "large",
+     "age": 18,
+     "exercise": 0.74,
+     "calories": 4045,
+     "style": "yumi",
+     "skill": 1,
+     "look": {
+      "skinTone": "lightTan",
+      "hairStyle": "sakayaki",
+      "hairColor": "#120d0a",
+      "facialHair": "stubble",
+      "eyeColor": "brown"
+     },
+     "hero": true,
+     "outfit": {
+      "kind": "oyoroi",
+      "design": 0
+     },
+     "accessories": [
+      "crest"
+     ]
+    },
+    "faction": "japanese",
+    "line": "Yumi · Ō-yoroi (great armour)",
+    "flagship": true,
+    "legend": {
+     "order": 3,
+     "kicker": {
+      "en": "Great-armour samurai",
+      "zh": "大铠武士"
+     },
+     "line": {
+      "en": "The great archer of the Hōgen war, in ō-yoroi: the long yumi, then the blade.",
+      "zh": "保元之乱的大弓手，身披大铠：先放长弓，再拔刀。"
+     }
+    }
+   },
+   {
+    "key": "guanYu",
+    "title": "Guan Yu",
+    "inputs": {
+     "name": "Guan Yu",
+     "sex": "male",
+     "heightCm": 187,
+     "frame": "large",
+     "age": 45,
+     "exercise": 0.58,
+     "calories": 4200,
+     "style": "guanYu",
+     "skill": 1,
+     "look": {
+      "skinTone": "tan",
+      "hairStyle": "bun",
+      "hairColor": "#120d0a",
+      "facialHair": "longBeard",
+      "eyeColor": "brown",
+      "faceColor": "#b06c48"
+     },
+     "hero": true,
+     "outfit": {
+      "kind": "guanYu",
+      "design": 0
+     },
+     "accessories": []
+    },
+    "faction": "chinese",
+    "line": "Guan Yu · Green Dragon Crescent Blade",
+    "legend": {
+     "order": 6,
+     "kicker": {
+      "en": "God of War",
+      "zh": "武圣"
+     },
+     "line": {
+      "en": "The Green Dragon Crescent Blade: great sweeping cuts from far off.",
+      "zh": "青龙偃月刀：隔着老远，大开大合地抡过来。"
+     }
+    }
+   },
+   {
+    "key": "naginata",
+    "title": "Glaive Maiden",
+    "inputs": {
+     "name": "Glaive Maiden",
+     "sex": "female",
+     "heightCm": 165,
+     "frame": "medium",
+     "age": 27,
+     "exercise": 0.85,
+     "calories": 3975,
+     "style": "naginata",
+     "skill": 0.75,
+     "look": {
+      "skinTone": "lightTan",
+      "hairStyle": "long",
+      "hairColor": "#120d0a",
+      "facialHair": "none",
+      "eyeColor": "brown"
+     },
+     "outfit": {
+      "kind": "samurai",
+      "design": 3
+     },
+     "accessories": [
+      "crest"
+     ]
+    },
+    "faction": "japanese",
+    "line": "Naginata · ō-yoroi"
+   },
+   {
+    "key": "oyoroi",
+    "title": "Tiger of Kai",
+    "inputs": {
+     "name": "Tiger of Kai",
+     "sex": "male",
+     "heightCm": 168,
+     "frame": "medium",
+     "age": 34,
+     "exercise": 0.74,
+     "calories": 3875,
+     "style": "katana",
+     "skill": 0.75,
+     "look": {
+      "skinTone": "lightTan",
+      "hairStyle": "sakayaki",
+      "hairColor": "#120d0a",
+      "facialHair": "mustache",
+      "eyeColor": "brown"
+     },
+     "outfit": {
+      "kind": "samurai",
+      "design": 1
+     },
+     "accessories": [
+      "crest"
+     ]
+    },
+    "faction": "japanese",
+    "line": "Katana · ō-yoroi"
+   },
+   {
+    "key": "bannerGuandao",
+    "title": "Banner Glaive-Man",
+    "inputs": {
+     "name": "Banner Glaive-Man",
+     "sex": "male",
+     "heightCm": 179,
+     "frame": "large",
+     "age": 31,
+     "exercise": 0.9199999999999999,
+     "calories": 5305,
+     "style": "guandao",
+     "skill": 0.5,
+     "look": {
+      "skinTone": "lightTan",
+      "hairStyle": "buzz",
+      "hairColor": "#120d0a",
+      "facialHair": "beard",
+      "eyeColor": "brown"
+     },
+     "outfit": {
+      "kind": "bannerArmour",
+      "design": 5
+     },
+     "accessories": []
+    },
+    "faction": "manchu",
+    "line": "Guandao · banner armour"
+   },
+   {
+    "key": "bannerSpear",
+    "title": "Banner Spearman",
+    "inputs": {
+     "name": "Banner Spearman",
+     "sex": "male",
+     "heightCm": 174,
+     "frame": "medium",
+     "age": 28,
+     "exercise": 0.9,
+     "calories": 4905,
+     "style": "spear",
+     "skill": 0.5,
+     "look": {
+      "skinTone": "lightTan",
+      "hairStyle": "buzz",
+      "hairColor": "#120d0a",
+      "facialHair": "mustache",
+      "eyeColor": "brown"
+     },
+     "outfit": {
+      "kind": "bannerArmour",
+      "design": 6
+     },
+     "accessories": []
+    },
+    "faction": "manchu",
+    "line": "Spear · banner armour"
+   },
+   {
+    "key": "templar",
+    "title": "Templar Grand Master",
+    "inputs": {
+     "name": "Templar Grand Master",
+     "sex": "male",
+     "heightCm": 178,
+     "frame": "large",
+     "age": 34,
+     "exercise": 0.68,
+     "calories": 4425,
+     "style": "templar",
+     "skill": 1,
+     "look": {
+      "skinTone": "light",
+      "hairStyle": "cleanShort",
+      "hairColor": "#3a2a1c",
+      "facialHair": "beard",
+      "eyeColor": "brown"
+     },
+     "hero": true,
+     "outfit": {
+      "kind": "templar",
+      "design": 0
+     },
+     "accessories": []
+    },
+    "faction": "knights",
+    "line": "Sword and heater · Arming sword · mail, surcoat and great helm",
+    "flagship": true,
+    "legend": {
+     "order": 1,
+     "kicker": {
+      "en": "The Crusader",
+      "zh": "十字军"
+     },
+     "line": {
+      "en": "A warrior monk of the Crusades: arming sword, heater shield, mail and the great helm.",
+      "zh": "十字军里的武装修士：佩剑、骑士盾、锁子甲，头上一顶桶盔。"
+     }
+    }
+   },
+   {
+    "key": "archer",
+    "title": "Fan-Shooter Archer",
+    "inputs": {
+     "name": "Fan-Shooter Archer",
+     "sex": "male",
+     "heightCm": 166,
+     "frame": "medium",
+     "age": 24,
+     "exercise": 0.7,
+     "calories": 3390,
+     "style": "bow",
+     "skill": 0.75,
+     "look": {
+      "skinTone": "lightTan",
+      "hairStyle": "sakayaki",
+      "hairColor": "#120d0a",
+      "facialHair": "none",
+      "eyeColor": "brown"
+     },
+     "outfit": {
+      "kind": "samurai",
+      "design": 2
+     },
+     "accessories": []
+    },
+    "faction": "japanese",
+    "line": "Bow · ō-yoroi"
+   },
+   {
+    "key": "bannerArcher",
+    "title": "Banner Archer",
+    "inputs": {
+     "name": "Banner Archer",
+     "sex": "male",
+     "heightCm": 174,
+     "frame": "medium",
+     "age": 28,
+     "exercise": 0.9,
+     "calories": 4905,
+     "style": "manchuBow",
+     "skill": 0.5,
+     "look": {
+      "skinTone": "lightTan",
+      "hairStyle": "buzz",
+      "hairColor": "#120d0a",
+      "facialHair": "mustache",
+      "eyeColor": "brown"
+     },
+     "outfit": {
+      "kind": "bannerArmour",
+      "design": 0
+     },
+     "accessories": []
+    },
+    "faction": "manchu",
+    "line": "Manchu bow · banner armour"
+   },
+   {
+    "key": "steppeShield",
+    "title": "Kheshig Archer",
+    "inputs": {
+     "name": "Kheshig Archer",
+     "sex": "male",
+     "heightCm": 168,
+     "frame": "large",
+     "age": 29,
+     "exercise": 0.65,
+     "calories": 4015,
+     "style": "kheshigBow",
+     "skill": 0.75,
+     "look": {
+      "skinTone": "lightTan",
+      "hairStyle": "long",
+      "hairColor": "#120d0a",
+      "facialHair": "mustache",
+      "eyeColor": "brown"
+     },
+     "outfit": {
+      "kind": "kheshig",
+      "design": 0
+     },
+     "accessories": [],
+     "sidearm": "mace"
+    },
+    "faction": "steppe",
+    "line": "Khan's guard: bow and mace · Composite bow · the Khan's guard"
+   },
+   {
+    "key": "mandukhai",
+    "title": "Warrior Queen",
+    "inputs": {
+     "name": "Warrior Queen",
+     "sex": "female",
+     "heightCm": 159,
+     "frame": "large",
+     "age": 30,
+     "exercise": 0.7,
+     "calories": 3290,
+     "style": "saberShield",
+     "skill": 0.75,
+     "look": {
+      "skinTone": "lightTan",
+      "hairStyle": "long",
+      "hairColor": "#120d0a",
+      "facialHair": "none",
+      "eyeColor": "brown"
+     },
+     "outfit": {
+      "kind": "kheshig",
+      "design": 1
+     },
+     "accessories": []
+    },
+    "faction": "steppe",
+    "line": "Sabre and kalkan · Sabre · the Khan's guard"
+   },
+   {
+    "key": "scissor",
+    "title": "Scissor Gladiator",
+    "inputs": {
+     "name": "Scissor Gladiator",
+     "sex": "male",
+     "heightCm": 176,
+     "frame": "large",
+     "age": 31,
+     "exercise": 0.6,
+     "calories": 4590,
+     "style": "scissor",
+     "skill": 0.7,
+     "look": {
+      "skinTone": "tan",
+      "hairStyle": "buzz",
+      "hairColor": "#2a1a10",
+      "facialHair": "beard",
+      "eyeColor": "brown"
+     },
+     "outfit": {
+      "kind": "scissor",
+      "design": 4
+     }
+    },
+    "faction": "gladiators",
+    "line": "Scissor · Gladius · scissor"
+   },
+   {
+    "key": "firefighter",
+    "title": "Fire-Suited Fireman",
+    "inputs": {
+     "name": "Fire-Suited Fireman",
+     "sex": "male",
+     "heightCm": 180,
+     "frame": "large",
+     "age": 36,
+     "exercise": 0.6,
+     "calories": 4200,
+     "style": "staff",
+     "skill": 0.2,
+     "look": {
+      "skinTone": "light",
+      "hairStyle": "cleanShort",
+      "hairColor": "#3a2a1c",
+      "facialHair": "mustache",
+      "eyeColor": "blue"
+     },
+     "outfit": {
+      "kind": "proximity",
+      "design": 0
+     },
+     "accessories": []
+    },
+    "faction": "law",
+    "line": "Staff · proximity suit"
+   },
+   {
+    "key": "bayara",
+    "title": "Bayara Guard",
+    "inputs": {
+     "name": "Bayara Guard",
+     "sex": "male",
+     "heightCm": 176,
+     "frame": "large",
+     "age": 40,
+     "exercise": 0.95,
+     "calories": 5205,
+     "style": "bayaraLance",
+     "skill": 0.53,
+     "look": {
+      "skinTone": "lightTan",
+      "hairStyle": "buzz",
+      "hairColor": "#120d0a",
+      "facialHair": "mustache",
+      "eyeColor": "brown"
+     },
+     "outfit": {
+      "kind": "bayara",
+      "design": 1
+     },
+     "accessories": []
+    },
+    "faction": "manchu",
+    "line": "Bayara: heavy spear · Heavy spear · Bayara guard",
+    "flagship": true
+   },
+   {
+    "key": "secutor",
+    "title": "Secutor",
+    "inputs": {
+     "name": "Secutor",
+     "sex": "male",
+     "heightCm": 175,
+     "frame": "large",
+     "age": 27,
+     "exercise": 0.62,
+     "calories": 4550,
+     "style": "secutor",
+     "skill": 0.7,
+     "look": {
+      "skinTone": "medium",
+      "hairStyle": "buzz",
+      "hairColor": "#120d0a",
+      "facialHair": "none",
+      "eyeColor": "brown"
+     },
+     "outfit": {
+      "kind": "secutor",
+      "design": 3
+     }
+    },
+    "faction": "gladiators",
+    "line": "Secutor · Gladius · secutor"
+   },
+   {
+    "key": "murmillo",
+    "title": "Murmillo",
+    "inputs": {
+     "name": "Murmillo",
+     "sex": "male",
+     "heightCm": 176,
+     "frame": "large",
+     "age": 29,
+     "exercise": 0.6,
+     "calories": 4620,
+     "style": "murmillo",
+     "skill": 0.7,
+     "look": {
+      "skinTone": "tan",
+      "hairStyle": "buzz",
+      "hairColor": "#1c130c",
+      "facialHair": "stubble",
+      "eyeColor": "brown"
+     },
+     "outfit": {
+      "kind": "murmillo",
+      "design": 1
+     }
+    },
+    "faction": "gladiators",
+    "line": "Murmillo · Gladius · murmillo"
+   },
+   {
+    "key": "vocPikeman",
+    "title": "Company Pikeman",
+    "inputs": {
+     "name": "Company Pikeman",
+     "sex": "male",
+     "heightCm": 175,
+     "frame": "large",
+     "age": 30,
+     "exercise": 0.66,
+     "calories": 4025,
+     "style": "spear",
+     "skill": 0.6,
+     "look": {
+      "skinTone": "light",
+      "hairStyle": "midLong",
+      "hairColor": "#c9a25e",
+      "facialHair": "beard",
+      "eyeColor": "blue"
+     },
+     "outfit": {
+      "kind": "conquistadorPlate",
+      "design": 3
+     },
+     "accessories": []
+    },
+    "faction": "knights",
+    "line": "Spear · breastplate"
+   },
+   {
+    "key": "sipahi",
+    "title": "Mace Sipahi",
+    "inputs": {
+     "name": "Mace Sipahi",
+     "sex": "male",
+     "heightCm": 181,
+     "frame": "large",
+     "age": 34,
+     "exercise": 0.95,
+     "calories": 5350,
+     "style": "maceShield",
+     "skill": 0.6,
+     "look": {
+      "skinTone": "tan",
+      "hairStyle": "cleanShort",
+      "hairColor": "#120d0a",
+      "facialHair": "beard",
+      "eyeColor": "brown"
+     },
+     "outfit": {
+      "kind": "ottomanHeavy",
+      "design": 0
+     },
+     "accessories": []
+    },
+    "faction": "ottomans",
+    "line": "Mace and shield · Flanged mace · mail and plate"
+   },
+   {
+    "key": "saladin",
+    "title": "Saladin",
+    "inputs": {
+     "name": "Saladin",
+     "sex": "male",
+     "heightCm": 181,
+     "frame": "large",
+     "age": 50,
+     "exercise": 0.9,
+     "calories": 4900,
+     "style": "saladin",
+     "skill": 1,
+     "look": {
+      "skinTone": "lightTan",
+      "hairStyle": "cleanShort",
+      "hairColor": "#2e2620",
+      "facialHair": "beard",
+      "eyeColor": "brown"
+     },
+     "hero": true,
+     "standardColour": "#d8b030",
+     "outfit": {
+      "kind": "saladin",
+      "design": 0
+     },
+     "accessories": []
+    },
+    "faction": "ottomans",
+    "line": "Sayf and turs · Sayf · kazaghand over mail, turban helmet",
+    "flagship": true,
+    "legend": {
+     "order": 9,
+     "kicker": {
+      "en": "Sultan of Egypt and Syria",
+      "zh": "埃及与叙利亚的苏丹"
+     },
+     "line": {
+      "en": "The straight Ayyubid sword and round shield: patient, quick to answer.",
+      "zh": "阿尤布直剑配圆盾：沉得住气，还手极快。"
+     }
+    }
+   },
+   {
+    "key": "sohei",
+    "title": "Warrior Monk",
+    "inputs": {
+     "name": "Warrior Monk",
+     "sex": "male",
+     "heightCm": 190,
+     "frame": "large",
+     "age": 30,
+     "exercise": 0.92,
+     "calories": 6200,
+     "style": "naginata",
+     "skill": 0.95,
+     "look": {
+      "skinTone": "lightTan",
+      "hairStyle": "bald",
+      "hairColor": "#120d0a",
+      "facialHair": "none",
+      "eyeColor": "brown"
+     },
+     "outfit": {
+      "kind": "sohei",
+      "design": 0
+     },
+     "accessories": []
+    },
+    "faction": "japanese",
+    "line": "Naginata · warrior monk"
+   },
+   {
+    "key": "centurion",
+    "title": "Centurion",
+    "inputs": {
+     "name": "Centurion",
+     "sex": "male",
+     "heightCm": 172,
+     "frame": "medium",
+     "age": 53,
+     "exercise": 0.75,
+     "calories": 4150,
+     "style": "centurion",
+     "skill": 0.75,
+     "look": {
+      "skinTone": "lightTan",
+      "hairStyle": "buzz",
+      "hairColor": "#5a4a3a",
+      "facialHair": "none",
+      "eyeColor": "brown"
+     },
+     "outfit": {
+      "kind": "centurion",
+      "design": 0
+     },
+     "accessories": []
+    },
+    "faction": "romans",
+    "line": "Centurion · Gladius"
+   },
+   {
+    "key": "hidalgo",
+    "title": "Conquistador Captain",
+    "inputs": {
+     "name": "Conquistador Captain",
+     "sex": "male",
+     "heightCm": 172,
+     "frame": "medium",
+     "age": 35,
+     "exercise": 0.82,
+     "calories": 3950,
+     "style": "espada",
+     "skill": 0.6,
+     "look": {
+      "skinTone": "light",
+      "hairStyle": "cleanShort",
+      "hairColor": "#2a1d14",
+      "facialHair": "beard",
+      "eyeColor": "brown"
+     },
+     "outfit": {
+      "kind": "conquistadorPlate",
+      "design": 0
+     },
+     "accessories": []
+    },
+    "faction": "knights",
+    "line": "Espada · breastplate"
+   },
+   {
+    "key": "hoplomachus",
+    "title": "Hoplomachus",
+    "inputs": {
+     "name": "Hoplomachus",
+     "sex": "male",
+     "heightCm": 177,
+     "frame": "large",
+     "age": 28,
+     "exercise": 0.62,
+     "calories": 4520,
+     "style": "hoplomachus",
+     "skill": 0.7,
+     "look": {
+      "skinTone": "tan",
+      "hairStyle": "cleanShort",
+      "hairColor": "#1c130c",
+      "facialHair": "beard",
+      "eyeColor": "brown"
+     },
+     "outfit": {
+      "kind": "hoplomachus",
+      "design": 0
+     }
+    },
+    "faction": "gladiators",
+    "line": "Hoplomachus · Spear · hoplomachus"
+   },
+   {
+    "key": "thraex",
+    "title": "Rebel Thraex",
+    "inputs": {
+     "name": "Rebel Thraex",
+     "sex": "male",
+     "heightCm": 174,
+     "frame": "large",
+     "age": 30,
+     "exercise": 0.62,
+     "calories": 4330,
+     "style": "thraex",
+     "skill": 0.7,
+     "look": {
+      "skinTone": "light",
+      "hairStyle": "cleanShort",
+      "hairColor": "#3a2416",
+      "facialHair": "beard",
+      "eyeColor": "brown"
+     },
+     "outfit": {
+      "kind": "thraex",
+      "design": 0
+     }
+    },
+    "faction": "gladiators",
+    "line": "Thraex · Sica · thraex"
+   },
+   {
+    "key": "mingEliteInfantry",
+    "title": "Ming Elite Infantry",
+    "inputs": {
+     "name": "Ming Elite Infantry",
+     "sex": "male",
+     "heightCm": 171,
+     "frame": "medium",
+     "age": 27,
+     "exercise": 0.6799999999999999,
+     "calories": 3550,
+     "style": "langxian",
+     "skill": 0.54,
+     "look": {
+      "skinTone": "lightTan",
+      "hairStyle": "bun",
+      "hairColor": "#120d0a",
+      "facialHair": "stubble",
+      "eyeColor": "brown"
+     },
+     "outfit": {
+      "kind": "mingEliteInfantry",
+      "design": 0
+     },
+     "accessories": []
+    },
+    "faction": "chinese",
+    "line": "Langxian · elite infantry"
+   },
+   {
+    "key": "mingDangpa",
+    "title": "Dangpa Soldier",
+    "inputs": {
+     "name": "Dangpa Soldier",
+     "sex": "male",
+     "heightCm": 171,
+     "frame": "medium",
+     "age": 29,
+     "exercise": 0.6799999999999999,
+     "calories": 3550,
+     "style": "dangpa",
+     "skill": 0.54,
+     "look": {
+      "skinTone": "lightTan",
+      "hairStyle": "bun",
+      "hairColor": "#120d0a",
+      "facialHair": "stubble",
+      "eyeColor": "brown"
+     },
+     "outfit": {
+      "kind": "mingEliteInfantry",
+      "design": 2
+     },
+     "accessories": []
+    },
+    "faction": "chinese",
+    "line": "Dangpa · elite infantry"
+   },
+   {
+    "key": "mingEliteSpear",
+    "title": "Qi Long Spearman",
+    "inputs": {
+     "name": "Qi Long Spearman",
+     "sex": "male",
+     "heightCm": 171,
+     "frame": "medium",
+     "age": 25,
+     "exercise": 0.6799999999999999,
+     "calories": 3550,
+     "style": "spear",
+     "skill": 0.54,
+     "look": {
+      "skinTone": "lightTan",
+      "hairStyle": "bun",
+      "hairColor": "#120d0a",
+      "facialHair": "stubble",
+      "eyeColor": "brown"
+     },
+     "outfit": {
+      "kind": "mingEliteInfantry",
+      "design": 1
+     },
+     "accessories": []
+    },
+    "faction": "chinese",
+    "line": "Spear · elite infantry"
+   },
+   {
+    "key": "gaziAlp",
+    "title": "Frontier Gazi",
+    "inputs": {
+     "name": "Frontier Gazi",
+     "sex": "male",
+     "heightCm": 180,
+     "frame": "large",
+     "age": 36,
+     "exercise": 0.95,
+     "calories": 5250,
+     "style": "kilijShield",
+     "skill": 0.7,
+     "look": {
+      "skinTone": "tan",
+      "hairStyle": "cleanShort",
+      "hairColor": "#120d0a",
+      "facialHair": "beard",
+      "eyeColor": "brown"
+     },
+     "outfit": {
+      "kind": "gaziAlp",
+      "design": 0
+     },
+     "accessories": []
+    },
+    "faction": "ottomans",
+    "line": "Kilij and kalkan · Kilij · Osman's gazi"
+   },
+   {
+    "key": "legionary",
+    "title": "Legionary",
+    "inputs": {
+     "name": "Legionary",
+     "sex": "male",
+     "heightCm": 171,
+     "frame": "medium",
+     "age": 28,
+     "exercise": 0.75,
+     "calories": 4100,
+     "style": "legionary",
+     "skill": 0.55,
+     "look": {
+      "skinTone": "lightTan",
+      "hairStyle": "buzz",
+      "hairColor": "#2a1a10",
+      "facialHair": "none",
+      "eyeColor": "brown"
+     },
+     "outfit": {
+      "kind": "legionary",
+      "design": 0
+     },
+     "accessories": []
+    },
+    "faction": "romans",
+    "line": "Legionary · Gladius"
+   },
+   {
+    "key": "cuirassier",
+    "title": "Cuirassier",
+    "inputs": {
+     "name": "Cuirassier",
+     "sex": "male",
+     "heightCm": 180,
+     "frame": "large",
+     "age": 28,
+     "exercise": 0.7,
+     "calories": 4200,
+     "style": "heavySword",
+     "skill": 0.55,
+     "look": {
+      "skinTone": "light",
+      "hairStyle": "cleanShort",
+      "hairColor": "#2a1a10",
+      "facialHair": "handlebar",
+      "eyeColor": "brown"
+     },
+     "outfit": {
+      "kind": "cuirassier",
+      "design": 0
+     },
+     "accessories": []
+    },
+    "faction": "napoleonic",
+    "line": "Heavy cavalry sword · Cuirassier"
+   },
+   {
+    "key": "mingGun",
+    "title": "Ming Musketeer",
+    "inputs": {
+     "name": "Ming Musketeer",
+     "sex": "male",
+     "heightCm": 170,
+     "frame": "medium",
+     "age": 33,
+     "exercise": 0.55,
+     "calories": 3250,
+     "style": "matchlock",
+     "skill": 0.35,
+     "look": {
+      "skinTone": "lightTan",
+      "hairStyle": "bun",
+      "hairColor": "#120d0a",
+      "facialHair": "mustache",
+      "eyeColor": "brown"
+     },
+     "outfit": {
+      "kind": "mingBrigandine",
+      "design": 1
+     },
+     "accessories": []
+    },
+    "faction": "chinese",
+    "line": "Matchlock · brigandine"
+   },
+   {
+    "key": "mingBrigSpear",
+    "title": "Ming Spearman",
+    "inputs": {
+     "name": "Ming Spearman",
+     "sex": "male",
+     "heightCm": 173,
+     "frame": "medium",
+     "age": 30,
+     "exercise": 0.62,
+     "calories": 3750,
+     "style": "spear",
+     "skill": 0.35,
+     "look": {
+      "skinTone": "lightTan",
+      "hairStyle": "bun",
+      "hairColor": "#120d0a",
+      "facialHair": "beard",
+      "eyeColor": "brown"
+     },
+     "outfit": {
+      "kind": "mingBrigandine",
+      "design": 2
+     },
+     "accessories": []
+    },
+    "faction": "chinese",
+    "line": "Spear · brigandine"
+   },
+   {
+    "key": "mingShield",
+    "title": "Ming Shield Soldier",
+    "inputs": {
+     "name": "Ming Shield Soldier",
+     "sex": "male",
+     "heightCm": 173,
+     "frame": "medium",
+     "age": 30,
+     "exercise": 0.62,
+     "calories": 3750,
+     "style": "swordShield",
+     "skill": 0.35,
+     "look": {
+      "skinTone": "lightTan",
+      "hairStyle": "bun",
+      "hairColor": "#120d0a",
+      "facialHair": "beard",
+      "eyeColor": "brown"
+     },
+     "outfit": {
+      "kind": "mingBrigandine",
+      "design": 0
+     },
+     "accessories": []
+    },
+    "faction": "chinese",
+    "line": "Sword and shield · Dao · brigandine"
+   },
+   {
+    "key": "arquebus",
+    "title": "Arquebusier",
+    "inputs": {
+     "name": "Arquebusier",
+     "sex": "male",
+     "heightCm": 170,
+     "frame": "medium",
+     "age": 26,
+     "exercise": 0.75,
+     "calories": 4050,
+     "style": "matchlock",
+     "skill": 0.4,
+     "look": {
+      "skinTone": "medium",
+      "hairStyle": "bun",
+      "hairColor": "#2a1a10",
+      "facialHair": "none",
+      "eyeColor": "hazel"
+     },
+     "outfit": {
+      "kind": "footman",
+      "design": 1
+     },
+     "accessories": []
+    },
+    "faction": "knights",
+    "line": "Matchlock · Foot soldier"
+   },
+   {
+    "key": "crossbowman",
+    "title": "Genoese Crossbowman",
+    "inputs": {
+     "name": "Genoese Crossbowman",
+     "sex": "male",
+     "heightCm": 171,
+     "frame": "medium",
+     "age": 34,
+     "exercise": 0.7,
+     "calories": 3745,
+     "style": "crossbow",
+     "skill": 0.45,
+     "look": {
+      "skinTone": "lightTan",
+      "hairStyle": "cleanShort",
+      "hairColor": "#2a1a10",
+      "facialHair": "stubble",
+      "eyeColor": "brown"
+     },
+     "outfit": {
+      "kind": "footman",
+      "design": 0
+     },
+     "accessories": []
+    },
+    "faction": "knights",
+    "line": "Crossbow · Foot soldier"
+   },
+   {
+    "key": "footSpear",
+    "title": "Spear Footman",
+    "inputs": {
+     "name": "Spear Footman",
+     "sex": "male",
+     "heightCm": 172,
+     "frame": "medium",
+     "age": 26,
+     "exercise": 0.86,
+     "calories": 4100,
+     "style": "spear",
+     "skill": 0.4,
+     "look": {
+      "skinTone": "medium",
+      "hairStyle": "bun",
+      "hairColor": "#2a1a10",
+      "facialHair": "none",
+      "eyeColor": "hazel"
+     },
+     "outfit": {
+      "kind": "footman",
+      "design": 0
+     },
+     "accessories": []
+    },
+    "faction": "knights",
+    "line": "Spear · Foot soldier"
+   },
+   {
+    "key": "halberdier",
+    "title": "Halberdier",
+    "inputs": {
+     "name": "Halberdier",
+     "sex": "male",
+     "heightCm": 172,
+     "frame": "medium",
+     "age": 30,
+     "exercise": 0.5,
+     "calories": 3085,
+     "style": "halberd",
+     "skill": 0.4,
+     "look": {
+      "skinTone": "tan",
+      "hairStyle": "cleanShort",
+      "hairColor": "#2a1a10",
+      "facialHair": "stubble",
+      "eyeColor": "hazel"
+     },
+     "outfit": {
+      "kind": "footman",
+      "design": 0
+     },
+     "accessories": []
+    },
+    "faction": "knights",
+    "line": "Halberd · Foot soldier"
+   },
+   {
+    "key": "swatShotgun",
+    "title": "SWAT Breacher",
+    "inputs": {
+     "name": "SWAT Breacher",
+     "sex": "male",
+     "heightCm": 180,
+     "frame": "large",
+     "age": 31,
+     "exercise": 0.66,
+     "calories": 4425,
+     "style": "shotgun",
+     "skill": 0.55,
+     "look": {
+      "skinTone": "deep",
+      "hairStyle": "buzz",
+      "hairColor": "#120d0a",
+      "facialHair": "beard",
+      "eyeColor": "brown"
+     },
+     "outfit": {
+      "kind": "swat",
+      "design": 0
+     },
+     "accessories": []
+    },
+    "faction": "law",
+    "line": "Shotgun · SWAT"
+   },
+   {
+    "key": "teppo",
+    "title": "Teppō Gunner",
+    "inputs": {
+     "name": "Teppō Gunner",
+     "sex": "male",
+     "heightCm": 168,
+     "frame": "medium",
+     "age": 31,
+     "exercise": 0.6,
+     "calories": 3110,
+     "style": "matchlock",
+     "skill": 0.35,
+     "look": {
+      "skinTone": "lightTan",
+      "hairStyle": "topknot",
+      "hairColor": "#120d0a",
+      "facialHair": "stubble",
+      "eyeColor": "brown"
+     },
+     "outfit": {
+      "kind": "ashigaru",
+      "design": 0
+     },
+     "accessories": []
+    },
+    "faction": "japanese",
+    "line": "Matchlock · Ashigaru"
+   },
+   {
+    "key": "ashigaruBow",
+    "title": "Ashigaru Archer",
+    "inputs": {
+     "name": "Ashigaru Archer",
+     "sex": "male",
+     "heightCm": 164,
+     "frame": "medium",
+     "age": 30,
+     "exercise": 0.5,
+     "calories": 2730,
+     "style": "archerYumi",
+     "skill": 0.35,
+     "look": {
+      "skinTone": "tan",
+      "hairStyle": "cleanShort",
+      "hairColor": "#2a1a10",
+      "facialHair": "stubble",
+      "eyeColor": "hazel"
+     },
+     "outfit": {
+      "kind": "ashigaru",
+      "design": 1
+     },
+     "accessories": []
+    },
+    "faction": "japanese",
+    "line": "Yumi archer · Yumi · Ashigaru"
+   },
+   {
+    "key": "pistol",
+    "title": "SWAT Pistoleer",
+    "inputs": {
+     "name": "SWAT Pistoleer",
+     "sex": "male",
+     "heightCm": 180,
+     "frame": "medium",
+     "age": 34,
+     "exercise": 0.55,
+     "calories": 3720,
+     "style": "handgun",
+     "skill": 0.55,
+     "look": {
+      "skinTone": "light",
+      "hairStyle": "fade",
+      "hairColor": "#2a1a10",
+      "facialHair": "stubble",
+      "eyeColor": "blue"
+     },
+     "outfit": {
+      "kind": "swat",
+      "design": 0
+     }
+    },
+    "faction": "law",
+    "line": "Handgun · Pistol · SWAT"
+   },
+   {
+    "key": "ashigaruSpear",
+    "title": "Ashigaru Spearman",
+    "inputs": {
+     "name": "Ashigaru Spearman",
+     "sex": "male",
+     "heightCm": 164,
+     "frame": "medium",
+     "age": 30,
+     "exercise": 0.5,
+     "calories": 2730,
+     "style": "yari",
+     "skill": 0.35,
+     "look": {
+      "skinTone": "tan",
+      "hairStyle": "cleanShort",
+      "hairColor": "#2a1a10",
+      "facialHair": "stubble",
+      "eyeColor": "hazel"
+     },
+     "outfit": {
+      "kind": "ashigaru",
+      "design": 0
+     },
+     "accessories": []
+    },
+    "faction": "japanese",
+    "line": "Yari · Ashigaru"
+   },
+   {
+    "key": "baton",
+    "title": "SWAT Baton Officer",
+    "inputs": {
+     "name": "SWAT Baton Officer",
+     "sex": "male",
+     "heightCm": 182,
+     "frame": "medium",
+     "age": 33,
+     "exercise": 0.6,
+     "calories": 4250,
+     "style": "baton",
+     "skill": 0.55,
+     "look": {
+      "skinTone": "tan",
+      "hairStyle": "buzz",
+      "hairColor": "#120d0a",
+      "facialHair": "mustache",
+      "eyeColor": "brown"
+     },
+     "outfit": {
+      "kind": "swat",
+      "design": 0
+     }
+    },
+    "faction": "law",
+    "line": "Police baton · SWAT"
+   },
+   {
+    "key": "footBow",
+    "title": "English Longbowman",
+    "inputs": {
+     "name": "English Longbowman",
+     "sex": "male",
+     "heightCm": 172,
+     "frame": "medium",
+     "age": 26,
+     "exercise": 0.86,
+     "calories": 4100,
+     "style": "bow",
+     "skill": 0.45,
+     "look": {
+      "skinTone": "medium",
+      "hairStyle": "bun",
+      "hairColor": "#2a1a10",
+      "facialHair": "none",
+      "eyeColor": "hazel"
+     },
+     "outfit": {
+      "kind": "footman",
+      "design": 2
+     },
+     "accessories": []
+    },
+    "faction": "knights",
+    "line": "Bow · Foot soldier"
+   },
+   {
+    "key": "hanCrossbow",
+    "title": "Han Crossbowman",
+    "inputs": {
+     "name": "Han Crossbowman",
+     "sex": "male",
+     "heightCm": 170,
+     "frame": "medium",
+     "age": 35,
+     "exercise": 0.7,
+     "calories": 3795,
+     "style": "nu",
+     "skill": 0.3,
+     "look": {
+      "skinTone": "lightTan",
+      "hairStyle": "bun",
+      "hairColor": "#120d0a",
+      "facialHair": "mustache",
+      "eyeColor": "brown"
+     },
+     "outfit": {
+      "kind": "hanSoldier",
+      "design": 0
+     },
+     "accessories": []
+    },
+    "faction": "chinese",
+    "line": "Crossbow (nu) · iron lamellar"
+   },
+   {
+    "key": "riot",
+    "title": "Riot Shield Officer",
+    "inputs": {
+     "name": "Riot Shield Officer",
+     "sex": "male",
+     "heightCm": 183,
+     "frame": "medium",
+     "age": 32,
+     "exercise": 0.6,
+     "calories": 4300,
+     "style": "riot",
+     "skill": 0.45,
+     "look": {
+      "skinTone": "light",
+      "hairStyle": "buzz",
+      "hairColor": "#6b4a2a",
+      "facialHair": "none",
+      "eyeColor": "blue"
+     },
+     "outfit": {
+      "kind": "riot",
+      "design": 0
+     },
+     "accessories": []
+    },
+    "faction": "law",
+    "line": "Riot shield and baton · Police baton · Riot officer"
+   },
+   {
+    "key": "doppelsoeldner",
+    "title": "Doppelsöldner",
+    "inputs": {
+     "name": "Doppelsöldner",
+     "sex": "male",
+     "heightCm": 172,
+     "frame": "medium",
+     "age": 30,
+     "exercise": 0.5,
+     "calories": 3050,
+     "style": "zweihander",
+     "skill": 0.65,
+     "look": {
+      "skinTone": "light",
+      "hairStyle": "cleanShort",
+      "hairColor": "#5a3220",
+      "facialHair": "beard",
+      "eyeColor": "blue"
+     },
+     "outfit": {
+      "kind": "landsknecht",
+      "design": 0
+     },
+     "accessories": []
+    },
+    "faction": "knights",
+    "line": "Zweihander · breastplate"
+   },
+   {
+    "key": "arquebusier",
+    "title": "Conquistador Arquebusier",
+    "inputs": {
+     "name": "Conquistador Arquebusier",
+     "sex": "male",
+     "heightCm": 175,
+     "frame": "large",
+     "age": 30,
+     "exercise": 0.66,
+     "calories": 4025,
+     "style": "matchlock",
+     "skill": 0.5,
+     "look": {
+      "skinTone": "light",
+      "hairStyle": "midLong",
+      "hairColor": "#c9a25e",
+      "facialHair": "beard",
+      "eyeColor": "blue"
+     },
+     "outfit": {
+      "kind": "conquistadorQuilted",
+      "design": 1
+     },
+     "accessories": []
+    },
+    "faction": "knights",
+    "line": "Matchlock · escaupil"
+   },
+   {
+    "key": "kheshig",
+    "title": "Old Orlok",
+    "inputs": {
+     "name": "Old Orlok",
+     "sex": "male",
+     "heightCm": 168,
+     "frame": "large",
+     "age": 44,
+     "exercise": 0.65,
+     "calories": 4070,
+     "style": "kheshigBow",
+     "skill": 1,
+     "look": {
+      "skinTone": "lightTan",
+      "hairStyle": "long",
+      "hairColor": "#120d0a",
+      "facialHair": "mustache",
+      "eyeColor": "brown"
+     },
+     "hero": true,
+     "outfit": {
+      "kind": "steppeMedium",
+      "design": 0
+     },
+     "accessories": [],
+     "sidearm": "saber"
+    },
+    "faction": "steppe",
+    "line": "Khan's guard: bow and mace · Composite bow · leather lamellar, fur hat",
+    "legend": {
+     "order": 10,
+     "kicker": {
+      "en": "The Khan's Guard",
+      "zh": "大汗宿卫"
+     },
+     "line": {
+      "en": "Quick arrows from the composite bow, then straight in with the flanged mace.",
+      "zh": "复合弓连珠快箭，射完提骨朵直接冲进来。"
+     }
+    }
+   },
+   {
+    "key": "rodelero",
+    "title": "Rodelero",
+    "inputs": {
+     "name": "Rodelero",
+     "sex": "male",
+     "heightCm": 173,
+     "frame": "large",
+     "age": 28,
+     "exercise": 0.84,
+     "calories": 3875,
+     "style": "espadaRodela",
+     "skill": 0.5,
+     "look": {
+      "skinTone": "lightTan",
+      "hairStyle": "cleanShort",
+      "hairColor": "#2a1d14",
+      "facialHair": "beard",
+      "eyeColor": "brown"
+     },
+     "outfit": {
+      "kind": "conquistadorQuilted",
+      "design": 0
+     },
+     "accessories": []
+    },
+    "faction": "knights",
+    "line": "Espada y rodela · Espada · escaupil"
+   },
+   {
+    "key": "esen",
+    "title": "Oirat Warlord",
+    "inputs": {
+     "name": "Oirat Warlord",
+     "sex": "male",
+     "heightCm": 170,
+     "frame": "large",
+     "age": 42,
+     "exercise": 0.6,
+     "calories": 4095,
+     "style": "maceShield",
+     "skill": 0.5,
+     "look": {
+      "skinTone": "lightTan",
+      "hairStyle": "long",
+      "hairColor": "#120d0a",
+      "facialHair": "beard",
+      "eyeColor": "brown"
+     },
+     "outfit": {
+      "kind": "steppeMedium",
+      "design": 2
+     },
+     "accessories": []
+    },
+    "faction": "steppe",
+    "line": "Mace and shield · Flanged mace · leather lamellar, fur hat"
+   },
+   {
+    "key": "jaguar",
+    "title": "Jaguar Warrior",
+    "inputs": {
+     "name": "Jaguar Warrior",
+     "sex": "male",
+     "heightCm": 166,
+     "frame": "medium",
+     "age": 27,
+     "exercise": 0.77,
+     "calories": 3960,
+     "style": "tepoztopilli",
+     "skill": 0.75,
+     "look": {
+      "skinTone": "tan",
+      "hairStyle": "midLong",
+      "hairColor": "#120d0a",
+      "facialHair": "none",
+      "eyeColor": "brown"
+     },
+     "outfit": {
+      "kind": "mexicaElite",
+      "design": 0
+     },
+     "accessories": []
+    },
+    "faction": "mexica",
+    "line": "Tepoztopilli · jaguar and eagle"
+   },
+   {
+    "key": "maximus",
+    "title": "Maximus",
+    "inputs": {
+     "name": "Maximus",
+     "sex": "male",
+     "heightCm": 178,
+     "frame": "large",
+     "age": 35,
+     "exercise": 0.68,
+     "calories": 4610,
+     "style": "maximus",
+     "skill": 1,
+     "look": {
+      "skinTone": "lightTan",
+      "hairStyle": "cleanShort",
+      "hairColor": "#1c130c",
+      "facialHair": "beard",
+      "eyeColor": "blue"
+     },
+     "hero": true,
+     "outfit": {
+      "kind": "maximus",
+      "design": 0
+     },
+     "accessories": []
+    },
+    "faction": "gladiators",
+    "line": "Maximus · Gladius · the general",
+    "legend": {
+     "order": 7,
+     "kicker": {
+      "en": "The General",
+      "zh": "将军"
+     },
+     "line": {
+      "en": "A legion swordsman in the arena: gladius, no shield, a veteran's parries.",
+      "zh": "进了竞技场的军团剑士：一把短剑，不拿盾，老兵的格挡功夫。"
+     }
+    }
+   },
+   {
+    "key": "vocMusketeer",
+    "title": "Company Musketeer",
+    "inputs": {
+     "name": "Company Musketeer",
+     "sex": "male",
+     "heightCm": 175,
+     "frame": "large",
+     "age": 30,
+     "exercise": 0.66,
+     "calories": 4025,
+     "style": "matchlock",
+     "skill": 0.5,
+     "look": {
+      "skinTone": "light",
+      "hairStyle": "midLong",
+      "hairColor": "#c9a25e",
+      "facialHair": "beard",
+      "eyeColor": "blue"
+     },
+     "outfit": {
+      "kind": "conquistadorQuilted",
+      "design": 3
+     },
+     "accessories": []
+    },
+    "faction": "knights",
+    "line": "Matchlock · escaupil"
+   },
+   {
+    "key": "lineInfantry",
+    "title": "Fusilier",
+    "inputs": {
+     "name": "Fusilier",
+     "sex": "male",
+     "heightCm": 176,
+     "frame": "medium",
+     "age": 24,
+     "exercise": 0.82,
+     "calories": 4150,
+     "style": "flintlock",
+     "skill": 0.55,
+     "look": {
+      "skinTone": "light",
+      "hairStyle": "cleanShort",
+      "hairColor": "#4a3020",
+      "facialHair": "none",
+      "eyeColor": "blue"
+     },
+     "outfit": {
+      "kind": "lineInfantry",
+      "design": 0
+     },
+     "accessories": []
+    },
+    "faction": "napoleonic",
+    "line": "Flintlock musket · Line infantry",
+    "flagship": true
+   },
+   {
+    "key": "eagle",
+    "title": "Eagle Warrior",
+    "inputs": {
+     "name": "Eagle Warrior",
+     "sex": "male",
+     "heightCm": 167,
+     "frame": "medium",
+     "age": 25,
+     "exercise": 0.77,
+     "calories": 4010,
+     "style": "macuahuitl",
+     "skill": 1,
+     "look": {
+      "skinTone": "tan",
+      "hairStyle": "midLong",
+      "hairColor": "#120d0a",
+      "facialHair": "none",
+      "eyeColor": "brown"
+     },
+     "hero": true,
+     "outfit": {
+      "kind": "mexicaElite",
+      "design": 1
+     },
+     "accessories": []
+    },
+    "faction": "mexica",
+    "line": "Macuahuitl · jaguar and eagle",
+    "legend": {
+     "order": 11,
+     "kicker": {
+      "en": "The Last Emperor",
+      "zh": "最后的皇帝"
+     },
+     "line": {
+      "en": "The last tlatoani of Tenochtitlan: the obsidian-edged macuahuitl and a feathered shield.",
+      "zh": "特诺奇蒂特兰最后的君主：黑曜石剑棍，一面羽毛盾。"
+     }
+    }
+   },
+   {
+    "key": "dogVision60",
+    "title": "Vision 60, rifle turret",
+    "inputs": {
+     "name": "Vision 60",
+     "sex": "male",
+     "heightCm": 50,
+     "frame": "small",
+     "age": 27,
+     "exercise": 0.6,
+     "calories": 2800,
+     "style": "dogTurret",
+     "skill": 0.7,
+     "look": {
+      "skinTone": "deep",
+      "hairStyle": "bald",
+      "hairColor": "#2b2f28",
+      "facialHair": "none",
+      "eyeColor": "brown",
+      "skinColor": "#2b2f28"
+     },
+     "mounted": true,
+     "undealt": true,
+     "noPrize": true,
+     "build": {
+      "massKg": 9,
+      "bodyFat": 0,
+      "strength": 4,
+      "aerobic": 1.1,
+      "rigid": true
+     },
+     "outfit": {
+      "kind": "vision60Dog",
+      "design": 0
+     },
+     "accessories": []
+    },
+    "faction": "machines",
+    "line": "Robot dog (rifle turret) · SPUR rifle turret · Vision 60"
+   },
+   {
+    "key": "humanoid",
+    "title": "Humanoid robot",
+    "inputs": {
+     "name": "H-1 \"Unit\"",
+     "sex": "male",
+     "heightCm": 180,
+     "frame": "medium",
+     "age": 27,
+     "exercise": 0.6,
+     "calories": 2800,
+     "style": "kickboxing",
+     "skill": 0.6,
+     "look": {
+      "skinTone": "deep",
+      "hairStyle": "bald",
+      "hairColor": "#1d1e22",
+      "facialHair": "none",
+      "eyeColor": "brown",
+      "skinColor": "#1d1e22"
+     },
+     "build": {
+      "massKg": 70,
+      "bodyFat": 0,
+      "strength": 1,
+      "aerobic": 1.1,
+      "rigid": true
+     },
+     "outfit": {
+      "kind": "humanoid",
+      "design": 0
+     },
+     "accessories": []
+    },
+    "faction": "machines",
+    "line": "Kickboxing · Humanoid robot"
+   },
+   {
+    "key": "miniHumanoid",
+    "title": "Mini humanoid robot",
+    "inputs": {
+     "name": "G1 \"Sprite\"",
+     "sex": "male",
+     "heightCm": 132,
+     "frame": "medium",
+     "age": 27,
+     "exercise": 0.6,
+     "calories": 2800,
+     "style": "kickboxing",
+     "skill": 0.6,
+     "look": {
+      "skinTone": "deep",
+      "hairStyle": "bald",
+      "hairColor": "#1d1e22",
+      "facialHair": "none",
+      "eyeColor": "brown",
+      "skinColor": "#1d1e22"
+     },
+     "noPrize": true,
+     "build": {
+      "massKg": 35,
+      "bodyFat": 0,
+      "strength": 1,
+      "aerobic": 1.1,
+      "rigid": true,
+      "muscle": {
+       "upperArm": 0.7,
+       "forearm": 0.7
+      }
+     },
+     "outfit": {
+      "kind": "miniHumanoid",
+      "design": 0
+     },
+     "accessories": []
+    },
+    "faction": "machines",
+    "line": "Kickboxing · Mini humanoid robot"
+   },
+   {
+    "key": "dogSpot",
+    "title": "Spot with arm",
+    "inputs": {
+     "name": "Spot",
+     "sex": "male",
+     "heightCm": 70,
+     "frame": "small",
+     "age": 27,
+     "exercise": 0.6,
+     "calories": 2800,
+     "style": "dogGrip",
+     "skill": 0.6,
+     "look": {
+      "skinTone": "deep",
+      "hairStyle": "bald",
+      "hairColor": "#1d1e22",
+      "facialHair": "none",
+      "eyeColor": "brown",
+      "skinColor": "#1d1e22"
+     },
+     "mounted": true,
+     "undealt": true,
+     "noPrize": true,
+     "build": {
+      "massKg": 8,
+      "bodyFat": 0,
+      "strength": 1,
+      "aerobic": 1.1,
+      "rigid": true,
+      "lengths": {
+       "upperArm": 0.7,
+       "forearmToFist": 0.7
+      }
+     },
+     "outfit": {
+      "kind": "spotDog",
+      "design": 0
+     },
+     "accessories": []
+    },
+    "faction": "machines",
+    "line": "Robot dog (gripper arm) · Spot with arm"
+   },
+   {
+    "key": "dogGo2",
+    "title": "Go2 robot dog",
+    "inputs": {
+     "name": "Go2",
+     "sex": "male",
+     "heightCm": 40,
+     "frame": "small",
+     "age": 27,
+     "exercise": 0.6,
+     "calories": 2800,
+     "style": "dogRam",
+     "skill": 0.6,
+     "look": {
+      "skinTone": "deep",
+      "hairStyle": "bald",
+      "hairColor": "#2a2b2f",
+      "facialHair": "none",
+      "eyeColor": "brown",
+      "skinColor": "#2a2b2f"
+     },
+     "mounted": true,
+     "undealt": true,
+     "noPrize": true,
+     "build": {
+      "massKg": 2,
+      "bodyFat": 0,
+      "strength": 1,
+      "aerobic": 1.1,
+      "rigid": true
+     },
+     "outfit": {
+      "kind": "go2Dog",
+      "design": 0
+     },
+     "accessories": []
+    },
+    "faction": "machines",
+    "line": "Robot dog (ram) · Go2"
+   },
+   {
+    "key": "gorilla",
+    "title": "Silverback",
+    "inputs": {
+     "name": "Silverback",
+     "sex": "male",
+     "heightCm": 180,
+     "frame": "large",
+     "age": 25,
+     "exercise": 0.5,
+     "calories": 2800,
+     "style": "gorilla",
+     "skill": 0.3,
+     "look": {
+      "skinTone": "deep",
+      "hairStyle": "bald",
+      "hairColor": "#1a1a1c",
+      "facialHair": "none",
+      "eyeColor": "brown",
+      "bodyStyle": "ape",
+      "skinColor": "#1f1e22"
+     },
+     "build": {
+      "massKg": 230,
+      "bodyFat": 0.08,
+      "strength": 1.35,
+      "fast": 1.15,
+      "bulk": 3.1,
+      "bones": 2,
+      "bite": {
+       "forceN": 2500,
+       "depth": 0.03
+      },
+      "lengths": {
+       "thigh": 0.21,
+       "shank": 0.2,
+       "trunk": 0.36,
+       "neckToHead": 0.1,
+       "upperArm": 0.29,
+       "forearmToFist": 0.3,
+       "wristToFist": 0.065,
+       "shoulderSpan": 0.25,
+       "hipSpan": 0.13
+      },
+      "muscle": {
+       "upperArm": 1.6,
+       "forearm": 1.75,
+       "thigh": 0.7,
+       "shank": 0.6
+      }
+     },
+     "outfit": {
+      "kind": "silverback",
+      "design": 0
+     },
+     "accessories": []
+    },
+    "faction": "primates",
+    "line": "Gorilla · Silverback",
+    "flagship": true
+   },
+   {
+    "key": "janissaryGun",
+    "title": "Janissary Musketeer",
+    "inputs": {
+     "name": "Janissary Musketeer",
+     "sex": "male",
+     "heightCm": 183,
+     "frame": "large",
+     "age": 25,
+     "exercise": 0.96,
+     "calories": 5450,
+     "style": "matchlock",
+     "skill": 0.5,
+     "look": {
+      "skinTone": "tan",
+      "hairStyle": "cleanShort",
+      "hairColor": "#120d0a",
+      "facialHair": "mustache",
+      "eyeColor": "brown"
+     },
+     "outfit": {
+      "kind": "janissary",
+      "design": 1
+     },
+     "accessories": []
+    },
+    "faction": "ottomans",
+    "line": "Matchlock · Janissary"
+   },
+   {
+    "key": "greenStandard",
+    "title": "Qing Musketeer",
+    "inputs": {
+     "name": "Qing Musketeer",
+     "sex": "male",
+     "heightCm": 168,
+     "frame": "medium",
+     "age": 30,
+     "exercise": 0.2,
+     "calories": 1800,
+     "style": "matchlock",
+     "skill": 0.25,
+     "look": {
+      "skinTone": "lightTan",
+      "hairStyle": "buzz",
+      "hairColor": "#120d0a",
+      "facialHair": "mustache",
+      "eyeColor": "brown",
+      "faceRegion": "china"
+     },
+     "outfit": {
+      "kind": "greenStandard",
+      "design": 0
+     },
+     "accessories": []
+    },
+    "faction": "manchu",
+    "line": "Matchlock · Green Standard"
+   },
+   {
+    "key": "commodus",
+    "title": "Commodus",
+    "inputs": {
+     "name": "Commodus",
+     "sex": "male",
+     "heightCm": 177,
+     "frame": "large",
+     "age": 31,
+     "exercise": 0.68,
+     "calories": 4375,
+     "style": "commodus",
+     "skill": 1,
+     "look": {
+      "skinTone": "light",
+      "hairStyle": "cleanShort",
+      "hairColor": "#a8803e",
+      "facialHair": "beard",
+      "eyeColor": "brown"
+     },
+     "hero": true,
+     "outfit": {
+      "kind": "commodus",
+      "design": 0
+     },
+     "accessories": []
+    },
+    "faction": "gladiators",
+    "line": "Commodus · Club",
+    "legend": {
+     "order": 8,
+     "kicker": {
+      "en": "The Emperor",
+      "zh": "皇帝"
+     },
+     "line": {
+      "en": "The emperor as Hercules: lion skin and club, heavy blows.",
+      "zh": "扮成赫拉克勒斯的皇帝：披狮皮，抡棍棒，下手沉。"
+     }
+    }
+   },
+   {
+    "key": "ronin",
+    "title": "Two-Sword Rōnin",
+    "inputs": {
+     "name": "Two-Sword Rōnin",
+     "sex": "male",
+     "heightCm": 178,
+     "frame": "large",
+     "age": 28,
+     "exercise": 0.95,
+     "calories": 4400,
+     "style": "nito",
+     "skill": 1,
+     "look": {
+      "skinTone": "lightTan",
+      "hairStyle": "topknot",
+      "hairColor": "#120d0a",
+      "facialHair": "mustache",
+      "eyeColor": "brown"
+     },
+     "hero": true,
+     "charging": 2.5,
+     "outfit": {
+      "kind": "ronin",
+      "design": 2
+     },
+     "accessories": [
+      "kasa"
+     ]
+    },
+    "faction": "japanese",
+    "line": "Nitō (two swords) · Katana · Rōnin",
+    "legend": {
+     "order": 4,
+     "kicker": {
+      "en": "The Sword Saint",
+      "zh": "剑圣"
+     },
+     "line": {
+      "en": "The masterless swordsman with two swords: one meets the blade while the other cuts.",
+      "zh": "无主的浪人，双刀在手：一把迎住来刀，另一把趁隙就砍。"
+     }
+    }
+   },
+   {
+    "key": "hunter",
+    "title": "Hunter",
+    "inputs": {
+     "name": "Hunter",
+     "sex": "male",
+     "heightCm": 176,
+     "frame": "large",
+     "age": 26,
+     "exercise": 0.92,
+     "calories": 4000,
+     "style": "atlatl",
+     "skill": 0.45,
+     "look": {
+      "skinTone": "deep",
+      "hairStyle": "long",
+      "hairColor": "#120d0a",
+      "facialHair": "beard",
+      "eyeColor": "blue"
+     },
+     "outfit": {
+      "kind": "hides",
+      "design": 0
+     },
+     "accessories": []
+    },
+    "faction": "primates",
+    "line": "Spear-thrower · hides"
+   },
+   {
+    "key": "swordSaint",
+    "title": "Sword Saint",
+    "inputs": {
+     "name": "Sword Saint",
+     "sex": "male",
+     "heightCm": 180,
+     "frame": "medium",
+     "age": 28,
+     "exercise": 0.78,
+     "calories": 3900,
+     "style": "katana",
+     "skill": 1,
+     "look": {
+      "skinTone": "lightTan",
+      "hairStyle": "sakayaki",
+      "hairColor": "#120d0a",
+      "facialHair": "stubble",
+      "eyeColor": "brown",
+      "faceRegion": "japan"
+     },
+     "outfit": {
+      "kind": "kensei",
+      "design": 0
+     },
+     "accessories": []
+    },
+    "faction": "japanese",
+    "line": "Katana · kosode and hakama"
+   },
+   {
+    "key": "wuxia",
+    "title": "Wuxia Swordsman",
+    "inputs": {
+     "name": "Wuxia Swordsman",
+     "sex": "male",
+     "heightCm": 180,
+     "frame": "medium",
+     "age": 30,
+     "exercise": 0.72,
+     "calories": 4400,
+     "style": "wuxia",
+     "skill": 1,
+     "look": {
+      "skinTone": "light",
+      "hairStyle": "long",
+      "hairColor": "#120d0a",
+      "facialHair": "none",
+      "eyeColor": "brown",
+      "faceShape": null,
+      "faceRegion": "china",
+      "skinShade": 1.4
+     },
+     "outfit": {
+      "kind": "wuxia",
+      "design": 0
+     },
+     "accessories": []
+    },
+    "faction": "chinese",
+    "line": "Wuxia · Jian"
+   },
+   {
+    "key": "steppeArcher",
+    "title": "Steppe Horse Archer",
+    "inputs": {
+     "name": "Steppe Horse Archer",
+     "sex": "male",
+     "heightCm": 168,
+     "frame": "large",
+     "age": 26,
+     "exercise": 0.7,
+     "calories": 4145,
+     "style": "steppeBow",
+     "skill": 0.45,
+     "look": {
+      "skinTone": "lightTan",
+      "hairStyle": "long",
+      "hairColor": "#120d0a",
+      "facialHair": "none",
+      "eyeColor": "brown"
+     },
+     "outfit": {
+      "kind": "steppeLight",
+      "design": 0
+     },
+     "accessories": []
+    },
+    "faction": "steppe",
+    "line": "Composite bow · deel and fur hat"
+   },
+   {
+    "key": "azapArcher",
+    "title": "Azap Archer",
+    "inputs": {
+     "name": "Azap Archer",
+     "sex": "male",
+     "heightCm": 175,
+     "frame": "large",
+     "age": 24,
+     "exercise": 0.89,
+     "calories": 4475,
+     "style": "steppeBow",
+     "skill": 0.25,
+     "look": {
+      "skinTone": "tan",
+      "hairStyle": "cleanShort",
+      "hairColor": "#120d0a",
+      "facialHair": "beard",
+      "eyeColor": "brown"
+     },
+     "outfit": {
+      "kind": "azap",
+      "design": 0
+     },
+     "accessories": []
+    },
+    "faction": "ottomans",
+    "line": "Composite bow · azap"
+   },
+   {
+    "key": "ladyAshford",
+    "title": "Lady Ashford",
+    "inputs": {
+     "name": "Lady Ashford",
+     "sex": "female",
+     "heightCm": 163,
+     "frame": "small",
+     "age": 29,
+     "exercise": 0.6,
+     "calories": 2550,
+     "style": "revolver",
+     "skill": 0.45,
+     "look": {
+      "skinTone": "light",
+      "hairStyle": "bun",
+      "hairColor": "#4a2a1a",
+      "facialHair": "none",
+      "eyeColor": "green"
+     },
+     "outfit": {
+      "kind": "victorianLady",
+      "design": 0
+     },
+     "accessories": [
+      "hairDecor"
+     ]
+    },
+    "faction": "street",
+    "line": "Revolver · Adams revolver · corset and gown"
+   },
+   {
+    "key": "judo",
+    "title": "Judoka",
+    "inputs": {
+     "name": "Judoka",
+     "sex": "male",
+     "heightCm": 172,
+     "frame": "small",
+     "age": 26,
+     "exercise": 0.85,
+     "calories": 4500,
+     "style": "judo",
+     "skill": 0.5,
+     "look": {
+      "skinTone": "lightTan",
+      "hairStyle": "cleanShort",
+      "hairColor": "#120d0a",
+      "facialHair": "none",
+      "eyeColor": "brown"
+     },
+     "outfit": {
+      "kind": "judogi",
+      "design": 0
+     },
+     "accessories": []
+    },
+    "faction": "ring",
+    "line": "Judo"
+   },
+   {
+    "key": "azapSpear",
+    "title": "Azap Spearman",
+    "inputs": {
+     "name": "Azap Spearman",
+     "sex": "male",
+     "heightCm": 175,
+     "frame": "large",
+     "age": 24,
+     "exercise": 0.89,
+     "calories": 4475,
+     "style": "spear",
+     "skill": 0.25,
+     "look": {
+      "skinTone": "tan",
+      "hairStyle": "cleanShort",
+      "hairColor": "#120d0a",
+      "facialHair": "beard",
+      "eyeColor": "brown"
+     },
+     "outfit": {
+      "kind": "azap",
+      "design": 1
+     },
+     "accessories": []
+    },
+    "faction": "ottomans",
+    "line": "Spear · azap"
+   },
+   {
+    "key": "janissary",
+    "title": "Wall-Storming Janissary",
+    "inputs": {
+     "name": "Wall-Storming Janissary",
+     "sex": "male",
+     "heightCm": 183,
+     "frame": "large",
+     "age": 25,
+     "exercise": 0.96,
+     "calories": 5450,
+     "style": "yatagan",
+     "skill": 0.5,
+     "look": {
+      "skinTone": "tan",
+      "hairStyle": "cleanShort",
+      "hairColor": "#120d0a",
+      "facialHair": "mustache",
+      "eyeColor": "brown"
+     },
+     "outfit": {
+      "kind": "janissary",
+      "design": 0
+     },
+     "accessories": []
+    },
+    "faction": "ottomans",
+    "line": "Yatagan · Janissary"
+   },
+   {
+    "key": "mingSpear",
+    "title": "Garrison Spearman",
+    "inputs": {
+     "name": "Garrison Spearman",
+     "sex": "male",
+     "heightCm": 170,
+     "frame": "medium",
+     "age": 26,
+     "exercise": 0.5,
+     "calories": 3150,
+     "style": "spear",
+     "skill": 0.25,
+     "look": {
+      "skinTone": "lightTan",
+      "hairStyle": "bun",
+      "hairColor": "#120d0a",
+      "facialHair": "stubble",
+      "eyeColor": "brown"
+     },
+     "outfit": {
+      "kind": "mingGarrison",
+      "design": 0
+     },
+     "accessories": []
+    },
+    "faction": "chinese",
+    "line": "Spear · garrison"
+   },
+   {
+    "key": "lordAshford",
+    "title": "Lord Ashford",
+    "inputs": {
+     "name": "Lord Ashford",
+     "sex": "male",
+     "heightCm": 178,
+     "frame": "medium",
+     "age": 41,
+     "exercise": 0.4,
+     "calories": 3175,
+     "style": "rapier",
+     "skill": 0.4,
+     "look": {
+      "skinTone": "light",
+      "hairStyle": "cleanShort",
+      "hairColor": "#5a4a3a",
+      "facialHair": "mustache",
+      "eyeColor": "blue"
+     },
+     "outfit": {
+      "kind": "victorianGent",
+      "design": 0
+     },
+     "accessories": []
+    },
+    "faction": "street",
+    "line": "Rapier · frock coat and top hat"
+   },
+   {
+    "key": "retiarius",
+    "title": "Retiarius",
+    "inputs": {
+     "name": "Retiarius",
+     "sex": "male",
+     "heightCm": 175,
+     "frame": "large",
+     "age": 24,
+     "exercise": 0.7,
+     "calories": 4400,
+     "style": "retiarius",
+     "skill": 0.7,
+     "look": {
+      "skinTone": "tan",
+      "hairStyle": "midLong",
+      "hairColor": "#120d0a",
+      "facialHair": "none",
+      "eyeColor": "brown"
+     },
+     "outfit": {
+      "kind": "retiarius",
+      "design": 2
+     }
+    },
+    "faction": "gladiators",
+    "line": "Retiarius · Trident · retiarius"
+   },
+   {
+    "key": "taekwondo",
+    "title": "Taekwondo Black Belt",
+    "inputs": {
+     "name": "Taekwondo Black Belt",
+     "sex": "male",
+     "heightCm": 181,
+     "frame": "small",
+     "age": 23,
+     "exercise": 0.78,
+     "calories": 4325,
+     "style": "taekwondo",
+     "skill": 0.5,
+     "look": {
+      "skinTone": "lightTan",
+      "hairStyle": "cleanShort",
+      "hairColor": "#120d0a",
+      "facialHair": "none",
+      "eyeColor": "brown"
+     },
+     "outfit": {
+      "kind": "dobok",
+      "design": 0
+     },
+     "accessories": []
+    },
+    "faction": "ring",
+    "line": "Taekwondo"
+   },
+   {
+    "key": "sumo",
+    "title": "Sumo Grand Champion",
+    "inputs": {
+     "name": "Sumo Grand Champion",
+     "sex": "male",
+     "heightCm": 185,
+     "frame": "large",
+     "age": 27,
+     "exercise": 0.7,
+     "calories": 7400,
+     "style": "sumo",
+     "skill": 0.5,
+     "look": {
+      "skinTone": "lightTan",
+      "hairStyle": "topknot",
+      "hairColor": "#120d0a",
+      "facialHair": "none",
+      "eyeColor": "brown"
+     },
+     "outfit": {
+      "kind": "sumo",
+      "design": 0
+     }
+    },
+    "faction": "ring",
+    "line": "Sumo"
+   },
+   {
+    "key": "mexica",
+    "title": "Mexica Warrior",
+    "inputs": {
+     "name": "Mexica Warrior",
+     "sex": "male",
+     "heightCm": 166,
+     "frame": "medium",
+     "age": 26,
+     "exercise": 0.75,
+     "calories": 3445,
+     "style": "macuahuitl",
+     "skill": 0.4,
+     "look": {
+      "skinTone": "medium",
+      "hairStyle": "midLong",
+      "hairColor": "#120d0a",
+      "facialHair": "none",
+      "eyeColor": "brown"
+     },
+     "outfit": {
+      "kind": "mexicaWarrior",
+      "design": 0
+     },
+     "accessories": []
+    },
+    "faction": "mexica",
+    "line": "Macuahuitl · warrior"
+   },
+   {
+    "key": "police",
+    "title": "Patrol Officer",
+    "inputs": {
+     "name": "Patrol Officer",
+     "sex": "male",
+     "heightCm": 178,
+     "frame": "medium",
+     "age": 38,
+     "exercise": 0.45,
+     "calories": 3600,
+     "style": "handgun",
+     "skill": 0.4,
+     "look": {
+      "skinTone": "light",
+      "hairStyle": "cleanShort",
+      "hairColor": "#5a4a3a",
+      "facialHair": "mustache",
+      "eyeColor": "blue"
+     },
+     "outfit": {
+      "kind": "police",
+      "design": 0
+     },
+     "accessories": []
+    },
+    "faction": "law",
+    "line": "Handgun · Pistol · patrol uniform"
+   },
+   {
+    "key": "lorarius",
+    "title": "Arena Whip-Master",
+    "inputs": {
+     "name": "Arena Whip-Master",
+     "sex": "male",
+     "heightCm": 172,
+     "frame": "medium",
+     "age": 33,
+     "exercise": 0.6,
+     "calories": 3775,
+     "style": "whip",
+     "skill": 0.35,
+     "look": {
+      "skinTone": "tan",
+      "hairStyle": "cleanShort",
+      "hairColor": "#2a1a10",
+      "facialHair": "stubble",
+      "eyeColor": "brown"
+     },
+     "outfit": {
+      "kind": "lorarius",
+      "design": 0
+     },
+     "accessories": []
+    },
+    "faction": "gladiators",
+    "line": "Whip · the arena's whip-man"
+   },
+   {
+    "key": "mix",
+    "title": "Mixed Martial Artist",
+    "inputs": {
+     "name": "Mixed Martial Artist",
+     "sex": "male",
+     "heightCm": 180,
+     "frame": "medium",
+     "age": 26,
+     "exercise": 0.72,
+     "calories": 4400,
+     "style": "mix",
+     "skill": 0.5,
+     "look": {
+      "skinTone": "tan",
+      "hairStyle": "spiky",
+      "hairColor": "#120d0a",
+      "facialHair": "none",
+      "eyeColor": "brown"
+     },
+     "outfit": {
+      "kind": "sports",
+      "design": 0
+     }
+    },
+    "faction": "ring",
+    "line": "Mix · Sports"
+   },
+   {
+    "key": "kickboxer",
+    "title": "Kickboxer",
+    "inputs": {
+     "name": "Kickboxer",
+     "sex": "male",
+     "heightCm": 172,
+     "frame": "small",
+     "age": 24,
+     "exercise": 0.81,
+     "calories": 4160,
+     "style": "kickboxing",
+     "skill": 0.5,
+     "look": {
+      "skinTone": "light",
+      "hairStyle": "spiky",
+      "hairColor": "#6b4a2a",
+      "facialHair": "none",
+      "eyeColor": "blue"
+     }
+    },
+    "faction": "ring",
+    "line": "Kickboxing"
+   },
+   {
+    "key": "shaolin",
+    "title": "Shaolin Staff Monk",
+    "inputs": {
+     "name": "Shaolin Staff Monk",
+     "sex": "male",
+     "heightCm": 172,
+     "frame": "medium",
+     "age": 30,
+     "exercise": 0.74,
+     "calories": 4125,
+     "style": "staff",
+     "skill": 0.5,
+     "look": {
+      "skinTone": "lightTan",
+      "hairStyle": "bald",
+      "hairColor": "#120d0a",
+      "facialHair": "none",
+      "eyeColor": "brown"
+     },
+     "outfit": {
+      "kind": "monk",
+      "design": 0
+     },
+     "accessories": []
+    },
+    "faction": "chinese",
+    "line": "Staff · Shaolin monk"
+   },
+   {
+    "key": "bat",
+    "title": "Back-Alley Thug",
+    "inputs": {
+     "name": "Back-Alley Thug",
+     "sex": "male",
+     "heightCm": 180,
+     "frame": "medium",
+     "age": 27,
+     "exercise": 0.45,
+     "calories": 3400,
+     "style": "bat",
+     "skill": 0.25,
+     "look": {
+      "skinTone": "light",
+      "hairStyle": "buzz",
+      "hairColor": "#2a1a10",
+      "facialHair": "stubble",
+      "eyeColor": "brown"
+     },
+     "outfit": {
+      "kind": "thug",
+      "design": 0
+     },
+     "accessories": []
+    },
+    "faction": "street",
+    "line": "Baseball bat · Street thug"
+   },
+   {
+    "key": "boxer",
+    "title": "Heavyweight Boxer",
+    "inputs": {
+     "name": "Heavyweight Boxer",
+     "sex": "male",
+     "heightCm": 193,
+     "frame": "large",
+     "age": 29,
+     "exercise": 0.65,
+     "calories": 5740,
+     "style": "boxing",
+     "skill": 0.5,
+     "look": {
+      "skinTone": "deep",
+      "hairStyle": "cornrows",
+      "hairColor": "#120d0a",
+      "facialHair": "beard",
+      "eyeColor": "brown"
+     }
+    },
+    "faction": "ring",
+    "line": "Boxing"
+   },
+   {
+    "key": "brawler",
+    "title": "Cage Wrestler",
+    "inputs": {
+     "name": "Cage Wrestler",
+     "sex": "male",
+     "heightCm": 186,
+     "frame": "large",
+     "age": 33,
+     "exercise": 0.7,
+     "calories": 5100,
+     "style": "clinchBrawl",
+     "skill": 0.5,
+     "look": {
+      "skinTone": "light",
+      "hairStyle": "buzz",
+      "hairColor": "#4a3020",
+      "facialHair": "handlebar",
+      "eyeColor": "grey"
+     },
+     "outfit": {
+      "kind": "mma",
+      "design": 0
+     }
+    },
+    "faction": "ring",
+    "line": "Clinch brawler · MMA"
+   },
+   {
+    "key": "wokou",
+    "title": "Wokou Pirate",
+    "inputs": {
+     "name": "Wokou Pirate",
+     "sex": "male",
+     "heightCm": 171,
+     "frame": "medium",
+     "age": 29,
+     "exercise": 0.55,
+     "calories": 3250,
+     "style": "dao",
+     "skill": 0.25,
+     "look": {
+      "skinTone": "lightTan",
+      "hairStyle": "bun",
+      "hairColor": "#120d0a",
+      "facialHair": "mustache",
+      "eyeColor": "brown"
+     },
+     "outfit": {
+      "kind": "wokou",
+      "design": 0
+     },
+     "accessories": []
+    },
+    "faction": "chinese",
+    "line": "Dao · Wokou raider"
+   },
+   {
+    "key": "muayThai",
+    "title": "Muay Thai Fighter",
+    "inputs": {
+     "name": "Muay Thai Fighter",
+     "sex": "female",
+     "heightCm": 170,
+     "frame": "medium",
+     "age": 26,
+     "exercise": 0.88,
+     "calories": 3810,
+     "style": "muayThai",
+     "skill": 0.5,
+     "look": {
+      "skinTone": "medium",
+      "hairStyle": "bun",
+      "hairColor": "#2a1a10",
+      "facialHair": "none",
+      "eyeColor": "hazel"
+     }
+    },
+    "faction": "ring",
+    "line": "Muay Thai"
+   },
+   {
+    "key": "chimp",
+    "title": "Chimpanzee",
+    "inputs": {
+     "name": "Chimpanzee",
+     "sex": "male",
+     "heightCm": 120,
+     "frame": "large",
+     "age": 22,
+     "exercise": 0.6,
+     "calories": 2800,
+     "style": "chimp",
+     "skill": 0.3,
+     "look": {
+      "skinTone": "deep",
+      "hairStyle": "bald",
+      "hairColor": "#1c1918",
+      "facialHair": "none",
+      "eyeColor": "brown",
+      "skinColor": "#1c1918"
+     },
+     "noPrize": true,
+     "build": {
+      "massKg": 55,
+      "bodyFat": 0.06,
+      "strength": 1.35,
+      "fast": 1.15,
+      "bulk": 1.6,
+      "bones": 0.78,
+      "brain": 2.3,
+      "bite": {
+       "forceN": 960,
+       "depth": 0.022
+      },
+      "lengths": {
+       "thigh": 0.22,
+       "shank": 0.2,
+       "trunk": 0.36,
+       "neckToHead": 0.1,
+       "upperArm": 0.27,
+       "forearmToFist": 0.28,
+       "shoulderSpan": 0.23,
+       "hipSpan": 0.12,
+       "headRadius": 0.065
+      },
+      "muscle": {
+       "upperArm": 1.5,
+       "forearm": 1.6,
+       "thigh": 0.8,
+       "shank": 0.7
+      }
+     },
+     "outfit": {
+      "kind": "monkeyFur",
+      "design": 2
+     },
+     "accessories": []
+    },
+    "faction": "primates",
+    "line": "Chimpanzee · Primate"
+   },
+   {
+    "key": "peasant",
+    "title": "Pitchfork Peasant",
+    "inputs": {
+     "name": "Pitchfork Peasant",
+     "sex": "male",
+     "heightCm": 171,
+     "frame": "medium",
+     "age": 30,
+     "exercise": 0.5,
+     "calories": 3085,
+     "style": "pitchfork",
+     "skill": 0.1,
+     "look": {
+      "skinTone": "tan",
+      "hairStyle": "cleanShort",
+      "hairColor": "#2a1a10",
+      "facialHair": "stubble",
+      "eyeColor": "hazel"
+     },
+     "outfit": {
+      "kind": "commoner",
+      "design": 0
+     },
+     "accessories": [
+      "headWrap"
+     ]
+    },
+    "faction": "knights",
+    "line": "Pitchfork · Commoner"
+   },
+   {
+    "key": "taichi",
+    "title": "Tai Chi Master",
+    "inputs": {
+     "name": "Tai Chi Master",
+     "sex": "male",
+     "heightCm": 171,
+     "frame": "medium",
+     "age": 52,
+     "exercise": 0.55,
+     "calories": 3290,
+     "style": "taichi",
+     "skill": 0.5,
+     "look": {
+      "skinTone": "lightTan",
+      "hairStyle": "cleanShort",
+      "hairColor": "#4a4a48",
+      "facialHair": "beard",
+      "eyeColor": "brown"
+     },
+     "outfit": {
+      "kind": "kungfu",
+      "design": 0
+     },
+     "accessories": []
+    },
+    "faction": "chinese",
+    "line": "Tai chi · Kung fu suit"
+   },
+   {
+    "key": "mingDao",
+    "title": "Garrison Swordsman",
+    "inputs": {
+     "name": "Garrison Swordsman",
+     "sex": "male",
+     "heightCm": 171,
+     "frame": "medium",
+     "age": 29,
+     "exercise": 0.55,
+     "calories": 3250,
+     "style": "dao",
+     "skill": 0.25,
+     "look": {
+      "skinTone": "lightTan",
+      "hairStyle": "bun",
+      "hairColor": "#120d0a",
+      "facialHair": "mustache",
+      "eyeColor": "brown"
+     },
+     "outfit": {
+      "kind": "mingGarrison",
+      "design": 1
+     },
+     "accessories": []
+    },
+    "faction": "chinese",
+    "line": "Dao · garrison"
+   },
+   {
+    "key": "mingCrossbow",
+    "title": "Garrison Crossbowman",
+    "inputs": {
+     "name": "Garrison Crossbowman",
+     "sex": "male",
+     "heightCm": 170,
+     "frame": "medium",
+     "age": 29,
+     "exercise": 0.55,
+     "calories": 3150,
+     "style": "nu",
+     "skill": 0.25,
+     "look": {
+      "skinTone": "lightTan",
+      "hairStyle": "bun",
+      "hairColor": "#120d0a",
+      "facialHair": "none",
+      "eyeColor": "brown"
+     },
+     "outfit": {
+      "kind": "mingGarrison",
+      "design": 0
+     },
+     "accessories": []
+    },
+    "faction": "chinese",
+    "line": "Crossbow (nu) · garrison"
+   },
+   {
+    "key": "knife",
+    "title": "Yakuza Knifeman",
+    "inputs": {
+     "name": "Yakuza Knifeman",
+     "sex": "male",
+     "heightCm": 175,
+     "frame": "small",
+     "age": 29,
+     "exercise": 0.55,
+     "calories": 3100,
+     "style": "knife",
+     "skill": 0.3,
+     "look": {
+      "skinTone": "lightTan",
+      "hairStyle": "cleanShort",
+      "hairColor": "#120d0a",
+      "facialHair": "none",
+      "eyeColor": "brown"
+     },
+     "outfit": {
+      "kind": "yakuza",
+      "design": 0
+     },
+     "accessories": [
+      "hat"
+     ]
+    },
+    "faction": "street",
+    "line": "Knife · Yakuza"
+   },
+   {
+    "key": "street",
+    "title": "Street Brawler",
+    "inputs": {
+     "name": "Street Brawler",
+     "sex": "male",
+     "heightCm": 178,
+     "frame": "medium",
+     "age": 31,
+     "exercise": 0.3,
+     "calories": 3100,
+     "style": "street",
+     "skill": 0.3,
+     "look": {
+      "skinTone": "light",
+      "hairStyle": "fade",
+      "hairColor": "#2a1a10",
+      "facialHair": "stubble",
+      "eyeColor": "brown"
+     },
+     "outfit": {
+      "kind": "casual",
+      "design": 0
+     }
+    },
+    "faction": "street",
+    "line": "Street · Casual"
+   },
+   {
+    "key": "unskilled",
+    "title": "Rebel Peasant Leader",
+    "inputs": {
+     "name": "Rebel Peasant Leader",
+     "sex": "male",
+     "heightCm": 172,
+     "frame": "medium",
+     "age": 35,
+     "exercise": 0.5,
+     "calories": 3100,
+     "style": "unskilled",
+     "skill": 0.1,
+     "look": {
+      "skinTone": "light",
+      "hairStyle": "midLong",
+      "hairColor": "#6b4a2a",
+      "facialHair": "beard",
+      "eyeColor": "green"
+     },
+     "outfit": {
+      "kind": "commoner",
+      "design": 0
+     },
+     "accessories": [
+      "headWrap"
+     ]
+    },
+    "faction": "knights",
+    "line": "Unskilled · Commoner"
+   },
+   {
+    "key": "policeBaton",
+    "title": "Baton Patrolwoman",
+    "inputs": {
+     "name": "Baton Patrolwoman",
+     "sex": "female",
+     "heightCm": 166,
+     "frame": "medium",
+     "age": 38,
+     "exercise": 0.45,
+     "calories": 2300,
+     "style": "baton",
+     "skill": 0.4,
+     "look": {
+      "skinTone": "tan",
+      "hairStyle": "bun",
+      "hairColor": "#120d0a",
+      "facialHair": "none",
+      "eyeColor": "brown"
+     },
+     "outfit": {
+      "kind": "police",
+      "design": 1
+     },
+     "accessories": []
+    },
+    "faction": "law",
+    "line": "Police baton · patrol uniform"
+   },
+   {
+    "key": "baboon",
+    "title": "Chacma Baboon",
+    "inputs": {
+     "name": "Chacma Baboon",
+     "sex": "male",
+     "heightCm": 100,
+     "frame": "large",
+     "age": 25,
+     "exercise": 0.6,
+     "calories": 2800,
+     "style": "baboon",
+     "skill": 0.3,
+     "look": {
+      "skinTone": "deep",
+      "hairStyle": "bald",
+      "hairColor": "#6e6248",
+      "facialHair": "none",
+      "eyeColor": "brown",
+      "skinColor": "#6e6248"
+     },
+     "noPrize": true,
+     "build": {
+      "massKg": 30,
+      "bodyFat": 0.05,
+      "strength": 1.35,
+      "fast": 1.2,
+      "bulk": 1.2,
+      "bones": 0.52,
+      "brain": 3.7,
+      "bite": {
+       "forceN": 640,
+       "depth": 0.035
+      },
+      "lengths": {
+       "thigh": 0.23,
+       "shank": 0.22,
+       "trunk": 0.34,
+       "neckToHead": 0.09,
+       "upperArm": 0.23,
+       "forearmToFist": 0.26,
+       "shoulderSpan": 0.19,
+       "hipSpan": 0.11,
+       "headRadius": 0.07
+      },
+      "muscle": {
+       "upperArm": 1.3,
+       "forearm": 1.3,
+       "thigh": 1,
+       "shank": 0.9
+      }
+     },
+     "outfit": {
+      "kind": "monkeyFur",
+      "design": 1
+     },
+     "accessories": []
+    },
+    "faction": "primates",
+    "line": "Chacma baboon · Primate"
+   },
+   {
+    "key": "starved",
+    "title": "Starved Rebel",
+    "inputs": {
+     "name": "Starved Rebel",
+     "sex": "male",
+     "heightCm": 171,
+     "frame": "medium",
+     "age": 26,
+     "exercise": 0.2,
+     "calories": 1690,
+     "style": "pitchfork",
+     "skill": 0.12,
+     "look": {
+      "skinTone": "light",
+      "hairStyle": "midLong",
+      "hairColor": "#4a3a2a",
+      "facialHair": "beard",
+      "eyeColor": "grey"
+     },
+     "undealt": true,
+     "outfit": {
+      "kind": "rags",
+      "design": 0,
+      "tear": {
+       "seed": 3,
+       "amount": 0.85,
+       "sleeve": "l"
+      }
+     },
+     "accessories": []
+    },
+    "faction": "knights",
+    "line": "Pitchfork · Rags"
+   },
+   {
+    "key": "macaque",
+    "title": "Temple Monkey",
+    "inputs": {
+     "name": "Temple Monkey",
+     "sex": "male",
+     "heightCm": 60,
+     "frame": "medium",
+     "age": 25,
+     "exercise": 0.6,
+     "calories": 2800,
+     "style": "macaque",
+     "skill": 0.25,
+     "look": {
+      "skinTone": "light",
+      "hairStyle": "bald",
+      "hairColor": "#8a7656",
+      "facialHair": "none",
+      "eyeColor": "brown",
+      "skinColor": "#8a7656"
+     },
+     "noPrize": true,
+     "build": {
+      "massKg": 8.5,
+      "bodyFat": 0.05,
+      "strength": 1.35,
+      "fast": 1.25,
+      "bulk": 1,
+      "bones": 0.22,
+      "brain": 6.1,
+      "bite": {
+       "forceN": 280,
+       "depth": 0.012
+      },
+      "lengths": {
+       "thigh": 0.23,
+       "shank": 0.22,
+       "trunk": 0.33,
+       "neckToHead": 0.09,
+       "upperArm": 0.2,
+       "forearmToFist": 0.24,
+       "shoulderSpan": 0.17,
+       "hipSpan": 0.11,
+       "headRadius": 0.075
+      },
+      "muscle": {
+       "upperArm": 1.2,
+       "forearm": 1.2,
+       "thigh": 1.1,
+       "shank": 1
+      }
+     },
+     "outfit": {
+      "kind": "monkeyFur",
+      "design": 0
+     },
+     "accessories": []
+    },
+    "faction": "primates",
+    "line": "Rhesus macaque · Primate"
+   }
+  ]
+ }
+}

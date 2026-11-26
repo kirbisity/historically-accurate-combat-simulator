@@ -1,0 +1,35 @@
+{
+ "version": 1,
+ "source": "src/command.js",
+ "tables": {
+  "COMMAND": {
+   "minSide": 4,
+   "rally": {
+    "first": 1.6,
+    "gap": 1.1,
+    "spacing": 1.15
+   },
+   "arrive": 0.25,
+   "turnFrom": 1.5,
+   "runFrom": 3,
+   "steer": 0.4,
+   "engage": 0.6,
+   "leash": 1.5,
+   "charge": {
+    "behind": 1,
+    "width": 3,
+    "spread": 0.58,
+    "retargetEvery": 0.5,
+    "runFrom": 2.5
+   },
+   "ranksWithin": 2,
+   "shape": {
+    "file": 0.95,
+    "rank": 1.15,
+    "deep": 2,
+    "deepFrom": 14,
+    "ahead": 1.2
+   }
+  }
+ }
+}

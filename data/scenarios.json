@@ -1,0 +1,2831 @@
+{
+ "version": 1,
+ "source": "src/scenarios.js",
+ "tables": {
+  "SCENARIOS": {
+   "legion": {
+    "title": "Rome against Han",
+    "place": "A what-if · the 1st century",
+    "blurb": {
+     "en": "A legion of the early Empire meets a Han army of crossbowmen: twenty-nine legionaries in segmented iron with scutum and gladius, closed up under their shields in the testudo as they walk up into twenty-nine crossbows; the front ranks meet, the rest hold their places. Six auxiliary horse in mail ride on one flank and six Han horsemen on the other, and charge it when the lines close.",
+     "zh": "帝国初年的罗马军团，撞上一支汉军弩兵：二十九名军团兵，环片甲，大盾短剑，盾叠成龟甲阵，顶着二十九张弩一步步往上走；前排接战，其余原地不动。一翼是六名披锁甲的辅助骑兵，另一翼是六名汉骑，两阵一接，就冲进去。"
+    },
+    "scene": "plain",
+    "arena": {
+     "halfX": 26,
+     "halfZ": 12
+    },
+    "camera": {
+     "yaw": -0.5,
+     "pitch": 0.45,
+     "distance": 20,
+     "maxDistance": 26
+    },
+    "roster": {
+     "en": "Thirty-five a side: twenty-nine legionaries and six auxiliary horse · twenty-nine Han crossbowmen and six horsemen",
+     "zh": "每方三十五人：军团兵二十九人、辅助骑兵六人 · 汉军弩手二十九人、骑兵六人"
+    },
+    "formation": {
+     "red": {
+      "spacing": 0.95,
+      "rowSpacing": 1.2,
+      "perRow": 10,
+      "front": 14
+     },
+     "blue": {
+      "spacing": 0.95,
+      "rowSpacing": 1.2,
+      "perRow": 10,
+      "front": 3
+     }
+    },
+    "wings": {
+     "arena": {
+      "halfX": 42,
+      "halfZ": 17
+     },
+     "camera": {
+      "yaw": -0.5,
+      "pitch": 0.45,
+      "distance": 31,
+      "maxDistance": 40
+     },
+     "formation": {
+      "red": {
+       "wings": {
+        "side": 1
+       }
+      },
+      "blue": {
+       "wings": {
+        "side": -1
+       }
+      }
+     }
+    },
+    "armies": {
+     "red": [
+      "legion"
+     ],
+     "blue": [
+      "han"
+     ]
+    },
+    "fighters": []
+   },
+   "mobei": {
+    "title": "Mobei",
+    "place": "North of the Gobi · 119 BC",
+    "blurb": {
+     "en": "Wei Qing has crossed the desert to the chanyu's own ground. Twenty-three Han crossbowmen in iron lamellar stand at the edge of the plain, his horse — sabre, spear and bow — on both flanks; against them come thirty-five Xiongnu, every man a horse archer in felt and leather, riding in to shoot and wheeling away.",
+     "zh": "卫青穿过大漠，打到了单于的家门口。二十三名汉军弩手身披铁札甲，列在平原边上，两翼是刀、枪、弓骑；迎面来的是三十五个匈奴人，个个是穿毡裹皮的骑射手，冲上来放一轮箭，拨马就走。"
+    },
+    "scene": "mobei",
+    "arena": {
+     "halfX": 60,
+     "halfZ": 38
+    },
+    "spread": 1,
+    "camera": {
+     "yaw": -0.5,
+     "pitch": 0.42,
+     "distance": 40,
+     "maxDistance": 60
+    },
+    "roster": {
+     "en": "Twenty-three Han crossbowmen and eleven horse · thirty-five Xiongnu horsemen",
+     "zh": "汉军弩手二十三人、骑兵十一人 · 匈奴骑兵三十五人"
+    },
+    "formation": {
+     "red": {
+      "front": 52,
+      "facing": "ahead",
+      "spacing": 0.95,
+      "rowSpacing": 1.2,
+      "perRow": 10,
+      "wings": {
+       "back": 0
+      }
+     },
+     "blue": {
+      "front": 20,
+      "spacing": 5,
+      "rowSpacing": 6,
+      "perRow": 9,
+      "loose": 0.9
+     }
+    },
+    "armies": {
+     "red": [
+      "han"
+     ],
+     "blue": [
+      "xiongnu"
+     ]
+    },
+    "fighters": []
+   },
+   "carrhae": {
+    "title": "Carrhae",
+    "place": "The plain by Harran, Mesopotamia · June 53 BC",
+    "blurb": {
+     "en": "Crassus's legion stands in a square under a sky of arrows. Forty legionaries of the Republic in mail and bronze, shields locked, and five of Publius Crassus's Gallic horse; round them ride twenty-one Parthian horse archers, who never close and never run short — the camel train behind them brings fresh arrows — and three cataphracts, man and horse in iron scale, held back for anyone who breaks out.",
+     "zh": "克拉苏的军团结成方阵，头顶是满天的箭。四十名共和国军团兵，锁甲铜盔，盾牌相扣，外加小克拉苏手下五名高卢骑兵；二十一名帕提亚骑射手绕着他们打转，从不近身，箭也从不见底——后头骆驼队一驮一驮往上送；另有三名人马俱披铁鳞的具装骑兵，专等谁冲出阵来。"
+    },
+    "scene": "carrhae",
+    "arena": {
+     "halfX": 60,
+     "halfZ": 40
+    },
+    "spread": 1,
+    "camera": {
+     "yaw": -0.5,
+     "pitch": 0.42,
+     "distance": 40,
+     "maxDistance": 60
+    },
+    "roster": {
+     "en": "Forty legionaries and five Gallic horse · twenty-one horse archers and three cataphracts",
+     "zh": "军团兵四十人、高卢骑兵五人 · 骑射手二十一人、具装骑兵三人"
+    },
+    "formation": {
+     "red": {
+      "front": 12,
+      "facing": "ahead",
+      "layout": [
+       [
+        0,
+        -3.75
+       ],
+       [
+        0,
+        -2.5
+       ],
+       [
+        0,
+        -1.25
+       ],
+       [
+        0,
+        0
+       ],
+       [
+        0,
+        1.25
+       ],
+       [
+        0,
+        2.5
+       ],
+       [
+        0,
+        3.75
+       ],
+       [
+        1.25,
+        3.75
+       ],
+       [
+        2.5,
+        3.75
+       ],
+       [
+        3.75,
+        3.75
+       ],
+       [
+        5,
+        3.75
+       ],
+       [
+        6.25,
+        3.75
+       ],
+       [
+        7.5,
+        3.75
+       ],
+       [
+        7.5,
+        2.5
+       ],
+       [
+        7.5,
+        1.25
+       ],
+       [
+        7.5,
+        0
+       ],
+       [
+        7.5,
+        -1.25
+       ],
+       [
+        7.5,
+        -2.5
+       ],
+       [
+        7.5,
+        -3.75
+       ],
+       [
+        6.25,
+        -3.75
+       ],
+       [
+        5,
+        -3.75
+       ],
+       [
+        3.75,
+        -3.75
+       ],
+       [
+        2.5,
+        -3.75
+       ],
+       [
+        1.25,
+        -3.75
+       ],
+       [
+        1.25,
+        -2.5
+       ],
+       [
+        1.25,
+        -1.25
+       ],
+       [
+        1.25,
+        0
+       ],
+       [
+        1.25,
+        1.25
+       ],
+       [
+        1.25,
+        2.5
+       ],
+       [
+        2.5,
+        2.5
+       ],
+       [
+        3.75,
+        2.5
+       ],
+       [
+        5,
+        2.5
+       ],
+       [
+        6.25,
+        2.5
+       ],
+       [
+        6.25,
+        1.25
+       ],
+       [
+        6.25,
+        0
+       ],
+       [
+        6.25,
+        -1.25
+       ],
+       [
+        6.25,
+        -2.5
+       ],
+       [
+        5,
+        -2.5
+       ],
+       [
+        3.75,
+        -2.5
+       ],
+       [
+        2.5,
+        -2.5
+       ]
+      ],
+      "spacing": 1.25,
+      "perRow": 7,
+      "loose": 0.05,
+      "drill": {
+       "advance": false,
+       "square": true
+      },
+      "wings": {
+       "back": 0,
+       "by": 120
+      }
+     },
+     "blue": {
+      "front": 24,
+      "spacing": 5,
+      "rowSpacing": 6,
+      "perRow": 8,
+      "loose": 0.9,
+      "train": {
+       "back": 3
+      },
+      "wings": {
+       "styles": [
+        "kontos"
+       ],
+       "back": 2,
+       "by": 120
+      }
+     }
+    },
+    "armies": {
+     "red": [
+      "crassus"
+     ],
+     "blue": [
+      "parthians"
+     ]
+    },
+    "fighters": []
+   },
+   "catalaunian": {
+    "title": "The Catalaunian Plains",
+    "place": "Champagne, Gaul · 20 June 451",
+    "blurb": {
+     "en": "Aetius's Romans and Theoderic's Visigoths stand against Attila. Twelve Roman foot in mail with oval shields and spears, and six Roman archers on their flank, hold the line beside eleven Visigoths, six Visigoth horse on the flank; eleven Huns ride round them shooting — horse archers and a few of Attila's nobles — and twenty-four Ostrogoths and Gepids, Attila's subject peoples, come on behind them on foot.",
+     "zh": "埃提乌斯的罗马人和狄奥多里克的西哥特人，一同迎战阿提拉。十二名罗马步兵，锁甲、椭圆盾、长矛，侧翼六名罗马弓手，跟十一名西哥特人并肩守住阵线，六名西哥特骑兵护住一翼；十一个匈人绕阵放箭——骑射手，加上几个阿提拉的贵族——后面，二十四名东哥特人和格皮德人，阿提拉治下的附庸，徒步压上来。"
+    },
+    "scene": "catalaunian",
+    "arena": {
+     "halfX": 58,
+     "halfZ": 38
+    },
+    "spread": 1,
+    "camera": {
+     "yaw": -0.5,
+     "pitch": 0.42,
+     "distance": 40,
+     "maxDistance": 60
+    },
+    "roster": {
+     "en": "Eighteen Romans (six of them archers), eleven Visigoths and six Visigoth horse · eleven Huns on horse, twenty-four Ostrogoths and Gepids",
+     "zh": "罗马人十八名（其中弓手六名）、西哥特人十一名、西哥特骑兵六名 · 匈人骑兵十一名、东哥特与格皮德人二十四名"
+    },
+    "formation": {
+     "red": {
+      "front": 20,
+      "facing": "ahead",
+      "layout": [
+       [
+        0,
+        -6.5
+       ],
+       [
+        0,
+        -5.5
+       ],
+       [
+        0,
+        -4.5
+       ],
+       [
+        0,
+        -3.5
+       ],
+       [
+        0,
+        -2.5
+       ],
+       [
+        0,
+        -1.5
+       ],
+       [
+        1.2,
+        -6.5
+       ],
+       [
+        1.2,
+        -5.5
+       ],
+       [
+        1.2,
+        -4.5
+       ],
+       [
+        1.2,
+        -3.5
+       ],
+       [
+        1.2,
+        -2.5
+       ],
+       [
+        1.2,
+        -1.5
+       ],
+       [
+        0,
+        -13
+       ],
+       [
+        0,
+        -12
+       ],
+       [
+        0,
+        -11
+       ],
+       [
+        0,
+        -10
+       ],
+       [
+        0,
+        -9
+       ],
+       [
+        0,
+        -8
+       ],
+       [
+        0,
+        1.5
+       ],
+       [
+        0,
+        2.5
+       ],
+       [
+        0,
+        3.5
+       ],
+       [
+        0,
+        4.5
+       ],
+       [
+        0,
+        5.5
+       ],
+       [
+        0,
+        6.5
+       ],
+       [
+        1.2,
+        2
+       ],
+       [
+        1.2,
+        3
+       ],
+       [
+        1.2,
+        4
+       ],
+       [
+        1.2,
+        5
+       ],
+       [
+        1.2,
+        6
+       ]
+      ],
+      "spacing": 1,
+      "perRow": 14,
+      "loose": 0.1,
+      "wings": {
+       "side": 1,
+       "back": 0
+      }
+     },
+     "blue": {
+      "front": 20,
+      "layout": [
+       [
+        0,
+        -20
+       ],
+       [
+        0,
+        -15
+       ],
+       [
+        0,
+        -10
+       ],
+       [
+        0,
+        -5
+       ],
+       [
+        0,
+        0
+       ],
+       [
+        0,
+        5
+       ],
+       [
+        0,
+        10
+       ],
+       [
+        0,
+        15
+       ],
+       [
+        0,
+        20
+       ],
+       [
+        6,
+        -2.5
+       ],
+       [
+        6,
+        2.5
+       ],
+       [
+        25,
+        -3.5999999999999996
+       ],
+       [
+        25,
+        -2.4
+       ],
+       [
+        25,
+        -1.2
+       ],
+       [
+        25,
+        0
+       ],
+       [
+        25,
+        1.2
+       ],
+       [
+        25,
+        2.4
+       ],
+       [
+        25,
+        3.5999999999999996
+       ],
+       [
+        26.5,
+        -3.5999999999999996
+       ],
+       [
+        26.5,
+        -2.4
+       ],
+       [
+        26.5,
+        -1.2
+       ],
+       [
+        26.5,
+        0
+       ],
+       [
+        26.5,
+        1.2
+       ],
+       [
+        26.5,
+        2.4
+       ],
+       [
+        26.5,
+        3.5999999999999996
+       ],
+       [
+        28,
+        -3.5999999999999996
+       ],
+       [
+        28,
+        -2.4
+       ],
+       [
+        28,
+        -1.2
+       ],
+       [
+        28,
+        0
+       ],
+       [
+        28,
+        1.2
+       ],
+       [
+        28,
+        2.4
+       ],
+       [
+        28,
+        3.5999999999999996
+       ],
+       [
+        29.5,
+        -1.2
+       ],
+       [
+        29.5,
+        0
+       ],
+       [
+        29.5,
+        1.2
+       ]
+      ],
+      "loose": 0.5
+     }
+    },
+    "armies": {
+     "red": [
+      "lateRome",
+      "visigoths"
+     ],
+     "blue": [
+      "huns",
+      "germans"
+     ]
+    },
+    "fighters": []
+   },
+   "rebellion": {
+    "title": "Peasant Rebellion",
+    "place": "The market square, Maidstone, Kent · June 1381",
+    "blurb": {
+     "en": "The town has risen. A lord in plate rides in on his destrier, with three of his foot soldiers behind him, to put it down — and meet twenty peasants with spears in the market square.",
+     "zh": "镇子反了。一位老爷披着板甲、骑着战马进城来镇压，身后跟着三个步卒——集市广场上，迎面是二十个攥着长矛的农民。"
+    },
+    "scene": "town",
+    "weather": {
+     "fog": [
+      6,
+      75
+     ],
+     "sky": 0.55,
+     "pale": 0.55,
+     "sun": 0.9
+    },
+    "arena": {
+     "halfX": 9,
+     "halfZ": 7
+    },
+    "camera": {
+     "yaw": -0.55,
+     "pitch": 0.42,
+     "distance": 10,
+     "maxDistance": 10.5
+    },
+    "roster": {
+     "en": "A mounted knight and three foot soldiers · twenty rebels with spears",
+     "zh": "骑士一名（骑马）、步卒三名 · 持矛乱民二十名"
+    },
+    "spread": 1.25,
+    "formation": {
+     "red": {
+      "front": 4.5,
+      "spacing": 0.85
+     },
+     "blue": {
+      "front": 5,
+      "spacing": 1.5,
+      "rowSpacing": 1.6,
+      "loose": 0.55
+     }
+    },
+    "wings": {
+     "arena": {
+      "halfX": 11,
+      "halfZ": 8.5
+     },
+     "formation": {
+      "red": {
+       "front": 7.5,
+       "spacing": 1.2,
+       "wings": {
+        "out": 2,
+        "back": 1,
+        "spacing": 3,
+        "release": 14,
+        "by": 6
+       }
+      }
+     }
+    },
+    "armies": {
+     "red": [
+      "lords"
+     ],
+     "blue": [
+      "commons"
+     ]
+    },
+    "fighters": []
+   },
+   "agincourt": {
+    "title": "Agincourt",
+    "place": "Agincourt, Artois · 25 October 1415",
+    "blurb": {
+     "en": "King Henry's archers stand behind their stakes at the narrow end of a ploughed field, soaked by a night's rain, between two woods. The French men-at-arms come on across it on foot in plate, sinking to the knee, crowded together as the woods close in; their horse rides first at the archers. Thirty archers and five men-at-arms against twenty-eight men-at-arms, three lances and four crossbows.",
+     "zh": "亨利王的弓手守在田地窄头的木桩后面：地刚犁过，夹在两片树林中间，昨夜一场雨浇了个透。法国重甲兵披着板甲徒步过来，一脚泥陷到膝盖，林子越往前越收，人越挤越紧；他们的骑兵先朝弓手冲。弓手三十、重甲兵五，对重甲兵二十八、骑枪三、弩手四。"
+    },
+    "scene": "sengoku",
+    "weather": {
+     "fog": [
+      12,
+      120
+     ],
+     "sky": 0.65,
+     "pale": 0.6,
+     "mistLine": [
+      -1,
+      6
+     ],
+     "sun": 0.85
+    },
+    "arena": {
+     "halfX": 50,
+     "halfZ": 11.5,
+     "works": {
+      "soft": [
+       {
+        "x": [
+         -50,
+         50
+        ],
+        "z": [
+         -11.5,
+         11.5
+        ],
+        "depth": 0.26,
+        "firm": 0.5,
+        "viscosity": 2,
+        "footing": 0.7,
+        "surface": "mud",
+        "edge": 0.1,
+        "water": 0.04
+       }
+      ],
+      "walls": [
+       {
+        "points": [
+         [
+          -50,
+          11.6
+         ],
+         [
+          -20,
+          11.2
+         ],
+         [
+          -8,
+          10.2
+         ],
+         [
+          3,
+          8.5
+         ],
+         [
+          50,
+          8.5
+         ]
+        ],
+        "height": 6,
+        "kind": "wood"
+       },
+       {
+        "points": [
+         [
+          -50,
+          -11.6
+         ],
+         [
+          -20,
+          -11.2
+         ],
+         [
+          -8,
+          -10.2
+         ],
+         [
+          3,
+          -8.5
+         ],
+         [
+          50,
+          -8.5
+         ]
+        ],
+        "height": 6,
+        "kind": "wood"
+       }
+      ],
+      "stakes": [
+       {
+        "from": [
+         5.4,
+         2.9000000000000004
+        ],
+        "to": [
+         5.4,
+         8
+        ],
+        "rows": 2,
+        "every": 0.95,
+        "rowGap": 0.9,
+        "toward": -1,
+        "height": 1.05,
+        "reach": 0.95,
+        "stagger": 0.5
+       },
+       {
+        "from": [
+         5.4,
+         -2.9000000000000004
+        ],
+        "to": [
+         5.4,
+         -8
+        ],
+        "rows": 2,
+        "every": 0.95,
+        "rowGap": 0.9,
+        "toward": -1,
+        "height": 1.05,
+        "reach": 0.95,
+        "stagger": 0.5
+       }
+      ]
+     },
+     "camps": false
+    },
+    "spread": 1,
+    "camera": {
+     "yaw": 1.25,
+     "pitch": 1,
+     "distance": 44,
+     "maxDistance": 46
+    },
+    "roster": {
+     "en": "Thirty-two French on foot and three on horse · thirty English archers and five men-at-arms",
+     "zh": "法军步行三十二人、骑马三人 · 英格兰弓手三十人、重甲兵五人"
+    },
+    "formation": {
+     "red": {
+      "front": 43,
+      "spacing": 0.85,
+      "rowSpacing": 1,
+      "perRow": 12,
+      "loose": 0.15,
+      "wings": {
+       "by": 3,
+       "release": 40
+      },
+      "marched": {
+       "metres": 215,
+       "pace": 0.8
+      }
+     },
+     "blue": {
+      "front": 7,
+      "layout": [
+       [
+        0,
+        3.2
+       ],
+       [
+        0,
+        -3.2
+       ],
+       [
+        0,
+        4.2
+       ],
+       [
+        0,
+        -4.2
+       ],
+       [
+        0,
+        5.2
+       ],
+       [
+        0,
+        -5.2
+       ],
+       [
+        0,
+        6.2
+       ],
+       [
+        0,
+        -6.2
+       ],
+       [
+        0,
+        7.2
+       ],
+       [
+        0,
+        -7.2
+       ],
+       [
+        1.1,
+        3.7
+       ],
+       [
+        1.1,
+        -3.7
+       ],
+       [
+        1.1,
+        4.7
+       ],
+       [
+        1.1,
+        -4.7
+       ],
+       [
+        1.1,
+        5.7
+       ],
+       [
+        1.1,
+        -5.7
+       ],
+       [
+        1.1,
+        6.7
+       ],
+       [
+        1.1,
+        -6.7
+       ],
+       [
+        1.1,
+        7.7
+       ],
+       [
+        1.1,
+        -7.7
+       ],
+       [
+        2.2,
+        3.2
+       ],
+       [
+        2.2,
+        -3.2
+       ],
+       [
+        2.2,
+        4.2
+       ],
+       [
+        2.2,
+        -4.2
+       ],
+       [
+        2.2,
+        5.2
+       ],
+       [
+        2.2,
+        -5.2
+       ],
+       [
+        2.2,
+        6.2
+       ],
+       [
+        2.2,
+        -6.2
+       ],
+       [
+        2.2,
+        7.2
+       ],
+       [
+        2.2,
+        -7.2
+       ],
+       [
+        0,
+        -1.15
+       ],
+       [
+        0,
+        0
+       ],
+       [
+        0,
+        1.15
+       ],
+       [
+        1.2,
+        -1.15
+       ],
+       [
+        1.2,
+        0
+       ]
+      ],
+      "loose": 0.08,
+      "drill": {
+       "advance": false
+      }
+     }
+    },
+    "armies": {
+     "red": [
+      "france1415"
+     ],
+     "blue": [
+      "england"
+     ]
+    },
+    "fighters": []
+   },
+   "cerignola": {
+    "title": "Cerignola",
+    "place": "Cerignola, Apulia · 28 April 1503",
+    "blurb": {
+     "en": "Gonzalo de Córdoba's men stand behind a fresh ditch and its bank on a vineyard slope: a rank of German pikes along the bank, his arquebusiers three deep close behind them firing between the pikemen's files, the rest of the pikes and the sword-and-buckler men behind. At dusk the French gendarmes in plate on barded horses charge it, and the Swiss columns follow them in: the ditch stops the horse, the pikes hold the bank, and the volleys come rank after rank. Thirty-five of Spain against eight gendarmes, twenty-two Swiss and five crossbowmen.",
+     "zh": "贡萨洛·德·科尔多瓦的人守在葡萄园坡上，前面一道新挖的壕沟、一道土堤：堤上一排德意志长枪，火绳枪手三排紧贴在后，从枪兵行间开火；其余长枪和圆盾剑士押在后头。黄昏，法兰西重骑披板甲、骑披甲马冲上来，瑞士方阵跟着压上：沟挡住了马，枪守住了堤，排枪一排接一排。西班牙三十五人，对法兰西重骑八名、瑞士枪兵二十二名、弩手五名。"
+    },
+    "scene": "cerignola",
+    "arena": {
+     "halfX": 32,
+     "halfZ": 11,
+     "works": {
+      "ditches": [
+       {
+        "from": [
+         4,
+         -75
+        ],
+        "to": [
+         4,
+         75
+        ],
+        "profile": [
+         [
+          -2.4,
+          0
+         ],
+         [
+          -1.6,
+          -1.2
+         ],
+         [
+          -0.5,
+          -1.2
+         ],
+         [
+          0.3,
+          0.7
+         ],
+         [
+          1.5,
+          0.7
+         ],
+         [
+          2.6,
+          0
+         ]
+        ]
+       }
+      ]
+     }
+    },
+    "spread": 1,
+    "camera": {
+     "yaw": -0.5,
+     "pitch": 0.42,
+     "distance": 22,
+     "maxDistance": 30
+    },
+    "roster": {
+     "en": "Eight gendarmes, twenty-two Swiss pikes and five crossbowmen · twelve arquebusiers, fifteen pikes and eight sword-and-buckler men",
+     "zh": "法兰西重骑八人、瑞士长枪二十二人、弩手五人 · 火绳枪手十二人、长枪十五人、圆盾剑士八人"
+    },
+    "formation": {
+     "red": {
+      "front": 24,
+      "spacing": 0.95,
+      "rowSpacing": 1,
+      "perRow": 8,
+      "loose": 0.2,
+      "wings": {
+       "by": 3,
+       "release": 40
+      }
+     },
+     "blue": {
+      "front": 7.2,
+      "layout": [
+       [
+        0,
+        -3.5
+       ],
+       [
+        0,
+        -2.5
+       ],
+       [
+        0,
+        -1.5
+       ],
+       [
+        0,
+        -0.5
+       ],
+       [
+        0,
+        0.5
+       ],
+       [
+        0,
+        1.5
+       ],
+       [
+        0,
+        2.5
+       ],
+       [
+        0,
+        3.5
+       ],
+       [
+        4.3,
+        -3.5
+       ],
+       [
+        4.3,
+        -2.5
+       ],
+       [
+        4.3,
+        -1.5
+       ],
+       [
+        4.3,
+        -0.5
+       ],
+       [
+        4.3,
+        0.5
+       ],
+       [
+        4.3,
+        1.5
+       ],
+       [
+        4.3,
+        2.5
+       ],
+       [
+        4.3,
+        3.5
+       ],
+       [
+        5.3,
+        -3.5
+       ],
+       [
+        5.3,
+        -2.5
+       ],
+       [
+        5.3,
+        -1.5
+       ],
+       [
+        5.3,
+        -0.5
+       ],
+       [
+        5.3,
+        0.5
+       ],
+       [
+        5.3,
+        1.5
+       ],
+       [
+        5.3,
+        2.5
+       ],
+       [
+        1,
+        -3
+       ],
+       [
+        1,
+        -1
+       ],
+       [
+        1,
+        1
+       ],
+       [
+        1,
+        3
+       ],
+       [
+        1.9,
+        -3
+       ],
+       [
+        1.9,
+        -1
+       ],
+       [
+        1.9,
+        1
+       ],
+       [
+        1.9,
+        3
+       ],
+       [
+        2.8,
+        -3
+       ],
+       [
+        2.8,
+        -1
+       ],
+       [
+        2.8,
+        1
+       ],
+       [
+        2.8,
+        3
+       ]
+      ],
+      "drill": {
+       "advance": false,
+       "holdFire": true
+      }
+     }
+    },
+    "armies": {
+     "red": [
+      "france1503"
+     ],
+     "blue": [
+      "gonzalo"
+     ]
+    },
+    "fighters": []
+   },
+   "sekigahara": {
+    "title": "Sekigahara",
+    "place": "Sekigahara, Mino · 21 October 1600",
+    "blurb": {
+     "en": "The battle that ends the Sengoku. Thirty-four of the East in red against thirty-five of the West in black and blue, in the morning fog: bows and teppō in front, spears, blades and polearms behind, and three mounted samurai on a flank of each army to charge when the lines close.",
+     "zh": "终结战国的一战。晨雾里，东军三十四人着红，西军三十五人着黑蓝：弓和铁炮在前，长枪、刀、长柄兵器在后，两军侧翼各有三名骑马武士，阵线一接就冲进去。"
+    },
+    "scene": "sengoku",
+    "weather": {
+     "fog": [
+      12,
+      120
+     ],
+     "sky": 0.65,
+     "pale": 0.6,
+     "mistLine": [
+      -1,
+      6
+     ],
+     "sun": 0.85
+    },
+    "arena": {
+     "halfX": 17,
+     "halfZ": 11
+    },
+    "camera": {
+     "yaw": -0.5,
+     "pitch": 0.42,
+     "distance": 17,
+     "maxDistance": 22
+    },
+    "roster": {
+     "en": "Thirty-four of the East and thirty-five of the West: mostly ashigaru, a few samurai, three of them on horse a side",
+     "zh": "东军三十四人、西军三十五人：多为足轻，武士寥寥，每方三名武士骑马"
+    },
+    "formation": {
+     "red": {
+      "front": 6,
+      "spacing": 1.3,
+      "rowSpacing": 1.6,
+      "shootersFront": 4,
+      "perRow": 10,
+      "loose": 0.3
+     },
+     "blue": {
+      "front": 6,
+      "spacing": 1.3,
+      "rowSpacing": 1.6,
+      "shootersFront": 4,
+      "perRow": 10,
+      "loose": 0.3
+     }
+    },
+    "wings": {
+     "arena": {
+      "halfX": 30,
+      "halfZ": 16
+     },
+     "camera": {
+      "yaw": -0.5,
+      "pitch": 0.42,
+      "distance": 28,
+      "maxDistance": 36
+     },
+     "formation": {
+      "red": {
+       "wings": {
+        "side": 1
+       }
+      },
+      "blue": {
+       "wings": {
+        "side": -1
+       }
+      }
+     }
+    },
+    "armies": {
+     "red": [
+      "east"
+     ],
+     "blue": [
+      "west"
+     ]
+    },
+    "fighters": []
+   },
+   "pyongyang": {
+    "title": "Pyongyang",
+    "place": "Pyongyang, Joseon · 8 February 1593",
+    "blurb": {
+     "en": "The Ming army retakes the city from the Japanese. Nineteen Ming foot — elites in plated brigandine with guandao and guns, brigandine men with sword and shield, spear and gun, and a few of the drilled southern infantry with the wolf-brush spear — and eleven of Li Rusong's horsemen in iron lamellar on the flank, against forty Japanese samurai and ashigaru and three mounted samurai.",
+     "zh": "明军从日军手里夺回平壤。明军步卒十九人——精锐披钉甲，使大刀、放火铳；布面甲兵持刀牌、长枪、鸟铳；还有几名操练有素的南兵，持狼筅——侧翼是李如松的十一名铁札甲骑兵，对阵日本武士和足轻四十人，另有骑马武士三人。"
+    },
+    "scene": "pyongyangtown",
+    "climate": "pyongyang",
+    "arena": {
+     "halfX": 14,
+     "halfZ": 9
+    },
+    "camera": {
+     "yaw": -0.5,
+     "pitch": 0.42,
+     "distance": 15,
+     "maxDistance": 19
+    },
+    "roster": {
+     "en": "Thirty Ming (eleven on horse) · forty-three Japanese (three on horse)",
+     "zh": "明军三十人（十一骑） · 日军四十三人（三骑）"
+    },
+    "formation": {
+     "red": {
+      "front": 5,
+      "spacing": 1.3,
+      "rowSpacing": 1.6,
+      "shootersFront": 4,
+      "perRow": 8,
+      "loose": 0.3
+     },
+     "blue": {
+      "front": 5,
+      "spacing": 1.3,
+      "rowSpacing": 1.6,
+      "shootersFront": 4,
+      "perRow": 8,
+      "loose": 0.3
+     }
+    },
+    "wings": {
+     "arena": {
+      "halfX": 26,
+      "halfZ": 15
+     },
+     "camera": {
+      "yaw": -0.5,
+      "pitch": 0.42,
+      "distance": 26,
+      "maxDistance": 33
+     },
+     "formation": {
+      "red": {
+       "wings": {
+        "side": 1
+       }
+      },
+      "blue": {
+       "wings": {
+        "side": -1
+       }
+      }
+     }
+    },
+    "armies": {
+     "red": [
+      "ming"
+     ],
+     "blue": [
+      "west"
+     ]
+    },
+    "fighters": []
+   },
+   "sarhu": {
+    "title": "Sarhu",
+    "place": "Sarhu and Jiefan, by the Hun River, Liaodong · 14 April 1619",
+    "blurb": {
+     "en": "Du Song's column has crossed the Hun River ahead of the other three, and Nurhaci has brought his eight banners against it alone. Thirty of the Ming — a few of Du Song's household elite, regulars in brigandine and garrison men, a handful of gunners in front — meet twenty-eight banner men in studded coats of plates, spears, sabres and guandao before the archers with the heavy Manchu bow, and three Bayara of the guard riding on the flank with the heavy spear. The Ming had more guns; the fight went on into the dusk and the mist, and wet powder and the columns' distance from each other did the rest.",
+     "zh": "杜松这一路抢在另外三路前头渡过浑河，努尔哈赤就把八旗全压在他一路上。明军三十人——杜松的几个家丁精锐，布面甲兵，卫所兵，前头一小撮火铳手——迎面是二十八名八旗兵：钉甲，长枪、腰刀、大刀在前，后头是拉重弓的弓手，侧翼还有三骑巴牙喇，提着重枪包抄。明军火器多；可仗打进了黄昏和雾里，火药受了潮，四路兵又隔得老远——剩下的就不用说了。"
+    },
+    "scene": "sarhu",
+    "weather": {
+     "fog": [
+      8,
+      80
+     ],
+     "sky": 0.6,
+     "pale": 0.6,
+     "sun": 0.7
+    },
+    "arena": {
+     "halfX": 14,
+     "halfZ": 9
+    },
+    "camera": {
+     "yaw": -0.5,
+     "pitch": 0.42,
+     "distance": 15,
+     "maxDistance": 19
+    },
+    "roster": {
+     "en": "Thirty Ming: three elite, seventeen in brigandine, ten garrison men · thirty-one of the Eight Banners, three of them Bayara on horse",
+     "zh": "明军三十人：精锐三人、布面甲兵十七人、卫所兵十人 · 八旗兵三十一人，其中巴牙喇三骑"
+    },
+    "formation": {
+     "red": {
+      "front": 5,
+      "spacing": 1.3,
+      "rowSpacing": 1.6,
+      "shootersFront": 4,
+      "perRow": 8,
+      "loose": 0.3
+     },
+     "blue": {
+      "front": 5,
+      "spacing": 1.2,
+      "rowSpacing": 1.5,
+      "perRow": 8,
+      "loose": 0.2
+     }
+    },
+    "wings": {
+     "arena": {
+      "halfX": 28,
+      "halfZ": 15
+     },
+     "camera": {
+      "yaw": -0.5,
+      "pitch": 0.42,
+      "distance": 26,
+      "maxDistance": 33
+     },
+     "formation": {
+      "blue": {
+       "wings": {
+        "side": -1
+       }
+      }
+     }
+    },
+    "armies": {
+     "red": [
+      "ming"
+     ],
+     "blue": [
+      "banners"
+     ]
+    },
+    "fighters": []
+   },
+   "cajamarca": {
+    "title": "Cajamarca",
+    "place": "The square of Cajamarca, Peru · 16 November 1532",
+    "blurb": {
+     "en": "Late in the afternoon Atahualpa is carried into the walled square among his lords and attendants, unarmed by his own order, in their finest woven tunics. Pizarro's men wait out of sight in the doorways of the long halls round it: steel, horses and guns these people have never seen. At the signal Candia's gun fires and horse and foot burst out from every side.",
+     "zh": "日头偏西，阿塔瓦尔帕被抬进四面围墙的广场，身边簇拥着贵族和侍从，个个穿最好的织袍，照他自己的命令，谁都没带兵器。皮萨罗的人藏在四周长厅的门洞里，不露面：钢铁、马、火枪，这些人一样也没见过。信号一到，坎迪亚的炮一响，马兵步兵从四面八方杀出来。"
+    },
+    "scene": "cajamarca",
+    "arena": {
+     "halfX": 16,
+     "halfZ": 11
+    },
+    "camera": {
+     "yaw": -0.5,
+     "pitch": 0.48,
+     "distance": 19,
+     "maxDistance": 25
+    },
+    "roster": {
+     "en": "Fourteen Spaniards, five of them on horse · Atahualpa and fifty-one of his retinue",
+     "zh": "西班牙人十四名，五名骑马 · 阿塔瓦尔帕及扈从五十一人"
+    },
+    "formation": {
+     "red": {
+      "front": 0,
+      "layout": [
+       [
+        14.8,
+        0
+       ],
+       [
+        14.8,
+        1.6
+       ],
+       [
+        14.8,
+        -1.6
+       ],
+       [
+        15,
+        3.6
+       ],
+       [
+        15,
+        -3.6
+       ],
+       [
+        11,
+        9.4
+       ],
+       [
+        7,
+        9.8
+       ],
+       [
+        3,
+        9.4
+       ],
+       [
+        -1,
+        9.8
+       ],
+       [
+        11,
+        -9.4
+       ],
+       [
+        7,
+        -9.8
+       ],
+       [
+        3,
+        -9.4
+       ],
+       [
+        -1,
+        -9.8
+       ],
+       [
+        -5,
+        -9.4
+       ]
+      ],
+      "loose": 0.1,
+      "ambush": {
+       "signal": 5
+      }
+     },
+     "blue": {
+      "front": 0,
+      "layout": [
+       [
+        4,
+        0
+       ],
+       [
+        3.563678905773065,
+        0.39970586377332507
+       ],
+       [
+        4.073160328213671,
+        -0.8336242054907042
+       ],
+       [
+        4.623589764646863,
+        0.8133624221920872
+       ],
+       [
+        2.8346368332426115,
+        -0.20613633540419285
+       ],
+       [
+        5.116407947716292,
+        -0.7101673523098239
+       ],
+       [
+        3.623721918268429,
+        1.399735708632679
+       ],
+       [
+        3.278421219300705,
+        -1.389356033153384
+       ],
+       [
+        5.572101450909258,
+        0.5741289284353838
+       ],
+       [
+        2.359119255688139,
+        0.6773317179684416
+       ],
+       [
+        4.793102812663125,
+        -1.6948146437199372
+       ],
+       [
+        4.587355516144644,
+        1.8725819395899144
+       ],
+       [
+        2.22648785519113,
+        -1.027786539044698
+       ],
+       [
+        6.083739851071842,
+        -0.45810436090840906
+       ],
+       [
+        2.7266405522726367,
+        1.811222781469425
+       ],
+       [
+        3.7054857651724173,
+        -2.2727460235399093
+       ],
+       [
+        5.8098539079457625,
+        1.525346789660688
+       ],
+       [
+        1.562330382359161,
+        0.10080529186333799
+       ],
+       [
+        5.779505726689676,
+        -1.77084587559666
+       ],
+       [
+        3.8808594051921905,
+        2.5765252065349693
+       ],
+       [
+        2.3045018241431796,
+        -2.03177346958503
+       ],
+       [
+        6.687417410098345,
+        0.3615882115692849
+       ],
+       [
+        1.721752197432989,
+        1.5851454809405727
+       ],
+       [
+        4.62284930637856,
+        -2.7686276134564665
+       ],
+       [
+        5.441257039066093,
+        2.5151857073771935
+       ],
+       [
+        1.1813296752374858,
+        -0.8992327120147632
+       ],
+       [
+        6.7390125166384625,
+        -1.265493255040993
+       ],
+       [
+        2.8129765133482305,
+        2.8363319378725156
+       ],
+       [
+        2.9402635670385093,
+        -2.946337249385211
+       ],
+       [
+        6.820698244273009,
+        1.4824799438839247
+       ],
+       [
+        0.8660285459948018,
+        0.8261048175296138
+       ],
+       [
+        5.781842203669859,
+        -2.7711740255870265
+       ],
+       [
+        4.566955157058238,
+        3.2989498091899647
+       ],
+       [
+        1.3125034431819316,
+        -2.0813483912028348
+       ],
+       [
+        7.438551274858792,
+        -0.2848769443825629
+       ],
+       [
+        1.622744009694077,
+        2.569744067923992
+       ],
+       [
+        4.017319650664756,
+        -3.5503199183424248
+       ],
+       [
+        6.418339790371845,
+        2.6658666557021453
+       ],
+       [
+        0.36791524324701896,
+        -0.336620798889625
+       ],
+       [
+        6.9435532684734,
+        -2.2340519852823904
+       ],
+       [
+        3.330169991688696,
+        3.681978103146795
+       ],
+       [
+        1.9820097753590598,
+        -3.206788318573985
+       ],
+       [
+        7.698452009163669,
+        1.0135923626410925
+       ],
+       [
+        0.5478271079101042,
+        1.77159813152221
+       ],
+       [
+        5.364421408859287,
+        -3.6802924761955955
+       ],
+       [
+        5.496642754518004,
+        3.6764656711910697
+       ],
+       [
+        0.37336882969824847,
+        -1.718728191278527
+       ],
+       [
+        7.8766114460114425,
+        -1.195200741446828
+       ],
+       [
+        1.9271480133065877,
+        3.536954428850522
+       ],
+       [
+        3.13035852033696,
+        -4.049768704772632
+       ],
+       [
+        7.411109392842695,
+        2.423092332159224
+       ],
+       [
+        -0.19333592041618264,
+        0.5226073798350223
+       ]
+      ],
+      "loose": 0.25
+     }
+    },
+    "armies": {
+     "red": [
+      "spanish"
+     ],
+     "blue": [
+      "inca"
+     ]
+    },
+    "fighters": []
+   },
+   "zeelandia": {
+    "title": "Fort Zeelandia",
+    "place": "Baxemboy, Formosa · 1661",
+    "blurb": {
+     "en": "Koxinga lands to take Fort Zeelandia. The VOC's musketeers, pikemen and halberdiers march out to meet his army on the sand: a few iron men in scale and iron faces with their long sabres and rattan shields, garrison troops and a few Japanese.",
+     "zh": "郑成功登陆，要拿热兰遮城。荷兰东印度公司的火枪手、长枪兵和戟兵开出城，在沙滩上迎战他的大军：几名戴铁面、披鳞甲的铁人，营兵，还有几个日本人。"
+    },
+    "scene": "coastFort",
+    "arena": {
+     "halfX": 15,
+     "halfZ": 10
+    },
+    "camera": {
+     "yaw": -0.5,
+     "pitch": 0.42,
+     "distance": 16,
+     "maxDistance": 20
+    },
+    "roster": {
+     "en": "Eighteen Dutch · twenty-six of Koxinga's army",
+     "zh": "荷兰人十八名 · 郑成功部二十六人"
+    },
+    "formation": {
+     "red": {
+      "front": 5,
+      "spacing": 1.2,
+      "rowSpacing": 1.5,
+      "shootersFront": 4,
+      "perRow": 9,
+      "loose": 0.15
+     },
+     "blue": {
+      "front": 5,
+      "spacing": 1.2,
+      "rowSpacing": 1.6,
+      "shootersFront": 4,
+      "perRow": 10,
+      "loose": 0.35
+     }
+    },
+    "armies": {
+     "red": [
+      "dutch"
+     ],
+     "blue": [
+      "koxinga"
+     ]
+    },
+    "fighters": []
+   },
+   "nanjing": {
+    "title": "Nanjing",
+    "place": "The hills outside Nanjing · 9 September 1659",
+    "blurb": {
+     "en": "Koxinga's army has sat before Nanjing for a fortnight, waiting for the city to yield. At dawn the garrison comes out: Manchu horse round the flank, the banners up the hill. In front of his line, his iron men in scale and iron faces with their long sabres and rattan shields; behind them the coast's levies.",
+     "zh": "郑成功大军围南京半月，坐等开城。拂晓，城中守军杀出：满洲骑兵绕侧翼，八旗步卒上山。阵前是他的铁人，鳞甲铁面，长柄斩马刀，大藤牌；身后是沿海的乡兵。"
+    },
+    "scene": "field",
+    "climate": "nanjing1659",
+    "arena": {
+     "halfX": 14,
+     "halfZ": 9
+    },
+    "camera": {
+     "yaw": -0.5,
+     "pitch": 0.42,
+     "distance": 15,
+     "maxDistance": 19
+    },
+    "roster": {
+     "en": "Thirty-four of Koxinga's army, eight of them iron men · thirty-four of the Eight Banners, eight Bayara on horse",
+     "zh": "郑成功部三十四人，其中铁人八名 · 八旗兵三十四人，其中巴牙喇八骑"
+    },
+    "formation": {
+     "red": {
+      "front": 6,
+      "spacing": 1.15,
+      "rowSpacing": 1.45,
+      "shootersFront": 4,
+      "perRow": 8,
+      "loose": 0.12
+     },
+     "blue": {
+      "front": 5,
+      "spacing": 1.2,
+      "rowSpacing": 1.5,
+      "perRow": 8,
+      "loose": 0.25
+     }
+    },
+    "wings": {
+     "arena": {
+      "halfX": 28,
+      "halfZ": 15
+     },
+     "camera": {
+      "yaw": -0.5,
+      "pitch": 0.42,
+      "distance": 26,
+      "maxDistance": 33
+     },
+     "formation": {
+      "blue": {
+       "wings": {
+        "side": -1
+       }
+      }
+     }
+    },
+    "armies": {
+     "red": [
+      "koxinga"
+     ],
+     "blue": [
+      "banners"
+     ]
+    },
+    "leave": {
+     "red": [
+      "koxinga.ronin"
+     ]
+    },
+    "fighters": []
+   },
+   "rhodes": {
+    "title": "Siege of Rhodes",
+    "place": "Bastion of Aragon, Rhodes · 24 September 1522",
+    "blurb": {
+     "en": "Süleyman's general assault on the breaches. The Knights of St John in plate, with their sergeants and gunners, meet the Janissaries with yatagan and gun, the azaps' spears and bows, and heavy men in mail-and-plate.",
+     "zh": "苏莱曼对城墙缺口发起总攻。圣约翰骑士团的骑士披板甲，带军士和炮手迎战：对面是挥弯刀、放火枪的耶尼切里，阿扎普的长矛和弓，和披锁子连板甲的重兵。"
+    },
+    "scene": "coastFort",
+    "arena": {
+     "halfX": 15,
+     "halfZ": 10
+    },
+    "camera": {
+     "yaw": -0.5,
+     "pitch": 0.42,
+     "distance": 16,
+     "maxDistance": 20
+    },
+    "roster": {
+     "en": "Fifteen of the Order · a wave of forty-two Ottomans",
+     "zh": "骑士团十五人 · 奥斯曼军一波四十二人"
+    },
+    "formation": {
+     "red": {
+      "front": 5,
+      "spacing": 1.2,
+      "rowSpacing": 1.5,
+      "shootersFront": 4,
+      "perRow": 8,
+      "loose": 0.15
+     },
+     "blue": {
+      "front": 5,
+      "spacing": 1.2,
+      "rowSpacing": 1.6,
+      "shootersFront": 4,
+      "perRow": 10,
+      "loose": 0.4
+     }
+    },
+    "armies": {
+     "red": [
+      "hospitallers"
+     ],
+     "blue": [
+      "ottomans"
+     ]
+    },
+    "fighters": []
+   },
+   "wokou": {
+    "title": "Wokou raid",
+    "place": "A water town, Zhejiang · 1554",
+    "blurb": {
+     "en": "Sea raiders come up the canals in the morning mist: Chinese pirates of the coast with dao and spears, and out ahead of them at a run a few rōnin and one samurai without his helmet, the long swords of the band. Hardly a gun among them. In the market square by the bridge they meet the town's garrison, more of them than the raiders: old men, thin boys and the underfed in hemp vests, spears and dao and a few bows, no guns, and a pair of brigandine regulars among them.",
+     "zh": "晨雾里，一伙海寇顺着河道摸上来：多是沿海的中国海盗，提着腰刀长枪；前头冲着几个浪人，还有一个没戴头盔的武士，是这伙人里使长刀的。几乎不见火器。桥边集市上，他们撞上了镇里的守军，人比倭寇多：老头、瘦小子、吃不饱的穷汉，一身麻布坎肩，长枪腰刀，几张弓，没有火器，当中夹着两个穿布面甲的正兵。"
+    },
+    "scene": "jiangnan",
+    "weather": {
+     "fog": [
+      5,
+      75
+     ],
+     "sky": 0.75,
+     "pale": 0.7,
+     "mistLine": [
+      -1,
+      7
+     ],
+     "sun": 0.85
+    },
+    "arena": {
+     "halfX": 14,
+     "halfZ": 9
+    },
+    "camera": {
+     "yaw": -0.5,
+     "pitch": 0.42,
+     "distance": 15,
+     "maxDistance": 19
+    },
+    "roster": {
+     "en": "Twenty-six raiders · thirty-four garrison",
+     "zh": "倭寇二十六人 · 守军三十四人"
+    },
+    "formation": {
+     "red": {
+      "front": 8,
+      "spacing": 1.3,
+      "rowSpacing": 1.6,
+      "perRow": 9,
+      "loose": 0.5,
+      "layout": [
+       [
+        -3,
+        -1.9500000000000002
+       ],
+       [
+        -3,
+        -0.65
+       ],
+       [
+        -3,
+        0.65
+       ],
+       [
+        -3,
+        1.9500000000000002
+       ],
+       [
+        0,
+        -5.2
+       ],
+       [
+        0,
+        -3.9000000000000004
+       ],
+       [
+        0,
+        -2.6
+       ],
+       [
+        0,
+        -1.3
+       ],
+       [
+        0,
+        0
+       ],
+       [
+        0,
+        1.3
+       ],
+       [
+        0,
+        2.6
+       ],
+       [
+        0,
+        3.9000000000000004
+       ],
+       [
+        0,
+        5.2
+       ],
+       [
+        1.6,
+        -5.2
+       ],
+       [
+        1.6,
+        -3.9000000000000004
+       ],
+       [
+        1.6,
+        -2.6
+       ],
+       [
+        1.6,
+        -1.3
+       ],
+       [
+        1.6,
+        0
+       ],
+       [
+        1.6,
+        1.3
+       ],
+       [
+        1.6,
+        2.6
+       ],
+       [
+        1.6,
+        3.9000000000000004
+       ],
+       [
+        1.6,
+        5.2
+       ],
+       [
+        3.2,
+        -1.9500000000000002
+       ],
+       [
+        3.2,
+        -0.65
+       ],
+       [
+        3.2,
+        0.65
+       ],
+       [
+        3.2,
+        1.9500000000000002
+       ]
+      ]
+     },
+     "blue": {
+      "front": 8,
+      "spacing": 1.2,
+      "rowSpacing": 1.6,
+      "perRow": 15,
+      "shootersFront": 1.5,
+      "loose": 0.25
+     }
+    },
+    "armies": {
+     "red": [
+      "raiders"
+     ],
+     "blue": [
+      "coast"
+     ]
+    },
+    "fighters": []
+   },
+   "qiJiguang": {
+    "title": "Qi Jiguang's army",
+    "place": "Taizhou, Zhejiang · 1561",
+    "blurb": {
+     "en": "The same raiders, the same kind of town, seven years on. General Qi Jiguang's army of Yiwu miners and farmers, drilled daily for years under his law until they fought as one, elite infantry now, though no one would have called them gentlemen: in long studded brigandine to the knee and down both arms, a steel guard on the forearm held out to the enemy, in close-ordered mandarin-duck squads of twelve — shields in front, the wolf-brush bamboos thrust in the raiders' faces, spears past them, and the fowling pieces in two ranks behind the shields, holding their fire until the raiders are close, then firing by ranks past the shields' shoulders while the front holds the raiders at the line.",
+     "zh": "还是那帮倭寇，还是那样的江南小城，隔了七年。戚继光招的是义乌的矿徒和庄稼汉，拿军法天天操，操了几年，操到能当一个人使——如今是精兵了，虽然没人把他们当体面人：布面甲长过膝，两袖也钉着甲，迎敌的前臂上一截钢护臂，十二人一队，结鸳鸯阵——藤牌在前，狼筅迎着倭寇的脸捅，长枪从筅后递出；两排鸟铳伏在牌后，不到跟前不放，到了跟前，贴着牌肩一排一排打，前排把人死死钉在阵线上。"
+    },
+    "scene": "jiangnan",
+    "weather": {
+     "fog": [
+      5,
+      75
+     ],
+     "sky": 0.75,
+     "pale": 0.7,
+     "mistLine": [
+      -1,
+      7
+     ],
+     "sun": 0.85
+    },
+    "arena": {
+     "halfX": 14,
+     "halfZ": 9,
+     "works": {
+      "ditches": [
+       {
+        "points": [
+         [
+          9.7,
+          -15.5,
+          0.9,
+          1
+         ],
+         [
+          9.2,
+          -10.2,
+          1.1,
+          1.15
+         ],
+         [
+          9.749999999999998,
+          -4.6,
+          0.95,
+          0.9
+         ],
+         [
+          9.099999999999998,
+          0.6,
+          1.05,
+          1.05
+         ],
+         [
+          9.499999999999998,
+          6.1,
+          0.85,
+          1.1
+         ],
+         [
+          9.799999999999999,
+          11.8,
+          1,
+          0.92
+         ]
+        ],
+        "profile": [
+         [
+          -1.25,
+          0
+         ],
+         [
+          -0.75,
+          -0.65
+         ],
+         [
+          -0.25,
+          -0.7
+         ],
+         [
+          0.2,
+          0.3
+         ],
+         [
+          0.85,
+          0.35
+         ],
+         [
+          1.5,
+          0
+         ]
+        ],
+        "apron": 0.3
+       }
+      ]
+     }
+    },
+    "camera": {
+     "yaw": -0.5,
+     "pitch": 0.42,
+     "distance": 15,
+     "maxDistance": 19
+    },
+    "roster": {
+     "en": "Twenty-six raiders · 2 squads of twelve",
+     "zh": "倭寇二十六人 · 鸳鸯阵2队，每队十二人"
+    },
+    "formation": {
+     "red": {
+      "front": 8,
+      "spacing": 1.3,
+      "rowSpacing": 1.6,
+      "perRow": 9,
+      "loose": 0.5,
+      "layout": [
+       [
+        -3,
+        -1.9500000000000002
+       ],
+       [
+        -3,
+        -0.65
+       ],
+       [
+        -3,
+        0.65
+       ],
+       [
+        -3,
+        1.9500000000000002
+       ],
+       [
+        0,
+        -5.2
+       ],
+       [
+        0,
+        -3.9000000000000004
+       ],
+       [
+        0,
+        -2.6
+       ],
+       [
+        0,
+        -1.3
+       ],
+       [
+        0,
+        0
+       ],
+       [
+        0,
+        1.3
+       ],
+       [
+        0,
+        2.6
+       ],
+       [
+        0,
+        3.9000000000000004
+       ],
+       [
+        0,
+        5.2
+       ],
+       [
+        1.6,
+        -5.2
+       ],
+       [
+        1.6,
+        -3.9000000000000004
+       ],
+       [
+        1.6,
+        -2.6
+       ],
+       [
+        1.6,
+        -1.3
+       ],
+       [
+        1.6,
+        0
+       ],
+       [
+        1.6,
+        1.3
+       ],
+       [
+        1.6,
+        2.6
+       ],
+       [
+        1.6,
+        3.9000000000000004
+       ],
+       [
+        1.6,
+        5.2
+       ],
+       [
+        3.2,
+        -1.9500000000000002
+       ],
+       [
+        3.2,
+        -0.65
+       ],
+       [
+        3.2,
+        0.65
+       ],
+       [
+        3.2,
+        1.9500000000000002
+       ]
+      ]
+     },
+     "blue": {
+      "front": 8,
+      "layout": [
+       [
+        0,
+        -3.1500000000000004
+       ],
+       [
+        0,
+        -1.7500000000000002
+       ],
+       [
+        0.3,
+        -4.550000000000001
+       ],
+       [
+        0.3,
+        -0.3500000000000001
+       ],
+       [
+        1,
+        -4.1
+       ],
+       [
+        1,
+        -1.2000000000000002
+       ],
+       [
+        1.8,
+        -2.7
+       ],
+       [
+        1,
+        -3.1500000000000004
+       ],
+       [
+        1,
+        -1.7500000000000002
+       ],
+       [
+        1.9,
+        -3.1500000000000004
+       ],
+       [
+        1.9,
+        -1.7500000000000002
+       ],
+       [
+        2.6,
+        -2.2
+       ],
+       [
+        0,
+        1.7500000000000002
+       ],
+       [
+        0,
+        3.1500000000000004
+       ],
+       [
+        0.3,
+        0.3500000000000001
+       ],
+       [
+        0.3,
+        4.550000000000001
+       ],
+       [
+        1,
+        0.8000000000000003
+       ],
+       [
+        1,
+        3.7
+       ],
+       [
+        1.8,
+        2.2
+       ],
+       [
+        1,
+        1.7500000000000002
+       ],
+       [
+        1,
+        3.1500000000000004
+       ],
+       [
+        1.9,
+        1.7500000000000002
+       ],
+       [
+        1.9,
+        3.1500000000000004
+       ],
+       [
+        2.6,
+        2.7
+       ]
+      ],
+      "loose": 0.1,
+      "drill": {
+       "advance": false,
+       "squad": true,
+       "holdFire": true
+      },
+      "discipline": 1
+     }
+    },
+    "armies": {
+     "red": [
+      "raiders"
+     ],
+     "blue": [
+      "qi"
+     ]
+    },
+    "fighters": []
+   },
+   "port": {
+    "title": "Pier 9",
+    "place": "Container port, Yokohama · 2:15 a.m.",
+    "blurb": {
+     "en": "A raid on a handover between the containers. Four SWAT officers — two pistols, two batons — against six yakuza: four knives, a katana, and one gun.",
+     "zh": "集装箱堆里一场交货，被人堵了。四名特警——两把手枪、两根警棍——对六个极道：四把刀，一把武士刀，一支枪。"
+    },
+    "scene": "port",
+    "arena": {
+     "halfX": 10,
+     "halfZ": 6
+    },
+    "camera": {
+     "yaw": -0.6,
+     "pitch": 0.36,
+     "distance": 9,
+     "maxDistance": 11
+    },
+    "weather": {
+     "fog": [
+      8,
+      45
+     ],
+     "colour": 3946030,
+     "sky": 0.85,
+     "halos": true,
+     "wind": {
+      "speed": 2.5,
+      "gust": 0.2
+     }
+    },
+    "roster": {
+     "en": "Four SWAT officers · six yakuza",
+     "zh": "特警四名 · 极道六人"
+    },
+    "formation": {
+     "red": {
+      "front": 4.5,
+      "spacing": 1.4
+     },
+     "blue": {
+      "front": 4.5,
+      "spacing": 1.3,
+      "loose": 0.4
+     }
+    },
+    "armies": {
+     "red": [
+      "swat",
+      "infantry"
+     ],
+     "blue": [
+      "yakuza"
+     ]
+    },
+    "fighters": []
+   },
+   "pride": {
+    "title": "Frye vs. Takayama",
+    "place": "Saitama Super Arena, Japan · 23 June 2002",
+    "blurb": {
+     "en": "Two big men, one hand each on the back of the other's neck, trading punches face to face until one of them drops.",
+     "zh": "两个大块头，各用一只手扣住对方后颈，脸贴着脸对轰，直到有一个先倒下。"
+    },
+    "scene": "stadium",
+    "arena": {
+     "halfX": 3,
+     "halfZ": 3
+    },
+    "rules": {
+     "noPins": true
+    },
+    "camera": {
+     "yaw": -0.35,
+     "pitch": 0.14,
+     "distance": 4.6
+    },
+    "fighters": [
+     {
+      "name": "Don Frye",
+      "style": "clinchBrawl",
+      "sex": "male",
+      "heightCm": 185,
+      "bodyFat": 0.12,
+      "frame": "large",
+      "age": 36,
+      "exercise": 0.82,
+      "outfit": {
+       "kind": "mma",
+       "design": 0,
+       "colors": {
+        "bottom": "#16161a"
+       }
+      },
+      "accessories": [],
+      "look": {
+       "skinTone": "lightTan",
+       "hairStyle": "buzz",
+       "hairColor": "#3a2a1c",
+       "facialHair": "handlebar",
+       "eyeColor": "brown",
+       "faceShape": "seinen"
+      }
+     },
+     {
+      "name": "Yoshihiro Takayama",
+      "style": "clinchBrawl",
+      "sex": "male",
+      "heightCm": 196,
+      "bodyFat": 0.14,
+      "frame": "large",
+      "age": 35,
+      "exercise": 0.65,
+      "outfit": {
+       "kind": "mma",
+       "design": 0,
+       "colors": {
+        "bottom": "#1f2a52"
+       }
+      },
+      "accessories": [],
+      "look": {
+       "skinTone": "lightTan",
+       "hairStyle": "long",
+       "hairColor": "#c9a25e",
+       "facialHair": "none",
+       "eyeColor": "brown",
+       "faceShape": "seinen"
+      }
+     }
+    ]
+   },
+   "subway": {
+    "title": "Last Train",
+    "place": "New York subway platform, 1:40 a.m.",
+    "blurb": {
+     "en": "A shoulder barged on the stairs. No ring, no gloves, no referee — a strip of platform between the pillars and the yellow edge.",
+     "zh": "楼梯上撞了一下肩膀。没有擂台，没有拳套，没有裁判——只有柱子和黄线之间的一窄条站台。"
+    },
+    "scene": "subway",
+    "arena": {
+     "halfX": 4.2,
+     "halfZ": 1.35,
+     "drop": {
+      "at": 2.1,
+      "floor": -1.2,
+      "to": 6,
+      "reason": "fell onto the tracks"
+     }
+    },
+    "camera": {
+     "yaw": -0.25,
+     "pitch": 0.14,
+     "distance": 5.4
+    },
+    "fighters": [
+     {
+      "name": "Simon",
+      "style": "street",
+      "sex": "male",
+      "heightCm": 183,
+      "weightKg": 72,
+      "frame": "medium",
+      "age": 27,
+      "exercise": 0.35,
+      "outfit": {
+       "kind": "casual",
+       "design": 1,
+       "colors": {
+        "top": "#24324a",
+        "bottom": "#2b3550"
+       }
+      },
+      "accessories": [
+       "headset"
+      ],
+      "look": {
+       "skinTone": "lightTan",
+       "hairStyle": "midLong",
+       "hairColor": "#120d0a",
+       "facialHair": "none",
+       "eyeColor": "brown"
+      }
+     },
+     {
+      "name": "Dre",
+      "style": "street",
+      "sex": "male",
+      "heightCm": 180,
+      "weightKg": 75,
+      "frame": "medium",
+      "age": 25,
+      "exercise": 0.4,
+      "outfit": {
+       "kind": "casual",
+       "design": 2,
+       "colors": {
+        "top": "#7a2230",
+        "bottom": "#26262b"
+       }
+      },
+      "accessories": [],
+      "look": {
+       "skinTone": "deep",
+       "hairStyle": "dreads",
+       "hairColor": "#1a120c",
+       "facialHair": "stubble",
+       "eyeColor": "brown"
+      }
+     }
+    ],
+    "crews": {
+     "red": [
+      {
+       "name": "Tomo",
+       "heightCm": 176,
+       "weightKg": 68,
+       "age": 24,
+       "outfit": {
+        "kind": "casual",
+        "design": 2,
+        "colors": {
+         "top": "#1c1c20",
+         "bottom": "#2b3550"
+        }
+       },
+       "accessories": [],
+       "look": {
+        "hairStyle": "spiky",
+        "skinTone": "lightTan"
+       }
+      },
+      {
+       "name": "Jae",
+       "heightCm": 185,
+       "weightKg": 84,
+       "age": 29,
+       "exercise": 0.5,
+       "outfit": {
+        "kind": "casual",
+        "design": 1,
+        "colors": {
+         "top": "#e4e4e6",
+         "bottom": "#26262b"
+        }
+       },
+       "accessories": [],
+       "look": {
+        "hairStyle": "fade",
+        "skinTone": "light"
+       }
+      }
+     ],
+     "blue": [
+      {
+       "name": "Marco",
+       "heightCm": 174,
+       "weightKg": 79,
+       "age": 30,
+       "outfit": {
+        "kind": "casual",
+        "design": 1,
+        "colors": {
+         "top": "#4a5233",
+         "bottom": "#2b3550"
+        }
+       },
+       "look": {
+        "hairStyle": "buzz",
+        "skinTone": "tan",
+        "facialHair": "beard"
+       }
+      },
+      {
+       "name": "Kofi",
+       "heightCm": 188,
+       "weightKg": 82,
+       "age": 23,
+       "exercise": 0.45,
+       "outfit": {
+        "kind": "casual",
+        "design": 2,
+        "colors": {
+         "top": "#6b6e74",
+         "bottom": "#1c1c20"
+        }
+       },
+       "look": {
+        "hairStyle": "cornrows",
+        "skinTone": "deep"
+       }
+      }
+     ]
+    }
+   }
+  }
+ }
+}

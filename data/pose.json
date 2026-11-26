@@ -1,0 +1,59 @@
+{
+ "version": 1,
+ "source": "src/pose.js",
+ "tables": {
+  "POSE": {
+   "bladeAngle": 0.55,
+   "hipBladeShare": 0.6,
+   "forwardLean": 0.14,
+   "crouch": 0.03,
+   "leadFoot": [
+    0.13,
+    0.055
+   ],
+   "rearFoot": [
+    -0.13,
+    -0.08
+   ],
+   "leadGuard": [
+    0.13,
+    -0.1,
+    0.06
+   ],
+   "rearGuard": [
+    0.035,
+    -0.075,
+    -0.075
+   ],
+   "weaponReach": 0.1,
+   "weaponWindupReach": 0,
+   "polearmRearReach": 0,
+   "polearmRearAhead": 0.6,
+   "polearmRearWindup": 0,
+   "weaponPole": [
+    0.25,
+    -1,
+    0.6
+   ],
+   "weaponPoleBack": {
+    "back": 1,
+    "from": 0.75,
+    "full": 0.95
+   },
+   "weaponClear": {
+    "clear": 0.03,
+    "below": 0.1
+   },
+   "kneeOut": 0.35,
+   "runElbow": [
+    -1,
+    -0.5,
+    0.15
+   ],
+   "armClear": {
+    "widthShare": 1.17,
+    "margin": 0
+   }
+  }
+ }
+}

@@ -1,0 +1,99 @@
+{
+ "version": 1,
+ "source": "src/control.js",
+ "tables": {
+  "CONTROL": {
+   "stick": {
+    "deadZone": 0.12,
+    "walkFrom": 0.3,
+    "fullFrom": 0.55,
+    "runFrom": 0.6
+   },
+   "keys": {
+    "runStart": 0,
+    "rampSeconds": 1.5
+   },
+   "run": {
+    "staminaPerSecond": 0.02,
+    "windedBelow": 0.05,
+    "recoveredTo": 0.2
+   },
+   "facing": {
+    "foeWithin": 4.5
+   },
+   "crawlSteep": 0.4,
+   "crawlLook": 0.5,
+   "hold": {
+    "slack": 0.15,
+    "inside": 0.08,
+    "gunRoom": 1.5
+   },
+   "ride": {
+    "reins": true,
+    "slowFrom": 0.35,
+    "snap": false,
+    "snapAngle": 0.25,
+    "canterFrom": 0.8,
+    "gallopFrom": 0.88,
+    "circle": {
+     "from": 15,
+     "to": 25,
+     "least": 10,
+     "most": 35,
+     "rate": 6,
+     "sideFrom": 0.3,
+     "alongFrom": 0.3,
+     "inward": 0.6,
+     "approach": 1.6
+    }
+   },
+   "bufferSeconds": 0.35,
+   "autoCharge": {
+    "fromCanter": 0.9,
+    "within": 0.9,
+    "reach": 2,
+    "again": 1.2
+   },
+   "faceSeconds": 0.6,
+   "anyoneWithin": 2.2,
+   "foeEngaged": 4,
+   "chargeWithin": 40,
+   "lockAnyoneWithin": 5,
+   "padStepReach": 0.5,
+   "padSlack": 0.3,
+   "padCoil": 0.5,
+   "lungeBeyond": 0.35,
+   "highFrom": 0.9,
+   "lowBelow": 0.75,
+   "tapWide": 0.35,
+   "wrestleWithin": 1.2,
+   "wrestleBelow": 0.2,
+   "tapOver": 0.15,
+   "gapSnap": 0.12,
+   "pinFrom": 1.6,
+   "pinSeconds": 2.5,
+   "comboWithin": 0.45,
+   "guardFootwork": 0.6,
+   "guard": {
+    "recovery": 0.25,
+    "staminaPerSecond": 0.025,
+    "perJoule": 0.0006,
+    "spentBelow": 0,
+    "willFrom": 0.12,
+    "willFull": 0.45
+   },
+   "spacing": {
+    "pushFrom": 0.3,
+    "pace": 0.6,
+    "room": 0.15
+   },
+   "runStrike": {
+    "waitSeconds": 1.5
+   },
+   "pickupFrom": 2.5,
+   "breakHold": 0.6,
+   "clinchFrom": 0.4,
+   "clinchSeconds": 1.2
+  }
+ }
+}

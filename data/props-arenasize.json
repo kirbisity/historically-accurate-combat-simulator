@@ -1,0 +1,140 @@
+{
+ "version": 1,
+ "source": "src/props/arenasize.js",
+ "tables": {
+  "PLACE_ARENAS": {
+   "ring": {
+    "halfX": 2.85,
+    "halfZ": 2.85,
+    "ring": true
+   },
+   "colosseum": {
+    "halfX": 13,
+    "halfZ": 8
+   },
+   "subway": {
+    "halfX": 4.2,
+    "halfZ": 1.35,
+    "drop": {
+     "at": 2.1,
+     "floor": -1.2,
+     "to": 6,
+     "reason": "fell onto the tracks"
+    }
+   },
+   "meadow": {
+    "halfX": 9,
+    "halfZ": 7
+   },
+   "stadium": {
+    "halfX": 2.85,
+    "halfZ": 2.85,
+    "ring": true
+   },
+   "town": {
+    "halfX": 9,
+    "halfZ": 7
+   },
+   "port": {
+    "halfX": 10,
+    "halfZ": 6
+   },
+   "sengoku": {
+    "halfX": 11,
+    "halfZ": 7
+   },
+   "plain": {
+    "halfX": 12,
+    "halfZ": 8
+   },
+   "field": {
+    "halfX": 45,
+    "halfZ": 30
+   },
+   "coastFort": {
+    "halfX": 12,
+    "halfZ": 8
+   },
+   "coastVillage": {
+    "halfX": 12,
+    "halfZ": 8
+   },
+   "jiangnan": {
+    "halfX": 14,
+    "halfZ": 9
+   },
+   "canaltown": {
+    "halfX": 18,
+    "halfZ": 9,
+    "own": true
+   },
+   "pyongyang": {
+    "halfX": 135,
+    "halfZ": 9,
+    "own": true
+   },
+   "pyongyangtown": {
+    "halfX": 26,
+    "halfZ": 15,
+    "own": true
+   },
+   "cajamarca": {
+    "halfX": 16,
+    "halfZ": 11
+   },
+   "agincourt": {
+    "halfX": 50,
+    "halfZ": 11.5
+   },
+   "cerignola": {
+    "halfX": 32,
+    "halfZ": 11
+   },
+   "lastgate": {
+    "halfX": 18,
+    "halfZ": 10.5
+   },
+   "mobei": {
+    "halfX": 30,
+    "halfZ": 20
+   },
+   "catalaunian": {
+    "halfX": 30,
+    "halfZ": 20
+   },
+   "carrhae": {
+    "halfX": 30,
+    "halfZ": 20
+   },
+   "sarhu": {
+    "halfX": 30,
+    "halfZ": 20
+   },
+   "stage": {
+    "halfX": 40,
+    "halfZ": 40
+   },
+   "dunnottar": {
+    "halfX": 40,
+    "halfZ": 40
+   }
+  },
+  "SUBWAY_ARENA": {
+   "halfX": 4.2,
+   "halfZ": 1.35,
+   "drop": {
+    "at": 2.1,
+    "floor": -1.2,
+    "to": 6,
+    "reason": "fell onto the tracks"
+   }
+  },
+  "COLOSSEUM": {
+   "rx": 22,
+   "rz": 13,
+   "tiers": 22,
+   "step": 0.04,
+   "rise": 0.62
+  }
+ }
+}

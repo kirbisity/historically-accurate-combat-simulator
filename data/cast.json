@@ -1,0 +1,408 @@
+{
+ "version": 1,
+ "source": "src/cast.js",
+ "tables": {
+  "CAST": {
+   "height": 7,
+   "bmi": 0.06,
+   "age": 6,
+   "exercise": 0.12,
+   "otherSex": 0.05,
+   "sexBuild": 0.92,
+   "sexHeight": 12,
+   "looks": {
+    "skinTone": [
+     "light",
+     "lightTan",
+     "medium",
+     "tan",
+     "deep"
+    ],
+    "hairColor": [
+     "#120d0a",
+     "#2a1a10",
+     "#6b4a2a",
+     "#c9a25e",
+     "#8a3a1c"
+    ],
+    "eyeColor": [
+     "brown",
+     "hazel",
+     "blue",
+     "green",
+     "grey"
+    ],
+    "hair": {
+     "male": [
+      "spiky",
+      "cleanShort",
+      "fade",
+      "buzz",
+      "cornrows",
+      "midLong",
+      "dreads",
+      "bald"
+     ],
+     "female": [
+      "bun",
+      "ponytail",
+      "midLong",
+      "long",
+      "cleanShort"
+     ]
+    },
+    "facialHair": [
+     "none",
+     "none",
+     "stubble",
+     "mustache",
+     "beard"
+    ]
+   },
+   "names": {
+    "male": [
+     "Aldo",
+     "Bram",
+     "Cass",
+     "Dario",
+     "Emil",
+     "Felix",
+     "Goran",
+     "Hugo",
+     "Ivo",
+     "Jonas",
+     "Kenta",
+     "Luca",
+     "Mateo",
+     "Niko",
+     "Omar",
+     "Pavel",
+     "Rafe",
+     "Silas",
+     "Tariq",
+     "Ugo"
+    ],
+    "female": [
+     "Ada",
+     "Bea",
+     "Cleo",
+     "Dana",
+     "Eva",
+     "Freya",
+     "Gia",
+     "Hana",
+     "Ines",
+     "Jade",
+     "Kira",
+     "Lena",
+     "Mila",
+     "Nora",
+     "Orla",
+     "Pia",
+     "Rosa",
+     "Sana",
+     "Tess",
+     "Vera"
+    ]
+   }
+  },
+  "PERIOD_BUILD": {
+   "ming": {
+    "garrison": {
+     "heightCm": 168,
+     "weightKg": 66,
+     "exercise": 0.5
+    },
+    "brigandine": {
+     "heightCm": 171,
+     "weightKg": 69,
+     "exercise": 0.68
+    },
+    "elite": {
+     "heightCm": 174,
+     "weightKg": 73,
+     "exercise": 0.75
+    }
+   },
+   "mingSouth": {
+    "garrison": {
+     "heightCm": 168,
+     "weightKg": 63,
+     "exercise": 0.5
+    },
+    "brigandine": {
+     "heightCm": 170,
+     "weightKg": 66,
+     "exercise": 0.65
+    },
+    "elite": {
+     "heightCm": 175,
+     "weightKg": 74,
+     "exercise": 0.8
+    },
+    "ironMan": {
+     "heightCm": 176,
+     "weightKg": 78,
+     "exercise": 0.84
+    },
+    "raider": {
+     "heightCm": 165,
+     "weightKg": 68,
+     "exercise": 0.66
+    }
+   },
+   "qi": {
+    "brigandine": {
+     "skill": 0.5,
+     "heightCm": 170,
+     "weightKg": 69,
+     "exercise": 0.8
+    },
+    "eliteInfantry": {
+     "heightCm": 170,
+     "weightKg": 69,
+     "exercise": 0.8
+    },
+    "elite": {
+     "skill": 0.55,
+     "heightCm": 175,
+     "weightKg": 74,
+     "exercise": 0.8
+    }
+   },
+   "mingCoast": {
+    "garrison": {
+     "spread": 1.5,
+     "heightCm": 167,
+     "weightKg": 58,
+     "exercise": 0.45,
+     "mix": [
+      [
+       0.4,
+       {
+        "ages": [
+         [
+          1,
+          22,
+          40
+         ]
+        ],
+        "heightCm": 167,
+        "weightKg": 58,
+        "exercise": 0.45
+       }
+      ],
+      [
+       0.3,
+       {
+        "ages": [
+         [
+          1,
+          47,
+          66
+         ]
+        ],
+        "heightCm": 167,
+        "weightKg": 58,
+        "exercise": 0.35
+       }
+      ],
+      [
+       0.3,
+       {
+        "ages": [
+         [
+          1,
+          16,
+          30
+         ]
+        ],
+        "skill": 0.15,
+        "heightCm": 161,
+        "weightKg": 49,
+        "exercise": 0.3
+       }
+      ]
+     ]
+    },
+    "brigandine": {
+     "heightCm": 170,
+     "weightKg": 66,
+     "exercise": 0.65
+    }
+   },
+   "jurchen": {
+    "banner": {
+     "heightCm": 172,
+     "weightKg": 82,
+     "exercise": 0.9
+    },
+    "bayara": {
+     "heightCm": 176,
+     "weightKg": 87,
+     "exercise": 0.95
+    }
+   },
+   "japanese": {
+    "ashigaru": {
+     "heightCm": 164,
+     "weightKg": 60,
+     "exercise": 0.6
+    },
+    "samurai": {
+     "heightCm": 167,
+     "weightKg": 63,
+     "exercise": 0.7
+    },
+    "ronin": {
+     "heightCm": 165,
+     "weightKg": 65,
+     "exercise": 0.92
+    },
+    "raider": {
+     "heightCm": 162,
+     "weightKg": 65,
+     "exercise": 0.72
+    },
+    "sohei": {
+     "skill": 0.6,
+     "heightCm": 167,
+     "weightKg": 67,
+     "exercise": 0.8
+    }
+   },
+   "spanish": {
+    "soldier": {
+     "heightCm": 175,
+     "weightKg": 74,
+     "exercise": 0.84
+    },
+    "officer": {
+     "heightCm": 177,
+     "weightKg": 77,
+     "exercise": 0.86
+    }
+   },
+   "mexica": {
+    "warrior": {
+     "heightCm": 166,
+     "weightKg": 62,
+     "exercise": 0.72
+    },
+    "elite": {
+     "heightCm": 168,
+     "weightKg": 64,
+     "exercise": 0.82
+    }
+   },
+   "inca": {
+    "commoner": {
+     "heightCm": 164,
+     "weightKg": 68,
+     "exercise": 0.7
+    },
+    "noble": {
+     "heightCm": 167,
+     "weightKg": 71,
+     "exercise": 0.74
+    }
+   },
+   "hospitaller": {
+    "sergeant": {
+     "heightCm": 170,
+     "weightKg": 68,
+     "exercise": 0.65
+    },
+    "knight": {
+     "heightCm": 173,
+     "weightKg": 73,
+     "exercise": 0.75
+    }
+   },
+   "ottoman": {
+    "azap": {
+     "heightCm": 175,
+     "weightKg": 80,
+     "exercise": 0.88
+    },
+    "janissary": {
+     "heightCm": 180,
+     "weightKg": 88,
+     "exercise": 0.96
+    },
+    "heavy": {
+     "heightCm": 180,
+     "weightKg": 91,
+     "exercise": 0.95
+    }
+   },
+   "steppe": {
+    "light": {
+     "heightCm": 168,
+     "weightKg": 78,
+     "exercise": 0.7
+    },
+    "medium": {
+     "heightCm": 169,
+     "weightKg": 82,
+     "exercise": 0.66
+    },
+    "heavy": {
+     "heightCm": 171,
+     "weightKg": 87,
+     "exercise": 0.62
+    }
+   },
+   "dutch": {
+    "soldier": {
+     "heightCm": 170,
+     "weightKg": 67,
+     "exercise": 0.6
+    },
+    "officer": {
+     "heightCm": 172,
+     "weightKg": 70,
+     "exercise": 0.6
+    }
+   },
+   "english": {
+    "archer": {
+     "heightCm": 172,
+     "weightKg": 71,
+     "exercise": 0.86
+    },
+    "manAtArms": {
+     "heightCm": 173,
+     "weightKg": 75,
+     "exercise": 0.8
+    }
+   },
+   "french": {
+    "foot": {
+     "heightCm": 170,
+     "weightKg": 66,
+     "exercise": 0.62
+    },
+    "knight": {
+     "heightCm": 174,
+     "weightKg": 75,
+     "exercise": 0.78
+    }
+   },
+   "swiss": {
+    "pike": {
+     "heightCm": 170,
+     "weightKg": 69,
+     "exercise": 0.8
+    }
+   },
+   "landsknecht": {
+    "pike": {
+     "heightCm": 170,
+     "weightKg": 69,
+     "exercise": 0.74
+    }
+   }
+  }
+ }
+}

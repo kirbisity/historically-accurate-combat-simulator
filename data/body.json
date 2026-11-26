@@ -1,0 +1,2795 @@
+{
+ "version": 1,
+ "source": "src/body.js",
+ "tables": {
+  "PRESETS": {
+   "heavy": {
+    "name": "Marcus \"The Wall\"",
+    "style": "boxing",
+    "sex": "male",
+    "heightCm": 193,
+    "frame": "large",
+    "age": 29,
+    "exercise": 0.65,
+    "calories": 5740,
+    "look": {
+     "skinTone": "deep",
+     "hairStyle": "cornrows",
+     "hairColor": "#120d0a",
+     "facialHair": "beard",
+     "eyeColor": "brown"
+    }
+   },
+   "light": {
+    "name": "Leo Quickhands",
+    "style": "kickboxing",
+    "sex": "male",
+    "heightCm": 172,
+    "frame": "small",
+    "age": 24,
+    "exercise": 0.81,
+    "calories": 4160,
+    "look": {
+     "skinTone": "light",
+     "hairStyle": "spiky",
+     "hairColor": "#6b4a2a",
+     "facialHair": "none",
+     "eyeColor": "blue"
+    }
+   },
+   "amateur": {
+    "name": "Dave from Accounts",
+    "style": "boxing",
+    "sex": "male",
+    "heightCm": 180,
+    "frame": "medium",
+    "age": 34,
+    "exercise": 0.1,
+    "calories": 2900,
+    "look": {
+     "skinTone": "light",
+     "hairStyle": "cleanShort",
+     "hairColor": "#a37a45",
+     "facialHair": "stubble",
+     "eyeColor": "green"
+    }
+   },
+   "veteran": {
+    "name": "Old Sal",
+    "style": "boxing",
+    "sex": "male",
+    "heightCm": 182,
+    "frame": "medium",
+    "age": 48,
+    "exercise": 0.48,
+    "calories": 3800,
+    "look": {
+     "skinTone": "tan",
+     "hairStyle": "buzz",
+     "hairColor": "#8d8d8d",
+     "facialHair": "mustache",
+     "eyeColor": "grey"
+    }
+   },
+   "contender": {
+    "name": "Ana Ruiz",
+    "style": "muayThai",
+    "sex": "female",
+    "heightCm": 170,
+    "frame": "medium",
+    "age": 26,
+    "exercise": 0.88,
+    "calories": 3810,
+    "look": {
+     "skinTone": "medium",
+     "hairStyle": "bun",
+     "hairColor": "#2a1a10",
+     "facialHair": "none",
+     "eyeColor": "hazel"
+    }
+   },
+   "street": {
+    "name": "Vinnie Russo",
+    "style": "street",
+    "sex": "male",
+    "heightCm": 178,
+    "frame": "medium",
+    "age": 31,
+    "exercise": 0.3,
+    "calories": 3100,
+    "skill": 0.3,
+    "outfit": {
+     "kind": "casual",
+     "design": 0
+    },
+    "look": {
+     "skinTone": "light",
+     "hairStyle": "fade",
+     "hairColor": "#2a1a10",
+     "facialHair": "stubble",
+     "eyeColor": "brown"
+    }
+   },
+   "sumo": {
+    "name": "Takanohana",
+    "style": "sumo",
+    "sex": "male",
+    "heightCm": 185,
+    "frame": "large",
+    "age": 27,
+    "exercise": 0.7,
+    "calories": 7400,
+    "outfit": {
+     "kind": "sumo",
+     "design": 0
+    },
+    "look": {
+     "skinTone": "lightTan",
+     "hairStyle": "topknot",
+     "hairColor": "#120d0a",
+     "facialHair": "none",
+     "eyeColor": "brown"
+    }
+   },
+   "mix": {
+    "name": "Kai Moana",
+    "style": "mix",
+    "sex": "male",
+    "heightCm": 180,
+    "frame": "medium",
+    "age": 26,
+    "exercise": 0.72,
+    "calories": 4400,
+    "outfit": {
+     "kind": "sports",
+     "design": 0
+    },
+    "look": {
+     "skinTone": "tan",
+     "hairStyle": "spiky",
+     "hairColor": "#120d0a",
+     "facialHair": "none",
+     "eyeColor": "brown"
+    }
+   },
+   "unskilled": {
+    "name": "Wat Tyler",
+    "style": "unskilled",
+    "sex": "male",
+    "heightCm": 172,
+    "frame": "medium",
+    "age": 35,
+    "exercise": 0.5,
+    "calories": 3100,
+    "outfit": {
+     "kind": "commoner",
+     "design": 0
+    },
+    "accessories": [
+     "headWrap"
+    ],
+    "look": {
+     "skinTone": "light",
+     "hairStyle": "midLong",
+     "hairColor": "#6b4a2a",
+     "facialHair": "beard",
+     "eyeColor": "green"
+    }
+   },
+   "clinchBrawl": {
+    "name": "Hank Doyle",
+    "style": "clinchBrawl",
+    "sex": "male",
+    "heightCm": 186,
+    "frame": "large",
+    "age": 33,
+    "exercise": 0.7,
+    "calories": 5100,
+    "outfit": {
+     "kind": "mma",
+     "design": 0
+    },
+    "look": {
+     "skinTone": "light",
+     "hairStyle": "buzz",
+     "hairColor": "#4a3020",
+     "facialHair": "handlebar",
+     "eyeColor": "grey"
+    }
+   },
+   "passive": {
+    "name": "Tom Hartley",
+    "style": "passive",
+    "sex": "male",
+    "heightCm": 176,
+    "frame": "medium",
+    "age": 41,
+    "exercise": 0.15,
+    "calories": 2600,
+    "outfit": {
+     "kind": "business",
+     "design": 0
+    },
+    "look": {
+     "skinTone": "light",
+     "hairStyle": "cleanShort",
+     "hairColor": "#6b4a2a",
+     "facialHair": "none",
+     "eyeColor": "blue"
+    }
+   },
+   "bow": {
+    "name": "Nasu no Yoichi",
+    "style": "bow",
+    "sex": "male",
+    "heightCm": 166,
+    "frame": "medium",
+    "age": 24,
+    "exercise": 0.7,
+    "calories": 3390,
+    "outfit": {
+     "kind": "samurai",
+     "design": 2
+    },
+    "accessories": [],
+    "look": {
+     "skinTone": "lightTan",
+     "hairStyle": "topknot",
+     "hairColor": "#120d0a",
+     "facialHair": "none",
+     "eyeColor": "brown"
+    }
+   },
+   "archerYumi": {
+    "name": "Sakuzaemon",
+    "style": "archerYumi",
+    "sex": "male",
+    "heightCm": 164,
+    "frame": "medium",
+    "age": 30,
+    "exercise": 0.5,
+    "calories": 2730,
+    "undealt": true,
+    "outfit": {
+     "kind": "ashigaru",
+     "design": 1
+    },
+    "accessories": [],
+    "look": {
+     "skinTone": "lightTan",
+     "hairStyle": "topknot",
+     "hairColor": "#120d0a",
+     "facialHair": "stubble",
+     "eyeColor": "brown"
+    }
+   },
+   "longbow": {
+    "name": "Will Bowyer",
+    "style": "longbow",
+    "sex": "male",
+    "heightCm": 172,
+    "frame": "medium",
+    "age": 27,
+    "exercise": 0.86,
+    "calories": 3900,
+    "outfit": {
+     "kind": "archer",
+     "design": 0
+    },
+    "accessories": [],
+    "look": {
+     "skinTone": "light",
+     "hairStyle": "midLong",
+     "hairColor": "#6b4a2a",
+     "facialHair": "stubble",
+     "eyeColor": "blue"
+    }
+   },
+   "pike": {
+    "name": "Ueli Stauffacher",
+    "style": "pike",
+    "sex": "male",
+    "heightCm": 171,
+    "frame": "large",
+    "age": 29,
+    "exercise": 0.8,
+    "calories": 3945,
+    "outfit": {
+     "kind": "footman",
+     "design": 3
+    },
+    "accessories": [],
+    "look": {
+     "skinTone": "light",
+     "hairStyle": "cleanShort",
+     "hairColor": "#8a6a3a",
+     "facialHair": "beard",
+     "eyeColor": "grey"
+    }
+   },
+   "matchlock": {
+    "name": "Suzuki Magoichi",
+    "style": "matchlock",
+    "sex": "male",
+    "heightCm": 168,
+    "frame": "medium",
+    "age": 31,
+    "exercise": 0.6,
+    "calories": 3110,
+    "outfit": {
+     "kind": "ashigaru",
+     "design": 0
+    },
+    "accessories": [],
+    "look": {
+     "skinTone": "lightTan",
+     "hairStyle": "topknot",
+     "hairColor": "#120d0a",
+     "facialHair": "stubble",
+     "eyeColor": "brown"
+    }
+   },
+   "mingSpear": {
+    "name": "Wang Er",
+    "style": "spear",
+    "sex": "male",
+    "heightCm": 170,
+    "frame": "medium",
+    "age": 26,
+    "exercise": 0.5,
+    "calories": 3150,
+    "outfit": {
+     "kind": "mingGarrison",
+     "design": 0
+    },
+    "accessories": [],
+    "look": {
+     "skinTone": "lightTan",
+     "hairStyle": "bun",
+     "hairColor": "#120d0a",
+     "facialHair": "stubble",
+     "eyeColor": "brown"
+    }
+   },
+   "mingBow": {
+    "name": "Wang Wu",
+    "style": "mingBow",
+    "sex": "male",
+    "heightCm": 170,
+    "frame": "medium",
+    "age": 27,
+    "exercise": 0.55,
+    "calories": 3250,
+    "undealt": true,
+    "outfit": {
+     "kind": "mingGarrison",
+     "design": 0
+    },
+    "accessories": [],
+    "look": {
+     "skinTone": "lightTan",
+     "hairStyle": "bun",
+     "hairColor": "#120d0a",
+     "facialHair": "stubble",
+     "eyeColor": "brown"
+    }
+   },
+   "mingDao": {
+    "name": "Zhang San",
+    "style": "dao",
+    "sex": "male",
+    "heightCm": 171,
+    "frame": "medium",
+    "age": 29,
+    "exercise": 0.55,
+    "calories": 3250,
+    "outfit": {
+     "kind": "mingGarrison",
+     "design": 1
+    },
+    "accessories": [],
+    "look": {
+     "skinTone": "lightTan",
+     "hairStyle": "bun",
+     "hairColor": "#120d0a",
+     "facialHair": "mustache",
+     "eyeColor": "brown"
+    }
+   },
+   "swordShield": {
+    "name": "Chen Bao",
+    "style": "swordShield",
+    "sex": "male",
+    "heightCm": 173,
+    "frame": "medium",
+    "age": 30,
+    "exercise": 0.62,
+    "calories": 3750,
+    "outfit": {
+     "kind": "mingBrigandine",
+     "design": 0
+    },
+    "accessories": [],
+    "look": {
+     "skinTone": "lightTan",
+     "hairStyle": "bun",
+     "hairColor": "#120d0a",
+     "facialHair": "beard",
+     "eyeColor": "brown"
+    }
+   },
+   "mingMatchlock": {
+    "name": "Zhao Liu",
+    "style": "matchlock",
+    "sex": "male",
+    "heightCm": 170,
+    "frame": "medium",
+    "age": 33,
+    "exercise": 0.55,
+    "calories": 3250,
+    "outfit": {
+     "kind": "mingBrigandine",
+     "design": 1
+    },
+    "accessories": [],
+    "look": {
+     "skinTone": "lightTan",
+     "hairStyle": "bun",
+     "hairColor": "#120d0a",
+     "facialHair": "mustache",
+     "eyeColor": "brown"
+    }
+   },
+   "langxian": {
+    "name": "Feng Da",
+    "style": "langxian",
+    "sex": "male",
+    "heightCm": 171,
+    "frame": "medium",
+    "age": 27,
+    "exercise": 0.6799999999999999,
+    "calories": 3550,
+    "outfit": {
+     "kind": "mingEliteInfantry",
+     "design": 0
+    },
+    "accessories": [],
+    "look": {
+     "skinTone": "lightTan",
+     "hairStyle": "bun",
+     "hairColor": "#120d0a",
+     "facialHair": "stubble",
+     "eyeColor": "brown"
+    }
+   },
+   "guandao": {
+    "name": "Liu Ting",
+    "style": "guandao",
+    "sex": "male",
+    "heightCm": 180,
+    "frame": "medium",
+    "age": 40,
+    "exercise": 0.6,
+    "calories": 3650,
+    "outfit": {
+     "kind": "mingElite",
+     "design": 0
+    },
+    "accessories": [],
+    "look": {
+     "skinTone": "lightTan",
+     "hairStyle": "bun",
+     "hairColor": "#120d0a",
+     "facialHair": "beard",
+     "eyeColor": "brown"
+    }
+   },
+   "liRusong": {
+    "name": "Li Rusong",
+    "style": "mingLance",
+    "sex": "male",
+    "heightCm": 176,
+    "frame": "large",
+    "age": 44,
+    "exercise": 0.65,
+    "calories": 3850,
+    "outfit": {
+     "kind": "mingElite",
+     "design": 0
+    },
+    "accessories": [],
+    "look": {
+     "skinTone": "lightTan",
+     "hairStyle": "bun",
+     "hairColor": "#120d0a",
+     "facialHair": "beard",
+     "eyeColor": "brown"
+    }
+   },
+   "bannerBow": {
+    "name": "Hūsun",
+    "style": "manchuBow",
+    "sex": "male",
+    "heightCm": 174,
+    "frame": "medium",
+    "age": 28,
+    "exercise": 0.9,
+    "calories": 4905,
+    "outfit": {
+     "kind": "bannerArmour",
+     "design": 0
+    },
+    "accessories": [],
+    "look": {
+     "skinTone": "lightTan",
+     "hairStyle": "buzz",
+     "hairColor": "#120d0a",
+     "facialHair": "mustache",
+     "eyeColor": "brown"
+    }
+   },
+   "bannerGuandao": {
+    "name": "Baturu",
+    "style": "guandao",
+    "sex": "male",
+    "heightCm": 179,
+    "frame": "large",
+    "age": 31,
+    "exercise": 0.9199999999999999,
+    "calories": 5305,
+    "outfit": {
+     "kind": "bannerArmour",
+     "design": 5
+    },
+    "accessories": [],
+    "look": {
+     "skinTone": "lightTan",
+     "hairStyle": "buzz",
+     "hairColor": "#120d0a",
+     "facialHair": "beard",
+     "eyeColor": "brown"
+    }
+   },
+   "bayara": {
+    "name": "Yangguri",
+    "style": "bayaraLance",
+    "sex": "male",
+    "heightCm": 176,
+    "frame": "large",
+    "age": 40,
+    "exercise": 0.95,
+    "calories": 5205,
+    "outfit": {
+     "kind": "bayara",
+     "design": 1
+    },
+    "accessories": [],
+    "look": {
+     "skinTone": "lightTan",
+     "hairStyle": "buzz",
+     "hairColor": "#120d0a",
+     "facialHair": "mustache",
+     "eyeColor": "brown"
+    }
+   },
+   "bayaraBow": {
+    "name": "Darhan",
+    "style": "bayaraBow",
+    "sex": "male",
+    "heightCm": 175,
+    "frame": "large",
+    "age": 33,
+    "exercise": 0.95,
+    "calories": 5105,
+    "outfit": {
+     "kind": "bayara",
+     "design": 0
+    },
+    "accessories": [],
+    "look": {
+     "skinTone": "lightTan",
+     "hairStyle": "buzz",
+     "hairColor": "#120d0a",
+     "facialHair": "beard",
+     "eyeColor": "brown"
+    }
+   },
+   "taichi": {
+    "name": "Chen Fake",
+    "style": "taichi",
+    "sex": "male",
+    "heightCm": 171,
+    "frame": "medium",
+    "age": 52,
+    "exercise": 0.55,
+    "calories": 3290,
+    "outfit": {
+     "kind": "kungfu",
+     "design": 0
+    },
+    "accessories": [],
+    "look": {
+     "skinTone": "lightTan",
+     "hairStyle": "cleanShort",
+     "hairColor": "#4a4a48",
+     "facialHair": "beard",
+     "eyeColor": "brown"
+    }
+   },
+   "taekwondo": {
+    "name": "Kim Min-jun",
+    "style": "taekwondo",
+    "sex": "male",
+    "heightCm": 181,
+    "frame": "small",
+    "age": 23,
+    "exercise": 0.78,
+    "calories": 4325,
+    "outfit": {
+     "kind": "dobok",
+     "design": 0
+    },
+    "accessories": [],
+    "look": {
+     "skinTone": "lightTan",
+     "hairStyle": "cleanShort",
+     "hairColor": "#120d0a",
+     "facialHair": "none",
+     "eyeColor": "brown"
+    }
+   },
+   "judo": {
+    "name": "Saigo Shiro",
+    "style": "judo",
+    "sex": "male",
+    "heightCm": 172,
+    "frame": "small",
+    "age": 26,
+    "exercise": 0.85,
+    "calories": 4500,
+    "outfit": {
+     "kind": "judogi",
+     "design": 0
+    },
+    "accessories": [],
+    "look": {
+     "skinTone": "lightTan",
+     "hairStyle": "cleanShort",
+     "hairColor": "#120d0a",
+     "facialHair": "none",
+     "eyeColor": "brown"
+    }
+   },
+   "staff": {
+    "name": "Tanzong",
+    "style": "staff",
+    "sex": "male",
+    "heightCm": 172,
+    "frame": "medium",
+    "age": 30,
+    "exercise": 0.74,
+    "calories": 4125,
+    "outfit": {
+     "kind": "monk",
+     "design": 0
+    },
+    "accessories": [],
+    "look": {
+     "skinTone": "lightTan",
+     "hairStyle": "bald",
+     "hairColor": "#120d0a",
+     "facialHair": "none",
+     "eyeColor": "brown"
+    }
+   },
+   "kanabo": {
+    "name": "Kojima Yatarō",
+    "style": "kanabo",
+    "sex": "male",
+    "heightCm": 168,
+    "frame": "large",
+    "age": 36,
+    "exercise": 0.7,
+    "calories": 4885,
+    "outfit": {
+     "kind": "samuraiTosei",
+     "design": 5
+    },
+    "accessories": [],
+    "look": {
+     "skinTone": "lightTan",
+     "hairStyle": "topknot",
+     "hairColor": "#120d0a",
+     "facialHair": "beard",
+     "eyeColor": "brown"
+    }
+   },
+   "ironPagoda": {
+    "name": "Wanyan Wuzhu",
+    "style": "jinLance",
+    "hero": true,
+    "sex": "male",
+    "heightCm": 173,
+    "frame": "large",
+    "age": 38,
+    "exercise": 0.6,
+    "calories": 4550,
+    "skill": 0.6,
+    "outfit": {
+     "kind": "ironPagoda",
+     "design": 0
+    },
+    "accessories": [],
+    "look": {
+     "skinTone": "lightTan",
+     "hairStyle": "buzz",
+     "hairColor": "#120d0a",
+     "facialHair": "beard",
+     "eyeColor": "brown"
+    }
+   },
+   "kheshig": {
+    "name": "Subutai",
+    "style": "kheshigBow",
+    "hero": true,
+    "sex": "male",
+    "heightCm": 168,
+    "frame": "large",
+    "age": 44,
+    "exercise": 0.65,
+    "calories": 4070,
+    "outfit": {
+     "kind": "steppeMedium",
+     "design": 0
+    },
+    "accessories": [],
+    "sidearm": "saber",
+    "look": {
+     "skinTone": "lightTan",
+     "hairStyle": "long",
+     "hairColor": "#120d0a",
+     "facialHair": "mustache",
+     "eyeColor": "brown"
+    }
+   },
+   "gaziAlp": {
+    "name": "Turgut Alp",
+    "style": "kilijShield",
+    "sex": "male",
+    "heightCm": 180,
+    "frame": "large",
+    "age": 36,
+    "exercise": 0.95,
+    "calories": 5250,
+    "outfit": {
+     "kind": "gaziAlp",
+     "design": 0
+    },
+    "accessories": [],
+    "look": {
+     "skinTone": "tan",
+     "hairStyle": "cleanShort",
+     "hairColor": "#120d0a",
+     "facialHair": "beard",
+     "eyeColor": "brown"
+    }
+   },
+   "crossbow": {
+    "name": "Ottone Doria",
+    "style": "crossbow",
+    "sex": "male",
+    "heightCm": 171,
+    "frame": "medium",
+    "age": 34,
+    "exercise": 0.6,
+    "calories": 3745,
+    "outfit": {
+     "kind": "footman",
+     "design": 0
+    },
+    "accessories": [],
+    "look": {
+     "skinTone": "lightTan",
+     "hairStyle": "cleanShort",
+     "hairColor": "#2a1a10",
+     "facialHair": "stubble",
+     "eyeColor": "brown"
+    }
+   },
+   "mingCrossbow": {
+    "name": "Li Si",
+    "style": "nu",
+    "sex": "male",
+    "heightCm": 170,
+    "frame": "medium",
+    "age": 29,
+    "exercise": 0.55,
+    "calories": 3150,
+    "outfit": {
+     "kind": "mingGarrison",
+     "design": 0
+    },
+    "accessories": [],
+    "look": {
+     "skinTone": "lightTan",
+     "hairStyle": "bun",
+     "hairColor": "#120d0a",
+     "facialHair": "none",
+     "eyeColor": "brown"
+    }
+   },
+   "hanCrossbow": {
+    "name": "Li Ling",
+    "style": "nu",
+    "sex": "male",
+    "heightCm": 170,
+    "frame": "medium",
+    "age": 35,
+    "exercise": 0.7,
+    "calories": 3795,
+    "outfit": {
+     "kind": "hanSoldier",
+     "design": 0
+    },
+    "accessories": [],
+    "look": {
+     "skinTone": "lightTan",
+     "hairStyle": "bun",
+     "hairColor": "#120d0a",
+     "facialHair": "mustache",
+     "eyeColor": "brown"
+    }
+   },
+   "wuxia": {
+    "name": "Pei Min",
+    "style": "wuxia",
+    "sex": "male",
+    "heightCm": 180,
+    "frame": "medium",
+    "age": 30,
+    "exercise": 0.72,
+    "calories": 4400,
+    "skill": 1,
+    "outfit": {
+     "kind": "wuxia",
+     "design": 0
+    },
+    "accessories": [],
+    "look": {
+     "skinTone": "light",
+     "hairStyle": "long",
+     "hairColor": "#120d0a",
+     "facialHair": "none",
+     "eyeColor": "brown",
+     "faceShape": null,
+     "faceRegion": "china",
+     "skinShade": 1.4
+    }
+   },
+   "nanbanLord": {
+    "name": "Takayama Ukon",
+    "style": "yari",
+    "sex": "male",
+    "heightCm": 167,
+    "frame": "medium",
+    "age": 35,
+    "exercise": 0.7,
+    "calories": 3720,
+    "outfit": {
+     "kind": "samuraiTosei",
+     "design": 8
+    },
+    "accessories": [],
+    "look": {
+     "skinTone": "lightTan",
+     "hairStyle": "sakayaki",
+     "hairColor": "#120d0a",
+     "facialHair": "mustache",
+     "eyeColor": "brown",
+     "faceRegion": "japan"
+    }
+   },
+   "swordSaint": {
+    "name": "Tsukahara Bokuden",
+    "style": "katana",
+    "sex": "male",
+    "heightCm": 180,
+    "frame": "medium",
+    "age": 28,
+    "exercise": 0.78,
+    "calories": 3900,
+    "skill": 1,
+    "outfit": {
+     "kind": "kensei",
+     "design": 0
+    },
+    "accessories": [],
+    "look": {
+     "skinTone": "lightTan",
+     "hairStyle": "sakayaki",
+     "hairColor": "#120d0a",
+     "facialHair": "stubble",
+     "eyeColor": "brown",
+     "faceRegion": "japan"
+    }
+   },
+   "guanYu": {
+    "name": "Guan Yu",
+    "style": "guanYu",
+    "hero": true,
+    "sex": "male",
+    "heightCm": 187,
+    "frame": "large",
+    "age": 45,
+    "exercise": 0.58,
+    "calories": 4200,
+    "outfit": {
+     "kind": "guanYu",
+     "design": 0
+    },
+    "accessories": [],
+    "look": {
+     "skinTone": "tan",
+     "faceColor": "#b06c48",
+     "hairStyle": "bun",
+     "hairColor": "#120d0a",
+     "facialHair": "longBeard",
+     "eyeColor": "brown"
+    }
+   },
+   "maceShield": {
+    "name": "Esen Taishi",
+    "style": "maceShield",
+    "sex": "male",
+    "heightCm": 170,
+    "frame": "large",
+    "age": 42,
+    "exercise": 0.6,
+    "calories": 4095,
+    "outfit": {
+     "kind": "steppeMedium",
+     "design": 2
+    },
+    "accessories": [],
+    "look": {
+     "skinTone": "lightTan",
+     "hairStyle": "long",
+     "hairColor": "#120d0a",
+     "facialHair": "beard",
+     "eyeColor": "brown"
+    }
+   },
+   "saber": {
+    "name": "Mandukhai Khatun",
+    "style": "saberShield",
+    "sex": "female",
+    "heightCm": 159,
+    "frame": "large",
+    "age": 30,
+    "exercise": 0.7,
+    "calories": 3290,
+    "outfit": {
+     "kind": "kheshig",
+     "design": 1
+    },
+    "accessories": [],
+    "look": {
+     "skinTone": "lightTan",
+     "hairStyle": "long",
+     "hairColor": "#120d0a",
+     "facialHair": "none",
+     "eyeColor": "brown"
+    }
+   },
+   "steppeBow": {
+    "name": "Bayar",
+    "style": "steppeBow",
+    "sex": "male",
+    "heightCm": 168,
+    "frame": "large",
+    "age": 26,
+    "exercise": 0.7,
+    "calories": 4145,
+    "outfit": {
+     "kind": "steppeLight",
+     "design": 0
+    },
+    "accessories": [],
+    "look": {
+     "skinTone": "lightTan",
+     "hairStyle": "long",
+     "hairColor": "#120d0a",
+     "facialHair": "none",
+     "eyeColor": "brown"
+    }
+   },
+   "saberShield": {
+    "name": "Ganbold",
+    "style": "kheshigBow",
+    "sex": "male",
+    "heightCm": 168,
+    "frame": "large",
+    "age": 29,
+    "exercise": 0.65,
+    "calories": 4015,
+    "outfit": {
+     "kind": "kheshig",
+     "design": 0
+    },
+    "accessories": [],
+    "sidearm": "mace",
+    "look": {
+     "skinTone": "lightTan",
+     "hairStyle": "long",
+     "hairColor": "#120d0a",
+     "facialHair": "mustache",
+     "eyeColor": "brown"
+    }
+   },
+   "cuman": {
+    "name": "Konchak",
+    "style": "cumanBow",
+    "sex": "male",
+    "heightCm": 177,
+    "frame": "large",
+    "age": 40,
+    "exercise": 0.92,
+    "calories": 5050,
+    "outfit": {
+     "kind": "cumanHeavy",
+     "design": 0
+    },
+    "accessories": [],
+    "look": {
+     "skinTone": "light",
+     "hairStyle": "long",
+     "hairColor": "#4a3020",
+     "facialHair": "mustache",
+     "eyeColor": "brown"
+    }
+   },
+   "saladin": {
+    "name": "Saladin",
+    "style": "saladin",
+    "hero": true,
+    "sex": "male",
+    "heightCm": 181,
+    "frame": "large",
+    "age": 50,
+    "exercise": 0.9,
+    "calories": 4900,
+    "standardColour": "#d8b030",
+    "outfit": {
+     "kind": "saladin",
+     "design": 0
+    },
+    "accessories": [],
+    "look": {
+     "skinTone": "lightTan",
+     "hairStyle": "cleanShort",
+     "hairColor": "#2e2620",
+     "facialHair": "beard",
+     "eyeColor": "brown"
+    }
+   },
+   "yatagan": {
+    "name": "Ulubatlı Hasan",
+    "style": "yatagan",
+    "sex": "male",
+    "heightCm": 183,
+    "frame": "large",
+    "age": 25,
+    "exercise": 0.96,
+    "calories": 5450,
+    "outfit": {
+     "kind": "janissary",
+     "design": 0
+    },
+    "accessories": [],
+    "look": {
+     "skinTone": "tan",
+     "hairStyle": "cleanShort",
+     "hairColor": "#120d0a",
+     "facialHair": "mustache",
+     "eyeColor": "brown"
+    }
+   },
+   "azap": {
+    "name": "Ali the azap",
+    "style": "steppeBow",
+    "sex": "male",
+    "heightCm": 175,
+    "frame": "large",
+    "age": 24,
+    "exercise": 0.89,
+    "calories": 4475,
+    "outfit": {
+     "kind": "azap",
+     "design": 0
+    },
+    "accessories": [],
+    "look": {
+     "skinTone": "tan",
+     "hairStyle": "cleanShort",
+     "hairColor": "#120d0a",
+     "facialHair": "beard",
+     "eyeColor": "brown"
+    }
+   },
+   "sipahi": {
+    "name": "Davud the sipahi",
+    "style": "maceShield",
+    "sex": "male",
+    "heightCm": 181,
+    "frame": "large",
+    "age": 34,
+    "exercise": 0.95,
+    "calories": 5350,
+    "outfit": {
+     "kind": "ottomanHeavy",
+     "design": 0
+    },
+    "accessories": [],
+    "look": {
+     "skinTone": "tan",
+     "hairStyle": "cleanShort",
+     "hairColor": "#120d0a",
+     "facialHair": "beard",
+     "eyeColor": "brown"
+    }
+   },
+   "threeEyed": {
+    "name": "Ma Lin",
+    "style": "threeEyed",
+    "sex": "male",
+    "heightCm": 172,
+    "frame": "medium",
+    "age": 35,
+    "exercise": 0.6799999999999999,
+    "calories": 3950,
+    "outfit": {
+     "kind": "mingElite",
+     "design": 1
+    },
+    "accessories": [],
+    "look": {
+     "skinTone": "lightTan",
+     "hairStyle": "bun",
+     "hairColor": "#120d0a",
+     "facialHair": "mustache",
+     "eyeColor": "brown"
+    }
+   },
+   "hidalgo": {
+    "name": "Hernán Cortés",
+    "style": "espada",
+    "sex": "male",
+    "heightCm": 172,
+    "frame": "medium",
+    "age": 35,
+    "exercise": 0.82,
+    "calories": 3950,
+    "outfit": {
+     "kind": "conquistadorPlate",
+     "design": 0
+    },
+    "accessories": [],
+    "look": {
+     "skinTone": "light",
+     "hairStyle": "cleanShort",
+     "hairColor": "#2a1d14",
+     "facialHair": "beard",
+     "eyeColor": "brown"
+    }
+   },
+   "rodelero": {
+    "name": "Bernal Díaz",
+    "style": "espadaRodela",
+    "sex": "male",
+    "heightCm": 173,
+    "frame": "large",
+    "age": 28,
+    "exercise": 0.84,
+    "calories": 3875,
+    "outfit": {
+     "kind": "conquistadorQuilted",
+     "design": 0
+    },
+    "accessories": [],
+    "look": {
+     "skinTone": "lightTan",
+     "hairStyle": "cleanShort",
+     "hairColor": "#2a1d14",
+     "facialHair": "beard",
+     "eyeColor": "brown"
+    }
+   },
+   "macuahuitl": {
+    "name": "Cuauhtémoc",
+    "style": "macuahuitl",
+    "hero": true,
+    "sex": "male",
+    "heightCm": 167,
+    "frame": "medium",
+    "age": 25,
+    "exercise": 0.77,
+    "calories": 4010,
+    "outfit": {
+     "kind": "mexicaElite",
+     "design": 1
+    },
+    "accessories": [],
+    "look": {
+     "skinTone": "tan",
+     "hairStyle": "midLong",
+     "hairColor": "#120d0a",
+     "facialHair": "none",
+     "eyeColor": "brown"
+    }
+   },
+   "tepoztopilli": {
+    "name": "Ocelotl",
+    "style": "tepoztopilli",
+    "sex": "male",
+    "heightCm": 166,
+    "frame": "medium",
+    "age": 27,
+    "exercise": 0.77,
+    "calories": 3960,
+    "outfit": {
+     "kind": "mexicaElite",
+     "design": 0
+    },
+    "accessories": [],
+    "look": {
+     "skinTone": "tan",
+     "hairStyle": "midLong",
+     "hairColor": "#120d0a",
+     "facialHair": "none",
+     "eyeColor": "brown"
+    }
+   },
+   "rapier": {
+    "name": "Lord Ashford",
+    "style": "rapier",
+    "sex": "male",
+    "heightCm": 178,
+    "frame": "medium",
+    "age": 41,
+    "exercise": 0.4,
+    "calories": 3175,
+    "outfit": {
+     "kind": "victorianGent",
+     "design": 0
+    },
+    "accessories": [],
+    "look": {
+     "skinTone": "light",
+     "hairStyle": "cleanShort",
+     "hairColor": "#5a4a3a",
+     "facialHair": "mustache",
+     "eyeColor": "blue"
+    }
+   },
+   "revolver": {
+    "name": "Lady Ashford",
+    "style": "revolver",
+    "sex": "female",
+    "heightCm": 163,
+    "frame": "small",
+    "age": 29,
+    "exercise": 0.6,
+    "calories": 2550,
+    "skill": 0.45,
+    "outfit": {
+     "kind": "victorianLady",
+     "design": 0
+    },
+    "accessories": [
+     "hairDecor"
+    ],
+    "look": {
+     "skinTone": "light",
+     "hairStyle": "bun",
+     "hairColor": "#4a2a1a",
+     "facialHair": "none",
+     "eyeColor": "green"
+    }
+   },
+   "handgun": {
+    "name": "Sgt. Dana Cole",
+    "style": "handgun",
+    "sex": "male",
+    "heightCm": 180,
+    "frame": "medium",
+    "age": 34,
+    "exercise": 0.55,
+    "calories": 3720,
+    "outfit": {
+     "kind": "swat",
+     "design": 0
+    },
+    "look": {
+     "skinTone": "light",
+     "hairStyle": "fade",
+     "hairColor": "#2a1a10",
+     "facialHair": "stubble",
+     "eyeColor": "blue"
+    }
+   },
+   "police": {
+    "name": "Officer Mike Kowalski",
+    "style": "handgun",
+    "sex": "male",
+    "heightCm": 178,
+    "frame": "medium",
+    "age": 38,
+    "exercise": 0.45,
+    "calories": 3600,
+    "outfit": {
+     "kind": "police",
+     "design": 0
+    },
+    "accessories": [],
+    "look": {
+     "skinTone": "light",
+     "hairStyle": "cleanShort",
+     "hairColor": "#5a4a3a",
+     "facialHair": "mustache",
+     "eyeColor": "blue"
+    }
+   },
+   "shotgun": {
+    "name": "Cpl. Marcus Hale",
+    "style": "shotgun",
+    "sex": "male",
+    "heightCm": 180,
+    "frame": "large",
+    "age": 31,
+    "exercise": 0.66,
+    "calories": 4425,
+    "outfit": {
+     "kind": "swat",
+     "design": 0
+    },
+    "accessories": [],
+    "look": {
+     "skinTone": "deep",
+     "hairStyle": "buzz",
+     "hairColor": "#120d0a",
+     "facialHair": "beard",
+     "eyeColor": "brown"
+    }
+   },
+   "rifle": {
+    "name": "SSgt. Ryan Brooks",
+    "style": "rifle",
+    "sex": "male",
+    "heightCm": 178,
+    "frame": "large",
+    "age": 32,
+    "exercise": 0.59,
+    "calories": 3975,
+    "outfit": {
+     "kind": "specialForces",
+     "design": 0
+    },
+    "accessories": [],
+    "look": {
+     "skinTone": "light",
+     "hairStyle": "cleanShort",
+     "hairColor": "#4a3020",
+     "facialHair": "beard",
+     "eyeColor": "green"
+    }
+   },
+   "lineInfantry": {
+    "name": "Pte. Joseph Wood",
+    "style": "flintlock",
+    "sex": "male",
+    "heightCm": 176,
+    "frame": "medium",
+    "age": 24,
+    "exercise": 0.82,
+    "calories": 4150,
+    "skill": 0.55,
+    "outfit": {
+     "kind": "lineInfantry",
+     "design": 0
+    },
+    "accessories": [],
+    "look": {
+     "skinTone": "light",
+     "hairStyle": "cleanShort",
+     "hairColor": "#4a3020",
+     "facialHair": "none",
+     "eyeColor": "blue"
+    }
+   },
+   "cuirassier": {
+    "name": "Jean Lefort",
+    "style": "heavySword",
+    "sex": "male",
+    "heightCm": 180,
+    "frame": "large",
+    "age": 28,
+    "exercise": 0.7,
+    "calories": 4200,
+    "outfit": {
+     "kind": "cuirassier",
+     "design": 0
+    },
+    "accessories": [],
+    "look": {
+     "skinTone": "light",
+     "hairStyle": "cleanShort",
+     "hairColor": "#2a1a10",
+     "facialHair": "handlebar",
+     "eyeColor": "brown"
+    }
+   },
+   "greenStandard": {
+    "name": "Huang Fu",
+    "style": "matchlock",
+    "sex": "male",
+    "heightCm": 168,
+    "frame": "medium",
+    "age": 30,
+    "exercise": 0.2,
+    "calories": 1800,
+    "skill": 0.25,
+    "outfit": {
+     "kind": "greenStandard",
+     "design": 0
+    },
+    "accessories": [],
+    "look": {
+     "skinTone": "lightTan",
+     "hairStyle": "buzz",
+     "hairColor": "#120d0a",
+     "facialHair": "mustache",
+     "eyeColor": "brown",
+     "faceRegion": "china"
+    }
+   },
+   "infantry": {
+    "name": "Spc. Luis Herrera",
+    "style": "rifle",
+    "sex": "male",
+    "heightCm": 176,
+    "frame": "medium",
+    "age": 23,
+    "exercise": 0.62,
+    "calories": 3600,
+    "outfit": {
+     "kind": "infantry",
+     "design": 0
+    },
+    "accessories": [],
+    "look": {
+     "skinTone": "tan",
+     "hairStyle": "fade",
+     "hairColor": "#120d0a",
+     "facialHair": "none",
+     "eyeColor": "brown"
+    }
+   },
+   "baton": {
+    "name": "Officer Reyes",
+    "style": "baton",
+    "sex": "male",
+    "heightCm": 182,
+    "frame": "medium",
+    "age": 33,
+    "exercise": 0.6,
+    "calories": 4250,
+    "outfit": {
+     "kind": "swat",
+     "design": 0
+    },
+    "look": {
+     "skinTone": "tan",
+     "hairStyle": "buzz",
+     "hairColor": "#120d0a",
+     "facialHair": "mustache",
+     "eyeColor": "brown"
+    }
+   },
+   "knight": {
+    "name": "Sir Edric",
+    "style": "longsword",
+    "sex": "male",
+    "heightCm": 178,
+    "frame": "large",
+    "age": 30,
+    "exercise": 0.68,
+    "calories": 4425,
+    "outfit": {
+     "kind": "knight",
+     "design": 0
+    },
+    "accessories": [
+     "plume"
+    ],
+    "look": {
+     "skinTone": "light",
+     "hairStyle": "midLong",
+     "hairColor": "#c9a25e",
+     "facialHair": "beard",
+     "eyeColor": "blue"
+    }
+   },
+   "maximilian": {
+    "name": "Maximilian I",
+    "style": "lance",
+    "hero": true,
+    "sex": "male",
+    "heightCm": 182,
+    "frame": "large",
+    "age": 30,
+    "exercise": 0.7,
+    "calories": 4500,
+    "outfit": {
+     "kind": "tournament",
+     "design": 5
+    },
+    "accessories": [],
+    "look": {
+     "skinTone": "light",
+     "hairStyle": "midLong",
+     "hairColor": "#5a3a22",
+     "facialHair": "none",
+     "eyeColor": "brown"
+    }
+   },
+   "odachi": {
+    "name": "Makara Naotaka",
+    "style": "odachi",
+    "sex": "male",
+    "heightCm": 172,
+    "frame": "large",
+    "age": 34,
+    "exercise": 0.68,
+    "calories": 4150,
+    "outfit": {
+     "kind": "samuraiTosei",
+     "design": 1
+    },
+    "accessories": [],
+    "look": {
+     "skinTone": "lightTan",
+     "hairStyle": "topknot",
+     "hairColor": "#120d0a",
+     "facialHair": "beard",
+     "eyeColor": "brown"
+    }
+   },
+   "doppelsoeldner": {
+    "name": "Jörg Gruber",
+    "style": "zweihander",
+    "sex": "male",
+    "heightCm": 172,
+    "frame": "medium",
+    "age": 30,
+    "exercise": 0.5,
+    "calories": 3050,
+    "outfit": {
+     "kind": "landsknecht",
+     "design": 0
+    },
+    "accessories": [],
+    "look": {
+     "skinTone": "light",
+     "hairStyle": "cleanShort",
+     "hairColor": "#5a3220",
+     "facialHair": "beard",
+     "eyeColor": "blue"
+    }
+   },
+   "bat": {
+    "name": "Tony Marchetti",
+    "style": "bat",
+    "sex": "male",
+    "heightCm": 180,
+    "frame": "medium",
+    "age": 27,
+    "exercise": 0.45,
+    "calories": 3400,
+    "outfit": {
+     "kind": "thug",
+     "design": 0
+    },
+    "accessories": [],
+    "look": {
+     "skinTone": "light",
+     "hairStyle": "buzz",
+     "hairColor": "#2a1a10",
+     "facialHair": "stubble",
+     "eyeColor": "brown"
+    }
+   },
+   "firefighter": {
+    "name": "Lt. Joe Brennan",
+    "style": "staff",
+    "sex": "male",
+    "heightCm": 180,
+    "frame": "large",
+    "age": 36,
+    "exercise": 0.6,
+    "calories": 4200,
+    "outfit": {
+     "kind": "proximity",
+     "design": 0
+    },
+    "accessories": [],
+    "look": {
+     "skinTone": "light",
+     "hairStyle": "cleanShort",
+     "hairColor": "#3a2a1c",
+     "facialHair": "mustache",
+     "eyeColor": "blue"
+    }
+   },
+   "riot": {
+    "name": "Officer Dale Burke",
+    "style": "riot",
+    "sex": "male",
+    "heightCm": 183,
+    "frame": "medium",
+    "age": 32,
+    "exercise": 0.6,
+    "calories": 4300,
+    "outfit": {
+     "kind": "riot",
+     "design": 0
+    },
+    "accessories": [],
+    "look": {
+     "skinTone": "light",
+     "hairStyle": "buzz",
+     "hairColor": "#6b4a2a",
+     "facialHair": "none",
+     "eyeColor": "blue"
+    }
+   },
+   "legionary": {
+    "name": "Gaius Valerius Crispus",
+    "style": "legionary",
+    "sex": "male",
+    "heightCm": 171,
+    "frame": "medium",
+    "age": 28,
+    "exercise": 0.75,
+    "calories": 4100,
+    "outfit": {
+     "kind": "legionary",
+     "design": 0
+    },
+    "accessories": [],
+    "look": {
+     "skinTone": "lightTan",
+     "hairStyle": "buzz",
+     "hairColor": "#2a1a10",
+     "facialHair": "none",
+     "eyeColor": "brown"
+    }
+   },
+   "centurion": {
+    "name": "Marcus Caelius",
+    "style": "centurion",
+    "sex": "male",
+    "heightCm": 172,
+    "frame": "medium",
+    "age": 53,
+    "exercise": 0.75,
+    "calories": 4150,
+    "outfit": {
+     "kind": "centurion",
+     "design": 0
+    },
+    "accessories": [],
+    "look": {
+     "skinTone": "lightTan",
+     "hairStyle": "buzz",
+     "hairColor": "#5a4a3a",
+     "facialHair": "none",
+     "eyeColor": "brown"
+    }
+   },
+   "joan": {
+    "name": "Joan of Arc",
+    "style": "joan",
+    "hero": true,
+    "sex": "female",
+    "heightCm": 159,
+    "frame": "medium",
+    "age": 18,
+    "exercise": 0.75,
+    "calories": 2735,
+    "leads": true,
+    "standardColour": "#f1ece0",
+    "outfit": {
+     "kind": "joan",
+     "design": 0
+    },
+    "accessories": [],
+    "look": {
+     "skinTone": "light",
+     "hairStyle": "cleanShort",
+     "hairColor": "#3a2416",
+     "facialHair": "none",
+     "eyeColor": "brown"
+    }
+   },
+   "templar": {
+    "name": "Odo de Saint-Amand",
+    "style": "templar",
+    "hero": true,
+    "sex": "male",
+    "heightCm": 178,
+    "frame": "large",
+    "age": 34,
+    "exercise": 0.68,
+    "calories": 4425,
+    "outfit": {
+     "kind": "templar",
+     "design": 0
+    },
+    "accessories": [],
+    "look": {
+     "skinTone": "light",
+     "hairStyle": "cleanShort",
+     "hairColor": "#3a2a1c",
+     "facialHair": "beard",
+     "eyeColor": "brown"
+    }
+   },
+   "tametomo": {
+    "name": "Minamoto no Tametomo",
+    "style": "yumi",
+    "hero": true,
+    "sex": "male",
+    "heightCm": 170,
+    "frame": "large",
+    "age": 18,
+    "exercise": 0.74,
+    "calories": 4045,
+    "outfit": {
+     "kind": "oyoroi",
+     "design": 0
+    },
+    "accessories": [
+     "crest"
+    ],
+    "look": {
+     "skinTone": "lightTan",
+     "hairStyle": "topknot",
+     "hairColor": "#120d0a",
+     "facialHair": "stubble",
+     "eyeColor": "brown"
+    }
+   },
+   "samurai": {
+    "name": "Takeda Shingen",
+    "style": "katana",
+    "sex": "male",
+    "heightCm": 168,
+    "frame": "medium",
+    "age": 34,
+    "exercise": 0.74,
+    "calories": 3875,
+    "outfit": {
+     "kind": "samurai",
+     "design": 1
+    },
+    "accessories": [
+     "crest"
+    ],
+    "look": {
+     "skinTone": "lightTan",
+     "hairStyle": "topknot",
+     "hairColor": "#120d0a",
+     "facialHair": "mustache",
+     "eyeColor": "brown"
+    }
+   },
+   "ronin": {
+    "name": "Miyamoto Musashi",
+    "style": "nito",
+    "hero": true,
+    "sex": "male",
+    "heightCm": 178,
+    "frame": "large",
+    "age": 28,
+    "exercise": 0.95,
+    "calories": 4400,
+    "charging": 2.5,
+    "outfit": {
+     "kind": "ronin",
+     "design": 2
+    },
+    "accessories": [
+     "kasa"
+    ],
+    "look": {
+     "skinTone": "lightTan",
+     "hairStyle": "topknot",
+     "hairColor": "#120d0a",
+     "facialHair": "mustache",
+     "eyeColor": "brown"
+    }
+   },
+   "knife": {
+    "name": "Ryo Kanda",
+    "style": "knife",
+    "sex": "male",
+    "heightCm": 175,
+    "frame": "small",
+    "age": 29,
+    "exercise": 0.55,
+    "calories": 3100,
+    "outfit": {
+     "kind": "yakuza",
+     "design": 0
+    },
+    "accessories": [
+     "hat"
+    ],
+    "look": {
+     "skinTone": "lightTan",
+     "hairStyle": "cleanShort",
+     "hairColor": "#120d0a",
+     "facialHair": "none",
+     "eyeColor": "brown"
+    }
+   },
+   "warhammer": {
+    "name": "Gunnar Holt",
+    "style": "warhammer",
+    "sex": "male",
+    "heightCm": 190,
+    "frame": "large",
+    "age": 36,
+    "exercise": 0.65,
+    "calories": 4875,
+    "outfit": {
+     "kind": "knight",
+     "design": 0
+    },
+    "accessories": [
+     "plume"
+    ],
+    "look": {
+     "skinTone": "light",
+     "hairStyle": "long",
+     "hairColor": "#8a3a1c",
+     "facialHair": "beard",
+     "eyeColor": "grey"
+    }
+   },
+   "naginata": {
+    "name": "Tomoe Gozen",
+    "style": "naginata",
+    "sex": "female",
+    "heightCm": 165,
+    "frame": "medium",
+    "age": 27,
+    "exercise": 0.85,
+    "calories": 3975,
+    "outfit": {
+     "kind": "samurai",
+     "design": 3
+    },
+    "accessories": [
+     "crest"
+    ],
+    "look": {
+     "skinTone": "lightTan",
+     "hairStyle": "long",
+     "hairColor": "#120d0a",
+     "facialHair": "none",
+     "eyeColor": "brown"
+    }
+   },
+   "sohei": {
+    "name": "Musashibō Benkei",
+    "style": "naginata",
+    "sex": "male",
+    "heightCm": 190,
+    "frame": "large",
+    "age": 30,
+    "exercise": 0.92,
+    "calories": 6200,
+    "skill": 0.95,
+    "outfit": {
+     "kind": "sohei",
+     "design": 0
+    },
+    "accessories": [],
+    "look": {
+     "skinTone": "lightTan",
+     "hairStyle": "bald",
+     "hairColor": "#120d0a",
+     "facialHair": "none",
+     "eyeColor": "brown"
+    }
+   },
+   "spear": {
+    "name": "Hob Miller",
+    "style": "pitchfork",
+    "sex": "male",
+    "heightCm": 171,
+    "frame": "medium",
+    "age": 30,
+    "exercise": 0.5,
+    "calories": 3085,
+    "outfit": {
+     "kind": "commoner",
+     "design": 0
+    },
+    "accessories": [
+     "headWrap"
+    ],
+    "look": {
+     "skinTone": "tan",
+     "hairStyle": "cleanShort",
+     "hairColor": "#2a1a10",
+     "facialHair": "stubble",
+     "eyeColor": "hazel"
+    }
+   },
+   "starved": {
+    "name": "Starved Rebel",
+    "style": "pitchfork",
+    "sex": "male",
+    "heightCm": 171,
+    "frame": "medium",
+    "age": 26,
+    "exercise": 0.2,
+    "calories": 1690,
+    "skill": 0.12,
+    "undealt": true,
+    "outfit": {
+     "kind": "rags",
+     "design": 0,
+     "tear": {
+      "seed": 3,
+      "amount": 0.85,
+      "sleeve": "l"
+     }
+    },
+    "accessories": [],
+    "look": {
+     "skinTone": "light",
+     "hairStyle": "midLong",
+     "hairColor": "#4a3a2a",
+     "facialHair": "beard",
+     "eyeColor": "grey"
+    }
+   },
+   "yari": {
+    "name": "Gonbei",
+    "style": "yari",
+    "sex": "male",
+    "heightCm": 164,
+    "frame": "medium",
+    "age": 30,
+    "exercise": 0.5,
+    "calories": 2730,
+    "outfit": {
+     "kind": "ashigaru",
+     "design": 0
+    },
+    "accessories": [],
+    "look": {
+     "skinTone": "tan",
+     "hairStyle": "cleanShort",
+     "hairColor": "#2a1a10",
+     "facialHair": "stubble",
+     "eyeColor": "hazel"
+    }
+   },
+   "hoplomachus": {
+    "name": "Priscus",
+    "style": "hoplomachus",
+    "sex": "male",
+    "heightCm": 177,
+    "frame": "large",
+    "age": 28,
+    "exercise": 0.62,
+    "calories": 4520,
+    "outfit": {
+     "kind": "hoplomachus",
+     "design": 0
+    },
+    "look": {
+     "skinTone": "tan",
+     "hairStyle": "cleanShort",
+     "hairColor": "#1c130c",
+     "facialHair": "beard",
+     "eyeColor": "brown"
+    }
+   },
+   "thraex": {
+    "name": "Spartacus",
+    "style": "thraex",
+    "sex": "male",
+    "heightCm": 174,
+    "frame": "large",
+    "age": 30,
+    "exercise": 0.62,
+    "calories": 4330,
+    "outfit": {
+     "kind": "thraex",
+     "design": 0
+    },
+    "look": {
+     "skinTone": "light",
+     "hairStyle": "cleanShort",
+     "hairColor": "#3a2416",
+     "facialHair": "beard",
+     "eyeColor": "brown"
+    }
+   },
+   "murmillo": {
+    "name": "Verus",
+    "style": "murmillo",
+    "sex": "male",
+    "heightCm": 176,
+    "frame": "large",
+    "age": 29,
+    "exercise": 0.6,
+    "calories": 4620,
+    "outfit": {
+     "kind": "murmillo",
+     "design": 1
+    },
+    "look": {
+     "skinTone": "tan",
+     "hairStyle": "buzz",
+     "hairColor": "#1c130c",
+     "facialHair": "stubble",
+     "eyeColor": "brown"
+    }
+   },
+   "secutor": {
+    "name": "Flamma",
+    "style": "secutor",
+    "sex": "male",
+    "heightCm": 175,
+    "frame": "large",
+    "age": 27,
+    "exercise": 0.62,
+    "calories": 4550,
+    "outfit": {
+     "kind": "secutor",
+     "design": 3
+    },
+    "look": {
+     "skinTone": "medium",
+     "hairStyle": "buzz",
+     "hairColor": "#120d0a",
+     "facialHair": "none",
+     "eyeColor": "brown"
+    }
+   },
+   "retiarius": {
+    "name": "Kalendio",
+    "style": "retiarius",
+    "sex": "male",
+    "heightCm": 175,
+    "frame": "large",
+    "age": 24,
+    "exercise": 0.7,
+    "calories": 4400,
+    "outfit": {
+     "kind": "retiarius",
+     "design": 2
+    },
+    "look": {
+     "skinTone": "tan",
+     "hairStyle": "midLong",
+     "hairColor": "#120d0a",
+     "facialHair": "none",
+     "eyeColor": "brown"
+    }
+   },
+   "maximus": {
+    "name": "Maximus",
+    "style": "maximus",
+    "hero": true,
+    "sex": "male",
+    "heightCm": 178,
+    "frame": "large",
+    "age": 35,
+    "exercise": 0.68,
+    "calories": 4610,
+    "outfit": {
+     "kind": "maximus",
+     "design": 0
+    },
+    "accessories": [],
+    "look": {
+     "skinTone": "lightTan",
+     "hairStyle": "cleanShort",
+     "hairColor": "#1c130c",
+     "facialHair": "beard",
+     "eyeColor": "blue"
+    }
+   },
+   "commodus": {
+    "name": "Commodus",
+    "style": "commodus",
+    "hero": true,
+    "sex": "male",
+    "heightCm": 177,
+    "frame": "large",
+    "age": 31,
+    "exercise": 0.68,
+    "calories": 4375,
+    "outfit": {
+     "kind": "commodus",
+     "design": 0
+    },
+    "accessories": [],
+    "look": {
+     "skinTone": "light",
+     "hairStyle": "cleanShort",
+     "hairColor": "#a8803e",
+     "facialHair": "beard",
+     "eyeColor": "brown"
+    }
+   },
+   "whip": {
+    "name": "Felix the lorarius",
+    "style": "whip",
+    "sex": "male",
+    "heightCm": 172,
+    "frame": "medium",
+    "age": 33,
+    "exercise": 0.6,
+    "calories": 3775,
+    "outfit": {
+     "kind": "lorarius",
+     "design": 0
+    },
+    "accessories": [],
+    "look": {
+     "skinTone": "tan",
+     "hairStyle": "cleanShort",
+     "hairColor": "#2a1a10",
+     "facialHair": "stubble",
+     "eyeColor": "brown"
+    }
+   },
+   "hunter": {
+    "name": "Ice Age hunter",
+    "style": "atlatl",
+    "sex": "male",
+    "heightCm": 176,
+    "frame": "large",
+    "age": 26,
+    "exercise": 0.92,
+    "calories": 4000,
+    "outfit": {
+     "kind": "hides",
+     "design": 0
+    },
+    "accessories": [],
+    "look": {
+     "skinTone": "deep",
+     "hairStyle": "long",
+     "hairColor": "#120d0a",
+     "facialHair": "beard",
+     "eyeColor": "blue"
+    }
+   },
+   "gorilla": {
+    "name": "Kumbuka",
+    "style": "gorilla",
+    "sex": "male",
+    "heightCm": 180,
+    "frame": "large",
+    "age": 25,
+    "exercise": 0.5,
+    "calories": 2800,
+    "skill": 0.3,
+    "build": {
+     "massKg": 230,
+     "bodyFat": 0.08,
+     "strength": 1.35,
+     "fast": 1.15,
+     "bulk": 3.1,
+     "bones": 2,
+     "bite": {
+      "forceN": 2500,
+      "depth": 0.03
+     },
+     "lengths": {
+      "thigh": 0.21,
+      "shank": 0.2,
+      "trunk": 0.36,
+      "neckToHead": 0.1,
+      "upperArm": 0.29,
+      "forearmToFist": 0.3,
+      "wristToFist": 0.065,
+      "shoulderSpan": 0.25,
+      "hipSpan": 0.13
+     },
+     "muscle": {
+      "upperArm": 1.6,
+      "forearm": 1.75,
+      "thigh": 0.7,
+      "shank": 0.6
+     }
+    },
+    "outfit": {
+     "kind": "silverback",
+     "design": 0
+    },
+    "accessories": [],
+    "look": {
+     "bodyStyle": "ape",
+     "skinTone": "deep",
+     "skinColor": "#1f1e22",
+     "hairStyle": "bald",
+     "hairColor": "#1a1a1c",
+     "facialHair": "none",
+     "eyeColor": "brown"
+    }
+   },
+   "macaque": {
+    "name": "Rhesus",
+    "style": "macaque",
+    "sex": "male",
+    "heightCm": 60,
+    "frame": "medium",
+    "age": 25,
+    "exercise": 0.6,
+    "calories": 2800,
+    "skill": 0.25,
+    "noPrize": true,
+    "build": {
+     "massKg": 8.5,
+     "bodyFat": 0.05,
+     "strength": 1.35,
+     "fast": 1.25,
+     "bulk": 1,
+     "bones": 0.22,
+     "brain": 6.1,
+     "bite": {
+      "forceN": 280,
+      "depth": 0.012
+     },
+     "lengths": {
+      "thigh": 0.23,
+      "shank": 0.22,
+      "trunk": 0.33,
+      "neckToHead": 0.09,
+      "upperArm": 0.2,
+      "forearmToFist": 0.24,
+      "shoulderSpan": 0.17,
+      "hipSpan": 0.11,
+      "headRadius": 0.075
+     },
+     "muscle": {
+      "upperArm": 1.2,
+      "forearm": 1.2,
+      "thigh": 1.1,
+      "shank": 1
+     }
+    },
+    "outfit": {
+     "kind": "monkeyFur",
+     "design": 0
+    },
+    "accessories": [],
+    "look": {
+     "skinTone": "light",
+     "skinColor": "#8a7656",
+     "hairStyle": "bald",
+     "hairColor": "#8a7656",
+     "facialHair": "none",
+     "eyeColor": "brown"
+    }
+   },
+   "baboon": {
+    "name": "Chacma",
+    "style": "baboon",
+    "sex": "male",
+    "heightCm": 100,
+    "frame": "large",
+    "age": 25,
+    "exercise": 0.6,
+    "calories": 2800,
+    "skill": 0.3,
+    "noPrize": true,
+    "build": {
+     "massKg": 30,
+     "bodyFat": 0.05,
+     "strength": 1.35,
+     "fast": 1.2,
+     "bulk": 1.2,
+     "bones": 0.52,
+     "brain": 3.7,
+     "bite": {
+      "forceN": 640,
+      "depth": 0.035
+     },
+     "lengths": {
+      "thigh": 0.23,
+      "shank": 0.22,
+      "trunk": 0.34,
+      "neckToHead": 0.09,
+      "upperArm": 0.23,
+      "forearmToFist": 0.26,
+      "shoulderSpan": 0.19,
+      "hipSpan": 0.11,
+      "headRadius": 0.07
+     },
+     "muscle": {
+      "upperArm": 1.3,
+      "forearm": 1.3,
+      "thigh": 1,
+      "shank": 0.9
+     }
+    },
+    "outfit": {
+     "kind": "monkeyFur",
+     "design": 1
+    },
+    "accessories": [],
+    "look": {
+     "skinTone": "deep",
+     "skinColor": "#6e6248",
+     "hairStyle": "bald",
+     "hairColor": "#6e6248",
+     "facialHair": "none",
+     "eyeColor": "brown"
+    }
+   },
+   "chimp": {
+    "name": "Bruno",
+    "style": "chimp",
+    "sex": "male",
+    "heightCm": 120,
+    "frame": "large",
+    "age": 22,
+    "exercise": 0.6,
+    "calories": 2800,
+    "skill": 0.3,
+    "noPrize": true,
+    "build": {
+     "massKg": 55,
+     "bodyFat": 0.06,
+     "strength": 1.35,
+     "fast": 1.15,
+     "bulk": 1.6,
+     "bones": 0.78,
+     "brain": 2.3,
+     "bite": {
+      "forceN": 960,
+      "depth": 0.022
+     },
+     "lengths": {
+      "thigh": 0.22,
+      "shank": 0.2,
+      "trunk": 0.36,
+      "neckToHead": 0.1,
+      "upperArm": 0.27,
+      "forearmToFist": 0.28,
+      "shoulderSpan": 0.23,
+      "hipSpan": 0.12,
+      "headRadius": 0.065
+     },
+     "muscle": {
+      "upperArm": 1.5,
+      "forearm": 1.6,
+      "thigh": 0.8,
+      "shank": 0.7
+     }
+    },
+    "outfit": {
+     "kind": "monkeyFur",
+     "design": 2
+    },
+    "accessories": [],
+    "look": {
+     "skinTone": "deep",
+     "skinColor": "#1c1918",
+     "hairStyle": "bald",
+     "hairColor": "#1c1918",
+     "facialHair": "none",
+     "eyeColor": "brown"
+    }
+   },
+   "humanoid": {
+    "name": "H-1 \"Unit\"",
+    "style": "kickboxing",
+    "sex": "male",
+    "heightCm": 180,
+    "frame": "medium",
+    "age": 27,
+    "exercise": 0.6,
+    "calories": 2800,
+    "skill": 0.6,
+    "build": {
+     "massKg": 70,
+     "bodyFat": 0,
+     "strength": 1,
+     "aerobic": 1.1,
+     "rigid": true
+    },
+    "outfit": {
+     "kind": "humanoid",
+     "design": 0
+    },
+    "accessories": [],
+    "look": {
+     "skinTone": "deep",
+     "skinColor": "#1d1e22",
+     "hairStyle": "bald",
+     "hairColor": "#1d1e22",
+     "facialHair": "none",
+     "eyeColor": "brown"
+    }
+   },
+   "combatBot": {
+    "name": "CB-170 \"Warden\"",
+    "style": "combatBot",
+    "sex": "male",
+    "heightCm": 180,
+    "frame": "large",
+    "age": 27,
+    "exercise": 0.6,
+    "calories": 2800,
+    "skill": 0.6,
+    "build": {
+     "massKg": 115,
+     "bodyFat": 0,
+     "strength": 1.5,
+     "aerobic": 1.1,
+     "bulk": 2,
+     "rigid": true
+    },
+    "outfit": {
+     "kind": "combatBot",
+     "design": 0
+    },
+    "accessories": [],
+    "look": {
+     "skinTone": "deep",
+     "skinColor": "#1e1f22",
+     "hairStyle": "bald",
+     "hairColor": "#1e1f22",
+     "facialHair": "none",
+     "eyeColor": "brown"
+    }
+   },
+   "miniHumanoid": {
+    "name": "G1 \"Sprite\"",
+    "style": "kickboxing",
+    "sex": "male",
+    "heightCm": 132,
+    "frame": "medium",
+    "age": 27,
+    "exercise": 0.6,
+    "calories": 2800,
+    "skill": 0.6,
+    "noPrize": true,
+    "build": {
+     "massKg": 35,
+     "bodyFat": 0,
+     "strength": 1,
+     "aerobic": 1.1,
+     "rigid": true,
+     "muscle": {
+      "upperArm": 0.7,
+      "forearm": 0.7
+     }
+    },
+    "outfit": {
+     "kind": "miniHumanoid",
+     "design": 0
+    },
+    "accessories": [],
+    "look": {
+     "skinTone": "deep",
+     "skinColor": "#1d1e22",
+     "hairStyle": "bald",
+     "hairColor": "#1d1e22",
+     "facialHair": "none",
+     "eyeColor": "brown"
+    }
+   },
+   "exoArmoured": {
+    "name": "Pvt. Owen Kade",
+    "style": "street",
+    "sex": "male",
+    "heightCm": 180,
+    "frame": "medium",
+    "age": 28,
+    "exercise": 0.6,
+    "calories": 4000,
+    "outfit": {
+     "kind": "exoArmoured",
+     "design": 0
+    },
+    "accessories": [],
+    "look": {
+     "skinTone": "lightTan",
+     "hairStyle": "buzz",
+     "hairColor": "#3a2416",
+     "facialHair": "stubble",
+     "eyeColor": "grey"
+    }
+   },
+   "dogGo2": {
+    "name": "Go2",
+    "style": "dogRam",
+    "sex": "male",
+    "heightCm": 40,
+    "frame": "small",
+    "age": 27,
+    "exercise": 0.6,
+    "calories": 2800,
+    "skill": 0.6,
+    "mounted": true,
+    "undealt": true,
+    "noPrize": true,
+    "build": {
+     "massKg": 2,
+     "bodyFat": 0,
+     "strength": 1,
+     "aerobic": 1.1,
+     "rigid": true
+    },
+    "outfit": {
+     "kind": "go2Dog",
+     "design": 0
+    },
+    "accessories": [],
+    "look": {
+     "skinTone": "deep",
+     "skinColor": "#2a2b2f",
+     "hairStyle": "bald",
+     "hairColor": "#2a2b2f",
+     "facialHair": "none",
+     "eyeColor": "brown"
+    }
+   },
+   "dogSpot": {
+    "name": "Spot",
+    "style": "dogGrip",
+    "sex": "male",
+    "heightCm": 70,
+    "frame": "small",
+    "age": 27,
+    "exercise": 0.6,
+    "calories": 2800,
+    "skill": 0.6,
+    "mounted": true,
+    "undealt": true,
+    "noPrize": true,
+    "build": {
+     "massKg": 8,
+     "bodyFat": 0,
+     "strength": 1,
+     "aerobic": 1.1,
+     "rigid": true,
+     "lengths": {
+      "upperArm": 0.7,
+      "forearmToFist": 0.7
+     }
+    },
+    "outfit": {
+     "kind": "spotDog",
+     "design": 0
+    },
+    "accessories": [],
+    "look": {
+     "skinTone": "deep",
+     "skinColor": "#1d1e22",
+     "hairStyle": "bald",
+     "hairColor": "#1d1e22",
+     "facialHair": "none",
+     "eyeColor": "brown"
+    }
+   },
+   "dogVision60": {
+    "name": "Vision 60",
+    "style": "dogTurret",
+    "sex": "male",
+    "heightCm": 50,
+    "frame": "small",
+    "age": 27,
+    "exercise": 0.6,
+    "calories": 2800,
+    "skill": 0.7,
+    "mounted": true,
+    "undealt": true,
+    "noPrize": true,
+    "build": {
+     "massKg": 9,
+     "bodyFat": 0,
+     "strength": 4,
+     "aerobic": 1.1,
+     "rigid": true
+    },
+    "outfit": {
+     "kind": "vision60Dog",
+     "design": 0
+    },
+    "accessories": [],
+    "look": {
+     "skinTone": "deep",
+     "skinColor": "#2b2f28",
+     "hairStyle": "bald",
+     "hairColor": "#2b2f28",
+     "facialHair": "none",
+     "eyeColor": "brown"
+    }
+   },
+   "scissor": {
+    "name": "Astacius",
+    "style": "scissor",
+    "sex": "male",
+    "heightCm": 176,
+    "frame": "large",
+    "age": 31,
+    "exercise": 0.6,
+    "calories": 4590,
+    "outfit": {
+     "kind": "scissor",
+     "design": 4
+    },
+    "look": {
+     "skinTone": "tan",
+     "hairStyle": "buzz",
+     "hairColor": "#2a1a10",
+     "facialHair": "beard",
+     "eyeColor": "brown"
+    }
+   }
+  },
+  "FRAMES": {
+   "small": {
+    "lean": 0.94,
+    "bone": 0.88,
+    "width": 0.94
+   },
+   "medium": {
+    "lean": 1,
+    "bone": 1,
+    "width": 1
+   },
+   "large": {
+    "lean": 1.07,
+    "bone": 1.12,
+    "width": 1.07
+   }
+  },
+  "BODY": {
+   "toughness": 0.47,
+   "chinToughness": 0.8,
+   "organShareOfLean": 0.33,
+   "armHypertrophy": 0.6,
+   "limbWasting": 4,
+   "organPerFatKg": 0.08,
+   "referenceBoneKg": {
+    "male": 11,
+    "female": 8.6
+   },
+   "referenceHeightM": 1.75,
+   "muscleLossPerYear": 0.005,
+   "jointSpeedFloor": 0.7,
+   "boneLossPerYear": {
+    "male": 0.004,
+    "female": 0.008
+   },
+   "agingFrom": 30,
+   "forcePerMuscleKg": {
+    "arm": 130,
+    "trunk": 26,
+    "leg": 30,
+    "neck": 900
+   },
+   "allometryExponent": 0.6666666666666666,
+   "referenceMuscleKg": {
+    "arm": 2.4,
+    "leg": 9,
+    "trunk": 14
+   },
+   "topSpeedPerMetre": {
+    "arm": 42,
+    "leg": 36
+   },
+   "referenceBulk": {
+    "arm": 3.5,
+    "leg": 9.5
+   },
+   "pennationCost": 14,
+   "hillCurvature": 1,
+   "kickForcePerMuscleKg": 95,
+   "neuralDriveBase": 0.55,
+   "neuralDriveTrained": 0.55,
+   "gloveKg": 0.34,
+   "fractureN": {
+    "face": 5200,
+    "hand": 5600,
+    "rib": 4800,
+    "Forearm": 7000,
+    "UpperArm": 11000,
+    "Shank": 14000,
+    "Thigh": 18000
+   },
+   "bone": {
+    "densityPower": 2,
+    "widthPower": 1.5,
+    "ageFrom": 35,
+    "strengthPerDecade": 0.04,
+    "toughnessPerDecade": 0.09,
+    "ageFloor": 0.3
+   }
+  },
+  "PARTICLES": [
+   "head",
+   "neck",
+   "lShoulder",
+   "rShoulder",
+   "lElbow",
+   "rElbow",
+   "lHand",
+   "rHand",
+   "pelvis",
+   "lHip",
+   "rHip",
+   "lKnee",
+   "rKnee",
+   "lFoot",
+   "rFoot"
+  ],
+  "SEGMENTS": {
+   "head": {
+    "from": "neck",
+    "to": "head"
+   },
+   "trunk": {
+    "from": "pelvis",
+    "to": "neck"
+   },
+   "lUpperArm": {
+    "from": "lShoulder",
+    "to": "lElbow"
+   },
+   "rUpperArm": {
+    "from": "rShoulder",
+    "to": "rElbow"
+   },
+   "lForearm": {
+    "from": "lElbow",
+    "to": "lHand"
+   },
+   "rForearm": {
+    "from": "rElbow",
+    "to": "rHand"
+   },
+   "lThigh": {
+    "from": "lHip",
+    "to": "lKnee"
+   },
+   "rThigh": {
+    "from": "rHip",
+    "to": "rKnee"
+   },
+   "lShank": {
+    "from": "lKnee",
+    "to": "lFoot"
+   },
+   "rShank": {
+    "from": "rKnee",
+    "to": "rFoot"
+   }
+  }
+ }
+}
