@@ -49,6 +49,7 @@ import { leadOf, musterLevel } from './muster.js';
 import { CUSTOM_BATTLE, customLevel } from './custombattle.js';
 import { runSteps } from './loftbody.js';
 import { createLoadProgress, LOAD, runStepsOver, stepsOf } from './loadsteps.js';
+import { openShaderPrime, primeLinksDone, primeShaderSteps, SHADER_PRIME } from './shaderprime.js';
 import { createLoadScreen } from './loadscreen.js';
 import { tableOn } from './tableduel.js';
 import { CLOTH_COLORS, defaultHeadgear, FACTION_KEYS, factionOf, FACTIONS, finishOptions, firstDesignOf, HEADGEAR, headgearOptions, OUTFIT_KEYS, outfitOf, outfitSets, OUTFITS, helmChoices, helmSlotOf, pickableSets, PICKABLE_OUTFIT_KEYS, randomColors, setHelmSlot, withFinish, wornCard } from './outfits.js';
@@ -756,8 +757,18 @@ async function loadInto(info, work, { quiet = false } = {}) {
 
 /** The fight marks' one shader compiled with the scene's lights (fightui/marker.js warm): now, or at the end of a load (it compiles the whole scene at once). */
 function warmMarks() {
-  if (loading) loading.marks = true;
-  else fightMarks.warm();
+  if (loading) {
+    loading.marks = true;
+    return;
+  }
+  // (Its compile of the whole scene primed, shaderprime.js: the programs it makes, most of a new fight's, linked side by
+  // side and read where they are first drawn, not one after another here.)
+  const prime = openShaderPrime(scene.renderer, { scenes: [scene.scene] });
+  try {
+    fightMarks.warm();
+  } finally {
+    prime?.close();
+  }
 }
 
 /** The last of a load, behind the screen: the men still queued raised (a few a frame), the shaders prepared, the first frame drawn. */
@@ -777,7 +788,17 @@ function* readySteps(progress) {
   const passes = castle ? 3 : 1;
   let pass = 0;
   const counted = (done, all) => loadScreen.progress(progress.count(done, all, (pass + done / all) / passes));
+  // Each pass's programs first linked side by side (shaderprime.js: every one the frame wants, drawn once with nothing
+  // drawn), so the warm after it only looks them up; the last pass's also the programs of what is hidden (the warmers'
+  // end, render.js compileHidden, and the fight's marks), which were otherwise linked one by one in the first second of play.
   const passOf = function* passOf() {
+    const last = pass === passes - 1;
+    yield* primeShaderSteps(scene.renderer, [scene.scene], () => {
+      drawEveryShown();
+      if (!last) return;
+      if (loading.marks) fightMarks.warm(() => drawFrame(scene));
+      scene.renderer.compile(scene.scene, scene.camera);
+    }, { onWait: counted });
     yield* warmShaderSteps(counted);
     pass += 1;
   };
@@ -796,6 +817,24 @@ function* readySteps(progress) {
   // (The frame as the loop would draw it, nothing stepped: a stage's castle builds its own shaders in it, levelmode/kit.js warm.)
   draw(0);
   yield;
+}
+
+/**
+ * Everything shown now drawn once as the look draws the frame, whatever the camera sees (frustum culling off): in a prime
+ * (shaderprime.js), so that each program the frame wants is made and linked alongside the rest, nothing drawn.
+ */
+function drawEveryShown() {
+  const kept = [];
+  scene.scene.traverseVisible((object) => {
+    if (!object.material || object.isLight) return;
+    kept.push([object, object.frustumCulled]);
+    object.frustumCulled = false;
+  });
+  try {
+    drawFrame(scene);
+  } finally {
+    for (const [object, culled] of kept) object.frustumCulled = culled;
+  }
 }
 
 /**
@@ -1026,6 +1065,32 @@ resolution.onTier = (tier) => {
 };
 // The page's first screen (index.html #boot), up until the game draws its first frame.
 let bootScreen = document.getElementById('boot');
+// Under it, the fight behind the menus is first drawn primed (shaderprime.js: every program its frame wants made and
+// linked alongside the rest, nothing drawn), and not drawn again until the links are done; the screen lifts on the first
+// frame drawn for real. Its ninety-odd programs were linked one by one in that first frame. (`bootLinks`: the programs
+// begun, null before the prime, [] once done or where there is none.)
+let bootLinks = null;
+function bootLinking() {
+  if (!bootLinks) {
+    const prime = openShaderPrime(scene.renderer, { scenes: [scene.scene] });
+    if (!prime) {
+      bootLinks = [];
+      return false;
+    }
+    try {
+      draw(0, { render: false });
+      drawEveryShown();
+    } finally {
+      prime.close();
+    }
+    bootLinks = prime.linked();
+    bootLinks.since = performance.now();
+  }
+  if (!bootLinks.length) return false;
+  if (!primeLinksDone(scene.renderer, bootLinks) && performance.now() - bootLinks.since < SHADER_PRIME.waitMs) return true;
+  bootLinks = [];
+  return false;
+}
 function frame(now) {
   // The next frame is asked for first: an error in this one must never stop the game.
   requestAnimationFrame(frame);
@@ -1061,6 +1126,8 @@ function frame(now) {
     settleStoryFallen();
     // A stage's section he has jumped into that is not built (a respawn, a fast travel, the chute: levelmode/sectionstream.js): built behind the loading screen first.
     if (stageSectionsMissing()) return;
+    // (Under the boot screen, while the first frame's programs link: nothing drawn.)
+    if (bootScreen && state.world && bootLinking()) return;
     draw(dt);
     // The page's boot screen (index.html) away once the first frame is drawn under the menu.
     if (bootScreen && state.world) {
