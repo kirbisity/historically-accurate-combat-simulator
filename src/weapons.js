@@ -1367,10 +1367,17 @@ export const MATERIALS = {
   bronze: { hardness: 0.6, dulls: 0.0025, blade: { strength: 600, scatter: 5, capacity: 7000, fails: 'bent', modulus: 110e9, yields: 0.4e9 } },
   // Hardwood (ash, oak, hickory): the shaft the brace figure is set against. Its bending (SHAFT_FLEX): white ash, E ~12 GPa
   // along the grain, ~670 kg/m³ (USDA Wood Handbook, 2010: as WORLD.wear.column takes it), solid (`bore` 0).
-  hardwood: { hardness: 0.1, shaft: { strength: 1, scatter: 6, chop: 600, modulus: 12e9, density: 670, bore: 0 } },
+  // `rupture`: the stress (Pa) its wood breaks at bent (its modulus of rupture: white ash ~103 MPa at 12% moisture, the
+  // Wood Handbook's table 5-3a). With its `modulus`, how far it bends before it breaks (physics/wear.js shaftFlex: the
+  // strain at rupture, σ/E, ~0.86% for ash): a wood that bends further takes more of a blow across it, the work it stores
+  // bent going as σ²/2E, before it goes. A wood without one is taken as bending as far as ash.
+  hardwood: { hardness: 0.1, shaft: { strength: 1, scatter: 6, chop: 600, modulus: 12e9, density: 670, bore: 0, rupture: 103e6 } },
   // White-wax wood: Chinese ash grown slow and straight, it bends far and springs back where a stiffer ash snaps (E ~10
-  // GPa, under white ash's: an estimate from its bending far, the same ~670 kg/m³).
-  waxwood: { hardness: 0.1, shaft: { strength: 1.4, scatter: 6, chop: 600, modulus: 10e9, density: 670, bore: 0 } },
+  // GPa, under white ash's: an estimate from its bending far, the same ~670 kg/m³). Its `rupture` is its `strength`'s 1.4 ×
+  // ash's (~144 MPa, a hickory's: an estimate, as its strength is): with its lower E it bends ~1.7 × as far as ash before
+  // it breaks (~1.4%), so a blow across it (a full smash met on a blade or on plate) is taken in its spring and given back,
+  // where a stiffer shaft of the same strength would snap (the user's call, 2026-11-26: the staff does not snap on plate).
+  waxwood: { hardness: 0.1, shaft: { strength: 1.4, scatter: 6, chop: 600, modulus: 10e9, density: 670, bore: 0, rupture: 144e6 } },
   // Bamboo: hollow, light and springy; it splits along its fibres under an edge sooner than solid wood. A thin-walled cane
   // (`bore` 0.7, the hollow's radius over the culm's), its wall E ~15 GPa at ~700 kg/m³ (as maozhu's, below).
   bamboo: { hardness: 0.1, shaft: { strength: 0.8, scatter: 5, chop: 350, modulus: 15e9, density: 700, bore: 0.7 } },

@@ -10527,7 +10527,7 @@ function clashWeapons(world, first, second, a = first.weapon, b = second.weapon)
   // across the other as they met (`slide`, m/s: the way its edge scrapes, and the sparks it tears off fly). Read by nothing here.)
   const parts = [weaponPart(a, one.along), weaponPart(b, two.along)];
   const slide = vec.length(one.velocity) >= vec.length(two.velocity) ? vec.sub(one.velocity, two.velocity) : vec.sub(two.velocity, one.velocity);
-  world.events.push({ time: world.time, kind: 'clash', fighter: first.id, other: second.id, point: met, normal, impulse, parts, slide, deflect: deflected || undefined, hilt: caught ? true : undefined, struck: struck || undefined, along: [one.along, two.along], effects: ['blades meet'] });
+  world.events.push({ time: world.time, kind: 'clash', fighter: first.id, other: second.id, point: met, normal, impulse, parts, slide, deflect: deflected || undefined, hilt: caught ? true : undefined, struck: struck || undefined, along: [one.along, two.along], energy: 0.5 * ((massA * massB) / (massA + massB)) * Math.max(0, closing) ** 2, effects: ['blades meet'] });
   // Heard: how fast they met, what of each (an edge, a haft, a head), and whether a point was turned along the blade (a scrape).
   // (The man played's deflect, and whether big: WORLD.deflect.big; its own sound, audio/sfx/sampled.js.)
   const deflectedBy = deflected ? parried[0] : null;
