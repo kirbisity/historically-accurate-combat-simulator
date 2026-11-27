@@ -1854,7 +1854,7 @@ export const OUTFITS = {
   // Ming garrison: a hemp vest and a cloth head wrap, no armour (the weisuo
   // levy of the 16th century, unpaid and ill-kept); quick on his feet.
   mingGarrison: {
-    skill: 0.25,
+    skill: 0.3,
     faction: 'chinese',
     label: 'Ming — garrison', family: 'chinese', movement: 'good', fists: 'bare',
     // No sidearm: a garrison man who loses his weapon fights with his hands.
@@ -1874,7 +1874,7 @@ export const OUTFITS = {
   // iron helmet with a wide brim; a regular army's kit, better than a
   // levy's, never full cover.
   mingBrigandine: {
-    skill: 0.35,
+    skill: 0.4,
     faction: 'chinese',
     label: 'Ming — brigandine', family: 'chinese', movement: 'good', fists: 'bare',
     sidearm: 'dao',
@@ -1916,7 +1916,7 @@ export const OUTFITS = {
     // 0.6-0.8), below its foot (0.54, was 0.56, 0.6 and 0.65 before; lowered a little each time, 2026-11-12 to 2026-11-16): picked
     // farmers and miners made soldiers, not men trained to arms from boyhood. Still over the general's household men
     // (mingElite 0.5): the squad's drill was the better.
-    skill: 0.54,
+    skill: 0.6,
     faction: 'chinese',
     label: 'Ming — elite infantry', family: 'chinese', movement: 'good', fists: 'bare',
     // His sidearm the Qi family's long sabre (WEAPONS changdao): what the gunners draw when the raiders are on them.
@@ -1974,7 +1974,7 @@ export const OUTFITS = {
   // feet (`movement`). Only Koxinga's army fields them (no `family`: never dealt at random).
   ironMan: {
     // Trained and drilled as a body; picked men, not a caste.
-    skill: 0.6,
+    skill: 0.65,
     faction: 'chinese', bulletRating: 1000, plated: true,
     label: 'Iron man — Koxinga\'s scale and iron face', movement: 'limited', fists: 'bare',
     sidearm: 'dao',
@@ -2005,7 +2005,7 @@ export const OUTFITS = {
     horse: 'mingBorder', barding: 'mingFront',
     // Trained: a general's household men (jiading), picked and kept by him, the best the Ming fielded, but drilled to a
     // regular's level more than an elite's: the Ming army of the 1610s was a byword for neglected drill (`skill`; 0.5, was 0.55).
-    skill: 0.5,
+    skill: 0.55,
     faction: 'chinese', bulletRating: 900, plated: true,
     label: 'Ming — elite brigandine', family: 'chinese', movement: 'good', fists: 'bare',
     // The officer's helmet bright or black-lacquered, plain, with the lion face and wings, or gilt with guardians.
@@ -2376,7 +2376,7 @@ export const OUTFITS = {
   mingIronLamellar: {
     // Rides (Ming northern heavy cavalry).
     horse: 'steppe',
-    skill: 0.4,
+    skill: 0.45,
     faction: 'chinese',
     label: 'Ming — iron lamellar cavalry', movement: 'good', fists: 'bare',
     sidearm: 'saber',
