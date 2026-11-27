@@ -160,7 +160,8 @@ export function mergeFallen(scene, bodies, { dress = null } = {}) {
       return skinnedMemo.get(key);
     };
     view.group.traverseVisible((mesh) => {
-      if (!mesh.isMesh || mesh.isInstancedMesh || Array.isArray(mesh.material) || mesh.material.visible === false) return;
+      // (A merged mesh draws his pieces, which are baked here themselves: rigidmerge.js.)
+      if (!mesh.isMesh || mesh.isInstancedMesh || Array.isArray(mesh.material) || mesh.material.visible === false || mesh.userData.rigidMerge) return;
       const key = signature(mesh, share === null ? '' : JSON.stringify(share));
       if (!groups.has(key)) groups.set(key, { mesh, share, pieces: [] });
       groups.get(key).pieces.push(bakedPiece(mesh, skinnedOf, bare));

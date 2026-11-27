@@ -267,7 +267,8 @@ function shadeFigure(material) {
  */
 export function sweepFigureShade(root) {
   root.traverse((object) => {
-    if (!object.isMesh || !object.castShadow || object.receiveShadow || !object.material) return;
+    // (A merged mesh's stand-in reads the material of its pieces, which are swept: rigidmerge.js.)
+    if (!object.isMesh || !object.castShadow || object.receiveShadow || !object.material || object.userData?.rigidMerge) return;
     for (const material of Array.isArray(object.material) ? object.material : [object.material]) shadeFigure(material);
   });
 }
@@ -280,7 +281,7 @@ export function sweepFigureShade(root) {
 export function sweepMaterials(root, linear) {
   root.traverse((object) => {
     const materials = object.material;
-    if (!materials) return;
+    if (!materials || object.userData?.rigidMerge) return;
     for (const material of Array.isArray(materials) ? materials : [materials]) {
       if (linear) linearise(material, object);
       else if (material.userData.linearised || material.onBeforeCompile.decodesVertexColours) unlinearise(material);
@@ -305,6 +306,8 @@ export function stateOf(view, lookId) {
 function eachMaterial(view, visit) {
   const seen = new Set();
   view.scene.traverse((object) => {
+    // (A merged mesh's stand-in follows its pieces' material, its version too: rigidmerge.js.)
+    if (object.userData?.rigidMerge) return;
     for (const material of [].concat(object.material ?? [])) {
       if (seen.has(material)) continue;
       seen.add(material);

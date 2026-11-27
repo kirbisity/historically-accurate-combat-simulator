@@ -208,7 +208,7 @@ test('wired in: the loading screen\'s warm, the boot screen, the fight marks\' c
   assert.match(main, /if \(bootScreen && state\.world && bootLinking\(\)\) return;/);
   assert.match(main.slice(main.indexOf('function warmMarks')), /openShaderPrime\(scene\.renderer[\s\S]{0,200}fightMarks\.warm\(\)/);
   const render = source('src/render.js');
-  assert.match(render, /if \(view\.skinHolds\?\.size\) drawHoldingSkins\(view\);/);
+  assert.match(render, /if \(view\.skinHolds\?\.size \|\| view\.rigidHolds\?\.size\) drawHoldingSkins\(view\);/);
   assert.match(render.slice(render.indexOf('function swapSkin')), /holdSkin\(view, fighterView, old,/);
   const bundle = source('tools/bundle.js');
   assert.ok(bundle.indexOf("'shaderprime'") > 0 && bundle.indexOf("'shaderprime'") < bundle.indexOf("'render'"));
