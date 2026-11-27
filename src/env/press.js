@@ -109,6 +109,8 @@ export function envPressRecord() {
   const vector = (x, y, z, w) => (three ? new THREE.Vector4(x, y, z, w) : { x, y, z, w, set(a, b, c, d) { Object.assign(this, { x: a, y: b, z: c, w: d }); return this; } });
   envPressed = {
     bytes, texture, column: null, row: null, clocks: [0, 0], time: null, world: null, lead: null, bodies: 0, wrote: 0,
+    // What changed since the record was last sent to the card (envPressSend): all of it, or these rows and columns.
+    dirty: { all: true, rows: new Uint8Array(size), columns: [] },
     uniforms: {
       // r, g: how near the ground a body came (1 - clearance / tall for grass, / deep for snow), with the healing
       // clock's reading when it was written added, in 127ths; b, a: the way the blades were pushed (0..255, 128 none).
@@ -131,6 +133,7 @@ function envPressWipe(press) {
   press.clocks[0] = press.clocks[1] = 0;
   press.column = null;
   press.row = null;
+  if (press.dirty) press.dirty.all = true;
   if (press.texture) press.texture.needsUpdate = true;
 }
 
@@ -158,9 +161,10 @@ export function envPressForget() {
  * Once a frame: carry the record with the lead and let the bodies near him write to it. `world` the physics world
  * (fighters: x particle places, v velocities, radius radii, yaw; arena.terrain the floors, if any); `lead` the body
  * the record follows (the player; without one, the body nearest `eye`); `tier` the quality tier's name; `snowing`
- * 0..1 how hard snow falls now.
+ * 0..1 how hard snow falls now; `renderer` the three renderer that draws it: given, only the rows and columns changed
+ * are sent to the card (envPressSend), else three sends the whole record again.
  */
-export function envPressStep({ world, lead = null, eye = null, tier = 'high', snowing = 0 }) {
+export function envPressStep({ world, lead = null, eye = null, tier = 'high', snowing = 0, renderer = null }) {
   const press = envPressRecord();
   const u = press.uniforms;
   const tune = ENV_PRESS;
@@ -201,6 +205,7 @@ export function envPressStep({ world, lead = null, eye = null, tier = 'high', sn
     if (press.clocks[channel] >= 1) {
       press.clocks[channel] -= 1;
       for (let at = channel; at < bytes.length; at += 4) bytes[at] = Math.max(0, bytes[at] - 127);
+      press.dirty.all = true;
       dirty = true;
     }
   }
@@ -221,6 +226,7 @@ export function envPressStep({ world, lead = null, eye = null, tier = 'high', sn
         bytes[at] = bytes[at + 1] = 0;
         bytes[at + 2] = bytes[at + 3] = 128;
       }
+      press.dirty.columns.push(gone);
       dirty = true;
     }
     for (let step = press.row; step !== row; step += Math.sign(row - press.row)) {
@@ -229,6 +235,7 @@ export function envPressStep({ world, lead = null, eye = null, tier = 'high', sn
         bytes[at] = bytes[at + 1] = 0;
         bytes[at + 2] = bytes[at + 3] = 128;
       }
+      press.dirty.rows[gone] = 1;
       dirty = true;
     }
   }
@@ -259,6 +266,7 @@ export function envPressStep({ world, lead = null, eye = null, tier = 'high', sn
     }
     if (near.length > count - 1) near = near.sort((a, b) => a.far - b.far).slice(0, count - 1);
   }
+  const dirtyRows = press.dirty.rows;
   const clock0 = press.clocks[0];
   const clock1 = press.clocks[1];
   let wrote = 0;
@@ -295,6 +303,7 @@ export function envPressStep({ world, lead = null, eye = null, tier = 'high', sn
         const clear = off < round ? low + round - Math.sqrt(round * round - off * off) : low + round + (tall - low - round) * edge * edge;
         if (clear >= tall) continue;
         const at = (wrap(line) * size + wrap(cell)) * 4;
+        const before = wrote;
         const grass = Math.min(255, Math.round((1 - clear / tall + clock0) * 127));
         if (grass > bytes[at]) {
           // The blades go the way the limb went when it was quick, else out from under it.
@@ -316,6 +325,7 @@ export function envPressStep({ world, lead = null, eye = null, tier = 'high', sn
             wrote += 1;
           }
         }
+        if (wrote !== before) dirtyRows[wrap(line)] = 1;
       }
     }
   };
@@ -342,8 +352,57 @@ export function envPressStep({ world, lead = null, eye = null, tier = 'high', sn
   }
   press.bodies = 1 + near.length;
   press.wrote = wrote;
-  if ((dirty || wrote) && press.texture) press.texture.needsUpdate = true;
+  if ((dirty || wrote) && press.texture) {
+    if (renderer) envPressSend(press, renderer);
+    else press.texture.needsUpdate = true;
+  }
   return press;
+}
+
+/**
+ * The record's changes sent to the card: the rows written (each run of them in one texSubImage2D, whole rows being one
+ * stretch of the bytes) and the columns wiped as it is carried (each a one-texel-wide strip, read out of the whole
+ * record by the unpack row length: WebGL2), instead of the whole 512 x 512 x 4 bytes a frame. All of it again (three's
+ * own upload) when it was wiped or healed in one pass, when the card has not had it yet, or where a column cannot be
+ * sent alone (WebGL1). The pixels are the same either way.
+ */
+function envPressSend(press, renderer) {
+  const { texture, dirty, bytes } = press;
+  const size = ENV_PRESS.size;
+  const properties = renderer.properties.get(texture);
+  const gl = renderer.getContext();
+  const sendable = properties.__webglTexture && properties.__version === texture.version && !gl.isContextLost();
+  if (dirty.all || !sendable || (dirty.columns.length && !renderer.capabilities.isWebGL2)) {
+    texture.needsUpdate = true;
+  } else {
+    const state = renderer.state;
+    state.bindTexture(gl.TEXTURE_2D, properties.__webglTexture);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+    gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
+    gl.pixelStorei(gl.UNPACK_ALIGNMENT, texture.unpackAlignment);
+    let rows = 0;
+    for (let row = 0; row < size; row += 1) {
+      if (!dirty.rows[row]) continue;
+      let end = row;
+      while (end + 1 < size && dirty.rows[end + 1]) end += 1;
+      gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, row, size, end - row + 1, gl.RGBA, gl.UNSIGNED_BYTE, bytes.subarray(row * size * 4, (end + 1) * size * 4));
+      rows += end - row + 1;
+      row = end;
+    }
+    if (dirty.columns.length) {
+      gl.pixelStorei(gl.UNPACK_ROW_LENGTH, size);
+      for (const column of dirty.columns) {
+        gl.pixelStorei(gl.UNPACK_SKIP_PIXELS, column);
+        gl.texSubImage2D(gl.TEXTURE_2D, 0, column, 0, 1, size, gl.RGBA, gl.UNSIGNED_BYTE, bytes);
+      }
+      gl.pixelStorei(gl.UNPACK_ROW_LENGTH, 0);
+      gl.pixelStorei(gl.UNPACK_SKIP_PIXELS, 0);
+    }
+    press.sent = { rows, columns: dirty.columns.length };
+  }
+  dirty.all = false;
+  dirty.rows.fill(0);
+  dirty.columns.length = 0;
 }
 
 /**

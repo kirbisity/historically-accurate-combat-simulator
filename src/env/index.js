@@ -794,7 +794,8 @@ function envFinerSkip(view, light) {
     at.set(x[0], x[1], x[2]).applyMatrix4(into);
     if (Math.abs(at.x) > inner + ENV.shadow.skipReach || Math.abs(at.y) > inner + ENV.shadow.skipReach) continue;
     group.traverseVisible((mesh) => {
-      if (!mesh.isMesh || !mesh.castShadow || !mesh.frustumCulled || mesh.isSkinnedMesh || mesh.isInstancedMesh) return;
+      // (A merged mesh's bound is kept true each frame; the pieces it draws are drawn by it, not themselves: rigidmerge.js.)
+      if (!mesh.isMesh || !mesh.castShadow || !mesh.frustumCulled || (mesh.isSkinnedMesh && !mesh.userData.rigidBound) || mesh.isInstancedMesh || mesh.layers.mask !== 1) return;
       const geometry = mesh.geometry;
       if (!geometry.boundingSphere) geometry.computeBoundingSphere();
       const sphere = geometry.boundingSphere;
@@ -928,7 +929,7 @@ export function envUpdate(view, world, lead = null) {
   for (let at = 0; at < filled; at += 1) middle.w = Math.max(middle.w, Math.hypot(bodies[at].x - middle.x, bodies[at].y - middle.y, bodies[at].z - middle.z) + ENV.shadow.bodyReach);
   for (; filled < bodies.length; filled += 1) bodies[filled].w = 0;
   // What the bodies near the lead press into the grass and the snow (press.js).
-  envPressStep({ world, lead, eye, tier: envChosen.tier, snowing: fall?.kind === 'snow' ? falling : 0 });
+  envPressStep({ world, lead, eye, tier: envChosen.tier, snowing: fall?.kind === 'snow' ? falling : 0, renderer: view.renderer });
   envParticlesPixel(parts.particles, (view.camera.fov * Math.PI) / 180, view.renderer.domElement.height);
 }
 

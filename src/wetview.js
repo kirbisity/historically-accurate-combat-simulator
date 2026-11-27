@@ -431,7 +431,8 @@ export function wetDress(fighterView) {
   const state = wetnessOf(fighterView.fighter);
   const wet = (fighterView.wet ??= { uniforms: wetUniforms(state.values), state, radii: null, hairDangles: [] });
   fighterView.group.traverse((object) => {
-    if (!object.isMesh || !object.material) return;
+    // (A merged mesh draws with a stand-in that reads its pieces' own materials, dressed here: rigidmerge.js.)
+    if (!object.isMesh || !object.material || object.userData?.rigidMerge) return;
     const mask = Boolean(object.geometry.attributes?.wetSkin);
     const hairMesh = Boolean(object.userData.photoHair || object.userData.photoBeard || object.userData.photoHairRim);
     for (const material of Array.isArray(object.material) ? object.material : [object.material]) {

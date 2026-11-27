@@ -16,6 +16,7 @@ import { bleedingFast } from './maiming.js';
 import { DEFAULT_LOOK, LOOK_OPTIONS } from './face.js';
 import { activateLook, activateLookNow, activeLook, DEFAULT_LOOK_ID, drawFrame, OFFICIAL_LOOK_ID, flattenView, loadLook, lookById, lookIdFromSearch, lookList, LOOKS, rememberedLookId, rememberLook } from './looks.js';
 import { installLooksBench } from './looksbench.js';
+import { rigidMergeSwitch, rigidReport } from './rigidmerge.js';
 import { randomCharacter, randomGladiator, varyCharacter } from './cast.js';
 import { addTestUnits, ratingOf, WARRIORS } from './roster.js';
 import { builderCharacters, WEAPON_KINDS, weaponCategoryOf } from './pickgroups.js';
@@ -4740,6 +4741,11 @@ const boxer = window.boxer = {
   },
   // The watching camera's state ({ mode: 'auto' | 'free', focus }) and its two verbs, as a tap and 'Frame all' do them.
   watchCam: () => watchCam,
+  // Each man's rigid pieces joined into a few meshes (rigidmerge.js): what each is now; `on` (true/false) turns it on or off first.
+  rigidMerge: (on) => {
+    if (on !== undefined) rigidMergeSwitch(scene, state.views, on);
+    return rigidReport(state.views);
+  },
   // The man under a point on the screen (what a tap picks), or null.
   manAt,
   focusOn: (id) => focusOn(watchCam, id),

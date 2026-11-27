@@ -432,3 +432,14 @@ and adjust only the numbers of each side.
   it). The man played, his lock and opponent, anyone within 3 m of him and the
   man a watching camera follows are never simplified, culled or unshadowed
   (`protectedMen`). `boxer.lod(false)` turns it all off, to compare.
+- A man drawn in full (a duel's two, a battle's leads, the man played) has his rigid pieces that draw alike (one material,
+  or twins equal in every number and patch uniform) joined into a few skinned meshes, one bone a piece
+  (`src/rigidmerge.js`): the pieces stay in his tree, posed, shown, hidden, recoloured and taken off as before, moved
+  to a layer no camera draws; each frame (the scene's onBeforeRender) a piece's bone is its matrix where it is seen and
+  nothing where it is not, a piece gone from his tree is drawn by itself again, and what changes under the merge (a
+  geometry swapped, a twin no longer alike) is left out and the man joined again. The merged meshes' vertex stage
+  reads the piece's model, model-view and normal matrices from its bone, so every patch draws as on the piece; they
+  wait unseen while their programs link (render.js rigidHold, as a new skin does). A samurai duel in the Colosseum:
+  about 360 draws a frame to about 215, the picture the same. `boxer.rigidMerge()` says what each man is,
+  `boxer.rigidMerge(false)` turns it off, to compare. The pressed-ground record (env/press.js) is sent to the card by
+  the rows and columns changed (`envPressSend`), not whole each frame.

@@ -81,6 +81,7 @@ import { buildPyongyang, buildPyongyangTown, PYONGYANG_LIGHT } from './places/py
 import './townkit/air.js';
 import { installShadowCache } from './shadowcache.js';
 import { softSwingOf } from './drawnstate.js';
+import { rigidForget, rigidMergeWanted, rigidMeshesOf, rigidNextFrame, rigidShow } from './rigidmerge.js';
 
 const LAYERS = ['skin', 'muscle', 'bone', 'physics'];
 const CORNER_COLORS = { red: 0xc8262c, blue: 0x2457c5 };
@@ -147,6 +148,9 @@ export function createScene(canvas, { alpha = false } = {}) {
   captureViewDefaults(view, (linear) => steelEnvironment(renderer, { linear }));
   // What keeps still is drawn into the sun's shadow once, not every frame (shadowcache.js).
   installShadowCache(view);
+  // A man's merged pieces wait unseen while their programs link (rigidHold), drawn as pieces meanwhile.
+  view.rigidHold = (fighterView) => rigidHold(view, fighterView);
+  view.rigidUnhold = (fighterView) => view.rigidHolds?.delete(fighterView);
   return view;
 }
 
@@ -2467,7 +2471,10 @@ export function buildFighterView(view, fighter, { simple: crowd = false } = {}) 
     return crowdMan;
   }
   // (Sweat, water and mud drawn on everything he is made of: wetview.js, laid before any other sweep of his materials.)
-  return wetDress(detailedView(view, fighter, false));
+  const man = wetDress(detailedView(view, fighter, false));
+  // His rigid pieces that draw alike joined into a few skinned meshes from the next frame drawn (rigidmerge.js).
+  rigidMergeWanted(view, man);
+  return man;
 }
 
 /** `simple`: low detail, no skeleton, no soft flesh (the first of a crowd template, before baking). */
@@ -3184,10 +3191,16 @@ function dropSkin(fighterView, old) {
 /** The frame drawn with the held skins primed, not drawn; each one whose programs were all done in it shown from the next frame. */
 function drawHoldingSkins(view) {
   const held = new Set();
-  for (const hold of view.skinHolds.values()) for (const mesh of hold.fresh) held.add(mesh);
+  for (const hold of view.skinHolds?.values() ?? []) for (const mesh of hold.fresh) held.add(mesh);
+  // (Merged pieces held from the frame after they were made: rigidHold.)
+  for (const [fighterView, hold] of view.rigidHolds ?? []) {
+    fighterView.rigidMerge.held = 'priming';
+    for (const mesh of hold.meshes) held.add(mesh);
+  }
   const prime = openShaderPrime(view.renderer, { scenes: [view.scene], only: (object) => held.has(object) });
   if (!prime) {
-    for (const fighterView of [...view.skinHolds.keys()]) releaseSkin(view, fighterView);
+    for (const fighterView of [...(view.skinHolds?.keys() ?? [])]) releaseSkin(view, fighterView);
+    for (const fighterView of [...(view.rigidHolds?.keys() ?? [])]) rigidRelease(view, fighterView);
     drawFrame(view);
     return;
   }
@@ -3197,11 +3210,41 @@ function drawHoldingSkins(view) {
     prime.close();
   }
   const now = performance.now();
-  for (const [fighterView, hold] of [...view.skinHolds]) {
+  for (const [fighterView, hold] of [...(view.skinHolds ?? [])]) {
     // (A mesh not drawn at all, hidden or out of the picture, is not waited for: its programs are built where it is first drawn.)
     const done = hold.fresh.every((mesh) => !prime.seen(mesh) || prime.clean(mesh));
     if (done || fighterView.disposed || now - hold.since > SKIN_HOLD.maxMs) releaseSkin(view, fighterView);
   }
+  for (const [fighterView, hold] of [...(view.rigidHolds ?? [])]) {
+    const done = hold.meshes.every((mesh) => !prime.seen(mesh) || prime.clean(mesh));
+    if (done || fighterView.disposed || now - hold.since > SKIN_HOLD.maxMs) rigidRelease(view, fighterView);
+  }
+}
+
+/**
+ * A man's merged pieces just made (rigidmerge.js rigidBuild): not drawn the frame they are made in, then primed each
+ * frame (drawHoldingSkins) with his pieces drawn as before, until every program they draw with is done; then drawn in
+ * place of the pieces. As a new skin is held, and for the same reason: a program built where it is first drawn stalls
+ * that frame. Where programs cannot be linked side by side they are shown at once (built where first drawn, as before).
+ */
+function rigidHold(view, fighterView) {
+  if (!canPrimeShaders(view.renderer)) {
+    rigidShow(fighterView);
+    return;
+  }
+  const meshes = rigidMeshesOf(fighterView);
+  // (Primed wherever the camera looks, as a held skin is.)
+  for (const mesh of meshes) mesh.frustumCulled = false;
+  fighterView.rigidMerge.held = 'new';
+  (view.rigidHolds ??= new Map()).set(fighterView, { meshes, since: performance.now() });
+}
+
+function rigidRelease(view, fighterView) {
+  const hold = view.rigidHolds?.get(fighterView);
+  if (!hold) return;
+  view.rigidHolds.delete(fighterView);
+  for (const mesh of hold.meshes) mesh.frustumCulled = true;
+  if (!fighterView.disposed) rigidShow(fighterView);
 }
 
 /** The physics layer: particles, constraints, motor targets, collision capsules. */
@@ -3614,6 +3657,8 @@ function ensureMuscle(fighterView) {
 
 export function disposeFighterView(view, fighterView) {
   if (fighterView.template && !fighterView.disposed) fighterView.template.users -= 1;
+  // (His merged pieces first: the pieces are given back their layer, the merged meshes freed.)
+  rigidForget(view, fighterView);
   fighterView.disposed = true;
   view.scene.remove(fighterView.group);
   for (const prop of fighterView.headProps ?? []) {
@@ -4319,7 +4364,9 @@ export function render(view) {
   // A place that moves (rain, a ship at anchor) moves with the clock.
   view.places?.[view.place]?.userData.tick?.(performance.now() / 1000);
   updateSceneryLod(view);
-  if (view.skinHolds?.size) drawHoldingSkins(view);
+  // (A man's merged pieces are posed once a frame, however many times a look draws the scene: rigidmerge.js.)
+  rigidNextFrame(view);
+  if (view.skinHolds?.size || view.rigidHolds?.size) drawHoldingSkins(view);
   else drawFrame(view);
   // The warmers have done their work once drawn a few times; seven calls a frame for nothing after that.
   if (view.warmFrames > 0 && (view.warmFrames -= 1) === 0 && view.warmers) {
