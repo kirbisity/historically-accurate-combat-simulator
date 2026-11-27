@@ -216,7 +216,7 @@ export const PEOPLES = {
   // The British line of 1841 (the 18th, 26th, 49th and 55th in China): the recruit's ~168 cm (lifted as above) and the
   // fusilier's preset above it (body.js lineInfantry: the user's taller man), hardened by drill and the march, on the ration.
   british1841: {
-    heightCm: 174, weightKg: 70, exercise: 0.8,
+    heightCm: 174, weightKg: 73, exercise: 0.86,
     ranks: { line: {}, officer: { heightCm: 2, weightKg: 3, exercise: -0.1 } },
   },
   // The Madras Native Infantry: sepoys of the south of India (the army's standard ~5 ft 5 in, ~165 cm, lifted as above),

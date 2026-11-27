@@ -624,9 +624,9 @@ export const PRESETS = {
   // grenade (his kit's: outfits.js infantry). A young soldier of ordinary size, fit from the army's training, ~78 kg.
   // A British line infantryman of the 1830s-40s (the 18th Royal Irish and the 26th Cameronians at Canton and Amoy, 1841):
   // a tall man of the ranks, 176 cm (the user's call, 2026-11-26), hardened by drill and the march, on the ration and
-  // what his pay bought (~4150 kcal); drilled to the bayonet (0.55).
+  // what his pay bought (~4400 kcal); drilled to the bayonet (0.6). (Stronger and a little more skilled on the user's call, 2026-11-26: was exercise 0.82, 4150 kcal, 0.55.)
   lineInfantry: {
-    name: 'Pte. Joseph Wood', style: 'flintlock', sex: 'male', heightCm: 176, frame: 'medium', age: 24, exercise: 0.82, calories: 4150, skill: 0.55,
+    name: 'Pte. Joseph Wood', style: 'flintlock', sex: 'male', heightCm: 176, frame: 'medium', age: 24, exercise: 0.88, calories: 4400, skill: 0.6,
     outfit: { kind: 'lineInfantry', design: 0 }, accessories: [],
     look: { skinTone: 'light', hairStyle: 'cleanShort', hairColor: '#4a3020', facialHair: 'none', eyeColor: 'blue' },
   },

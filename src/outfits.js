@@ -1738,10 +1738,10 @@ export const OUTFITS = {
   },
   // The line infantryman of the Napoleonic wars and after (Britain's to the 1840s, the Opium War's): a wool coat cut high in
   // front with tails behind, the regiment's facings at the collar, two pipeclayed crossbelts, a felt shako; no armour at all.
-  // A drilled soldier (`skill` a regular's, 0.4: the drill was the musket's, the bayonet exercise a few weeks of it) and a
+  // A drilled soldier (`skill` a little above a regular's, 0.45: the drill was the musket's, the bayonet exercise a few weeks of it) and a
   // steady one (`courage` 0.45: the line stood under fire in close order, the square held against horse).
   lineInfantry: {
-    skill: 0.4,
+    skill: 0.45,
     faction: 'napoleonic',
     label: 'Line infantry', movement: 'good', fists: 'bare',
     // Coat, crossbelts, cartridge box, shako: ~4 kg on a 68 kg man (his pack left in the rear for the fight).
