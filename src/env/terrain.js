@@ -423,7 +423,7 @@ function envInstallFinerShadow() {
       if ( directionalLights[ UNROLLED_LOOP_INDEX + 1 ].color == vec3( 0.0 ) ) {
         vec4 envAt = vDirectionalShadowCoord[ UNROLLED_LOOP_INDEX + 1 ];
         vec2 envOut = abs( envAt.xy / envAt.w - 0.5 ) * 2.0;
-        envWide = envAt.z > envAt.w ? 1.0 : smoothstep( 0.86, 0.98, max( envOut.x, envOut.y ) );
+        envWide = envAt.z > envAt.w ? 1.0 : smoothstep( ${ENV.shadow.finerBlend[0].toFixed(2)}, ${ENV.shadow.finerBlend[1].toFixed(2)}, max( envOut.x, envOut.y ) );
         if ( envWide < 1.0 ) envLit = getShadow( directionalShadowMap[ UNROLLED_LOOP_INDEX + 1 ], - directionalLightShadows[ UNROLLED_LOOP_INDEX + 1 ].shadowMapSize, directionalLightShadows[ UNROLLED_LOOP_INDEX + 1 ].shadowBias, directionalLightShadows[ UNROLLED_LOOP_INDEX + 1 ].shadowRadius, envAt );
       }
       #endif
