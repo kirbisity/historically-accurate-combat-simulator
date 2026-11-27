@@ -202,6 +202,11 @@ export function* arenaPaintSteps() {
 
 const ARENA_WHITE = [1, 1, 1];
 
+// The sectors a whole ring of the Colosseum (its stands, its outer wall) is cut into for the camera's frustum test
+// (arenaBuilder meshes): twelve, each a sphere some 12 m across its arc, so a view from the sand, which takes in a
+// third to a half of the ring, leaves out about half the triangles for a dozen draws more.
+const ARENA_SECTORS = 12;
+
 /**
  * Many pieces merged into one geometry. `add(geometry, matrix, options)`
  * places a geometry (its author space: x along, y up, z out), projects UVs
@@ -307,6 +312,38 @@ export function arenaBuilder() {
       mesh.castShadow = cast;
       mesh.receiveShadow = true;
       return mesh;
+    },
+    /**
+     * The same, cut into `sectors` meshes by each triangle's bearing round the place's middle (x, z = 0): a ring of
+     * stands or wall merged whole is drawn whole wherever the camera looks, though from inside it at most half of it
+     * is ever in view; cut so, three's own frustum test leaves out the sectors behind the camera, the picture the same
+     * (the triangles are the same, each in one sector). An empty list when nothing was added.
+     */
+    meshes(material, { cast = true, sectors = ARENA_SECTORS } = {}) {
+      if (!positions.length) return [];
+      const parts = Array.from({ length: sectors }, () => ({ positions: [], normals: [], uvs: [], colours: [] }));
+      for (let start = 0; start < positions.length; start += 9) {
+        const x = positions[start] + positions[start + 3] + positions[start + 6];
+        const z = positions[start + 2] + positions[start + 5] + positions[start + 8];
+        const part = parts[Math.min(sectors - 1, Math.floor(((Math.atan2(z, x) + Math.PI) / (2 * Math.PI)) * sectors))];
+        const vertex = start / 3;
+        for (let k = 0; k < 9; k += 1) part.positions.push(positions[start + k]);
+        for (let k = 0; k < 9; k += 1) part.normals.push(normals[start + k]);
+        for (let k = 0; k < 6; k += 1) part.uvs.push(uvs[vertex * 2 + k]);
+        for (let k = 0; k < 9; k += 1) part.colours.push(colours[start + k]);
+      }
+      return parts.filter((part) => part.positions.length).map((part) => {
+        const geometry = new THREE.BufferGeometry();
+        geometry.setAttribute('position', new THREE.Float32BufferAttribute(part.positions, 3));
+        geometry.setAttribute('normal', new THREE.Float32BufferAttribute(part.normals, 3));
+        geometry.setAttribute('uv', new THREE.Float32BufferAttribute(part.uvs, 2));
+        geometry.setAttribute('color', new THREE.Float32BufferAttribute(part.colours, 3));
+        geometry.computeBoundingSphere();
+        const mesh = new THREE.Mesh(packForCard(geometry), material);
+        mesh.castShadow = cast;
+        mesh.receiveShadow = true;
+        return mesh;
+      });
     },
   };
   return builder;
@@ -1160,11 +1197,13 @@ export function arenaColosseum({ rx, rz, podiumHeight, tiers, rise, step, firstT
     wood: arenaMaterial(arenaWood(), { roughness: 0.85 }),
     linen: arenaMaterial(arenaLinen(), { roughness: 0.95, side: THREE.DoubleSide }),
   };
-  for (const [builder, material] of [[travertine, materials.travertine], [marble, materials.marble], [inscribed, materials.inscribed], [iron, materials.iron], [wood, materials.wood], [linen, materials.linen]]) {
+  // (The two big rings, the stands' stone and the outer wall, cut into sectors: arenaBuilder meshes.)
+  for (const mesh of travertine.meshes(materials.travertine)) group.add(mesh);
+  for (const [builder, material] of [[marble, materials.marble], [inscribed, materials.inscribed], [iron, materials.iron], [wood, materials.wood], [linen, materials.linen]]) {
     const mesh = builder.mesh(material);
     if (mesh) group.add(mesh);
   }
-  group.add(facade.mesh(materials.travertine, { cast: false }));
+  for (const mesh of facade.meshes(materials.travertine, { cast: false })) group.add(mesh);
   if (ropes.length) {
     const geometry = new THREE.BufferGeometry();
     geometry.setAttribute('position', new THREE.Float32BufferAttribute(ropes, 3));

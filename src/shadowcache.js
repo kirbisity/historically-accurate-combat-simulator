@@ -107,7 +107,9 @@ export function installShadowCache(view) {
   shadowMap.render = function shadowCacheRender(lights, scene, camera) {
     if (!SHADOW_CACHE.on || !state.enabled || state.aside || scene !== view.scene || !this.enabled || this.type === THREE.VSMShadowMap || !lights.length || (this.autoUpdate === false && this.needsUpdate === false)) {
       if (state.lights.size && (!SHADOW_CACHE.on || !state.enabled)) shadowCacheForget(state);
-      return threeRender.call(this, lights, scene, camera);
+      // (A pass three would skip, or one drawn as three draws it for a test, is three's own.)
+      if (state.aside || !this.enabled || (this.autoUpdate === false && this.needsUpdate === false)) return threeRender.call(this, lights, scene, camera);
+      return shadowLiveRender(view, this, threeRender, lights, scene, camera);
     }
     state.passes += 1;
     state.stats.passes += 1;
@@ -116,8 +118,7 @@ export function installShadowCache(view) {
     const plain = [];
     for (const light of lights) (shadowCacheReady(state, renderer, light) ? cacheable : plain).push(light);
     if (plain.length) {
-      this.needsUpdate = true;
-      threeRender.call(this, plain, scene, camera);
+      shadowLiveRender(view, this, threeRender, plain, scene, camera);
     }
     if (!cacheable.length) return;
     for (const light of cacheable) {
@@ -140,13 +141,44 @@ export function installShadowCache(view) {
     };
     for (const record of state.cached) record.mesh.castShadow = false;
     try {
-      this.needsUpdate = true;
-      threeRender.call(this, cacheable, scene, camera);
+      shadowLiveRender(view, this, threeRender, cacheable, scene, camera);
     } finally {
       for (const record of state.cached) record.mesh.castShadow = true;
       renderer.clear = clear;
     }
   };
+}
+
+/**
+ * The live draw of `lights`' maps (what moves, every frame), less what a light's map would hold to no purpose: the
+ * view's `shadowSkip(light)` (env/index.js envFinerSkip) names the casters whose shadow in that light's map no
+ * receiver ever reads this frame (the wide map under the finer one round the fight, where only the finer is looked
+ * up). Those stand aside (castShadow off) while that light alone is drawn; the other lights are drawn together as
+ * before. Only the live draw: a cache is drawn once and kept while the finer map moves, so it holds everything.
+ */
+function shadowLiveRender(view, shadowMap, threeRender, lights, scene, camera) {
+  const skips = view.shadowSkip && scene === view.scene && shadowMap.type !== THREE.VSMShadowMap ? lights.map((light) => view.shadowSkip(light, scene)) : null;
+  if (!skips?.some((skip) => skip?.length)) {
+    shadowMap.needsUpdate = true;
+    return threeRender.call(shadowMap, lights, scene, camera);
+  }
+  const rest = lights.filter((light, at) => !skips[at]?.length);
+  if (rest.length) {
+    shadowMap.needsUpdate = true;
+    threeRender.call(shadowMap, rest, scene, camera);
+  }
+  lights.forEach((light, at) => {
+    const skip = skips[at];
+    if (!skip?.length) return;
+    for (const mesh of skip) mesh.castShadow = false;
+    try {
+      shadowMap.needsUpdate = true;
+      threeRender.call(shadowMap, [light], scene, camera);
+    } finally {
+      for (const mesh of skip) mesh.castShadow = true;
+    }
+  });
+  if (view.shadowCache) view.shadowCache.stats.skipped = (view.shadowCache.stats.skipped ?? 0) + skips.reduce((sum, skip) => sum + (skip?.length ?? 0), 0);
 }
 
 /** Every cache dropped (the context lost, or the cache turned off): drawn again from nothing when next wanted. */
