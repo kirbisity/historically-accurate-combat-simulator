@@ -213,6 +213,8 @@ activateLookNow(startingLookId);
 }
 
 const scene = createScene($('#stage'));
+// The men drawn into the sun's shadow live, for what its maps may leave out (env/index.js envFinerSkip).
+scene.shadowMovers = () => state.views;
 // The picture lost (the card reset, its memory taken back): said so, with a reload, the fight held (contextloss.js).
 watchContextLoss(scene.renderer.domElement, { onLost: () => { state.paused = true; } });
 if (activeLook().id !== DEFAULT_LOOK_ID) reapplyPlace(scene);

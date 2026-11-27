@@ -300,6 +300,20 @@ export const ENV = {
     // 0.2 to 0.4 ms a frame in a duel, 0.1 ms in a battle of seventy at 3200 by 1800).
     near: { half: 8, size: 1024 },
     nearSun: 0.2,
+    // Where a point goes over from the finer map to the wide one (shares of the finer box's half side, terrain.js
+    // envInstallFinerShadow): the finer alone inside the first, the two mixed out to the second, the wide alone past
+    // it. A tenth of the box to mix over hides the seam where the two maps' texels differ. What casts only inside the
+    // first, less the wide map's reach (`wideReach`), is left out of the wide map (index.js envFinerSkip): no point
+    // that reads the wide map can see it there.
+    finerBlend: [0.86, 0.98],
+    // How far (the wide map's texels) a look-up into the wide map reaches off the point it is for: the widest edge
+    // (`most`), the search for what stands between (`search`), a figure's step off its surface (`figure.off`) and
+    // one for the texel's own width. Kept generous: it only decides what is left out of a map no one reads there.
+    wideReach: 12,
+    // How far (m) a man's pieces may stand from his first particle, for passing over at once the men too far from the
+    // finer map to have any piece left out of the wide one: a body's reach, lying or with arms out (a long weapon's
+    // end past it is only kept in the wide map, as everything was before).
+    skipReach: 3,
     finerBias: 1.5,
     // How many looks its filter takes at an edge (terrain.js): twelve on a turned spiral leave a grain finer than
     // the sand's own; at eight the grain showed on a pale floor. By eye.

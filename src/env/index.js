@@ -713,6 +713,8 @@ function envCarryFiner(view, state, near) {
     light.castShadow = true;
     // (After the sun in the scene, so after it among the lights that cast: the chunk reads "the light before it".)
     view.scene.add(light, light.target);
+    // What casts only where the finer map is read is left out of the wide one (shadowcache.js shadowLiveRender).
+    view.shadowSkip = (shadowLight) => envFinerSkip(view, shadowLight);
   }
   light.visible = true;
   const size = near.size;
@@ -753,6 +755,56 @@ function envCarryFiner(view, state, near) {
 }
 
 let envLookWay = null;
+
+// (One list and one point, reused every frame.)
+const envSkipped = [];
+let envSkipAt = null;
+
+/**
+ * The casters to leave out of the sun's wide map this frame: inside the finer map's box (envCarryFiner) a point
+ * takes its shadow from the finer map alone (terrain.js envInstallFinerShadow), so a caster whose whole bound
+ * stands inside that part, less the wide map's reach (ENV.shadow.wideReach texels), is read from the wide map by no
+ * point at all: what lies under it in the map's square is all inside too. A man fighting in the middle of the box
+ * is drawn into the finer map only, not into both. The men (the view's `shadowMovers`, main.js) are looked at, each
+ * first by his body's particles (one far off is passed over whole), then piece by piece: a piece whose bound three
+ * does not keep true (a skin, an instanced mesh, one never culled) stays in. The air's own walk through the wide map
+ * (a place's `sunMap`, air.js) loses the shade a man throws into the dust, a few centimetres of haze a few metres
+ * long. Null where there is no finer map, or the light is not the sun.
+ */
+function envFinerSkip(view, light) {
+  const finer = view.envSunFiner;
+  if (light !== view.lights.sun || !finer?.visible || !finer.castShadow) return null;
+  const movers = view.shadowMovers?.();
+  envSkipped.length = 0;
+  if (!movers?.length) return envSkipped;
+  envSkipAt ??= new THREE.Vector3();
+  finer.shadow.updateMatrices(finer);
+  const into = finer.shadow.camera.matrixWorldInverse;
+  const wide = light.shadow.camera;
+  const reach = (ENV.shadow.wideReach * (wide.right - wide.left)) / light.shadow.mapSize.x;
+  const inner = finer.shadow.camera.right * ENV.shadow.finerBlend[0] - reach;
+  if (!(inner > 0)) return envSkipped;
+  const at = envSkipAt;
+  for (const man of movers) {
+    const group = man.group;
+    const x = man.fighter?.x;
+    if (!group?.visible || !x?.length) continue;
+    // One far from the part read is passed over whole (and so left as he is), judged by his first particle: no piece
+    // of a man stands ENV.shadow.skipReach m from it but a long weapon's end, which would be kept in anyway.
+    at.set(x[0], x[1], x[2]).applyMatrix4(into);
+    if (Math.abs(at.x) > inner + ENV.shadow.skipReach || Math.abs(at.y) > inner + ENV.shadow.skipReach) continue;
+    group.traverseVisible((mesh) => {
+      if (!mesh.isMesh || !mesh.castShadow || !mesh.frustumCulled || mesh.isSkinnedMesh || mesh.isInstancedMesh) return;
+      const geometry = mesh.geometry;
+      if (!geometry.boundingSphere) geometry.computeBoundingSphere();
+      const sphere = geometry.boundingSphere;
+      at.copy(sphere.center).applyMatrix4(mesh.matrixWorld).applyMatrix4(into);
+      const radius = sphere.radius * mesh.matrixWorld.getMaxScaleOnAxis();
+      if (Math.abs(at.x) + radius <= inner && Math.abs(at.y) + radius <= inner) envSkipped.push(mesh);
+    });
+  }
+  return envSkipped;
+}
 
 /**
  * Once a frame, before drawing: the time, how far the air and the clouds have travelled, and the cloud over the
