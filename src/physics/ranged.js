@@ -420,8 +420,12 @@ export function loose(world, fighter, bolt = null) {
   const carried = overGround(fighter);
   world.arrows.push({ id: world.arrows.length, owner: fighter.id, x: vec.add(grip, vec.scale(dir, bolt ? 0.3 : 0.08)), v: vec.add(vec.scale(dir, speed), carried), speed, energy, kg: laid.projectile.kg, projectile: laid.projectile, bolt: Boolean(bolt), thrown: Boolean(bolt?.thrown), dart: Boolean(bolt?.dart), length: bolt?.length, bounce: bolt?.bounce, age: 0, landed: false, done: false });
   world.events.push({ time: world.time, kind: 'loosed', attacker: fighter.id, effects: [] });
-  // Heard: the string let go (a bow's, or a crossbow's heavier snap).
-  if (world.ear) soundEvent(world, 'shot', { at: grip, kind: bolt ? 'crossbow' : 'bow', who: fighter.id });
+  // Heard: the string let go (a bow's, or a crossbow's heavier snap); a dart cast from its thrower or a javelin thrown has no
+  // string, only the arm's whoosh and the shaft's (a swing, its length and speed the shaft's).
+  if (world.ear) {
+    if (bolt?.dart || bolt?.thrown) soundEvent(world, 'swing', { at: grip, speed, length: bolt.length ?? 1.5, mass: 0.6, head: 'blunt', who: fighter.id });
+    else soundEvent(world, 'shot', { at: grip, kind: bolt ? 'crossbow' : 'bow', who: fighter.id });
+  }
   // The bow kicks forward a little in the hand as the string goes.
   world.pendingImpulses.push({ fighter, shares: [[P[`${weapon.main}Hand`], 1]], direction: dir, impulse: 0.6 });
 }

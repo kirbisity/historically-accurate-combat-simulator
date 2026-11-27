@@ -227,7 +227,7 @@ export const PEOPLES = {
   },
   // Guangdong and Guangxi, 1841-85: southern Han (mingSouth's build). The Green Standard of Canton undernourished (the
   // ration short and late, opium in the camps: body.js greenStandard); the villagers of Sanyuanli farmers of every age,
-  // worked hard and fed little better; Feng Zicai's Guangxi braves (萃军, 1885) men of his own hills, fed and paid by him.
+  // worked hard and fed little better; Feng Zicai's Guangxi braves (萃军, 1885) men of his own hills, paid by him, lean (body.js guangxiBrave).
   qing1841: {
     of: 'mingSouth',
     ranks: {
