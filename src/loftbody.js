@@ -4493,13 +4493,22 @@ function keepLayersInside(mesh, frames, shares, nameOf, start, count, armoured =
   // the shoulder stood out of it in a shard.)
   const clothesRank = Math.max(0, ...[...shares].filter(([vertex]) => mesh.colors[vertex] === 'top').map(([, { ring }]) => pieceRank.get(ring.piece)));
   for (const [vertex, { ring }] of shares) if (HARD_ROLES.has(mesh.colors[vertex]) && clothesRank > 0) pieceRank.set(ring.piece, Math.max(pieceRank.get(ring.piece), clothesRank + 2 * spec.rankGap));
+  // (A belt of armour, `band` on its rings (tablePiece), outranks what it gathers in, the pieces ending under it: a skirt
+  // hung from the waist lofted a little further out than the belt over it ranked over it, and the belt went in under it.)
+  const bandTop = new Map();
+  for (const { ring } of shares.values()) if (ring.band) bandTop.set(ring.piece, pieceTop.get(ring.piece) ?? Infinity);
+  for (const [band, top] of bandTop) {
+    let most = pieceRank.get(band);
+    for (const [piece, rank] of pieceRank) if (!bandTop.has(piece) && (pieceTop.get(piece) ?? Infinity) <= top && rank !== Infinity) most = Math.max(most, rank + 2 * spec.rankGap);
+    pieceRank.set(band, most);
+  }
   for (const [vertex, { name, under, ring }] of shares) {
     if (!frames[name]) continue;
     // (Cloth worn over armour outranks every piece: the plate is held inside it, and it is drawn out over the plate.)
     // (`hem`: on its piece's top ring, a top's upper hem below the part's top. Not a garment's leg under its waist: its top
     // ring goes on into the waist, and stood out past the skin there as a hem it stood out over the waistband.)
     const hem = ring.t >= (pieceTop.get(ring.piece) ?? Infinity) - 1e-6 && ring.t < (name === 'trunk' ? LOFT.closedJoint.top.trunk : LOFT.closedJoint.top.limb) && !legOf({ vertex, name });
-    layers.push({ vertex, name, rank: ring.over ? Infinity : pieceRank.get(ring.piece), under, piece: ring.piece, over: Boolean(ring.over), torn: Boolean(ring.torn), hem });
+    layers.push({ vertex, name, rank: ring.over ? Infinity : pieceRank.get(ring.piece), under, piece: ring.piece, over: Boolean(ring.over), torn: Boolean(ring.torn), hem, band: Boolean(ring.band) });
   }
   // (The skin by its source point: the copies of one point drawn in two tiles, or either side of a seam, move as one, or the
   // surface would crack between them.)
@@ -4611,7 +4620,8 @@ function keepLayersInside(mesh, frames, shares, nameOf, start, count, armoured =
       layer.r = want;
     }
   }
-  for (const layer of [...layers].filter((one) => !one.skin && !one.over && one.r > 1e-6 && BAND_ROLES.has(mesh.colors[one.vertex])).sort((a, b) => a.rank - b.rank)) {
+  // (A belt of armour, `band` on its rings, is one whatever its colour: tablePiece.)
+  for (const layer of [...layers].filter((one) => !one.skin && !one.over && one.r > 1e-6 && (BAND_ROLES.has(mesh.colors[one.vertex]) || one.band)).sort((a, b) => a.rank - b.rank)) {
     let most = 0;
     const row = rowOf(layer.t);
     const column = columnOf(layer.angle);
@@ -5073,6 +5083,10 @@ export function* buildLoftBodySteps(body, { faceted = false, lowDetail = false, 
     if (slot === 'skirt' && paint?.gaps && (paint.gapWidth ?? 0) > LOFT.skirtSeam) paint = { ...paint, gapWidth: LOFT.skirtSeam };
     const tile = DETAIL_MAPS.on && !lowDetail ? armourTileOf(tileKind, material, slot) : null;
     const boned = bones ?? (() => null);
+    // A belt (the kit's `belt`, or a piece with a buckle) is worn over what it holds, a coat's skirt as any cloth: held out
+    // over it as a band is (keepLayersInside). (The user's call, 2026-11-27: the Ming brigandine's and garrison vest's belts
+    // over their skirts.)
+    if (slot === 'belt' || paint?.buckle) for (const ring of rings) ring.band = true;
     // Stiff as what it is made of (stiffnessOf); a skirt's rows panel by panel, as it parts over the legs.
     const hung = slot === 'skirt' && stiffnessOf(paint) === 'coat' && paint.gaps?.length > 1;
     // (Not a fauld of plate lames, unsplit: its lames slide over one another as the hips bend, and are weighted as the plate

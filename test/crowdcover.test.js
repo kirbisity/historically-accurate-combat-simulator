@@ -84,10 +84,20 @@ test('what the outer layer covers, moved alike, is left out; the outer layer is 
   assert.deepEqual(Array.from(keptOf(colours, kept, 3)), Array.from(template.colors));
 });
 
-test('under a layer the bones move otherwise, what is covered is kept (posed, it could come out from under it)', () => {
+test('under a layer the bones move otherwise, held as weighted, what is covered is kept (posed, it could come out from under it)', () => {
   const { template, innerTriangles, outerTriangles } = twoLayers({ innerBone: 1, outerBone: 0 });
-  coverLayers(template);
+  coverLayers(template, { follow: false });
   assert.equal(template.bodyIndex.length / 3, innerTriangles + outerTriangles);
+});
+
+test('a layer weighted apart from what is under it follows it (its weights become those under it), and what it covers is left out', () => {
+  const { template, innerTriangles, outerTriangles, innerVertices } = twoLayers({ innerBone: 1, outerBone: 0 });
+  coverLayers(template);
+  assert.ok(template.bodyIndex.length / 3 < outerTriangles + innerTriangles * 0.4, `${template.bodyIndex.length / 3} triangles`);
+  // (Every outer point now on the inner's bone; the inner's own kept.)
+  const onInner = Array.from({ length: template.vertices }, (_, vertex) => template.attributes.skinIndex.array[vertex * 4] === 1 && template.attributes.skinWeight.array[vertex * 4] > 0.99);
+  assert.ok(onInner.filter(Boolean).length >= outerTriangles / 2, `${onInner.filter(Boolean).length} points on the inner's bone`);
+  assert.ok(innerVertices > 0);
 });
 
 test('a point standing out through the layer over it is drawn in under it', () => {
@@ -99,7 +109,7 @@ test('a point standing out through the layer over it is drawn in under it', () =
   position[vertex * 3] *= out;
   position[vertex * 3 + 2] *= out;
   assert.ok(radiusOf(template, vertex) > 0.13);
-  coverLayers(template);
+  coverLayers(template, { follow: false });
   assert.ok(radiusOf(template, vertex) < 0.13, `${radiusOf(template, vertex).toFixed(3)} m`);
 });
 
