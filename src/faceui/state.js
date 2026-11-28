@@ -2,7 +2,7 @@
 // is pasted or uploaded), the sliders in their groups, and a slider set or reset. Plain data in, plain data out, so node's
 // tests read it as the screen does (src/faceui/view.js draws it).
 
-import { defaultFace, FACE_SLIDERS, faceFromJSON, faceToJSON, normalizeFace } from './core.js';
+import { defaultFace, FACE_SLIDERS, faceFromJSON, faceToJSON, makeupPart, normalizeFace, normalizeMakeup, withMakeupPart } from './core.js';
 
 export const FACE_UI = {
   // Where the last face is kept (the game's settings all live under `gladiator.`), with whether the player's fighter wears it.
@@ -20,6 +20,17 @@ export const FACE_UI = {
   // Slider kinds not drawn as sliders: 'preset' (the ethnicity slider, schema.js) is the Ethnicity Preset select, which loads
   // the preset's whole baseline rather than nudging one value.
   pickedElsewhere: ['preset'],
+  // The Makeup section's controls (facecustom/makeup.js): the parts it offers, each a colour or a number shown on a slider in
+  // whole steps over the part's range (`span`: the slider's ends; the part's own range is these divided by `per`).
+  makeup: [
+    { id: 'lip.colour', kind: 'colour' },
+    { id: 'shadow.colour', kind: 'colour' },
+    { id: 'blush.colour', kind: 'colour' },
+    { id: 'blush.amount', kind: 'number', span: [0, 100], per: 100 },
+    { id: 'liner.amount', kind: 'number', span: [0, 100], per: 100 },
+    { id: 'liner.wing', kind: 'number', span: [0, 100], per: 100 },
+    { id: 'base.finish', kind: 'number', span: [-100, 100], per: 100 },
+  ],
 };
 
 /** A slider's value as the byte it is kept as: an integer in 0..255, or null when what was typed is no number. */
@@ -127,3 +138,29 @@ export function wearKeptFace(inputs, storage = globalThis.localStorage) {
   if (!kept?.wear || inputs?.look?.faceCustom) return inputs;
   return { ...inputs, look: { ...inputs.look, faceCustom: kept.face } };
 }
+
+// ---- Makeup ------------------------------------------------------------------------------------------------------------
+
+/** The face with its makeup's look, strength (0..1) or one part changed (`id`: 'look', 'strength' or a part's 'part.number'). */
+export function withMakeup(face, id, value) {
+  return { ...face, makeup: withMakeupPart(face.makeup, id, value) };
+}
+
+/** A makeup control's value on the slider (a part's number in the control's steps), or a colour as it is. */
+export function makeupControlValue(face, control) {
+  const value = makeupPart(face.makeup, control.id);
+  return control.kind === 'colour' ? value : Math.round(value * control.per);
+}
+
+/** The face with a control's slider value (in its steps) or colour put on its makeup. */
+export function withMakeupControl(face, control, value) {
+  if (control.kind === 'colour') return withMakeup(face, control.id, value);
+  const number = Number(value);
+  return Number.isFinite(number) ? withMakeup(face, control.id, number / control.per) : face;
+}
+
+/** The face's makeup back to its look's own parts (the look and its strength kept). */
+export const resetMakeup = (face) => ({ ...face, makeup: { ...normalizeMakeup(face.makeup), parts: {} } });
+
+/** A new face (a preset, a random one, a reset) wearing the makeup of the face it replaces: a face's shape and its makeup are chosen apart. */
+export const keepMakeup = (next, from) => ({ ...next, makeup: normalizeMakeup(from?.makeup) });

@@ -28,6 +28,7 @@ import { buildHairMass, buildHairRim, headEllipsoid } from './hairmass.js';
 import { buildHairSwing, HAIR_SWING } from './hairswing.js';
 import { faceSculptor, headExpressions, presetBaseline } from './facecustom/solver.js';
 import { skinMaterialFor } from './facecustom/skin.js';
+import { makeupWorn } from './facecustom/makeup.js';
 import { stockOffsets } from './faceexpr.js';
 
 export const LOOK_OPTIONS = {
@@ -404,6 +405,9 @@ export function buildHead(body, lookInput, skinHex, cornerHex) {
   const photo = look.photoFace ?? null;
   // (The hair, scalp and beard alike, in the fighter's own hair colour where his look gives one, else the photo's.)
   const photoHair = photo ? lookInput?.hairColor ?? photo.hair : null;
+  // Makeup on a photo face (facecustom/makeup.js): the look's (`look.makeup`; the drawn head's older form is read as its
+  // nearest look), which a made face's own makeup replaces when it has one (skin.js). None unless the look says so.
+  const photoMakeup = photo ? lookInput?.makeup ?? null : null;
   if (photo) Object.assign(look, { hairColor: photoHair, facialHair: look.facialHair === 'stubble' ? 'none' : look.facialHair, makeup: null });
   // `faceMorph`: the face follows the body (facemorph.js): the skull, hair and beard bent alike, and a map of its shading.
   const morph = look.faceMorph ? faceMorphWeights(body) : null;
@@ -424,8 +428,8 @@ export function buildHead(body, lookInput, skinHex, cornerHex) {
   }) : null;
   if (photoHead) shape = { ...shape, photoPoint: photoHead.point };
   const group = new THREE.Group();
-  const skinMaterial = custom ? skinMaterialFor(custom, { cast: photo, painted: look.photoPainted, hair: photoHair })
-    : photo ? photoSkinMaterial(photo, { painted: look.photoPainted, hair: photoHair }) : surface(skinHex, { steps: STYLE.faceSteps });
+  const skinMaterial = custom ? skinMaterialFor(custom, { cast: photo, painted: look.photoPainted, hair: photoHair, makeup: photoMakeup })
+    : photo ? photoSkinMaterial(photo, { painted: look.photoPainted, hair: photoHair, makeup: photoMakeup }) : surface(skinHex, { steps: STYLE.faceSteps });
   if (morph && !photo) {
     skinMaterial.map = faceMap(shape);
     skinMaterial.color.multiplyScalar(1 / FACE_MORPH.neutral);
@@ -450,7 +454,7 @@ export function buildHead(body, lookInput, skinHex, cornerHex) {
     // (A made face's skin stretch, for its relief: facecustom/skin.js.)
     if (photoHead.sculpted?.stretch) skullGeometry.setAttribute('faceStretch', new THREE.BufferAttribute(photoHead.sculpted.stretch, 2));
     skullGeometry.setIndex(photoHead.indices);
-    if (look.photoPainted) paintFromFace(skullGeometry, photo);
+    if (look.photoPainted) paintFromFace(skullGeometry, photo, custom && makeupWorn(custom.makeup) ? custom.makeup : photoMakeup);
   } else skullGeometry = headGeometry(r, shape, morph ? 48 : 36);
   // (A photo head keeps its own normals: photohead.js, headlattice.js.)
   const skull = new SoftShell(skullGeometry, skinMaterial, body.segments.head.fleshFirmness, { recomputeNormals: !photoHead });

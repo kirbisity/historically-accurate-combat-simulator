@@ -2253,6 +2253,12 @@ html:lang(zh) .story-chapter, html:lang(zh) .story-prompt, html:lang(zh) .boss-t
 .face-slider input[type=range] { width: 100%; min-width: 0; margin: 0; height: 24px; accent-color: var(--gold); }
 .face-slider input[type=number] { width: 52px; padding: 3px 4px; font: 500 12px var(--mono); text-align: right; background: rgba(var(--ink), 0.06); border: 1px solid var(--line); border-radius: var(--r); -moz-appearance: textfield; }
 .face-slider input[type=number]::-webkit-inner-spin-button { opacity: 0.5; }
+/* The Makeup section: the look picker, colour wells beside their names, sliders with their value (no reset per part: the section's resets them all). */
+.face-makeup-pick, .face-makeup-colour { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 30px; }
+.face-makeup-pick select { flex: 0 1 60%; min-width: 0; }
+.face-makeup-colour input[type=color] { width: 52px; height: 26px; padding: 0 2px; border: 1px solid var(--line); border-radius: var(--r); background: rgba(var(--ink), 0.06); cursor: pointer; }
+.face-makeup-slider { grid-template-columns: minmax(0, 1fr) 52px; }
+.face-makeup-value { font: 500 12px var(--mono); text-align: right; color: var(--soft); }
 .face-reset-slider { display: grid; place-items: center; width: 26px; height: 26px; padding: 0; background: transparent; border-color: transparent; color: var(--muted); }
 .face-reset-slider:hover { color: var(--fg); }
 .face-reset-slider .glyph { width: 15px; height: 15px; }

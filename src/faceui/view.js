@@ -4,9 +4,12 @@
 // the preset's baseline, and the preset file out and in (a download and an upload, a copy and a paste). Reached from the home
 // screen and from the character creator's Look step (menu.js), and on a page of its own (facecustom.html).
 
-import { ETHNICITY_PRESETS, FACE_SLIDERS, normalizeFace, randomFace, similarFaces } from './core.js';
+import { ETHNICITY_PRESETS, FACE_SLIDERS, MAKEUP_LOOKS, normalizeFace, randomFace, similarFaces } from './core.js';
 import { faceStage, FACE_STAGE } from './stage.js';
-import { FACE_UI, faceText, facePreset, parseFaceText, readFaceStore, resetGroup, resetSlider, slidersByGroup, sliderValue, withSlider, writeFaceStore } from './state.js';
+import {
+  FACE_UI, faceText, facePreset, keepMakeup, makeupControlValue, parseFaceText, readFaceStore, resetGroup, resetMakeup, resetSlider, slidersByGroup, sliderValue,
+  withMakeup, withMakeupControl, withSlider, writeFaceStore,
+} from './state.js';
 import { onLangChange, pick, t } from '../i18n.js';
 import { uiIcon, withIcon } from '../uiicons.js';
 
@@ -97,7 +100,7 @@ export function faceCustomScreen(root, { face: startFace = null, sex = null, onB
     views.replaceChildren(...Object.keys(FACE_STAGE.views).map((name) => faceEl('button', { type: 'button', textContent: t(`face.view.${name}`), dataset: { view: name }, onclick: () => stage.snap(name) })));
     if (backButton) backButton.textContent = t('common.back');
     sliderControls.clear();
-    panel.replaceChildren(head(), presetRow(), toolRow(), similarSection(), ...slidersByGroup(FACE_SLIDERS).map(groupSection), fileSection(), useRow());
+    panel.replaceChildren(head(), presetRow(), toolRow(), similarSection(), ...slidersByGroup(FACE_SLIDERS).map(groupSection), makeupSection(), fileSection(), useRow());
     panel.classList.toggle('folded', !sheetOpen);
     stage.resize();
     paintThumbs();
@@ -111,20 +114,20 @@ export function faceCustomScreen(root, { face: startFace = null, sex = null, onB
   }
 
   function presetRow() {
-    const select = faceEl('select', { className: 'face-preset', ariaLabel: t('face.preset'), onchange: () => adopt(facePreset(select.value, face.sex)) },
+    const select = faceEl('select', { className: 'face-preset', ariaLabel: t('face.preset'), onchange: () => adopt(keepMakeup(facePreset(select.value, face.sex), face)) },
       ...Object.entries(ETHNICITY_PRESETS).map(([id, preset]) => new Option(pick({ en: preset.label, zh: preset.labelZh }), id)));
     select.value = face.preset;
     const sexes = faceEl('div', { className: 'seg face-sex', role: 'radiogroup', ariaLabel: t('face.sex') }, ...['male', 'female'].map((each) => faceEl('button', {
       type: 'button', role: 'radio', className: face.sex === each ? 'on' : '', ariaChecked: String(face.sex === each), textContent: t(`face.${each}`), dataset: { sex: each },
-      onclick: () => { if (face.sex !== each) adopt(facePreset(face.preset, each)); },
+      onclick: () => { if (face.sex !== each) adopt(keepMakeup(facePreset(face.preset, each), face)); },
     })));
     return faceEl('section', { className: 'face-row face-preset-row' }, faceEl('label', {}, faceEl('span', { textContent: t('face.preset') }), select), sexes);
   }
 
   function toolRow() {
     return faceEl('section', { className: 'face-row face-tools' },
-      faceEl('button', { type: 'button', className: 'face-random', icon: 'die', textContent: t('face.randomize'), onclick: () => adopt(randomFace(Math.random, { preset: face.preset, sex: face.sex })) }),
-      faceEl('button', { type: 'button', className: 'face-reset-all', icon: 'reload', textContent: t('face.reset'), onclick: () => adopt(facePreset(face.preset, face.sex)) }));
+      faceEl('button', { type: 'button', className: 'face-random', icon: 'die', textContent: t('face.randomize'), onclick: () => adopt(keepMakeup(randomFace(Math.random, { preset: face.preset, sex: face.sex }), face)) }),
+      faceEl('button', { type: 'button', className: 'face-reset-all', icon: 'reload', textContent: t('face.reset'), onclick: () => adopt(keepMakeup(facePreset(face.preset, face.sex), face)) }));
   }
 
   function similarSection() {
@@ -167,6 +170,48 @@ export function faceCustomScreen(root, { face: startFace = null, sex = null, onB
     const reset = faceEl('button', { type: 'button', className: 'face-reset-slider', ariaLabel: t('face.resetSlider', { name }), title: t('face.resetSlider', { name }), onclick: () => adopt(resetSlider(face, slider.id)) }, uiIcon('reload'));
     const row = faceEl('div', { className: 'face-slider' }, faceEl('span', { className: 'face-slider-name', textContent: name }), range, number, reset);
     row.dataset.slider = slider.id;
+    return row;
+  }
+
+  /**
+   * The Makeup section: the look (none and the chart's twelve), the whole look's strength, and its main parts (FACE_UI.makeup:
+   * lip, shadow and blush colours, blush, liner and its wing, the base's finish), each set over the look and reset with it.
+   * For any face, a man's as a woman's: nothing here follows the sex.
+   */
+  function makeupSection() {
+    const look = faceEl('select', { className: 'face-makeup-look', ariaLabel: t('face.makeup.look'), onchange: () => { adopt(withMakeup(face, 'look', look.value)); draw(); } },
+      ...Object.entries(MAKEUP_LOOKS).map(([id, entry]) => new Option(pick({ en: entry.label, zh: entry.labelZh }), id)));
+    look.value = face.makeup.look;
+    const rows = [faceEl('label', { className: 'face-makeup-pick' }, faceEl('span', { className: 'face-slider-name', textContent: t('face.makeup.look') }), look)];
+    const strength = { id: 'strength', kind: 'number', span: [0, 100], per: 100 };
+    rows.push(makeupRow(strength, t('face.makeup.strength'), Math.round(face.makeup.strength * 100), (value) => withMakeup(face, 'strength', Number(value) / 100)));
+    for (const control of FACE_UI.makeup) rows.push(makeupRow(control, t(`face.makeup.${control.id}`), makeupControlValue(face, control), (value) => withMakeupControl(face, control, value)));
+    const resetButton = faceEl('button', { type: 'button', className: 'face-reset-group face-makeup-reset', textContent: t('face.makeup.reset'), onclick: () => { adopt(resetMakeup(face)); draw(); } });
+    return groupFrame('makeup', t('face.group.makeup'), rows, resetButton);
+  }
+
+  /** One makeup control: a colour well, or a slider with its number, set on the face as it moves. */
+  function makeupRow(control, name, value, change) {
+    const set = (input) => {
+      face = change(input.value);
+      stage.setFace(face);
+      settle();
+    };
+    if (control.kind === 'colour') {
+      const well = faceEl('input', { type: 'color', value, ariaLabel: name });
+      well.addEventListener('input', () => set(well));
+      const row = faceEl('label', { className: 'face-makeup-colour' }, faceEl('span', { className: 'face-slider-name', textContent: name }), well);
+      row.dataset.makeup = control.id;
+      return row;
+    }
+    const range = faceEl('input', { type: 'range', min: control.span[0], max: control.span[1], step: 1, value, ariaLabel: name });
+    const number = faceEl('output', { className: 'face-makeup-value', value: String(value) });
+    range.addEventListener('input', () => {
+      number.value = range.value;
+      set(range);
+    });
+    const row = faceEl('div', { className: 'face-slider face-makeup-slider' }, faceEl('span', { className: 'face-slider-name', textContent: name }), range, number);
+    row.dataset.makeup = control.id;
     return row;
   }
 

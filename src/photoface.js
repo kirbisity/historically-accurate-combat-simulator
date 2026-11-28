@@ -26,6 +26,7 @@ import { SCALP_GLSL } from './photohair.js';
 import { PHOTO_HEAD } from './photohead.js';
 import { NECK_JOIN } from './basebody.js';
 import { ETHNICITY_PRESETS, faceToJSON, normalizeFace, surfaceValues, tonedSkin } from './facecustom/schema.js';
+import { makeupPaintAt, makeupValues, makeupWorn } from './facecustom/makeup.js';
 
 /**
  * Where the landmarks sit in the atlas: u from the face's centre (eyes, ears); rows from the crown (eye line, lip line, chin, and
@@ -278,6 +279,195 @@ export function customPhotoCast(faceInput, who = {}) {
 }
 const PHOTO_SHAPE_KEYS = ['noseBridge', 'noseWidth', 'brow', 'cheekbone', 'cheekWidth', 'socket', 'lidFold', 'lips', 'jaw', 'chin', 'faceLength', 'cephalic'];
 
+/**
+ * Makeup on the photo head (facecustom/makeup.js: the parts and the looks), drawn in the skin's shader at the atlas's own
+ * landmarks (PHOTO_ATLAS), so it sits on any face's maps and any head's shape. Faces without makeup draw with the shader they
+ * always had: the makeup is a variant of it (FACE_MAKEUP defined), compiled once when the first made-up face is drawn and
+ * shared by every made-up face after. Places are in the atlas's rows (u counted twice: a row is as long as half a u, the
+ * atlas being twice as wide as tall), each found by eye against the twelve looks of the reference chart on the composites.
+ */
+export const PHOTO_MAKEUP = {
+  // Foundation: the mip level the even skin is read from (a blur of about six texels: freckles, blotches and moles gone, the
+  // face's broad light kept), how much of the detail above it a full cover hides, and how much of its colour cast it greys
+  // to the skin's own (a relative map's grey is the skin).
+  blurBias: 2.5, hideDetail: 0.75, evenTone: 0.45,
+  // The pale base's reach: round the face to the ears (half-width in u, counted twice), fading over its outer `paleFade`
+  // share (a base is blended out towards the ears and into the hair, not stopped at the cheek's turn, where a 3/4 view
+  // showed its edge), and from the hairline to under the chin, fading over `paleRowFade` rows at each end.
+  paleHalfWidth: 0.27, paleFade: 0.45, paleRows: [0.14, 0.97], paleRowFade: 0.1,
+  // Concealer: under each eye, from its inner corner to its middle, two eye-heights down; it lightens by this share and
+  // takes this much of the colour out (the under-eye's darkness and its blue).
+  underLift: 0.1, underEven: 0.2,
+  // Highlight: on the cheekbones' tops, the bridge of the nose, the brow bone under the brow's tail, the cupid's bow, the
+  // chin and the forehead's middle; lightens towards a warm light at this share and halves the roughness there at full.
+  highlightShare: 0.6, highlightGloss: 0.55,
+  // Contour: under the cheekbones from the ear towards the mouth's corner, down the nose's sides, along the jaw and at the
+  // temples, the skin deepened to its contour colour at this share.
+  contourShare: 0.7,
+  // Blush: a sheer layer (a tint over the skin's own texture) at this share at full, built up as `blushDepth` coats (the
+  // tint's ratio to the skin raised to it: one coat of a pink on a fair skin barely shows, the chart's flushes are several),
+  // its ellipse this many times as wide as tall, widened by half again when swept up to the temple. The tint never
+  // lightens the skin as a whole (its luminance held to 1): a pink on a deep skin is a rosy cast, not a chalky glow.
+  blushShare: 1, blushDepth: 1.6, blushAspect: 1.6,
+  // Eye shadow on the lid: the lid's ellipse in eye half-widths and half-heights (its centre raised by `lidRise` and
+  // `reachRise` of them), and how much higher and wider `reach` and `smoke` carry it; it is solid to `lidCore` of its radius,
+  // smoked to that less `smokeBlur`. (The chart's lids are coloured from the lashes to the crease, two to three eye-heights
+  // up, and a full reach to the brow.)
+  lidWidth: 1.3, lidHeight: 1.7, reachHeight: 3.2, lidRise: 0.4, reachRise: 1.3, smokeWidth: 0.5, lidCore: 0.55, smokeBlur: 0.3,
+  // The crease colour's share: towards the outer corner, high on the lid, and under the eye, each scaled by the smoke.
+  creaseOuter: 0.9, creaseHigh: 0.8, creaseLower: 0.9,
+  // Shimmer: lightens the lid by this share and takes this share of the roughness off; metal (foil, glitter) takes this.
+  shimmerLift: 0.12, shimmerGloss: 0.6, metalGloss: 0.85,
+  // Glitter: the specks' grid on the atlas (cells round and down), the share of cells lit, the specks' brightness over the
+  // foil colour, and how far out and down onto the cheek they scatter (eye half-widths and half-heights).
+  glitterCells: [900, 450], glitterShare: 0.1, glitterLift: 1.5, glitterSpread: [2.6, 4],
+  // Liner: its width at the rim (an almond's step) bare and at full, the wing's length out (eye half-widths) and rise (eye
+  // half-heights) at a full wing, its root's width (eye half-heights).
+  linerWidth: [0.12, 0.22], wingOut: 1.0, wingUp: 1.4, wingRoot: 0.32,
+  // Mascara: the lash line's band just outside the upper rim, darkened by this much at full, broken into strands.
+  lashDark: 0.65, lashStrands: 16,
+  // Brow fill: the brow's stroke (as facecustom/skin.js draws the procedural one), darkened towards a soft brown-black.
+  browDark: 0.75, browTone: [0.42, 0.38, 0.36],
+  // Lips: the lip's ellipse about the lip line (half-width u, half-height rows); an overline widens it by these shares. The
+  // texture's own lip found within it by its redness against the skin (red over green): a pixel this much redder is lip
+  // (the composites' lips are 1.1 to 1.5, their cheeks 0.97 to 1.02); where a face's lips barely redden (a deep skin's
+  // composite) the ellipse's core still takes this share (a lip colour covers the lip whatever its own redness).
+  lipHalf: [0.055, 0.024], overWide: 0.1, overTall: 0.18, lipRedness: [1.02, 1.15], lipCore: 0.7,
+  // A gradient lip: full from the middle to this share of the lip's ellipse, fading to its edge.
+  gradientCore: 0.3,
+  // Gloss takes up to this share of the lips' roughness off; matte adds up to this share.
+  glossTake: 0.85, matteAdd: 0.6,
+  // The base's finish over the face's skin: dewy takes up to this share of the roughness off, matte adds up to this share.
+  dewyTake: 0.5, matteBase: 0.6,
+  // On a shut lid (the blink, drawn in the shader): the lid's shadow at this share of the open lid's, and the liner along
+  // its edge (a share of the lid's height in its width, bare and at full).
+  lidShadow: 0.95, lidLine: [0.1, 0.25],
+  // The crease colour's share on the shut lid, at a full smoke.
+  lidCrease: 0.45,
+};
+
+/** The makeup's fragment code (the FACE_MAKEUP variant's), on the atlas: runs on `texelColor` after the skin's own detail. */
+function makeupGLSL() {
+  const a = PHOTO_ATLAS;
+  const m = PHOTO_MAKEUP;
+  const f = (value) => Number(value).toFixed(4);
+  const v2 = (x, y) => `vec2(${f(x)}, ${f(y)})`;
+  const eye = v2(a.eyeU * 2, a.eyeRow);
+  const half = v2(a.eyeHalf[0] * 2, a.eyeHalf[1]);
+  return `
+{
+  vec2 mkP = vec2(abs(vUv.x - 0.5) * 2.0, 1.0 - vUv.y);
+  vec2 mkE = ${eye};
+  vec2 mkH = ${half};
+  vec2 mkQ = (mkP - mkE) / mkH;
+  float mkAlmond = mkQ.x * mkQ.x + mkQ.y * mkQ.y * (1.0 + 0.8 * mkQ.x * mkQ.x);
+  float mkBare = smoothstep(0.8, 1.0, mkAlmond);
+  vec3 mkBase = texelColor.rgb;
+  float mkRedness = texelColor.r / max(texelColor.g, 1e-3);
+  // Foundation: the skin's detail smoothed to its blur, its colour cast greyed to the skin's own, off the beard's stubble.
+  vec3 mkEven = mapTexelToLinear(mix(texture2D(map, vUv, ${f(m.blurBias)}), texture2D(faceMap2, vUv, ${f(m.blurBias)}), faceBlend)).rgb;
+  float mkCover = faceMkBase.x * faceArea.a * (1.0 - faceArea.r * faceStubble) * mkBare;
+  mkBase = mkEven + (mkBase - mkEven) * (1.0 - ${f(m.hideDetail)} * mkCover);
+  mkBase = mix(mkBase, vec3(mkLum(mkBase)), ${f(m.evenTone)} * mkCover);
+  // The lips' place (the pale base is kept off them; the lip colour goes on them last).
+  float mkOver = faceMkLip.w;
+  float mkLipD = mkEllipse(mkP, ${v2(0, a.mouthRow + 0.004)}, ${v2(m.lipHalf[0] * 2, m.lipHalf[1])} * vec2(1.0 + ${f(m.overWide)} * mkOver, 1.0 + ${f(m.overTall)} * mkOver));
+  float mkLips = mkFall(0.7, 1.0, mkLipD) * mix(${f(m.lipCore)} + 0.4 * mkOver, 1.0, smoothstep(${f(m.lipRedness[0])}, ${f(m.lipRedness[1])}, mkRedness));
+  // A pale base over the face's front.
+  float mkFront = mkFall(${f(m.paleHalfWidth * 2 * (1 - m.paleFade))}, ${f(m.paleHalfWidth * 2)}, mkP.x) * smoothstep(${f(m.paleRows[0])}, ${f(m.paleRows[0] + m.paleRowFade)}, mkP.y) * mkFall(${f(m.paleRows[1] - m.paleRowFade)}, ${f(m.paleRows[1])}, mkP.y);
+  mkBase = mix(mkBase, mkBase * faceMkPaleC / MK_NEUTRAL, faceMkBase.z * mkFront * mkBare * (1.0 - mkLips));
+  // Concealer under the eyes.
+  float mkUnder = mkBlob(mkP, mkE + mkH * vec2(-0.1, 2.3), mkH * vec2(1.2, 1.3)) * mkBare * faceMkBase.w;
+  mkBase = mix(mkBase, mix(mkBase, vec3(mkLum(mkBase)), ${f(m.underEven)}) * ${f(1 + m.underLift)}, mkUnder);
+  // Highlight and contour.
+  float mkHigh = mkBlob(mkP, ${v2(0.22, 0.52)}, ${v2(0.05, 0.012)});
+  mkHigh = max(mkHigh, mkBlob(mkP, ${v2(0, 0.53)}, ${v2(0.012, 0.055)}));
+  mkHigh = max(mkHigh, mkBlob(mkP, mkE + ${v2(0.04, -0.03)}, ${v2(0.035, 0.006)}));
+  mkHigh = max(mkHigh, mkBlob(mkP, ${v2(0, a.mouthRow - 0.026)}, ${v2(0.018, 0.004)}));
+  mkHigh = max(mkHigh, mkBlob(mkP, ${v2(0, a.chinRow - 0.045)}, ${v2(0.03, 0.012)}));
+  mkHigh = max(mkHigh, 0.7 * mkBlob(mkP, ${v2(0, 0.33)}, ${v2(0.05, 0.04)}));
+  mkHigh *= faceMkFace.x * mkBare;
+  mkBase = mix(mkBase, mkBase * faceMkHighC / MK_NEUTRAL, ${f(m.highlightShare)} * mkHigh);
+  faceMkRough *= 1.0 - ${f(m.highlightGloss)} * mkHigh;
+  vec2 mkS = mkSegment(mkP, ${v2(0.3, 0.52)}, ${v2(0.17, 0.6)});
+  float mkShade = exp(-pow(mkS.x / 0.022, 2.0)) * (1.0 - 0.5 * mkS.y);
+  mkS = mkSegment(mkP, ${v2(0.022, 0.47)}, ${v2(0.03, 0.585)});
+  mkShade = max(mkShade, 0.7 * exp(-pow(mkS.x / 0.006, 2.0)));
+  mkS = mkSegment(mkP, ${v2(0.3, 0.7)}, ${v2(0.14, 0.86)});
+  mkShade = max(mkShade, 0.8 * exp(-pow(mkS.x / 0.025, 2.0)));
+  mkShade = max(mkShade, 0.6 * mkBlob(mkP, ${v2(0.3, 0.3)}, ${v2(0.07, 0.05)}));
+  mkBase = mix(mkBase, mkBase * faceMkContourC / MK_NEUTRAL, ${f(m.contourShare)} * mkShade * faceMkFace.y * mkBare);
+  // Blush: an ellipse at its place, swept up towards the temple by its lift, laid sheer over the skin.
+  float mkTilt = 0.5 * faceMkBlushLift;
+  vec2 mkD = mkP - vec2(faceMkBlush.z * 2.0, faceMkBlush.y);
+  mkD = vec2(dot(mkD, vec2(cos(mkTilt), -sin(mkTilt))), dot(mkD, vec2(sin(mkTilt), cos(mkTilt))));
+  vec2 mkR = vec2(faceMkBlush.w * ${f(m.blushAspect)} * (1.0 + 0.5 * faceMkBlushLift), faceMkBlush.w);
+  float mkBlush = exp(-dot(mkD / mkR, mkD / mkR)) * faceMkBlush.x * mkBare;
+  vec3 mkTint = pow(faceMkBlushC / MK_NEUTRAL, vec3(${f(m.blushDepth)}));
+  mkTint /= max(1.0, mkLum(mkTint));
+  mkBase *= mix(vec3(1.0), mkTint, ${f(m.blushShare)} * mkBlush);
+  // Eye shadow: the lid's ellipse, raised and widened by its reach and smoke; the lower lid's under the eye; the crease
+  // colour on the outer corner, high up and (smoked) under the eye.
+  float mkSmoke = faceMkShadow.z;
+  float mkReach = faceMkShadow.y;
+  float mkLid = mkFall(${f(m.lidCore)} - ${f(m.smokeBlur)} * mkSmoke, 1.0, mkEllipse(mkP, mkE + mkH * vec2(0.15 * mkSmoke, -${f(m.lidRise)} - ${f(m.reachRise)} * mkReach), mkH * vec2(${f(m.lidWidth)} + ${f(m.smokeWidth)} * mkSmoke, ${f(m.lidHeight)} + ${f(m.reachHeight)} * mkReach)));
+  float mkLow = mkFall(0.45, 1.0, mkEllipse(mkP, mkE + mkH * vec2(0.15, 0.45), mkH * vec2(1.2 + 0.2 * mkSmoke, 1.0 + 0.8 * faceMkShadow.w))) * faceMkShadow.w * smoothstep(-0.4, 0.2, mkQ.y);
+  float mkShadowA = max(mkLid, mkLow) * mkBare * faceMkShadow.x;
+  float mkCrease = clamp(mkSmoke * (${f(m.creaseOuter)} * smoothstep(-0.5, 1.1, mkQ.x) + ${f(m.creaseHigh)} * mkFall(-2.2, -0.9, mkQ.y) + ${f(m.creaseLower)} * mkLow / max(max(mkLid, mkLow), 1e-3)), 0.0, 1.0);
+  vec3 mkShadowC = mix(faceMkShadowC, faceMkCreaseC, mkCrease);
+  mkBase = mkLay(mkBase, mkShadowC, mkShadowA);
+  mkBase *= 1.0 + ${f(m.shimmerLift)} * faceMkShine.x * mkShadowA * (1.0 - mkCrease);
+  faceMkRough *= (1.0 - ${f(m.shimmerGloss)} * faceMkShine.x * mkShadowA) * (1.0 - ${f(m.metalGloss)} * faceMkShine.y * mkShadowA);
+  // Glitter: specks over the foil and scattered out and down onto the cheek.
+  vec2 mkCell = vUv * ${v2(m.glitterCells[0], m.glitterCells[1])};
+  float mkSpeckHash = faceHash(floor(mkCell) + 7.1);
+  float mkSpeck = step(${f(1 - m.glitterShare)}, mkSpeckHash) * mkFall(0.15, 0.45, length(fract(mkCell) - 0.5));
+  float mkScatter = mkFall(0.6, 1.0, mkEllipse(mkP, mkE + mkH * vec2(1.2, 3.5), mkH * ${v2(m.glitterSpread[0], m.glitterSpread[1])}));
+  float mkGlitter = faceMkShine.y * mkSpeck * max(mkShadowA, 0.6 * mkScatter) * mkBare;
+  mkBase = mix(mkBase, mix(faceMkShadowC, faceMkCreaseC, step(${f(1 - m.glitterShare / 2)}, mkSpeckHash)) * ${f(m.glitterLift)}, mkGlitter);
+  faceMkRough *= 1.0 - 0.9 * mkGlitter;
+  // Liner along the upper rim, thicker to the outer corner; its wing; the lower rim's.
+  float mkRimW = ${f(m.linerWidth[0])} + ${f(m.linerWidth[1])} * faceMkLiner.x * (0.6 + 0.4 * clamp(mkQ.x, 0.0, 1.0));
+  float mkLine = exp(-pow((mkAlmond - 1.0) / mkRimW, 2.0)) * mkFall(-0.1, 0.35, mkQ.y) * faceMkLiner.x;
+  mkLine = max(mkLine, exp(-pow((mkAlmond - 1.0) / 0.14, 2.0)) * smoothstep(-0.05, 0.4, mkQ.y) * faceMkLiner.z);
+  vec2 mkWing = mkSegment(mkP, mkE + mkH * vec2(0.92, -0.05), mkE + mkH * vec2(0.92 + ${f(m.wingOut)} * faceMkLiner.y, -0.05 - ${f(m.wingUp)} * faceMkLiner.y));
+  mkLine = max(mkLine, exp(-pow(mkWing.x / (mkH.y * ${f(m.wingRoot)} * (1.0 - 0.8 * mkWing.y) + 1e-4), 2.0)) * step(0.01, faceMkLiner.y) * faceMkLiner.x * step(0.9, mkQ.x));
+  mkBase = mix(mkBase, faceMkLinerC, clamp(mkLine, 0.0, 1.0) * (1.0 - 0.7 * (1.0 - mkBare)));
+  // Mascara: the lash line darkened in strands just outside the upper rim.
+  float mkLash = exp(-pow((mkAlmond - 1.2) / 0.35, 2.0)) * mkFall(-0.3, 0.1, mkQ.y) * (0.55 + 0.45 * step(0.45, faceHash(vec2(floor(mkQ.x * ${f(m.lashStrands)}), 3.0))));
+  mkBase *= 1.0 - ${f(m.lashDark)} * faceMkFace.w * mkLash * mkBare;
+  // Brow fill.
+  vec2 mkBrow = mkSegment(mkP, ${v2((a.eyeU - 0.034) * 2, a.eyeRow - 0.047)}, ${v2((a.eyeU + 0.04) * 2, a.eyeRow - 0.05)});
+  float mkBrowA = exp(-pow(mkBrow.x / 0.0085, 2.0)) * sqrt(sin(3.14159 * clamp(mkBrow.y * 0.9 + 0.05, 0.0, 1.0)));
+  mkBase = mix(mkBase, mkBase * vec3(${m.browTone.map(f).join(', ')}), ${f(m.browDark)} * faceMkFace.z * mkBrowA);
+  // Lips: the colour (stronger at the middle for a gradient lip), its gloss or matte on the roughness.
+  float mkLipA = faceMkLip.x * mkLips * mix(1.0, mkFall(${f(m.gradientCore)}, 1.0, mkLipD), faceMkLip.z);
+  mkBase = mkLay(mkBase, faceMkLipC, mkLipA);
+  faceMkRough *= mix(1.0, faceMkLip.y > 0.0 ? 1.0 - ${f(m.glossTake)} * faceMkLip.y : 1.0 - ${f(m.matteAdd)} * faceMkLip.y, mkLips);
+  // The base's finish on the face's skin.
+  faceMkRough *= mix(1.0, faceMkBase.y > 0.0 ? 1.0 - ${f(m.dewyTake)} * faceMkBase.y : 1.0 - ${f(m.matteBase)} * faceMkBase.y, faceArea.a * mkBare);
+  texelColor.rgb = mkBase;
+}`;
+}
+
+/**
+ * The shut lid's colour with makeup on it: the pale base and the lid's shadow (its crease colour mixed in as far as it is
+ * smoked, as the open lid shows towards its outer corner), and the liner and lashes along its moving edge, which is the lid's
+ * lower line while it comes down and the eye's lower rim once it is shut (d: the point in the lid's frame, y up).
+ */
+function makeupLidGLSL() {
+  const m = PHOTO_MAKEUP;
+  const f = (value) => Number(value).toFixed(4);
+  return `
+#ifdef FACE_MAKEUP
+  lidPaint = mix(lidPaint, lidPaint * faceMkPaleC / MK_NEUTRAL, faceMkBase.z);
+  lidPaint = mkLay(lidPaint, mix(faceMkShadowC, faceMkCreaseC, ${f(m.lidCrease)} * faceMkShadow.z), ${f(m.lidShadow)} * faceMkShadow.x);
+  float lidToEdge = min(d.y - (1.0 - 2.0 * faceLid), d.y < 0.0 ? 1.0 - length(d) : 9.0);
+  float lidLine = exp(-pow(lidToEdge / (${f(m.lidLine[0])} + ${f(m.lidLine[1])} * faceMkLiner.x), 2.0)) * max(faceMkLiner.x, 0.8 * faceMkFace.w);
+  lidPaint = mix(lidPaint, faceMkLinerC, clamp(lidLine, 0.0, 1.0));
+#endif`;
+}
+
 const PHOTO_SHADER_HEAD = `
 uniform sampler2D faceMap2;
 uniform sampler2D faceDetail;
@@ -303,7 +493,34 @@ uniform float faceHairSeed;
 uniform float faceBeard;
 uniform float faceMustache;
 float faceHash(vec2 p) { return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
-${SCALP_GLSL}`;
+${SCALP_GLSL}
+#ifdef FACE_MAKEUP
+uniform vec3 faceMkBlushC;
+uniform vec3 faceMkShadowC;
+uniform vec3 faceMkCreaseC;
+uniform vec3 faceMkLipC;
+uniform vec3 faceMkLinerC;
+uniform vec3 faceMkContourC;
+uniform vec3 faceMkHighC;
+uniform vec3 faceMkPaleC;
+uniform vec4 faceMkBase;
+uniform vec4 faceMkFace;
+uniform vec4 faceMkBlush;
+uniform float faceMkBlushLift;
+uniform vec4 faceMkShadow;
+uniform vec2 faceMkShine;
+uniform vec3 faceMkLiner;
+uniform vec4 faceMkLip;
+float mkLum(vec3 c) { return dot(c, vec3(0.2126, 0.7152, 0.0722)); }
+float mkEllipse(vec2 p, vec2 c, vec2 r) { return length((p - c) / r); }
+float mkBlob(vec2 p, vec2 c, vec2 r) { vec2 d = (p - c) / r; return exp(-dot(d, d)); }
+vec2 mkSegment(vec2 p, vec2 a, vec2 b) { vec2 ab = b - a; float t = clamp(dot(p - a, ab) / dot(ab, ab), 0.0, 1.0); return vec2(length(p - a - ab * t), t); }
+float mkFall(float near, float far, float x) { return 1.0 - smoothstep(near, far, x); }
+vec3 mkLay(vec3 base, vec3 pigment, float a) {
+  float shade = clamp(sqrt(mkLum(base) / MK_NEUTRAL), 0.55, 1.3);
+  return mix(base, pigment * shade, clamp(a, 0.0, 1.0));
+}
+#endif`;
 
 /**
  * The head's material for a face: lit (standard), the two faces' albedos blended in the shader with the fighter's detail painted
@@ -313,7 +530,7 @@ ${SCALP_GLSL}`;
  * light let a way through the skin (PHOTO_FACES.scatter). Its colour is the fighter's skin (over the atlas' neutral). In a crowd
  * (`painted`) its colours are per vertex instead (paintFromFace).
  */
-export function photoSkinMaterial(cast, { painted = false, hair: hairColour = null } = {}) {
+export function photoSkinMaterial(cast, { painted = false, hair: hairColour = null, makeup = null } = {}) {
   const colour = new THREE.Color(cast.skin).multiplyScalar(1 / photoManifest.neutral);
   if (painted) {
     const material = new THREE.MeshLambertMaterial({ color: 0xffffff, vertexColors: true });
@@ -349,6 +566,8 @@ export function photoSkinMaterial(cast, { painted = false, hair: hairColour = nu
     faceHairline: { value: 0.2 }, faceTemple: { value: 0 }, faceSideburn: { value: 0.5 }, faceHairNape: { value: 0.64 }, faceHairDensity: { value: 0 },
     faceCrown: { value: 0 }, faceHairSeed: { value: 0 }, faceBeard: { value: 0 }, faceMustache: { value: 0 },
   };
+  // The makeup's (setPhotoMakeup sets them, and defines FACE_MAKEUP while a look is worn).
+  Object.assign(uniforms, makeupUniforms());
   const [eyeHalfU, eyeHalfV] = PHOTO_ATLAS.eyeHalf;
   const lidTone = (photoManifest.neutral * 0.92).toFixed(3);
   const normals = THREE.ShaderChunk.normal_fragment_maps.replace('vec3 mapN = texture2D( normalMap, vUv ).xyz * 2.0 - 1.0;', `vec3 mapN = texture2D( normalMap, vUv ).xyz * 2.0 - 1.0;
@@ -363,6 +582,9 @@ export function photoSkinMaterial(cast, { painted = false, hair: hairColour = nu
     shader.fragmentShader = shader.fragmentShader
       .replace('#include <map_pars_fragment>', `#include <map_pars_fragment>${PHOTO_SHADER_HEAD}`)
       .replace('#include <map_fragment>', `vec4 texelColor = mix(texture2D(map, vUv), texture2D(faceMap2, vUv), faceBlend);
+#ifdef FACE_MAKEUP
+float faceMkRough = 1.0;
+#endif
 texelColor = mapTexelToLinear(texelColor);
 vec4 faceArea = texture2D(faceDetail, vUv);
 // Skin grain; ruddy nose and cheeks; stubble (dots of the hair's colour over a shadow of it); freckles; moles; age lines.
@@ -377,6 +599,9 @@ vec2 moleCell = vUv * vec2(110.0, 55.0);
 float mole = step(faceHash(floor(moleCell) + faceSeed * 3.3), faceMoles) * smoothstep(0.2, 0.1, length(fract(moleCell) - 0.5));
 texelColor.rgb *= 1.0 - vec3(0.45, 0.5, 0.5) * mole * faceArea.a;
 texelColor.rgb *= 1.0 - faceArea.b * faceWrinkles * 0.1;
+#ifdef FACE_MAKEUP
+${makeupGLSL()}
+#endif
 // The scalp's hair, painted to an irregular hairline (photohair.js), and a beard's or moustache's density under its cards.
 float strandTone = faceNoise(vec2(vUv.x * 900.0, (1.0 - vUv.y) * 45.0 + faceHairSeed));
 vec3 hairTone = faceHairTint * ${photoManifest.neutral.toFixed(3)} * (0.65 + 0.7 * strandTone);
@@ -388,9 +613,14 @@ for (int side = -1; side <= 1; side += 2) {
   vec2 eye = vec2(0.5 + float(side) * ${PHOTO_ATLAS.eyeU.toFixed(4)}, ${(1 - PHOTO_ATLAS.eyeRow).toFixed(4)});
   vec2 d = (vUv - eye) / vec2(${(eyeHalfU * 1.25).toFixed(4)}, ${(eyeHalfV * 1.6).toFixed(4)});
   float shut = step(dot(d, d), 1.0) * step(1.0 - 2.0 * faceLid, d.y);
-  texelColor.rgb = mix(texelColor.rgb, vec3(${lidTone}), shut * step(0.02, faceLid));
+  vec3 lidPaint = vec3(${lidTone});${makeupLidGLSL()}
+  texelColor.rgb = mix(texelColor.rgb, lidPaint, shut * step(0.02, faceLid));
 }
 diffuseColor *= texelColor;`)
+      .replace('#include <roughnessmap_fragment>', `#include <roughnessmap_fragment>
+#ifdef FACE_MAKEUP
+roughnessFactor = clamp(roughnessFactor * faceMkRough, 0.05, 1.0);
+#endif`)
       .replace('#include <normal_fragment_maps>', normals)
       .replace('#include <lights_physical_pars_fragment>', lights)
       .replace('#include <lights_fragment_begin>', `#include <lights_fragment_begin>
@@ -400,12 +630,71 @@ diffuseColor *= texelColor;`)
   };
   // (The scalp's hairs are filtered by their size on screen: fwidth, core in WebGL 2, an extension in WebGL 1.)
   material.extensions = { derivatives: true };
-  material.customProgramCacheKey = () => 'photoface4';
+  // (The made-up variant keyed apart: FACE_MAKEUP in its defines.)
+  material.customProgramCacheKey = () => (material.defines?.FACE_MAKEUP !== undefined ? 'photoface4|makeup1' : 'photoface4');
   material.userData.photoFace = cast.id;
   material.userData.lid = uniforms.faceLid;
   material.userData.fill = uniforms.faceFill;
   material.userData.scalp = uniforms;
   material.userData.faceTextures = [uniforms.faceMap2.value, uniforms.faceDetail.value, uniforms.faceWrinkleMap.value, pores];
+  material.userData.makeup = uniforms;
+  if (makeup) setPhotoMakeup(material, makeup);
+  return material;
+}
+
+/** The makeup's uniforms, bare (nothing drawn until setPhotoMakeup). */
+function makeupUniforms() {
+  const vector = (size) => ({ value: size === 2 ? new THREE.Vector2() : size === 3 ? new THREE.Vector3() : new THREE.Vector4() });
+  return {
+    faceMkBlushC: vector(3), faceMkShadowC: vector(3), faceMkCreaseC: vector(3), faceMkLipC: vector(3), faceMkLinerC: vector(3),
+    faceMkContourC: vector(3), faceMkHighC: vector(3), faceMkPaleC: vector(3),
+    faceMkBase: vector(4), faceMkFace: vector(4), faceMkBlush: vector(4), faceMkBlushLift: { value: 0 }, faceMkShadow: vector(4),
+    faceMkShine: vector(2), faceMkLiner: vector(3), faceMkLip: vector(4),
+  };
+}
+
+/**
+ * Put a makeup (facecustom/makeup.js: a look and its changes, or null for none) on a photo head's material: its colours
+ * fitted to the skin the material draws now (its colour times the atlas's neutral), its numbers into the shader. A look worn
+ * turns the material's shader to the made-up variant (FACE_MAKEUP: compiled once, shared); none turns it back, so a bare face
+ * costs nothing it did not before. A crowd's painted material has none of this (paintFromFace paints its makeup). Returns the
+ * material.
+ */
+export function setPhotoMakeup(material, makeup) {
+  const uniforms = material?.userData?.makeup;
+  if (!uniforms) return material;
+  const worn = makeupWorn(makeup);
+  const had = material.defines?.FACE_MAKEUP !== undefined;
+  if (worn !== had) {
+    material.defines = { ...(material.defines ?? {}) };
+    if (worn) Object.assign(material.defines, { FACE_MAKEUP: '', MK_NEUTRAL: photoManifest.neutral.toFixed(4) });
+    else {
+      delete material.defines.FACE_MAKEUP;
+      delete material.defines.MK_NEUTRAL;
+    }
+    material.needsUpdate = true;
+  }
+  material.userData.makeupWorn = worn ? makeup : null;
+  if (!worn) return material;
+  const skin = `#${material.color.clone().multiplyScalar(photoManifest.neutral).getHexString()}`;
+  const { colours: c, numbers: n } = makeupValues(makeup, skin, photoManifest.neutral);
+  const set = (name, values) => uniforms[name].value.fromArray(values);
+  set('faceMkBlushC', c.blush);
+  set('faceMkShadowC', c.shadow);
+  set('faceMkCreaseC', c.crease);
+  set('faceMkLipC', c.lip);
+  set('faceMkLinerC', c.liner);
+  set('faceMkContourC', c.contour);
+  set('faceMkHighC', c.highlight);
+  set('faceMkPaleC', c.paleBase);
+  set('faceMkBase', [n.cover, n.finish, n.pale, n.under]);
+  set('faceMkFace', [n.highlight, n.contour, n.brow, n.lashes]);
+  set('faceMkBlush', [n.blush, n.blushRow, n.blushOut, n.blushSize]);
+  uniforms.faceMkBlushLift.value = n.blushLift;
+  set('faceMkShadow', [n.shadow, n.reach, n.smoke, n.lower]);
+  set('faceMkShine', [n.shimmer, n.metal]);
+  set('faceMkLiner', [n.liner, n.wing, n.linerLower]);
+  set('faceMkLip', [n.lip, n.gloss, n.gradient, n.over]);
   return material;
 }
 
@@ -439,9 +728,10 @@ export function skinScatter(material) {
 
 /**
  * Paint a geometry's vertices from a face's thumbnails (the two blended) at their texture coordinates, times the skin and times
- * what the vertex colours already hold (the body's marks and the face's shadow): a crowd's heads.
+ * what the vertex colours already hold (the body's marks and the face's shadow): a crowd's heads. `makeup`: a look to paint
+ * on it in broad strokes (none by default).
  */
-export function paintFromFace(geometry, cast) {
+export function paintFromFace(geometry, cast, makeup = null) {
   const uv = geometry.attributes.uv;
   const [width, height] = photoManifest.thumb;
   const skin = new THREE.Color(cast.skin);
@@ -453,6 +743,8 @@ export function paintFromFace(geometry, cast) {
     return (y * width + x) * 3;
   };
   const colours = new Float32Array(uv.count * 3);
+  // (Its makeup's broad strokes, the blush, lip, shadow and a pale base, on each vertex: facecustom/makeup.js makeupPaintAt.)
+  const paint = makeupWorn(makeup) ? makeupValues(makeup, cast.skin, photoManifest.neutral) : null;
   for (let index = 0; index < uv.count; index += 1) {
     const a = sample(uv.getX(index), uv.getY(index));
     for (let channel = 0; channel < 3; channel += 1) {
@@ -460,6 +752,7 @@ export function paintFromFace(geometry, cast) {
       const mark = before ? before.array[index * 3 + channel] : 1;
       colours[index * 3 + channel] = Math.min(1, value * scale * [skin.r, skin.g, skin.b][channel] * mark);
     }
+    if (paint) colours.set(makeupPaintAt(Array.from(colours.subarray(index * 3, index * 3 + 3)), uv.getX(index), uv.getY(index), paint, cast.skin, PHOTO_ATLAS, photoManifest.neutral), index * 3);
   }
   geometry.setAttribute('color', new THREE.BufferAttribute(colours, 3));
 }

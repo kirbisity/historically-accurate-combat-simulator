@@ -21,7 +21,8 @@
 /* global THREE */
 import { ETHNICITY_PRESETS, normalizeFace, sliderOffset, surfaceValues } from './schema.js';
 import { registerFaceSkin } from './solver.js';
-import { PHOTO_ATLAS, customPhotoCast, photoSkinMaterial } from '../photoface.js';
+import { PHOTO_ATLAS, customPhotoCast, photoSkinMaterial, setPhotoMakeup } from '../photoface.js';
+import { makeupWorn } from './makeup.js';
 import { regionTone } from '../faceregions.js';
 import { SKIN_TONES } from '../skintones.js';
 
@@ -196,7 +197,7 @@ function adaptSkinMaterial(material) {
     faceLuster: { value: 1 },
   };
   const previous = material.onBeforeCompile;
-  const baseKey = material.customProgramCacheKey?.() ?? '';
+  const baseKey = material.customProgramCacheKey;
   const most = FACE_SKIN.stretchMost.toFixed(2);
   material.onBeforeCompile = (shader, renderer) => {
     previous?.call(material, shader, renderer);
@@ -218,8 +219,9 @@ function adaptSkinMaterial(material) {
 	mapN.xy *= normalScale;`)
       .replace('#include <lights_physical_fragment>', '#include <lights_physical_fragment>\nmaterial.specularColor *= faceLuster;');
   };
-  // (three caches programs by the patch's source text: keyed apart from the unfitted material's.)
-  material.customProgramCacheKey = () => `${baseKey}|faceSkin1`;
+  // (three caches programs by the patch's source text: keyed apart from the unfitted material's; the base's key asked each
+  // time, as it changes when the face puts makeup on: photoface.js setPhotoMakeup.)
+  material.customProgramCacheKey = () => `${baseKey?.call(material) ?? ''}|faceSkin1`;
   material.userData.faceSkin = { uniforms, colour: material.color.clone(), tone: 1, roughness: material.roughness };
   material.needsUpdate = true;
   return material;
@@ -228,19 +230,24 @@ function adaptSkinMaterial(material) {
 /**
  * The head's material for a made face. `opts.cast`: the photo cast its maps are taken from (photoface.js customPhotoCast: the
  * preset's regions' composites, its skin already at the face's tone); none, the procedural maps. `painted`: a crowd's head,
- * coloured per vertex, which has no relief to fit. `hair`: the scalp's colour (photoSkinMaterial's).
+ * coloured per vertex, which has no relief to fit. `hair`: the scalp's colour (photoSkinMaterial's). `makeup`: the makeup the
+ * fighter's look gives (`look.makeup`), worn when the face's own is none.
  */
-export function skinMaterialFor(faceInput, { cast = null, painted = false, hair = null } = {}) {
+export function skinMaterialFor(faceInput, { cast = null, painted = false, hair = null, makeup = null } = {}) {
   const face = normalizeFace(faceInput);
   const material = cast ? photoSkinMaterial(cast, { painted, hair }) : proceduralSkinMaterial(face);
   if (painted && cast) return material;
+  material.userData.lookMakeup = makeup;
   adaptSkinMaterial(material);
   // (A cast's skin is at the tone it was cast with: the tone slider counts from there.)
   material.userData.faceSkin.tone = cast?.tone ?? 1;
   return updateSkin(material, face);
 }
 
-/** Set a fitted material's surface from a face (its surface sliders and its age): cheap, no shader is made again. */
+/**
+ * Set a fitted material's surface from a face (its surface sliders, its age and its makeup): cheap, no shader is made again
+ * (but once, when a face first puts makeup on: photoface.js setPhotoMakeup).
+ */
 export function updateSkin(material, faceInput) {
   const fitted = material?.userData?.faceSkin;
   if (!fitted) return material;
@@ -256,6 +263,8 @@ export function updateSkin(material, faceInput) {
   material.color.copy(fitted.colour).multiplyScalar(Math.min(scale, Math.max(1, 1 / (FACE_SKIN.neutral * top))));
   const wrinkles = material.userData.scalp?.faceWrinkles;
   if (wrinkles) wrinkles.value = Math.max(fitted.wrinkles ?? (fitted.wrinkles = wrinkles.value), faceAgeLines(face));
+  // The face's own makeup, else the look's; its colours fitted to the skin at its tone now (after the colour above).
+  setPhotoMakeup(material, makeupWorn(face.makeup) ? face.makeup : material.userData.lookMakeup ?? null);
   return material;
 }
 

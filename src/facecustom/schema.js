@@ -5,10 +5,13 @@
 // nothing here clamps a slider to a realistic band. The solver (solver.js) turns the sliders into a shape, the skin pipeline
 // (skin.js) into maps and a material.
 //
+// A face may wear makeup (`face.makeup`: makeup.js, a look and its changed parts; none unless chosen).
+//
 // A fighter carries one as `look.faceCustom` (face.js buildHead, photoface.js photoFaceFor). A fighter without one is cast
 // and drawn exactly as before.
 
 import { regionShape } from '../faceregions.js';
+import { noMakeup, normalizeMakeup } from './makeup.js';
 
 /** The saved form's version: raised when a slider's meaning changes (normalizeFace reads older ones as far as it can). */
 export const FACE_SCHEMA_VERSION = 1;
@@ -156,13 +159,14 @@ export function defaultFace(presetId = FACE_DEFAULT_PRESET, sex = 'male') {
   const id = facePresetOf(presetId);
   const sliders = Object.fromEntries(FACE_SHAPE_IDS.map((name) => [name, FACE_SLIDER_RANGE.neutral]));
   Object.assign(sliders, ETHNICITY_PRESETS[id].sliders, { ethnicity: sliderForPreset(id) });
-  return { version: FACE_SCHEMA_VERSION, preset: id, sex: faceSexOf(sex), sliders, surface: { ...ETHNICITY_PRESETS[id].surface } };
+  return { version: FACE_SCHEMA_VERSION, preset: id, sex: faceSexOf(sex), sliders, surface: { ...ETHNICITY_PRESETS[id].surface }, makeup: noMakeup() };
 }
 
 /**
  * A clean face from whatever was saved or handed in: every slider present, whole and within 0..255, the preset one there is
- * (a named preset wins over the ethnicity slider; with neither, the default), unknown fields dropped. A slider missing is its
- * preset's baseline, so a face saved before a slider was added keeps its look.
+ * (a named preset wins over the ethnicity slider; with neither, the default), its makeup clean (none if it has none),
+ * unknown fields dropped. A slider missing is its preset's baseline, so a face saved before a slider was added keeps its
+ * look.
  */
 export function normalizeFace(json) {
   const source = json && typeof json === 'object' ? json : {};
@@ -172,6 +176,8 @@ export function normalizeFace(json) {
   for (const name of FACE_SHAPE_IDS) if (name !== 'ethnicity' && given[name] !== undefined) face.sliders[name] = faceClampSlider(given[name]);
   const surface = source.surface && typeof source.surface === 'object' ? source.surface : {};
   for (const name of FACE_SURFACE_IDS) if (surface[name] !== undefined) face.surface[name] = faceClampSlider(surface[name]);
+  // Its makeup (makeup.js): a face saved before makeup was added, or with none, wears none.
+  face.makeup = normalizeMakeup(source.makeup);
   return face;
 }
 
@@ -182,11 +188,11 @@ export function getSlider(face, id) {
 
 /**
  * A face with one slider set (a new face; the one given is left as it was). The ethnicity slider loads its preset: the
- * baseline sliders and the surface, the sex kept.
+ * baseline sliders and the surface, the sex and the makeup kept.
  */
 export function setSlider(face, id, value) {
   const clean = normalizeFace(face);
-  if (id === 'ethnicity') return defaultFace(presetForSlider(value), clean.sex);
+  if (id === 'ethnicity') return { ...defaultFace(presetForSlider(value), clean.sex), makeup: clean.makeup };
   if (FACE_SURFACE_IDS.includes(id)) clean.surface[id] = faceClampSlider(value);
   else if (FACE_SHAPE_IDS.includes(id)) clean.sliders[id] = faceClampSlider(value);
   return clean;
