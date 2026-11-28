@@ -31,7 +31,7 @@ import { breathParams, cryRate, playBreath, voiceOfBody } from './sfx/voice.js';
 import { playWhizz, whizzParams } from './sfx/ranged.js';
 import { CRIES, createCryDirector, voiceOfFighter } from './cries.js';
 import { CHARGE, chargeOf } from './charge.js';
-import { FIRE_CALL, createFireCallWatcher } from './firecall.js';
+import { FIRE_CALL, createFireCallWatcher, fireCallDin, fireCallDinAdd, fireCallDinEase, fireCallMasked, fireCallRank, fireCallStanding } from './firecall.js';
 import { createFlameSound } from './flamesound.js';
 import { createWake } from './wake.js';
 import { playUi, uiParams } from './sfx/ui.js';
@@ -125,7 +125,10 @@ export function createAudioEngine(env = typeof window === 'undefined' ? null : w
     // The cries rationed (cries.js), and each side's charge roar (charge.js): { sides (chargeOf's last), beds: corner → { source, gain, chain } }.
     cries: createCryDirector(), charge: { sides: null, beds: new Map() },
     // The word to fire (firecall.js): the sides' fire orders watched, and the last few calls heard (for tools: status().fireCalls).
-    fireCall: createFireCallWatcher(), fireCalls: [],
+    // (`din`: the energy of what was heard lately, firecall.js fireCallDin; `dinBefore` its level before this tick's sounds.)
+    // (`calledAt`: when each side was last heard calling, by the context's clock: a level rebuilt in its first moments is a new world
+    // to the watcher, and its side's opening must not be called twice.)
+    fireCall: createFireCallWatcher(), fireCalls: [], din: 0, dinBefore: -Infinity, calledAt: {},
     // The flamethrower's roar and what burns (flamesound.js).
     flame: createFlameSound(),
     bench: { room: null, ambience: null, far: null, open: false },
@@ -466,7 +469,7 @@ export function createAudioEngine(env = typeof window === 'undefined' ? null : w
     wake.watch();
     if (!state.ctx || state.ctx.state !== 'running') return;
     tick(info, thunder ? [...read.events, thunder] : read.events, step);
-    for (const call of calls) fireCall(call);
+    for (const call of calls) fireCall(call, info);
   }
 
   function tick(info, events, dt) {
@@ -491,6 +494,11 @@ export function createAudioEngine(env = typeof window === 'undefined' ? null : w
     }
     // The events of this tick, the voices among them rationed into cries (cries.js): gathered, limited, ranked against the playing voices, played.
     const candidates = soundCandidates(state.cries.tick(events, world.fighters ?? [], listener, now), listener);
+    // The din a call is heard through (firecall.js): as it was before this tick's sounds (a side's call comes with its first shot,
+    // which it gave the word for, so that shot does not drown it), then this tick's added.
+    state.din = fireCallDinEase(state.din, dt);
+    state.dinBefore = fireCallDin(state.din);
+    for (const candidate of candidates) state.din = fireCallDinAdd(state.din, candidate.atEar);
     if (candidates.length) {
       state.loudNow = state.loud;
       for (const candidate of candidates) if (candidate.family.bus !== 'voices') state.loudNow = Math.max(state.loudNow, candidate.atEar);
@@ -684,18 +692,29 @@ export function createAudioEngine(env = typeof window === 'undefined' ? null : w
    * The word to fire (firecall.js), shouted by the man who gave it: a voice at his head, at a bellowed order's level at the ear, at
    * his own pitch (FIRE_CALL.pitch); a take of his language's, or the fallback's while his has not decoded.
    */
-  function fireCall(call) {
+  function fireCall(call, info) {
     const now = state.ctx.currentTime;
+    if (now < (state.calledAt[call.corner] ?? -Infinity) + FIRE_CALL.cooldown) return;
+    state.calledAt[call.corner] = now;
     const seen = earDirection(listener, call.at[0], call.at[1], call.at[2]);
-    const atEar = levelAtEar(FIRE_CALL.level + call.db, seen.distance);
+    // Its level at the ear, a wall between taken off it (placeVoice dulls it the same): drowned in the din, it is not played.
+    const walled = blocked(call.at);
+    const atEar = levelAtEar(FIRE_CALL.level + call.db, seen.distance) - (walled ? EAR.blockedLoss : 0);
+    const standing = fireCallStanding(info.world, call, info.player);
+    const masked = fireCallMasked(atEar, state.dinBefore, standing);
+    // Its rank for a voice (FIRE_CALL.priority): the level and its bonuses; would it have had one by its level alone (for tools).
+    const rank = fireCallRank(atEar, standing);
+    const quietest = state.active.reduce((low, chain) => (!low || chain.atEar < low.atEar ? chain : low), null);
+    const byLevel = state.active.length < budget() || atEar > (quietest?.atEar ?? -Infinity) + EAR.stealMargin;
     const set = [call.set, ...call.fallbacks].find((each) => state.samples?.pick(each)) ?? call.set;
     const rate = call.rate;
-    const voice = placeVoice(call.at, 'voices', { atEar, direction: seen });
+    const voice = masked ? null : placeVoice(call.at, 'voices', { atEar: rank, direction: seen });
     const ends = voice ? playPlan(state.samples, voice, { set, trim: 1, rate, seconds: null, fade: FIRE_CALL.fade, skip: 0, synth: null, synthGain: 0 }, now + 0.01 + seen.distance / 343, gainOfLevel(atEar)) : null;
     if (voice && ends !== null) voice.chain.ends = ends;
     else voice?.done();
-    state.fireCalls.push({ t: now, corner: call.corner, by: call.by.id, language: call.language, set, female: set.endsWith('-f'), at: call.at.map((v) => Math.round(v * 100) / 100), distance: Math.round(seen.distance * 100) / 100, atEar: Math.round(atEar), rate: Math.round(rate * 1000) / 1000, played: ends !== null });
-    if (state.fireCalls.length > 8) state.fireCalls.shift();
+    const round = (value, places = 100) => Math.round(value * places) / places;
+    state.fireCalls.push({ t: round(now), worldTime: round(info.world.time ?? 0), why: call.why, corner: call.corner, by: call.by.id, outfit: call.by.body?.inputs?.outfit?.kind, language: call.language, set, female: set.endsWith('-f'), at: call.at.map((v) => round(v)), distance: round(seen.distance), atEar: Math.round(atEar), rank: Math.round(rank), din: Math.round(state.dinBefore), loud: Math.round(state.loud), walled, masked, ...standing, voices: state.active.length, byLevel, played: ends !== null });
+    if (state.fireCalls.length > 24) state.fireCalls.shift();
   }
 
   /** Arrows and bolts in the air: one going past within a few metres of the head whizzes, once, as it comes by. */
