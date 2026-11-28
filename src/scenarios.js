@@ -905,6 +905,7 @@ export const ARMIES = {
  * `battleOf` joins the wings to them:
  * - `arena`: the wider floor (the charge needs a run up, and room to wheel),
  * - `camera`: its framing,
+ * - `zones`: where a side set up by hand may stand on it (muster.js zoneOf), if not its half of the floor,
  * - `formation`: per side, over the foot's, with `wings` (the placing and release
  *   of formation.js WINGS) to name the riders' place,
  * - `cast(random, sides)`: the sides as the foot cast made them, with the horse added
@@ -913,7 +914,7 @@ export const ARMIES = {
 export function battleOf(key, { themes = true } = {}) {
   const scenario = SCENARIOS[key];
   const wings = scenario.wings;
-  const level = wings ? drawnApart({ ...scenario, arena: wings.arena, camera: wings.camera ?? scenario.camera, formation: Object.fromEntries(['red', 'blue'].map((corner) => [corner, { ...scenario.formation?.[corner], ...wings.formation?.[corner] }])), cast: (random) => wings.cast(random, scenario.cast(random)) }) : drawnApart(scenario);
+  const level = wings ? drawnApart({ ...scenario, arena: wings.arena, camera: wings.camera ?? scenario.camera, ...(wings.zones ? { zones: wings.zones } : {}), formation: Object.fromEntries(['red', 'blue'].map((corner) => [corner, { ...scenario.formation?.[corner], ...wings.formation?.[corner] }])), cast: (random) => wings.cast(random, scenario.cast(random)) }) : drawnApart(scenario);
   // Each side in its army's colours (armythemes.js: colour only), unless asked without (the themes' test).
   const sides = themes && level.cast ? battleThemes(key, scenario.armies) : null;
   if (!sides) return level;
@@ -949,8 +950,8 @@ export const SPREAD = {
     jiangnan: { halfX: 18 },
     // The lane between the container stacks: their ends at ±11.3 m (props/harbour.js).
     port: { halfX: 11 },
-    // Pyongyang's gate square (places/pyongyang-city.js PY_TOWN_FIGHT, 40 m in from the wall): the foot of the wall's inner
-    // bank at about 26 m to the west.
+    // Pyongyang's broad street at the market street (places/pyongyang-city.js PY_TOWN_FIGHT): the Japanese barricade's
+    // gateway 26 m to the east (and the lane at x 33 as far to the west).
     pyongyangtown: { halfX: 26 },
   },
 };
@@ -1518,8 +1519,11 @@ export const SCENARIOS = {
     title: 'Pyongyang',
     place: 'Pyongyang, Joseon · 8 February 1593',
     blurb: { en: 'The Ming army retakes the city from the Japanese. Nineteen Ming foot — elites in plated brigandine with guandao and guns, brigandine men with sword and shield, spear and gun, and a few of the drilled southern infantry with the wolf-brush spear — and eleven of Li Rusong\'s horsemen in iron lamellar on the flank, against forty Japanese samurai and ashigaru and three mounted samurai.', zh: '明军从日军手里夺回平壤。明军步卒十九人——精锐披钉甲，使大刀、放火铳；布面甲兵持刀牌、长枪、鸟铳；还有几名操练有素的南兵，持狼筅——侧翼是李如松的十一名铁札甲骑兵，对阵日本武士和足轻四十人，另有骑马武士三人。' },
-    // Fought in the town (places/pyongyang-city.js): the gate square, where the Ming who came in through the gate meet the
-    // Japanese holding the main street, among the shops and the bell pavilion (its houses solid: the arena's `terrain`).
+    // Fought in the town (places/pyongyang-city.js PY_TOWN_FIGHT): on the broad street where the market street crosses it,
+    // the Ming come on from the west gate quarter they broke into, the Japanese out through their barricade's gateway
+    // before the governor's quarter to throw them back; a junction 20 m wide between the yard walls, the houses solid
+    // (the arena's `terrain`). It was the gate square's east side, where the lines met in the avenue's 7 m mouth among
+    // the shops and the bell pavilion (the user's call, 2026-11-27: the armies to meet in a slightly open space).
     scene: 'pyongyangtown',
     climate: 'pyongyang',
     arena: { halfX: 14, halfZ: 9, get terrain() { return pyongyangTownTerrain(); } },
@@ -1528,10 +1532,16 @@ export const SCENARIOS = {
     formation: { red: { front: 5, spacing: 1.3, rowSpacing: 1.6, shootersFront: SHOOTERS_FRONT_GAP, perRow: 8, loose: 0.3 }, blue: { front: 5, spacing: 1.3, rowSpacing: 1.6, shootersFront: SHOOTERS_FRONT_GAP, perRow: 8, loose: 0.3 } },
     cast: (random) => pyongyangSides(random),
     wings: {
-      // (No longer than the square's room: SPREAD.room.pyongyangtown.)
+      // (No longer than the street's room: SPREAD.room.pyongyangtown. As wide as the side streets' mouths at the crossing;
+      // the street itself is 20 m between its yard walls, which the terrain holds.)
       arena: { halfX: 26, halfZ: 15, get terrain() { return pyongyangTownTerrain(); } },
       camera: { yaw: -0.5, pitch: 0.42, distance: 26, maxDistance: 33 },
-      formation: { red: { wings: { side: 1 } }, blue: { wings: { side: -1 } } },
+      // The horse two abreast close outside the foot's line ends (`out` 1 m; WINGS' 2.5 m and three abreast would put the
+      // outer files in the yards beyond the street's walls, PY_CITY.broad).
+      formation: { red: { wings: { side: 1, out: 1, abreast: 2 } }, blue: { wings: { side: -1, out: 1, abreast: 2 } } },
+      // Where a side set up by hand may stand (muster.js zoneOf): its half of the street between the yard walls (|z| under
+      // PY_CITY.broad's 10 m less a man's room), from 3 m short of the middle to its end of the field.
+      zones: { red: { x: [-25.4, -3], z: [-9.2, 9.2] }, blue: { x: [3, 25.4], z: [-9.2, 9.2] } },
       cast: (random, sides) => ({ red: [...sides.red, ...company(PYONGYANG_HORSE, (style) => mingHorseman(random, style))], blue: [...sides.blue, ...company(PYONGYANG_JAPANESE_HORSE, (style) => samuraiHorseman(random, SEKIGAHARA_WEST, style))] }),
     },
     // The armies its sides may be set up from (ARMIES; muster.js).

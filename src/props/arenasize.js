@@ -40,7 +40,8 @@ export const PLACE_ARENAS = {
   canaltown: { halfX: 18, halfZ: 9, own: true },
   // (The wall's stretch that chapter 3 storms: story/battles/03-pyongyang.js PYONGYANG_1593.arena.)
   pyongyang: { halfX: 135, halfZ: 9, own: true },
-  // (The town's gate square, Battle Mode's Pyongyang: places/pyongyang-city.js PY_TOWN_FIGHT, its wider field.)
+  // (The town's broad street where the market street crosses it, Battle Mode's Pyongyang: places/pyongyang-city.js
+  // PY_TOWN_FIGHT, its wider field.)
   pyongyangtown: { halfX: 26, halfZ: 15, own: true },
   // The square of Cajamarca between its long halls (props/cajamarca.js CAJAMARCA_PLAN).
   cajamarca: { halfX: 16, halfZ: 11 },

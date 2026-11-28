@@ -25,6 +25,7 @@ import { crowdNear } from '../crowdgrid.js';
 import { footingOn, partUnder, treadOn } from './footing.js';
 import { STEPOVER } from './stepover.js';
 import { horseBalks, horseFounders, horseMire, horseOnWorks } from './fieldworks.js';
+import { horseOnSolids, steerOnGround } from './groundplan.js';
 
 /**
  * A horse's shape in units of its height at the withers (x forward, y up,
@@ -455,6 +456,9 @@ export function stepHorse(world, horse, h) {
   const stride = horse.stride;
   horse.stride = (horse.stride + mountStrideRate(horse, gait) * h) % 1;
   horse.velocity = [f[0] * horse.speed + horse.shove[0], 0, f[2] * horse.speed + horse.shove[1]];
+  // Among buildings (the arena's terrain: a town's houses and walls): its chest, barrel and quarters kept out of them, its
+  // speed into one taken off as a crash (physics/groundplan.js horseOnSolids).
+  if (arena.terrain) horseOnSolids(world, horse, HORSE_HURT);
   poseHorse(horse);
   // The hooves that came down this substep: a leg's stance begins as its phase in the stride passes 0 (trodOn).
   const landed = (horse.landed ??= []);
@@ -1296,9 +1300,12 @@ export function loseHorse(world, horse) {
 /**
  * A heading turned back towards the middle when it would run the horse into the arena's edge: the floor's, or the
  * arena's own field for riders where walls close it in (`ride`: { x: [from, to], z: [from, to] }, m, and its own `edge`;
- * The Last Gate's field before its wall).
+ * The Last Gate's field before its wall). Among buildings (the arena's terrain) it is first turned round them and off
+ * their walls (physics/groundplan.js steerOnGround), toward `aim` where it is given ({ at: [x, z], corner }: the man he
+ * rides for and his side).
  */
-export function steerInside(world, horse, heading, edge = WORLD.mount.edge) {
+export function steerInside(world, horse, heading, edge = WORLD.mount.edge, aim = null) {
+  if (world.arena.terrain) heading = steerOnGround(world, horse, heading, aim?.at ?? null, aim?.corner ?? null);
   const ahead = forwardOf(heading);
   const look = Math.max(4, Math.abs(horse.speed) * 1.2);
   const x = horse.at[0] + ahead[0] * look;

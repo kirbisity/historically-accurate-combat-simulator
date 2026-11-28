@@ -55,6 +55,7 @@ import { stepFlame } from './physics/flame.js';
 import { envLieOf } from './env/lie.js';
 import { crowdNearest, withCrowdGrid } from './crowdgrid.js';
 import { TABLE_DUEL, tableOn } from './tableduel.js';
+import { wayOnFoot } from './physics/groundplan.js';
 import { collideWorks, faceBetween, faceOutside, FIELDWORKS, floorFor, footSink, keepRootOff, looseFloor, mireStep, reliefAt, slogCost, spentPace, stepOnWorks, worksOf } from './physics/fieldworks.js';
 import { chooseHorseDetail, collideHorses, createHorse, mountFootprint, goalFromFootwork, horseTimers, keepSeat, unhorse, loseHorse, mountedBehind, riderFacing, ridingLean, saddleReach, mountJump, mountJumpBlocked, mountJumpOf, seatMass, seatRider, SEATED_PARTICLES, stepHorse, stepTurret, strikeHorses, turnCarried } from './physics/mounted.js';
 import { cutSeverity, limbStriker, particleAt, shieldCovering, soundDown, soundEvent, soundHit, soundStep, soundVoice, soundWound, trackPunchSwing, trackSwing, weaponPart, weaponStriker } from './audio/log.js';
@@ -5023,7 +5024,11 @@ function moveRoot(world, fighter, dt) {
   // A place he means to strike (faceAt, for a moment) first; then where he is going; then his man.
   const facing = fighter.faceAt && world.time < fighter.faceAt.until ? fighter.faceAt.at : null;
   // (The player's `faceFoe`, set by control.js: false, he keeps his own heading while his man is far and he is not locked on.)
-  const facePoint = facing ?? fighter.goTo ?? (opponent && fighter.faceFoe !== false ? point(opponent.x, P.pelvis) : null);
+  let facePoint = facing ?? fighter.goTo ?? (opponent && fighter.faceFoe !== false ? point(opponent.x, P.pelvis) : null);
+  // Among buildings (a battle's terrain: physics/groundplan.js), a man going for his man or a place he cannot walk to straight
+  // (a house, a yard wall between) makes for the corner or the gate on the way round it, not into the wall; facing it as he
+  // goes, until the way is straight again. Not the man played (his way is his own), nor a blow's aim (`facing`).
+  if (!facing && facePoint && !fighter.player && (fighter.move > 0 || fighter.running) && world.arena.terrain && !world.stage) facePoint = wayOnFoot(world, fighter, facePoint, fighter.goTo ? null : opponent) ?? facePoint;
   // (How far round he has yet to turn to face it, rad: a runner slows for a turn he has begun, below.)
   let toTurn = 0;
   if (facePoint) {

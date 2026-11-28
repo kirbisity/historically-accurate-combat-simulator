@@ -1583,8 +1583,8 @@ const PY_OAK = { kind: 'broad', tint: [0.95, 0.55, 0.3], spread: 0.55 };
 const PY_SHADOW_TEXEL = 0.085;
 
 // What each use holds in full (PY_DISTRICTS; every other district is drawn as its skyline, and E always is):
-//   town    Battle Mode's town fight (scenarios.js SCENARIOS.pyongyang, the key 'pyongyangtown'): its field, x 14..66 and
-//           z -65..-35, lies wholly inside W, which ends 21 m beyond it at the W-G barricade;
+//   town    Battle Mode's town fight (scenarios.js SCENARIOS.pyongyang, the key 'pyongyangtown'): its field, x 34..86 and
+//           z -15..15 on the broad street (PY_TOWN_FIGHT), lies wholly inside W, its east end at the W-G barricade;
 //   battle  chapter 3's ladder assault (story/battles/03-pyongyang.js) and the custom battle's strip before the west
 //           wall: the columns' field and the wall, with the town's strip behind it;
 //   roam    the story's walk: at its start what he stands in and sees, F and W (he comes in before the west wall, or

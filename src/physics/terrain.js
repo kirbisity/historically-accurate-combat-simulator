@@ -212,6 +212,28 @@ export function floorAt(terrain, x, z, y = Infinity, tolerance = 0.02) {
 }
 
 /**
+ * The land at (x, z): the lowest walkable top there (the ground under any terrace, footing, bridge or upper floor).
+ * -Infinity where there is none. What a floor stood on is measured up from (physics/groundplan.js).
+ */
+export function terrainLand(terrain, x, z) {
+  const list = cellOf(terrain, x, z);
+  let best = Infinity;
+  for (let index = 0; index < list.length; index += 1) {
+    const part = list[index];
+    if (part.shape === 'wall' || part.shape === 'ceiling') continue;
+    const dx = x - part.cx;
+    const dz = z - part.cz;
+    const u = dx * part.cos - dz * part.sin;
+    if (u > part.hu || u < -part.hu) continue;
+    const v = dx * part.sin + dz * part.cos;
+    if (v > part.hv || v < -part.hv) continue;
+    const top = topAt(part, u, v);
+    if (top < best) best = top;
+  }
+  return best === Infinity ? -Infinity : best;
+}
+
+/**
  * A place to put a foot: (x, z) moved `margin` m (at most) from any edge of the floor it stands on
  * (a tread's edge, a ledge's), so that it rests on one floor and not astride two. `at` = [x, z] is
  * changed in place; `y` is as for floorAt. Where the floor is the same all round, nothing moves.

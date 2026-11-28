@@ -28,12 +28,17 @@ import { TK_HANOK, tkBell, tkCompoundRuns, tkHall, tkHallSolids, tkRoofedGate, t
  * the street, the poor toward the river).
  */
 /**
- * The Battle Mode fight in the town (scenarios.js SCENARIOS.pyongyang): its middle `at` (m, in the place's frame), at the
- * gate square's east side where the main street leaves it, so that the field takes in the square, the bell pavilion, the
- * shops on both its sides and the mouth of the street (and of the market street on its wider field). Battles are fought
- * about the world's origin, so the place is drawn, and its solids given to the physics, moved by `-at`.
+ * The Battle Mode fight in the town (scenarios.js SCENARIOS.pyongyang): its middle `at` (m, in the place's frame), on the
+ * broad street where the market street crosses it, between the west gate quarter the Ming broke into and the Japanese
+ * barricade before the governor's quarter (places/pyongyang.js PY_BARRICADE, its open gateway across the broad street at
+ * x 87): a street junction 20 m wide between yard walls, the market street's shops at its north corners and the street
+ * itself running on south to Hamgumun, so that the lines meet in the open with the town about them, not in the 7 m mouth
+ * of the avenue at the gate square's east side, where the fight was first set (at [40, -50], the user's call, 2026-11-27:
+ * the armies to meet in a slightly open space). The field's ends: 26 m west, the lane at x 33; 26 m east, the
+ * barricade's gateway, where the garrison comes out. Battles are fought about the world's origin, so the place is drawn,
+ * and its solids given to the physics, moved by `-at`.
  */
-export const PY_TOWN_FIGHT = { at: [40, -50] };
+export const PY_TOWN_FIGHT = { at: [60, 0] };
 
 // How many of the town's things are drawn between two yields of pyCityDraw: one. A house of the full drawing is 3 to
 // 5 ms of work and a hall or a gate pavilion 5 to 10 (measured on an M1 Pro, 2026-11-25), so a step of even two
@@ -50,7 +55,8 @@ export const PY_CITY = {
   market: { x: 61, half: 3, z: [-46.5, 118] },
   lanes: { ew: [34, 66, 99], ns: [33, 90, 120], half: 2 },
   // The broad street east from the wall (as wide as Seoul's Jongno, about 18 m, over the battle strip the story's chapter 3
-  // fights along inside the wall: story/battles/03-pyongyang.js, |z| <= 9, whose physics has no houses).
+  // fights along inside the wall: story/battles/03-pyongyang.js, |z| <= 9, whose physics has no houses). Battle Mode's town
+  // fight is fought on it too, where the market street crosses it (PY_TOWN_FIGHT).
   broad: { z: 0, half: 10 },
   compound: { x: [86, 132], z: [-44, -8], gate: 109 },
   temple: { way: 67, gate: -64, lower: { x: [50, 84], z: [-80, -95] }, upper: { x: [52, 82], z: [-96, -113] } },

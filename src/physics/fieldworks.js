@@ -53,6 +53,7 @@ import { wadeDrag } from '../levelmode/water.js';
 import { bardingAt } from '../horses.js';
 import { WORLD } from './config.js';
 import { fieldHeight } from './terrain.js';
+import { GROUND_PLAN } from './groundplan.js';
 import { pointThrough } from '../weapons.js';
 import { knockOut } from '../physics.js';
 import { drawStamina } from './overdraft.js';
@@ -1060,7 +1061,43 @@ export function horseOnWorks(world, horse, before, hurt) {
     const into = -(velocity[0] * nx + velocity[2] * nz);
     if (into > 0) stopHorseAtWorks(world, horse, before, [nx, nz], into, hurt.jolt, wall.kind === 'wood' ? 'brought down in the trees' : 'brought down against the palisade');
   }
+  horseBodyOffWalls(world, horse, works, f, feet, hurt);
   if (works.stakes.length) horseOnStakes(world, horse, works, velocity, hurt);
+}
+
+/**
+ * The rest of a horse's body against the works' walls (its chest is stopped above): its barrel, quarters and head, each a
+ * round along its length (physics/groundplan.js GROUND_PLAN.horseBody, as against a town's solids), kept on the side of the
+ * wall its middle stands on, as far off its line as the round is thick. A horse swinging its quarters round at a wall,
+ * shoved sideways into it by a crash or backing onto it is moved off it, its speed into it taken off as the knock it is
+ * (`hurt.jolt`): it neither stands half through a palisade nor through a town's wall.
+ */
+function horseBodyOffWalls(world, horse, works, f, feet, hurt) {
+  const W = horse.withers;
+  for (const wall of wallsOf(works, world)) {
+    if (wall.height < feet) continue;
+    // (The wall's line and the side of it the horse's middle is on: its normal toward the middle.)
+    const n = [-wall.u[1], wall.u[0]];
+    const side = (horse.at[0] - wall.a[0]) * n[0] + (horse.at[1] - wall.a[1]) * n[1] >= 0 ? 1 : -1;
+    for (let k = 1; k < GROUND_PLAN.horseBody.length; k += 1) {
+      const [ahead, share] = GROUND_PLAN.horseBody[k];
+      const point = [horse.at[0] + f[0] * ahead * W, horse.at[1] + f[1] * ahead * W];
+      const t = (point[0] - wall.a[0]) * wall.u[0] + (point[1] - wall.a[1]) * wall.u[1];
+      if (t < 0 || t > wall.length) continue;
+      const off = side * ((point[0] - wall.a[0]) * n[0] + (point[1] - wall.a[1]) * n[1]);
+      const keep = share * W + FIELDWORKS.wall.thick;
+      if (off >= keep) continue;
+      // (Only a round that reached the wall from the middle's side: the far side of a wall's end is not its to cross.)
+      const middle = side * ((horse.at[0] - wall.a[0]) * n[0] + (horse.at[1] - wall.a[1]) * n[1]);
+      if (middle < 0) continue;
+      const push = keep - off;
+      horse.at[0] += n[0] * side * push;
+      horse.at[1] += n[1] * side * push;
+      const velocity = horse.velocity ?? [f[0] * horse.speed, 0, f[1] * horse.speed];
+      const into = -(velocity[0] * n[0] * side + velocity[2] * n[1] * side);
+      if (into > 0) hurt.jolt(world, horse, [n[0] * side * into, 0, n[1] * side * into], wall.kind === 'wood' ? 'brought down in the trees' : 'brought down against the wall');
+    }
+  }
 }
 
 /** A horse stopped by what stands before it: back where it was, its speed into it (`into`, m/s, along -n) taken away as a jolt. */
