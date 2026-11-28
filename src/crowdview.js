@@ -60,6 +60,28 @@ export const CROWD_VIEW = {
   // The head's cells are this fraction of the others: a helmet or a face is
   // what tells one man from another, in a few hundred triangles.
   farHeadCell: 0.6,
+  // What a crowd body's own outer layers cover (coverLayers): the shirt under a coat, the skin under both, the trouser leg in
+  // a boot, the scalp under a helmet's lining. A point is covered when a ray out along its normal meets another piece of him
+  // (not his bare skin) from inside within `coverReach` (m): the farthest an outer layer stands off what it hides from every
+  // side (a lamellar skirt over the thigh, a padded coat over a shirt, a boot's shaft over the trouser leg are 2-8 cm; past
+  // 10 cm, a flared skirt's hem, the legs inside can be seen up it). `coverFacing`: the cosine the piece met must face along
+  // the ray by, so it is met from inside (its outer side faces away). `coverCell` (m): the cells the pieces are sorted into.
+  coverLayers: true,
+  coverReach: 0.1,
+  coverFacing: 0.3,
+  coverCell: 0.03,
+  // A point standing out through the piece over it by up to `coverPull` (m) is under it in the outfit, and drawn in to
+  // `coverGap` (m) inside it: a coarse ring's facets cut the round of the ring under it (a ten-sided ring of 15 cm stands
+  // 7 mm in between its corners), a belt lofted 2 cm inside a skirt's top. One piece is over another where it covers at
+  // least `coverOverMin` of the other's points, and twice as many as the other covers of its own (a few points either way
+  // are where two pieces meet edge to edge, a sleeve's cuff on a gauntlet's).
+  coverPull: 0.04,
+  coverGap: 0.004,
+  coverOverMin: 12,
+  // A covered triangle is left out only if its corners and what covers them are weighted alike (the sum of their weights'
+  // differences, 0..2, at most this): the skin under a shirt that takes the skin's own weights, the lining of a helmet.
+  // Under a piece weighted otherwise it could come out from under it, posed, and must be there to be seen.
+  coverTogether: 0.3,
 };
 
 /**
@@ -217,6 +239,260 @@ export function bakePieces(pieces) {
     });
   }
   return out;
+}
+
+const TEMPLATE_INDEX_NAMES = ['bodyIndex', 'steelIndex', 'bodyOutlineIndex', 'steelOutlineIndex'];
+
+/** Each vertex's piece: the connected run of triangles it is in (union-find over `indices`). */
+function piecesOf(count, indices) {
+  const parent = new Int32Array(count);
+  for (let vertex = 0; vertex < count; vertex += 1) parent[vertex] = vertex;
+  const root = (vertex) => {
+    while (parent[vertex] !== vertex) {
+      parent[vertex] = parent[parent[vertex]];
+      vertex = parent[vertex];
+    }
+    return vertex;
+  };
+  for (let corner = 0; corner + 2 < indices.length; corner += 3) {
+    const a = root(indices[corner]);
+    for (const next of [indices[corner + 1], indices[corner + 2]]) {
+      const b = root(next);
+      if (a !== b) parent[b] = a;
+    }
+  }
+  for (let vertex = 0; vertex < count; vertex += 1) parent[vertex] = root(vertex);
+  return parent;
+}
+
+/** A template's pieces and triangles, sorted into cells of `cell` m, for casting rays from its points (castLayer). */
+export function layerGrid(template, indices, cell) {
+  const position = template.attributes.position.array;
+  const skin = (vertex) => Boolean(template.vertexSegment?.[vertex]);
+  const grid = { cells: new Map(), cell, piece: piecesOf(template.vertices, indices), indices, position, variant: template.variant ?? new Uint8Array(template.vertices), skin, tried: new Int32Array(indices.length / 3), rays: 0 };
+  const low = [0, 0, 0];
+  const high = [0, 0, 0];
+  for (let corner = 0; corner + 2 < indices.length; corner += 3) {
+    const a = indices[corner] * 3, b = indices[corner + 1] * 3, c = indices[corner + 2] * 3;
+    for (let axis = 0; axis < 3; axis += 1) {
+      low[axis] = layerCell(grid, Math.min(position[a + axis], position[b + axis], position[c + axis]));
+      high[axis] = layerCell(grid, Math.max(position[a + axis], position[b + axis], position[c + axis]));
+    }
+    for (let x = low[0]; x <= high[0]; x += 1) {
+      for (let y = low[1]; y <= high[1]; y += 1) {
+        for (let z = low[2]; z <= high[2]; z += 1) {
+          const key = layerCellKey(x, y, z);
+          let list = grid.cells.get(key);
+          if (!list) grid.cells.set(key, (list = []));
+          list.push(corner);
+        }
+      }
+    }
+  }
+  return grid;
+}
+
+const layerCell = (grid, value) => Math.floor(value / grid.cell) + 512;
+const layerCellKey = (x, y, z) => (x * 1024 + y) * 1024 + z;
+
+/**
+ * The first thing of another piece than `vertex`'s, drawn whenever it is (a helmet covers the scalp only while it is worn:
+ * HEAD_VARIANT), that a ray from the vertex along `direction` meets within `reach`, if it is a layer met as `side` asks:
+ * from inside (1: the triangle faces along the ray by `facing`, as a layer over the point does) or from outside (-1: it
+ * faces back at it). Bare skin is never a layer (a limb's root inside the trunk's shoulder is a joint), nor is anything
+ * met the other way first: a ray from the hip through the sleeve of the arm hanging beside it meets the sleeve's far side
+ * from inside, and the near side, met first, says it is no layer over the hip. { triangle (its first corner), piece, u, v, t } or null.
+ */
+export function castLayer(grid, vertex, direction, reach, side, facing) {
+  const { position, indices, piece, variant, tried } = grid;
+  const ox = position[vertex * 3], oy = position[vertex * 3 + 1], oz = position[vertex * 3 + 2];
+  const [dx, dy, dz] = direction;
+  // (Each triangle tried once a ray: marked with the ray's number.)
+  const ray = (grid.rays += 1);
+  let best = null;
+  // Cell by cell out along the ray (half a cell a step); the nearest hit kept.
+  for (let along = 0; along <= reach + grid.cell && !best; along += grid.cell / 2) {
+    const list = grid.cells.get(layerCellKey(layerCell(grid, ox + dx * along), layerCell(grid, oy + dy * along), layerCell(grid, oz + dz * along)));
+    if (!list) continue;
+    for (let at = 0; at < list.length; at += 1) {
+      const corner = list[at];
+      if (tried[corner / 3] === ray) continue;
+      tried[corner / 3] = ray;
+      const a = indices[corner];
+      if (piece[a] === piece[vertex]) continue;
+      if (variant[a] !== HEAD_VARIANT.always && variant[a] !== variant[vertex]) continue;
+      const b = indices[corner + 1], c = indices[corner + 2];
+      const hit = rayTriangle(position, ox, oy, oz, dx, dy, dz, a, b, c);
+      if (hit && hit.t <= reach && (!best || hit.t < best.t)) best = { triangle: corner, piece: piece[a], u: hit.u, v: hit.v, t: hit.t, along: hit.along, skin: grid.skin(a) && grid.skin(b) && grid.skin(c) };
+    }
+  }
+  return best && !best.skin && side * best.along >= facing ? best : null;
+}
+
+/** Where a ray meets triangle a, b, c: { t, u, v, along (the cosine of its normal with the ray) }, or null. */
+function rayTriangle(position, ox, oy, oz, dx, dy, dz, a, b, c) {
+  const e1x = position[b * 3] - position[a * 3], e1y = position[b * 3 + 1] - position[a * 3 + 1], e1z = position[b * 3 + 2] - position[a * 3 + 2];
+  const e2x = position[c * 3] - position[a * 3], e2y = position[c * 3 + 1] - position[a * 3 + 1], e2z = position[c * 3 + 2] - position[a * 3 + 2];
+  const nx = e1y * e2z - e1z * e2y, ny = e1z * e2x - e1x * e2z, nz = e1x * e2y - e1y * e2x;
+  const area = Math.hypot(nx, ny, nz);
+  if (area < 1e-12) return null;
+  const px = dy * e2z - dz * e2y, py = dz * e2x - dx * e2z, pz = dx * e2y - dy * e2x;
+  const det = e1x * px + e1y * py + e1z * pz;
+  if (Math.abs(det) < 1e-12) return null;
+  const inverse = 1 / det;
+  const tx = ox - position[a * 3], ty = oy - position[a * 3 + 1], tz = oz - position[a * 3 + 2];
+  const u = (tx * px + ty * py + tz * pz) * inverse;
+  if (u < 0 || u > 1) return null;
+  const qx = ty * e1z - tz * e1y, qy = tz * e1x - tx * e1z, qz = tx * e1y - ty * e1x;
+  const v = (dx * qx + dy * qy + dz * qz) * inverse;
+  if (v < 0 || u + v > 1) return null;
+  const t = (e2x * qx + e2y * qy + e2z * qz) * inverse;
+  // (Not the vertex's own place: a cloth baked twice, its two sides one on the other.)
+  return t > 0.002 ? { t, u, v, along: (nx * dx + ny * dy + nz * dz) / area } : null;
+}
+
+/** A vertex's weights as bone -> weight. */
+function weightsOf(skinIndex, skinWeight, vertex) {
+  const weights = new Map();
+  for (let slot = 0; slot < 4; slot += 1) {
+    const weight = skinWeight[vertex * 4 + slot];
+    if (weight > 0) weights.set(skinIndex[vertex * 4 + slot], (weights.get(skinIndex[vertex * 4 + slot]) ?? 0) + weight);
+  }
+  return weights;
+}
+
+/** How differently a vertex and the point of its cover are moved by the bones: the sum of their weights' differences (0..2). */
+function weightGap(grid, skinIndex, skinWeight, vertex, cover) {
+  const own = weightsOf(skinIndex, skinWeight, vertex);
+  const corners = [0, 1, 2].map((k) => grid.indices[cover.triangle + k]);
+  const shares = [1 - cover.u - cover.v, cover.u, cover.v];
+  const over = new Map();
+  corners.forEach((corner, at) => {
+    for (const [bone, weight] of weightsOf(skinIndex, skinWeight, corner)) over.set(bone, (over.get(bone) ?? 0) + weight * shares[at]);
+  });
+  let gap = 0;
+  for (const bone of new Set([...own.keys(), ...over.keys()])) gap += Math.abs((own.get(bone) ?? 0) - (over.get(bone) ?? 0));
+  return gap;
+}
+
+/**
+ * A crowd body's layers kept one inside another (CROWD_VIEW.coverLayers). A full man's skin under his armour is left out
+ * (loftbody.js hideCovered); a crowd man's was all drawn, the skin under his shirt, the shirt under his coat, the trouser
+ * leg in his boot, each a coarse ring of a few sides crossing the coarse ring over it between their corners: what lies under
+ * showed through the outer layer in flecks and patches, standing as at a run, and more as the far body's merging moved the
+ * points. Here, at the bind pose, with what was baked on him (helmet, hands, boots, what hangs at his collar and hips):
+ *   - a point standing out a little through the piece over its own (CROWD_VIEW.coverPull) is drawn in under it
+ *     (`coverGap`): the outer layer is the outfit as fitted, and is never moved;
+ *   - a triangle covered at every corner by pieces the bones move as they move it (CROWD_VIEW.coverTogether) is left out,
+ *     but for the ring of it at the layer's edge, and then the points no triangle uses: it stays under them
+ *     in every pose, so nothing is lost to sight, and there is less of him to draw (a tenth of his triangles, measured
+ *     2026-11-27 on a custom battle of 300).
+ * What lies under a piece weighted otherwise (a coat's skirt hung from the hips over a thigh, a boot on the foot over the
+ * shin) is kept: posed, it can come out from under it, and left out it would leave a hole there.
+ * In place, before the far body and the two heads are made from it; returns `kept` (the old vertex of each new one), for
+ * another colouring of the same shape to be cut to (keptOf).
+ */
+export function coverLayers(template, { reach = CROWD_VIEW.coverReach, facing = CROWD_VIEW.coverFacing, cell = CROWD_VIEW.coverCell, pull = CROWD_VIEW.coverPull, gap = CROWD_VIEW.coverGap, together = CROWD_VIEW.coverTogether, overMin = CROWD_VIEW.coverOverMin } = {}) {
+  const drawn = new Uint32Array(template.bodyIndex.length + template.steelIndex.length);
+  drawn.set(template.bodyIndex);
+  drawn.set(template.steelIndex, template.bodyIndex.length);
+  const grid = layerGrid(template, drawn, cell);
+  const position = template.attributes.position.array;
+  const normal = template.attributes.normal.array;
+  const count = template.vertices;
+  const used = new Uint8Array(count);
+  for (let corner = 0; corner + 2 < drawn.length; corner += 3) {
+    for (let k = 0; k < 3; k += 1) {
+      used[drawn[corner + k]] = 1;
+    }
+  }
+  const out = (vertex) => [normal[vertex * 3], normal[vertex * 3 + 1], normal[vertex * 3 + 2]];
+  const covers = new Array(count).fill(null);
+  for (let vertex = 0; vertex < count; vertex += 1) if (used[vertex]) covers[vertex] = castLayer(grid, vertex, out(vertex), reach, 1, facing);
+  // Which piece lies over which: piece P is over piece A where it covers many of A's points and A few of P's (as a full
+  // man's layers are ranked: loftbody.js keepLayersInside). A point of A standing out through P is drawn in under it.
+  const coveredBy = new Map();
+  covers.forEach((cover, vertex) => {
+    if (!cover) return;
+    const key = `${grid.piece[vertex]}|${cover.piece}`;
+    coveredBy.set(key, (coveredBy.get(key) ?? 0) + 1);
+  });
+  const over = (piece, layer) => {
+    const under = coveredBy.get(`${piece}|${layer}`) ?? 0;
+    return under >= overMin && under > 2 * (coveredBy.get(`${layer}|${piece}`) ?? 0);
+  };
+  // (Only the points of a piece something lies over are tried: the outermost pieces, the head, the hands, are never under.)
+  const underSome = new Set();
+  for (const key of coveredBy.keys()) {
+    const [piece, layer] = key.split('|').map(Number);
+    if (over(piece, layer)) underSome.add(piece);
+  }
+  let pulled = 0;
+  for (let vertex = 0; vertex < count; vertex += 1) {
+    if (!used[vertex] || covers[vertex] || !underSome.has(grid.piece[vertex])) continue;
+    const [nx, ny, nz] = out(vertex);
+    const hit = castLayer(grid, vertex, [-nx, -ny, -nz], pull, -1, facing);
+    if (!hit || !over(grid.piece[vertex], hit.piece)) continue;
+    for (let axis = 0; axis < 3; axis += 1) position[vertex * 3 + axis] -= [nx, ny, nz][axis] * (hit.t + gap);
+    covers[vertex] = hit;
+    pulled += 1;
+  }
+  const skinIndex = template.attributes.skinIndex.array;
+  const skinWeight = template.attributes.skinWeight.array;
+  const covered = covers.map((cover, vertex) => Boolean(cover) && weightGap(grid, skinIndex, skinWeight, vertex, cover) <= together);
+  // (Not the ring of covered points next to what is not: at the edge of a layer, a collar's, a cuff's, a coat's opening, the
+  // eye looks in under it at a slant, and the layer beneath must be there to be seen, or the man is seen through.)
+  const edge = new Uint8Array(count);
+  for (let corner = 0; corner + 2 < drawn.length; corner += 3) {
+    const [a, b, c] = [drawn[corner], drawn[corner + 1], drawn[corner + 2]];
+    if (!(covered[a] && covered[b] && covered[c])) edge[a] = edge[b] = edge[c] = 1;
+  }
+  const hidden = covered.map((flag, vertex) => flag && !edge[vertex]);
+  for (const name of TEMPLATE_INDEX_NAMES) {
+    const indices = template[name];
+    const kept = [];
+    for (let corner = 0; corner + 2 < indices.length; corner += 3) {
+      if (hidden[indices[corner]] && hidden[indices[corner + 1]] && hidden[indices[corner + 2]]) continue;
+      kept.push(indices[corner], indices[corner + 1], indices[corner + 2]);
+    }
+    template[name] = Uint32Array.from(kept);
+  }
+  // (What was done, for the tools: points covered, left out and drawn in.)
+  template.coverStats = { covered: covered.filter(Boolean).length, hidden: hidden.filter(Boolean).length, pulled };
+  return compactTemplate(template);
+}
+
+/** A per-vertex array (`width` numbers a vertex) cut to the vertices `kept`. */
+export function keptOf(array, kept, width = 1) {
+  if (!array) return array;
+  const out = Array.isArray(array) ? new Array(kept.length * width) : new array.constructor(kept.length * width);
+  for (let to = 0; to < kept.length; to += 1) for (let axis = 0; axis < width; axis += 1) out[to * width + axis] = array[kept[to] * width + axis];
+  return out;
+}
+
+/** A template without the vertices no triangle uses (its attributes, colours, marks and indices renumbered); returns `kept`. */
+function compactTemplate(template) {
+  const used = new Int32Array(template.vertices).fill(-1);
+  for (const name of TEMPLATE_INDEX_NAMES) for (const vertex of template[name]) used[vertex] = 0;
+  const kept = [];
+  used.forEach((flag, vertex) => {
+    if (flag === 0) {
+      used[vertex] = kept.length;
+      kept.push(vertex);
+    }
+  });
+  const keptIds = Uint32Array.from(kept);
+  // (The template's own attributes, just baked and not yet sent to the card: cut in place.)
+  for (const attribute of Object.values(template.attributes)) {
+    attribute.array = keptOf(attribute.array, keptIds, attribute.itemSize);
+    attribute.count = kept.length;
+  }
+  template.colors = keptOf(template.colors, keptIds, 3);
+  template.vertexSegment = keptOf(template.vertexSegment, keptIds);
+  template.variant = keptOf(template.variant, keptIds);
+  for (const name of TEMPLATE_INDEX_NAMES) template[name] = template[name].map((vertex) => used[vertex]);
+  template.vertices = kept.length;
+  return keptIds;
 }
 
 /**

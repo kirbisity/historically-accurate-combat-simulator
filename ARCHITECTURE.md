@@ -430,7 +430,10 @@ and adjust only the numbers of each side.
   posed men every other frame, still bodies not at all, and ink only within
   `CROWD_VIEW.inkDistance` of the camera. Each template also has a far body
   (`simplifyTemplate`: its vertices merged in cells, on the same skeleton),
-  shown beyond `lodDistance`; a man the camera does not see is not posed or
+  shown beyond `lodDistance`. Before the far body is made, a template's layers are kept one inside another
+  (`coverLayers`, CROWD_VIEW `cover*`): a point standing a little out through the piece over its own is drawn in under
+  it, and what is covered at every corner, by pieces the bones move alike, is left out (as a full man's skin under armour
+  is), so nothing under comes through the coarse rings and there is less to draw; a man the camera does not see is not posed or
   drawn; and a man far from the camera or outside the shadow map casts no
   shadow (`src/crowdlod.js` decides, `selectCrowdDraw` in `render.js` applies
   it). The man played, his lock and opponent, anyone within 3 m of him and the
