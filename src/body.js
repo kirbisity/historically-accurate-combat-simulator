@@ -472,9 +472,9 @@ export const PRESETS = {
   // (OUTFITS.samuraiTosei's nanbanDo set), the yari a mounted lord fought with; the katana at his belt. Mid-thirties, a
   // samurai's build.
   nanbanLord: {
-    // 171 cm and 4150 kcal (was 167 cm, 3720: a light man, 72 kg, whose yari lost to every man in heavy armour; now 81 kg and the
-    // Ōdachi Champion's muscle: a daimyō fed as a lord, trained from boyhood. The user's call, 2026-11-28.)
-    name: 'Takayama Ukon', style: 'yari', sex: 'male', heightCm: 171, frame: 'medium', age: 35, exercise: 0.7, calories: 4150,
+    // A big man for a lord fed and trained from boyhood: 174 cm, a large frame, 4300 kcal (was 167 cm, medium, 3720: 72 kg, lighter
+    // than the Ōdachi Champion he should match). The user's call, 2026-11-28.
+    name: 'Takayama Ukon', style: 'yari', sex: 'male', heightCm: 174, frame: 'large', age: 35, exercise: 0.7, calories: 4300,
     outfit: { kind: 'samuraiTosei', design: 8 }, accessories: [],
     look: { skinTone: 'lightTan', hairStyle: 'sakayaki', hairColor: '#120d0a', facialHair: 'mustache', eyeColor: 'brown', faceRegion: 'japan' },
   },
@@ -686,7 +686,8 @@ export const PRESETS = {
   // man, as the sword wanted, but not a giant: 172 cm (was 177), still ~14 cm over a Sengoku samurai's mean (~158 cm); calories
   // eased with it (4150, was 4375) to keep the same build (BMI) rather than a heavier short man.
   odachi: {
-    name: 'Makara Naotaka', style: 'odachi', sex: 'male', heightCm: 172, frame: 'large', age: 34, exercise: 0.68, calories: 4150,
+    // 169 cm, a medium frame, 3900 kcal (was 172 cm, large, 4150): smaller than the Christian Daimyō. The user's call, 2026-11-28.
+    name: 'Makara Naotaka', style: 'odachi', sex: 'male', heightCm: 169, frame: 'medium', age: 34, exercise: 0.68, calories: 3900,
     outfit: { kind: 'samuraiTosei', design: 1 }, accessories: [],
     look: { skinTone: 'lightTan', hairStyle: 'topknot', hairColor: '#120d0a', facialHair: 'beard', eyeColor: 'brown' },
   },
