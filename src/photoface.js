@@ -25,6 +25,7 @@ import { luminance, shadeColor } from './skintones.js';
 import { SCALP_GLSL } from './photohair.js';
 import { PHOTO_HEAD } from './photohead.js';
 import { NECK_JOIN } from './basebody.js';
+import { ETHNICITY_PRESETS, faceToJSON, normalizeFace, surfaceValues, tonedSkin } from './facecustom/schema.js';
 
 /**
  * Where the landmarks sit in the atlas: u from the face's centre (eyes, ears); rows from the crown (eye line, lip line, chin, and
@@ -51,6 +52,10 @@ export const PHOTO_FACES = {
   // light on the body's skin (skinScatter): skin is one tissue, and on the head alone it warmed the face turned from the sun.
   scatter: 0.5,
   normalScale: 1,
+  // A made face (facecustom/): the second region's share of it (the middle of `vary.blend`: what casting deals at random,
+  // fixed, so a face is the same face every time it is built), and the painted detail a dealt face draws by lot at about
+  // the middle of its lot (freckles on those peoples who freckle, a few moles, a light skin's ruddiness).
+  custom: { blend: 0.3, freckles: 0.3, moles: 0.006, redness: 0.4 },
 };
 
 const photoManifest = { faces: null, neutral: 0.8, thumb: [32, 16] };
@@ -160,6 +165,17 @@ export function resetPhotoCasting() {
 export function photoFaceFor(inputs, outfitRegion = null) {
   if (!photoFacesOn() || !photoManifest.faces) return null;
   if (!hasOrigin(inputs)) return null;
+  // A made face (`look.faceCustom`, facecustom/schema.js) is cast from its preset's regions, not dealt one. (It takes its
+  // turn in the fight's count all the same, so the men built after it are dealt the faces they always were.)
+  if (inputs.look?.faceCustom) {
+    const key = faceToJSON(inputs.look.faceCustom);
+    const had = photoCustomCasts.get(inputs);
+    if (had?.key === key) return had.cast;
+    photoCastCount += 1;
+    const cast = customPhotoCast(inputs.look.faceCustom, { sex: inputs.sex, name: inputs.name, age: inputs.age, bodyFat: inputs.bodyFat, facialHair: inputs.look?.facialHair });
+    photoCustomCasts.set(inputs, { key, cast });
+    return cast;
+  }
   if (photoCasts.has(inputs)) return photoCasts.get(inputs);
   const sex = inputs.sex === 'female' ? 'female' : 'male';
   const available = Object.values(photoManifest.faces).filter((face) => face.sex === sex).map((face) => face.region);
@@ -218,6 +234,47 @@ export function photoFaceFor(inputs, outfitRegion = null) {
   const cast = { id: `${primary.key}+${secondary.key}`, primary, secondary, blend, skin: `#${skin.getHexString()}`, hair: `#${hair.getHexString()}`, jitter, shape, detail, age };
   photoCasts.set(inputs, cast);
   return cast;
+}
+const photoCustomCasts = new WeakMap();
+/**
+ * The cast of a made face (facecustom/schema.js): its preset's regions' composites (the first its own, the second blended in
+ * at facecustom's fixed share: the nearest there is of each, for the sex), their skin at the face's tone, the regions' own
+ * head shape with nothing dealt at random (the sliders are the fighter's own departures: facecustom/solver.js), and the
+ * detail a man of that people and age is painted with. The same for the same face, every time. Null as photoFaceFor's is.
+ * `who`: { sex, name (seeds the freckles' and stubble's lay), age, bodyFat, facialHair }.
+ */
+export function customPhotoCast(faceInput, who = {}) {
+  if (!photoFacesOn() || !photoManifest.faces) return null;
+  const face = normalizeFace(faceInput);
+  const sex = (who.sex ?? face.sex) === 'female' ? 'female' : 'male';
+  const available = Object.values(photoManifest.faces).filter((entry) => entry.sex === sex).map((entry) => entry.region);
+  const regions = ETHNICITY_PRESETS[face.preset].regions.map((region) => nearestRegion(region, available));
+  const first = regions[0];
+  const second = regions.find((region) => region !== first) ?? first;
+  const primary = photoManifest.faces[`${sex}-${first}`];
+  const secondary = photoManifest.faces[`${sex}-${second}`] ?? primary;
+  const blend = second === first ? 0 : PHOTO_FACES.custom.blend;
+  const tone = surfaceValues(face.surface).tone;
+  const mixed = new THREE.Color(primary.skin).lerp(new THREE.Color(secondary.skin), blend);
+  const skin = new THREE.Color(...tonedSkin([mixed.r, mixed.g, mixed.b], tone));
+  const age = who.age ?? 30;
+  const grey = Math.min(1, Math.max(0, (age - 42) / 30)) * 0.75;
+  const hair = new THREE.Color(primary.hair).lerp(new THREE.Color(secondary.hair), blend).lerp(new THREE.Color(0x9a958e), grey);
+  const [shapeA, shapeB] = [regionShape(first), regionShape(second)];
+  const shape = Object.fromEntries(PHOTO_SHAPE_KEYS.map((name) => [name, ((shapeA[name] ?? 0) * (1 - blend) + (shapeB[name] ?? 0) * blend) * PHOTO_FACES.vary.region]));
+  const random = photoSeeded(photoHash(`${who.name ?? ''}|${face.preset}`));
+  const light = Math.min(1, Math.max(0, (skin.getHSL({}).l - 0.45) / 0.25));
+  const facialHair = who.facialHair ?? 'none';
+  const beardy = (REGION_DETAIL.beard[regionGroup(first)] ?? 0.5) * (0.6 + 0.4 * Math.min(1, age / 35));
+  const detail = {
+    seed: random() * 100,
+    stubble: sex === 'male' ? Math.min(1, (facialHair === 'none' ? 0.4 : 0.85) * beardy * (facialHair === 'none' ? 1 : 1.4)) : 0,
+    freckles: (REGION_DETAIL.freckles[first] ?? 0) * light * PHOTO_FACES.custom.freckles,
+    moles: PHOTO_FACES.custom.moles,
+    redness: light * PHOTO_FACES.custom.redness,
+    wrinkles: Math.min(1, Math.max(0, (age - 35) / 35, ((who.bodyFat ?? 0.15) - 0.25) * 1.2)),
+  };
+  return { id: `${primary.key}+${secondary.key}`, primary, secondary, blend, skin: `#${skin.getHexString()}`, hair: `#${hair.getHexString()}`, jitter: { width: 0, eyeRow: 0, mouthRow: 0 }, shape, detail, age, tone, custom: face };
 }
 const PHOTO_SHAPE_KEYS = ['noseBridge', 'noseWidth', 'brow', 'cheekbone', 'cheekWidth', 'socket', 'lidFold', 'lips', 'jaw', 'chin', 'faceLength', 'cephalic'];
 

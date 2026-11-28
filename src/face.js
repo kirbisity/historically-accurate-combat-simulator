@@ -26,6 +26,8 @@ import { buildLatticeHead } from './headlattice.js';
 import { buildPhotoBeard, photoScalp, scalpCover } from './photohair.js';
 import { buildHairMass, buildHairRim, headEllipsoid } from './hairmass.js';
 import { buildHairSwing, HAIR_SWING } from './hairswing.js';
+import { faceSculptor, headExpressions, presetBaseline } from './facecustom/solver.js';
+import { skinMaterialFor } from './facecustom/skin.js';
 
 export const LOOK_OPTIONS = {
   hairStyle: ['spiky', 'cleanShort', 'fade', 'buzz', 'cornrows', 'bun', 'ponytail', 'midLong', 'long', 'dreads', 'topknot', 'sakayaki', 'ringletPigtails', 'ringlets', 'ringletUpdo', 'hime', 'bald'],
@@ -405,15 +407,21 @@ export function buildHead(body, lookInput, skinHex, cornerHex) {
   const drawn = photo ? photoShape(female, morph) : FACE_SHAPES[look.faceShape] ?? FACE_SHAPES[female ? 'shonen' : 'seinen'];
   let shape = morph ? { ...drawn, morph } : drawn;
   const unmorphed = { ...drawn, morph: null };
+  // A made face (`look.faceCustom`: facecustom/): the head model sculpted by its sliders, from the head its cast's regions
+  // give (photoface.js customPhotoCast), so the sliders count from the preset's own baseline. Only on the head model, with
+  // a photo cast: a drawn head (#faces=off) has no such face and is drawn as before.
+  const custom = photo?.custom && PHOTO_HEAD.model.on ? photo.custom : null;
   // (On the head model, headlattice.js, or the drawn head: PHOTO_HEAD.model.on.)
   const photoHead = photo ? (PHOTO_HEAD.model.on ? buildLatticeHead : buildPhotoHead)({
     data: HEAD_GRID_DATA, radius: r,
     deform: (x, y, z) => deformPoint(x, y, z, unmorphed).map((value, axis) => value / SKULL[axis]),
     skull: SKULL, shape, eyeLine: FACE.eyeLine, atlas: PHOTO_ATLAS, region: photo.shape, jitter: photo.jitter, coarse: Boolean(look.photoPainted), female,
+    sculpt: custom ? faceSculptor(custom, { baseline: presetBaseline(custom) }) : null,
   }) : null;
   if (photoHead) shape = { ...shape, photoPoint: photoHead.point };
   const group = new THREE.Group();
-  const skinMaterial = photo ? photoSkinMaterial(photo, { painted: look.photoPainted, hair: photoHair }) : surface(skinHex, { steps: STYLE.faceSteps });
+  const skinMaterial = custom ? skinMaterialFor(custom, { cast: photo, painted: look.photoPainted, hair: photoHair })
+    : photo ? photoSkinMaterial(photo, { painted: look.photoPainted, hair: photoHair }) : surface(skinHex, { steps: STYLE.faceSteps });
   if (morph && !photo) {
     skinMaterial.map = faceMap(shape);
     skinMaterial.color.multiplyScalar(1 / FACE_MORPH.neutral);
@@ -435,6 +443,8 @@ export function buildHead(body, lookInput, skinHex, cornerHex) {
     if (photoHead.tangents) skullGeometry.setAttribute('tangent', new THREE.BufferAttribute(photoHead.tangents, 4));
     skullGeometry.setAttribute('color', new THREE.Float32BufferAttribute(photoHead.colors, 3));
     if (photoHead.ink) skullGeometry.setAttribute('ink', new THREE.Float32BufferAttribute(photoHead.ink, 1));
+    // (A made face's skin stretch, for its relief: facecustom/skin.js.)
+    if (photoHead.sculpted?.stretch) skullGeometry.setAttribute('faceStretch', new THREE.BufferAttribute(photoHead.sculpted.stretch, 2));
     skullGeometry.setIndex(photoHead.indices);
     if (look.photoPainted) paintFromFace(skullGeometry, photo);
   } else skullGeometry = headGeometry(r, shape, morph ? 48 : 36);
@@ -748,11 +758,24 @@ export function buildHead(body, lookInput, skinHex, cornerHex) {
     if (hairSwing) hairSwing.enabled = true;
     hidden = null;
   }
+  // A made face's expressions (facecustom/solver.js FACE_EXPRESSIONS): `weights` { fury, fear, shout, calm, pain, smirk, ... }
+  // each 0..1, as offsets of the soft skull's points from the made face (soft.js `extra`: a blow's dent rides on them), so
+  // the cost is the points an expression moves, and nothing when the weights are as they were. Worked out the first time
+  // one is asked for. A head that is no made face's, or a crowd's, has none: the call does nothing.
+  let expressions = null;
+  function setExpression(weights) {
+    if (!custom || look.photoPainted || !photoHead?.sculpted) return false;
+    expressions ??= headExpressions(photoHead, SKULL.map((value) => value * r));
+    if (!expressions.set(weights)) return false;
+    skull.extra = expressions.offsets;
+    skull.extraMoved = true;
+    return true;
+  }
   // The cranium's half-breadth (head radii, over the ears' tops): a helmet fitted over a narrower head is widened to it (render.js).
   let breadth = 0;
   const skullPosition = skullGeometry.attributes.position;
   for (let index = 0; index < skullPosition.count; index += 1) if (skullPosition.getY(index) > 0.15 * r) breadth = Math.max(breadth, Math.abs(skullPosition.getZ(index)) / r);
-  return { group, shell: skull, update, dangles, hideHair, showHair, curtains, hairMaterial, breadth, get hairSwing() { return hairSwing; } };
+  return { group, shell: skull, update, dangles, hideHair, showHair, curtains, hairMaterial, breadth, setExpression, faceCustom: custom, get hairSwing() { return hairSwing; } };
 }
 
 function hairLock(group, material, points, width, thickness, taper = 1) {
