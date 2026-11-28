@@ -32,6 +32,8 @@ import { LAST_GATE, LAST_GATE_MODES, LAST_GATE_MODE_KEYS } from './lastgate.js';
 import { lastGateBoardList, lastStandBuilder } from './lastgateview.js';
 import { lastStandLevel } from './squad.js';
 import { uiIcon, withIcon } from './uiicons.js';
+import { faceCustomScreen } from './faceui/view.js';
+import { readFaceStore, wearKeptFace } from './faceui/state.js';
 
 // The two quick battles: what each is called, where it is fought, who fights.
 export const EVENTS = {
@@ -145,7 +147,7 @@ export function installMenus(game) {
   });
   const show = (id) => {
     if (!id) redraw = null;
-    for (const other of ['home', 'quick', 'lastgate-screen', 'levels-screen', 'muster-screen', 'custom-screen', 'stages-screen', 'versus', 'wizard', 'settings-screen']) document.getElementById(other).hidden = other !== id;
+    for (const other of ['home', 'quick', 'lastgate-screen', 'levels-screen', 'muster-screen', 'custom-screen', 'stages-screen', 'versus', 'wizard', 'settings-screen', 'face-screen']) document.getElementById(other).hidden = other !== id;
     document.body.dataset.overlay = id ?? '';
   };
   const close = () => show(null);
@@ -173,8 +175,19 @@ export function installMenus(game) {
         el('button', { className: 'replay-intro', type: 'button', textContent: t('menu.home.intro'), onclick: () => { close(); game.intro(home); } }),
         // How the player attacks (fightui/): tapping his man or the buttons; a tap flips it.
         fightUiHomeSwitch((textContent, onclick) => el('button', { className: 'replay-intro', type: 'button', icon: 'pad', textContent, onclick })),
+        // The face customizer (faceui/): the face the player's fighter wears, kept in this browser.
+        el('button', { className: 'replay-intro', type: 'button', icon: 'palette', textContent: t('face.home'), title: t('face.homeTitle'), onclick: () => faceScreen({ onBack: home }) }),
         el('button', { className: 'replay-intro', type: 'button', icon: 'cog', textContent: t('menu.home.settings'), onclick: settings })));
     show('home');
+  }
+
+  // ---- The face customizer (faceui/view.js) ------------------------------------------------------------------------
+  // Opened from home (the face kept and, if ticked, worn by the player's fighter in a quick fight) and from the creator's Look
+  // step (`onUse`: the face put on the fighter being made, as `look.faceCustom`). It redraws itself on a switch of language.
+  function faceScreen(options) {
+    redraw = null;
+    show('face-screen');
+    faceCustomScreen(document.getElementById('face-screen'), options);
   }
 
   // ---- Settings ----------------------------------------------------------
@@ -260,7 +273,9 @@ export function installMenus(game) {
     };
     const opponent = () => (eventKey === 'boxing' ? randomBoxer(Math.random, { weightKg: weightOf(player) }) : arenaOpponent());
     close();
-    const fight = () => game.match({ red: [player], blue: [opponent()], place: event.place, game: 'quick', label: pick(event.title), next: { text: t('menu.quick.next'), run: fight } });
+    // (The face made in the customizer, on the player's fighter when it is to be worn: faceui/state.js wearKeptFace.)
+    const worn = wearKeptFace(player);
+    const fight = () => game.match({ red: [worn], blue: [opponent()], place: event.place, game: 'quick', label: pick(event.title), next: { text: t('menu.quick.next'), run: fight } });
     fight();
   }
 
@@ -915,7 +930,16 @@ export function installMenus(game) {
     function stepLook(content) {
       const look = inputs.look;
       const origin = originNow();
+      // His face shaped bone by bone (faceui/): the customizer, back here with the face on him as `look.faceCustom`.
+      const shapeFace = () => faceScreen({
+        face: look.faceCustom ?? readFaceStore()?.face ?? null, sex: inputs.sex,
+        onBack: () => { show('wizard'); draw(); },
+        onUse: (face) => { look.faceCustom = face; show('wizard'); draw(); },
+      });
       content.append(...[
+        el('div', { className: 'field face-field' }, el('b', { textContent: t('face.title') }), el('div', { className: 'chips' },
+          el('button', { type: 'button', className: look.faceCustom ? 'chip on' : 'chip', icon: 'palette', textContent: look.faceCustom ? t('face.customOn') : t('face.custom'), onclick: shapeFace }),
+          look.faceCustom ? el('button', { type: 'button', className: 'chip', textContent: t('face.customOff'), onclick: () => { delete look.faceCustom; draw(); } }) : null)),
         origin ? el('div', { className: 'field' }, el('b', { textContent: t('wizard.origin') }), originPicker(origin)) : null,
         skinSlider(origin),
         el('div', { className: 'field' }, el('b', { textContent: t('wizard.hair') }), buttons(HAIR_STYLES[inputs.sex] ?? HAIR_STYLES.male, () => look.hairStyle, (style) => { look.hairStyle = style; })),
