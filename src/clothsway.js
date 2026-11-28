@@ -36,7 +36,12 @@ export const CLOTH_SWAY = {
   // following the first (`chain`: its own hz and damping, at most `reach` m off), the piece between the two by how loose it
   // is, so the hem lags as hair does; and a ripple run over its plates (`ripple`: `amp` m at full swing, its frequency, waves
   // per m round and down), swelling with how far the piece swings, so the plates lift out of step and lie still at rest.
-  armour: { air: 0.15, chain: { hz: 1.0, damping: 0.2, reach: 0.12 }, ripple: { amp: 0.012, hz: 1.6, waves: [9, 6] } },
+  // Each armour point carries its bend (loftbody.js LOFT.armourRows: in `clothAir`, which armour takes no cloth's wind by):
+  // what bends (mail: 1) as above; a rigid row or board (0) on the first spring alone, each of its points by its looseness (a
+  // row's the same everywhere in it, a board's by how far down it), no ripple across it, and `rigidAir` of the wind: lamellar
+  // or scale of 1-2 mm iron, lapped, weighs some 6-10 kg/m², fifty to eighty times a shirting's, and its rows lie lapped on
+  // the legs: a full wind's push on it (~60 Pa) is under its weight and lifts a skirt's hem a centimetre or so.
+  armour: { air: 0.15, rigidAir: 0.05, chain: { hz: 1.0, damping: 0.2, reach: 0.12 }, ripple: { amp: 0.012, hz: 1.6, waves: [9, 6] } },
   // The soft swing of the man played and the two of a duel (main.js softSwing; ClothSwing `soft`, eased in and out over
   // `ease` s): every garment's cloth, a shirt and trousers too, stirs as hair does, lighter than armour: at least `floor` loose
   // wherever it lies, its hem on the second spring as armour's, `wind` times the wind it takes otherwise, and a flutter run
@@ -220,19 +225,22 @@ ${normals ? `#ifndef FLAT_SHADED
 		// (Armour, negative: its swing, its hem's lag, the ripple; a share of the wind. Cloth, positive: as it was.)
 		float clothArmour = clothSway < 0.0 ? 1.0 : 0.0;
 		// (Cloth in the soft swing: at least the floor loose, its hem lagging as armour's does.)
-		float clothSoftCloth = uClothSoft * ( 1.0 - clothArmour );
+		// (Not cloth that armour pins, its clothAir negative: loftbody.js LOFT.sway.pinned.)
+		float clothSoftCloth = uClothSoft * ( 1.0 - clothArmour ) * step( 0.0, clothAir );
 		float clothLoose = mix( abs( clothSway ), max( abs( clothSway ), ${f(spec.soft.floor)} ), clothSoftCloth );
+		// (Armour's bend: 1 as mail, 0 a rigid row or board. Cloth bends wholly.)
+		float clothBend = mix( 1.0, clamp( clothAir, 0.0, 1.0 ), clothArmour );
 		vec3 clothMove = uClothSwing[ int( skinIndex.x ) ] * skinWeight.x + uClothSwing[ int( skinIndex.y ) ] * skinWeight.y + uClothSwing[ int( skinIndex.z ) ] * skinWeight.z + uClothSwing[ int( skinIndex.w ) ] * skinWeight.w;
 		vec3 clothHemMove = uClothHem[ int( skinIndex.x ) ] * skinWeight.x + uClothHem[ int( skinIndex.y ) ] * skinWeight.y + uClothHem[ int( skinIndex.z ) ] * skinWeight.z + uClothHem[ int( skinIndex.w ) ] * skinWeight.w;
-		clothMove = mix( clothMove, mix( clothMove, clothHemMove, clothLoose ), max( clothArmour, clothSoftCloth ) );
+		clothMove = mix( clothMove, mix( clothMove, clothHemMove, clothLoose * clothBend ), max( clothArmour, clothSoftCloth ) );
 		vec3 clothSwingOnly = clothMove;
 		float clothHz = ${f(CLOTH_WIND.flutterHz)} * uWindStrength * ${f(CLOTH_WIND.fullAt)} + 0.2;
 		// (The flap runs over the cloth as it lies on him at rest, downwind and down it, so a moving man's does not race.)
 		float clothPhase = 6.2832 * ( clothHz * uWindTime - ( dot( position.xz, uWindWay ) - position.y * 0.6 ) / ${f(spec.wavelength)} );
 		float clothGust = 0.75 + 0.25 * sin( 6.2832 * ( 0.31 * uWindTime - dot( transformed.xz, uWindWay ) / ${f(CLOTH_WIND.gustLength)} ) );
 		// (Cloth's own share of the wind by its weight and stiffness, loftbody.js clothDrape: 0 where the mesh carries none.)
-		float clothAirShare = clothAir > 0.0 ? clothAir : 1.0;
-		float clothAirAll = mix( clothAirShare, ${f(spec.armour.air)}, clothArmour ) * mix( 1.0, ${f(spec.soft.wind)}, clothSoftCloth );
+		float clothAirShare = abs( clothAir ) > 0.0 ? abs( clothAir ) : 1.0;
+		float clothAirAll = mix( clothAirShare, mix( ${f(spec.armour.rigidAir)}, ${f(spec.armour.air)}, clothBend ), clothArmour ) * mix( 1.0, ${f(spec.soft.wind)}, clothSoftCloth );
 		clothMove += vec3( uWindWay.x, 0.0, uWindWay.y ) * ( ( ${f(spec.bow)} * clothGust + ${f(spec.flap)} * sin( clothPhase ) ) * uWindStrength * clothAirAll );
 		clothMove += vec3( - uWindWay.y, 0.0, uWindWay.x ) * ( ${f(spec.flap * 0.5)} * sin( clothPhase * 1.31 + 1.7 ) * uWindStrength * clothAirAll );
 		clothMove *= clothLoose;
@@ -243,7 +251,7 @@ ${normals ? `#ifndef FLAT_SHADED
 		// The armour's plates lifting out of step as it swings (outward only, as plates lift off what is under them).
 		float clothStir = min( 1.0, length( clothSwingOnly ) / ${f(spec.reach)} );
 		float clothWave = sin( uClothClock - position.y * ${f(spec.armour.ripple.waves[1])} + atan( position.z, position.x ) * ${f(spec.armour.ripple.waves[0] * 0.15)} );
-		clothMove += clothOut * ( max( clothWave, 0.0 ) * ${f(spec.armour.ripple.amp)} * clothStir * clothLoose * clothArmour );
+		clothMove += clothOut * ( max( clothWave, 0.0 ) * ${f(spec.armour.ripple.amp)} * clothStir * clothLoose * clothArmour * clothBend );
 		// The cloth's flutter (soft swing): by the wind and its own swing, a little even still; outward and back to the body.
 		float clothFlutter = sin( clothPhase * 1.7 + position.y * ${f(spec.soft.flutter.waves[0])} + atan( position.z, position.x ) * ${f(spec.soft.flutter.waves[1] * 0.15)} );
 		clothMove += clothOut * ( ( 0.5 + 0.5 * clothFlutter ) * ${f(spec.soft.flutter.amp)} * clothLoose * clothSoftCloth * clamp( uWindStrength * clothAirShare + clothStir + ${f(spec.soft.flutter.rest)}, 0.0, 1.5 ) );

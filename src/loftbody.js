@@ -368,13 +368,35 @@ export const LOFT = {
   // `lying`: the trace a garment's cloth lying on the body is marked by (clothsway.js reads it as a floor in its soft swing).
   // `hung`: a skirt hanging from the waist (a coat's, a tunic's, a gown's) is free at least this share of the way down its fall
   // (to the power `hungPower`): it is held only at its top, whatever the legs under it are doing.
-  sway: { from: 0.022, full: 0.12, cell: 0.13, lying: 0.001, hung: 0.85, hungPower: 1.2 },
+  // `pinned` (m): a garment's cloth lying on the body within this of an armour's point (a plate, a row of plates, mail, a
+  // shell) is under that armour or caught at its edge, a shirt's collar under a scale coat and a helmet's flaps, a sleeve
+  // under a spaulder: the armour's weight holds it, and it takes no `lying` trace (it does not stir in the soft swing). About
+  // the depth of a collar or a cuff showing past an armour's edge. (Stirred as every garment's cloth, the dark collar under an
+  // iron man's helmet flaps fluttered, and read as the flaps themselves going soft.) Such cloth standing off the body keeps
+  // its own looseness, but takes no soft swing either (no floor, no flutter: clothsway.js).
+  sway: { from: 0.022, full: 0.12, cell: 0.13, lying: 0.001, hung: 0.85, hungPower: 1.2, pinned: 0.05 },
   // Armour that gives (the user's call, 2026-11-20: as the Iron Pagoda's bard, every flexible armour, men and horses alike): a
   // piece wearing one of these tiles hangs as loose as cloth would standing as far off the skin, times its give (mail freest,
   // laced lamellae and kozane a little stiffer, scales stiffer, a coat of plates in cloth stiffer still; plate, a solid dō, a
   // krug's discs and a segmentata's bands not at all). Its point is marked armour (negative: clothsway.js gives it the
   // swing and the ripple, little of the wind). Drawn with the detail maps only (the tile is read off the point's coordinates).
   armourGive: { mail: 0.95, lamellae: 0.8, kozane: 0.8, sugake: 0.8, scale: 0.7, ironScale: 0.65, brigandine: 0.6, euroBrigandine: 0.5, bifu: 0.3 },
+  // How an armour that gives moves, by how it is made (armourGive above says how much). Mail bends point by point, as heavy cloth
+  // does: each point as loose as cloth standing as far off the skin. A piece of plates is stiff where its plates are, and gives
+  // only where they meet: laced lamellae, kozane and scale are rigid plates articulated in rows on their cords, a coat of plates
+  // (brigandine) plates riveted in cloth, and each row (each ring of the piece, each laced row of its shell: stiffen) moves
+  // whole, by one looseness, with no bending within it; and only where it hangs free below what holds it (a skirt below the
+  // waist: `stiffen`'s `hangs`), by how far down its fall it is, to the power `fallPower` (each lacing between two rows gives
+  // about alike, so the offsets of the rows below add up as the square of how far down they hang, as a chain of rigid links
+  // bent a little at every joint: the upper rows all but still, the hem lagging most); where it is laced round the body (a coat's breast and back, a sleeve, a haidate on the thigh)
+  // the body holds it, and it does not sway at all. A board hung whole (a sode on its cords, a coat's panel hung from the
+  // waist) turns about its top as one plate (LOFT.hungSwing). `bend`: of a tile's points, how far each follows its own
+  // looseness down the swing's chain and ripples (clothsway.js CLOTH_SWAY.armour): mail all (1); a brigandine's cloth between
+  // its plates a little (0.3: the plates, 48-64 mm, are most of it); lames, lamellae and scale none (0: each row one rigid
+  // band, no ripple across its plates, and the wind's little on heavy iron, CLOTH_SWAY.armour.rigidAir). A tile not named bends
+  // as mail. (Laced iron rows that bent and rippled as cloth read as soft on a kabuto's neck guard and an iron man's
+  // scale coat; a lamellar plate is 1-2 mm iron or lacquered rawhide and does not bend, its lacing lets the rows lift.)
+  armourRows: { fallPower: 2, bend: { mail: 1, brigandine: 0.3, euroBrigandine: 0.3, lamellae: 0, kozane: 0, sugake: 0, scale: 0, ironScale: 0, bifu: 0 } },
   // A board hung at the shoulder (boardOn: a sode, a coat's shoulder flap) is a rigid piece on cords or a strap, not cloth lying
   // on the arm: it swings from its top edge, its points loose by how far down it they are (none at the cords, `hung` at its
   // hem, times its tile's give, or `hungPlain` for one without a flexible tile), so its hem lags and swings past the arm as
@@ -641,7 +663,7 @@ function stiffBody(mesh, kind) {
  * that hang from the waist (`hung`: the panels between its splits) is a body to each panel, hem to waist ('panel'): its plates
  * keep their places in it, and it gives at the splits.
  */
-function stiffen(mesh, rings, kind, panels = 0, hung = false) {
+function stiffen(mesh, rings, kind, panels = 0, hung = false, hangs = null) {
   if (!kind) return rings;
   // (What it is cut as, kept on the ring whether or not the mesh has stiff bodies: fitClothToBase.)
   for (const ring of rings) ring.kind = hung ? 'panel' : kind;
@@ -652,7 +674,25 @@ function stiffen(mesh, rings, kind, panels = 0, hung = false) {
   }
   const whole = kind === 'plate' ? stiffBody(mesh, kind) : 0;
   for (const ring of rings) ring.body = whole || (panels ? Array.from({ length: panels }, () => stiffBody(mesh, kind)) : stiffBody(mesh, kind));
+  // A piece that hangs from its top (`hangs`: a skirt of rows below the waist, its tile's { give, bend }: hangingRows): each
+  // ring's bodies marked with how far down its fall the ring lies (0 at the top, 1 at the hem), which its rows swing by
+  // (looseness, LOFT.armourRows), the whole piece alike (its backing and edges with its plates).
+  if (hangs && !whole && mesh.stiffens) {
+    const [top, hem] = [Math.max(...rings.map((ring) => ring.t)), Math.min(...rings.map((ring) => ring.t))];
+    for (const ring of rings) for (const body of [ring.body].flat()) (mesh.bodyFall ??= new Map()).set(body, { ...hangs, share: fallShare(top, hem, ring.t), top, hem });
+  }
   return rings;
+}
+
+/** A hanging piece of rows wearing `tile` (stiffen's `hangs`): its give (LOFT.armourGive) and bend (LOFT.armourRows), or null where it gives not at all. */
+function hangingRows(tile) {
+  const give = tile ? LOFT.armourGive[tile] ?? 0 : 0;
+  return give ? { give, bend: LOFT.armourRows.bend[tile] ?? 1 } : null;
+}
+
+/** How far down a piece hanging from `top` to `hem` (t along its part) a place at `t` lies: 0 at the top .. 1 at the hem. */
+function fallShare(top, hem, t) {
+  return top - hem > 1e-6 ? Math.max(0, Math.min(1, (top - t) / (top - hem))) : 0;
 }
 
 /** The stiff body a point at `angle` round a ring belongs to (0: none): the piece being built as one (`mesh.body`), else the ring's. */
@@ -692,23 +732,32 @@ function fallOf(mesh, positions) {
 /**
  * How loose each point of the cloth hangs (0 lying on the body .. 1 free; null when none does): by how far it stands off the
  * nearest skin (LOFT.sway). Skin, steel, shells and every stiff body's points are 0: nothing rigid sways; but a flexible
- * armour's points (by their tile, `uvs`: LOFT.armourGive) hang as cloth would times their give, marked negative.
+ * armour's points (by their tile, `uvs`: LOFT.armourGive) hang as cloth would times their give, marked negative; a piece of
+ * plates' rows (`falls`: stiffen's `hangs`) each by one looseness, by how far down the piece it hangs, and not at all where
+ * the body holds it (LOFT.armourRows); a board hung whole by how far down it a point lies. `bends` (filled where given): each
+ * armour point's bend (LOFT.armourRows.bend; 0 for a rigid row or board). `held`: points of cloth that armour holds to the
+ * body (a guard's cloth under its splints): they do not hang, even in the soft swing (no `lying` trace). `pins` (filled where
+ * given): the cloth that stands off the body but lies within LOFT.sway.pinned of armour: it keeps its own looseness, and takes
+ * none of the soft swing (clothsway.js: marked by a negative `clothAir`).
  */
-function looseness(positions, regions, stiff, uvs = null, hung = null, kinds = null) {
+function looseness(positions, regions, stiff, uvs = null, hung = null, kinds = null, falls = null, bends = null, held = null, pins = null) {
   const { from, full, cell } = LOFT.sway;
-  // The hung boards' tops and hems (their highest and lowest points as built: LOFT.hungSwing).
+  const rowsSpec = LOFT.armourRows;
+  // The boards hung whole (a sode, a coat's panel hung from the waist): their tops and hems (their highest and lowest points
+  // as built: LOFT.hungSwing).
   const hungSpan = new Map();
   if (kinds) {
     for (let vertex = 0; vertex < regions.length; vertex += 1) {
       const body = stiff[vertex];
-      if (!body || kinds.get(body) !== 'hung') continue;
+      if (!body || !['hung', 'panel'].includes(kinds.get(body))) continue;
       const y = positions[vertex * 3 + 1];
       const span = hungSpan.get(body) ?? [Infinity, -Infinity];
       hungSpan.set(body, [Math.min(span[0], y), Math.max(span[1], y)]);
     }
   }
-  // A flexible armour's give at a point (LOFT.armourGive), from the tile its coordinates are in; 0 elsewhere.
-  const giveAt = (vertex) => (uvs ? LOFT.armourGive[detailKindOf(uvs[vertex * 2])] ?? 0 : 0);
+  // A flexible armour's give at a point (LOFT.armourGive), from the tile its coordinates are in; 0 elsewhere. Its bend likewise.
+  const kindAt = (vertex) => (uvs ? detailKindOf(uvs[vertex * 2]) : null);
+  const giveAt = (vertex) => LOFT.armourGive[kindAt(vertex)] ?? 0;
   const count = regions.length;
   const key = (x, y, z) => `${x},${y},${z}`;
   const at = (vertex, axis) => Math.floor(positions[vertex * 3 + axis] / cell);
@@ -721,19 +770,54 @@ function looseness(positions, regions, stiff, uvs = null, hung = null, kinds = n
     list.push(vertex);
   }
   if (!grid.size) return null;
+  // Armour's points, for the cloth it pins (LOFT.sway.pinned): steel, shells, stiff bodies and every armour tile's.
+  const armourGrid = new Map();
+  for (let vertex = 0; vertex < count; vertex += 1) {
+    const role = regions[vertex];
+    if (role === 'skin' || !(stiff[vertex] || STEEL_ROLES.has(role) || SHELL_ROLES.has(role) || giveAt(vertex) || role === 'mail')) continue;
+    const k = key(at(vertex, 0), at(vertex, 1), at(vertex, 2));
+    let list = armourGrid.get(k);
+    if (!list) armourGrid.set(k, (list = []));
+    list.push(vertex);
+  }
+  const pinned = (vertex) => {
+    const [x, y, z] = [positions[vertex * 3], positions[vertex * 3 + 1], positions[vertex * 3 + 2]];
+    const [cx, cy, cz] = [at(vertex, 0), at(vertex, 1), at(vertex, 2)];
+    const most = LOFT.sway.pinned * LOFT.sway.pinned;
+    for (let i = cx - 1; i <= cx + 1; i += 1) for (let j = cy - 1; j <= cy + 1; j += 1) for (let k = cz - 1; k <= cz + 1; k += 1) {
+      for (const other of armourGrid.get(key(i, j, k)) ?? []) {
+        const [dx, dy, dz] = [positions[other * 3] - x, positions[other * 3 + 1] - y, positions[other * 3 + 2] - z];
+        if (dx * dx + dy * dy + dz * dz < most) return true;
+      }
+    }
+    return false;
+  };
   const sway = new Float32Array(count);
   let any = false;
   for (let vertex = 0; vertex < count; vertex += 1) {
     const role = regions[vertex];
-    const give = role === 'skin' ? 0 : giveAt(vertex);
-    const span = hungSpan.get(stiff[vertex]);
-    if (span && role !== 'skin' && span[1] - span[0] > 1e-3) {
-      const down = (span[1] - positions[vertex * 3 + 1]) / (span[1] - span[0]);
-      sway[vertex] = -down * (give ? give * LOFT.hungSwing.hung : LOFT.hungSwing.hungPlain);
+    if (role === 'skin' || held?.has(vertex)) continue;
+    const give = giveAt(vertex);
+    const body = stiff[vertex];
+    // A row of a hanging piece of plates: the row's own looseness, the same at every point of it, so it moves whole.
+    const fall = body ? falls?.get(body) : null;
+    if (fall) {
+      sway[vertex] = -(fall.share ** rowsSpec.fallPower) * fall.give;
+      if (bends) bends[vertex] = fall.bend;
       if (sway[vertex] !== 0) any = true;
       continue;
     }
-    if (role === 'skin' || (!give && (stiff[vertex] || STEEL_ROLES.has(role) || SHELL_ROLES.has(role)))) continue;
+    const span = hungSpan.get(body);
+    if (span && span[1] - span[0] > 1e-3) {
+      const down = (span[1] - positions[vertex * 3 + 1]) / (span[1] - span[0]);
+      sway[vertex] = -down * (give ? give * LOFT.hungSwing.hung : LOFT.hungSwing.hungPlain);
+      // (A board turns about its top as one plate: it does not bend.)
+      if (bends) bends[vertex] = 0;
+      if (sway[vertex] !== 0) any = true;
+      continue;
+    }
+    // (Rows, a coat's rings, a plate: held by the body where they do not hang; mail and cloth by how far they stand off it.)
+    if (body || (!give && (STEEL_ROLES.has(role) || SHELL_ROLES.has(role)))) continue;
     const [x, y, z] = [positions[vertex * 3], positions[vertex * 3 + 1], positions[vertex * 3 + 2]];
     const [cx, cy, cz] = [at(vertex, 0), at(vertex, 1), at(vertex, 2)];
     let nearest = full * full;
@@ -751,7 +835,10 @@ function looseness(positions, regions, stiff, uvs = null, hung = null, kinds = n
     const loose = Math.max(share * share * (3 - 2 * share), hung?.has(vertex) ? LOFT.sway.hung * hung.get(vertex) ** LOFT.sway.hungPower : 0);
     // (Armour negative: clothsway.js. A garment's cloth lying on the body is marked by a trace, LOFT.sway.lying, so the soft
     // swing of the man played can stir it too: clothsway.js `soft`.)
-    sway[vertex] = give ? -loose * give : loose > 0 ? loose : FABRIC_ROLES.has(role) ? LOFT.sway.lying : 0;
+    const pinnedHere = !give && FABRIC_ROLES.has(role) && pinned(vertex);
+    sway[vertex] = give ? -loose * give : loose > 0 ? loose : FABRIC_ROLES.has(role) && !pinnedHere ? LOFT.sway.lying : 0;
+    if (pinnedHere && loose > 0 && pins) pins[vertex] = 1;
+    if (give && bends) bends[vertex] = rowsSpec.bend[kindAt(vertex)] ?? 1;
     if (sway[vertex] !== 0) any = true;
   }
   return any ? sway : null;
@@ -1767,8 +1854,15 @@ function lacedShell(mesh, rings, inflate, roleOf, bones, sides, style, holes = n
   const rowsStiff = rowsKind && rowsKind !== 'plate';
   const panels = Array.isArray(rings[0].body) ? rings[0].body.length : 0;
   // (Scales, `hangs`, the other way: each row's foot stands out over the heads of the row below.)
+  // (On a hanging piece, stiffen's `hangs`: each row by how far down the piece's fall its middle lies.)
+  const hangs = rowsStiff ? mesh.bodyFall?.get([rings[0].body].flat()[0]) : null;
   for (let row = 0; row < rows; row += 1) {
     const body = !rowsStiff ? null : panels ? Array.from({ length: panels }, () => stiffBody(mesh, rowsKind)) : stiffBody(mesh, rowsKind);
+    if (hangs && body) {
+      const middle = ((row + 0.5) / rows) * last;
+      const share = fallShare(hangs.top, hangs.hem, ringAt(rings, measure.rising ? middle : last - middle).t);
+      for (const each of [body].flat()) mesh.bodyFall.set(each, { ...hangs, share });
+    }
     add(row, tile.hangs ? high : low, roleOf(row, rows), body);
     add(row + 1, tile.hangs ? low : high, roleOf(row, rows), body);
   }
@@ -4986,7 +5080,7 @@ export function* buildLoftBodySteps(body, { faceted = false, lowDetail = false, 
     // the pelvis and the skirt over the saddle broke into shards. Cut as rows all the same, fitClothToBase.)
     const lames = slot === 'skirt' && stiffnessOf(paint) === 'rows' && pieceMaterial(paint) === 'steel' && !paint.gaps;
     if (lames) for (const ring of rings) ring.kind = 'rows';
-    else stiffen(mesh, rings, stiffnessOf(paint), hung ? paint.gaps.length : slot === 'skirt' ? LOFT.stiff.panels : 0, hung);
+    else stiffen(mesh, rings, stiffnessOf(paint), hung ? paint.gaps.length : slot === 'skirt' ? LOFT.stiff.panels : 0, hung, slot === 'skirt' ? hangingRows(tile) : null);
     // Lamellae (and scales hung point down) drawn as plates over a backing of their dark lacing (the robe showing in the
     // splits), except in a crowd: with the maps, one shell in rows wearing its laced tile, or a field tile of the kind's own over
     // the backing; else plate by plate.
@@ -5057,6 +5151,7 @@ export function* buildLoftBodySteps(body, { faceted = false, lowDetail = false, 
     const studsDrawn = Boolean(paint?.studded && !lowDetail);
     // (From afar, lowDetail: one colour, not its pattern; farPaint.)
     const shown = paint && typeof paint === 'object' && lowDetail ? { ...paint, far: true } : paint;
+    const heldFrom = paint?.splints ? mesh.positions.length / 3 : -1;
     loft(mesh, rings, split ? split.sides : sides, { color: paintFor(studsDrawn ? { ...shown, studsDrawn, mirror: null } : shown, armor), inflate, capStart: overShoulder, capEnd: false, ...(bones ? { bones } : {}), ...(shape ? { shape } : {}), ...(split ? { holes: split.holes } : frontOnly) });
     if (split) {
       const { edge, stand } = legPanelsOn(mesh, rings, inflate, paint, boned, sides, split, panel(studsDrawn));
@@ -5067,6 +5162,8 @@ export function* buildLoftBodySteps(body, { faceted = false, lowDetail = false, 
     if (paint?.lames && !lowDetail) lamesOn(mesh, rings, inflate, paint, boned);
     // A splinted guard's splints and its cords (not in a crowd).
     if (paint?.splints && !lowDetail) splintsOn(mesh, rings, inflate, paint, boned);
+    // (A splinted guard's cloth is held to the limb by its splints and cords: it does not hang as a garment's cloth, looseness.)
+    if (heldFrom >= 0) for (let vertex = heldFrom; vertex < mesh.positions.length / 3; vertex += 1) (mesh.held ??= new Set()).add(vertex);
     // A brigandine's rivet heads, each its own small square (not in a crowd); its apron's binding and its skirt's steel bands.
     if (paint?.studded && !lowDetail) studsOn(mesh, rings, inflate, paint, boned);
     if (paint?.apron && !lowDetail) apronOn(mesh, rings, inflate, paint, boned);
@@ -5249,7 +5346,7 @@ export function* buildLoftBodySteps(body, { faceted = false, lowDetail = false, 
   // Kusazuri: the laced skirt of plates, in panels, over the hips and thighs.
   // (With the detail maps, its laced rows are the kozane's: one stepped shell.)
   const kozane = lamellar && DETAIL_MAPS.on && !lowDetail;
-  if (kozane) lacedShell(mesh, stiffen(mesh, skirtRings(skirtTo(0.5), count(6), 0.45), 'rows', LOFT.stiff.panels), 1.24, (row) => (row === 0 && armor.trim ? 'gold' : 'steel'), () => hanging3, sides + 6, 'kozane');
+  if (kozane) lacedShell(mesh, stiffen(mesh, skirtRings(skirtTo(0.5), count(6), 0.45), 'rows', LOFT.stiff.panels, false, hangingRows('kozane')), 1.24, (row) => (row === 0 && armor.trim ? 'gold' : 'steel'), () => hanging3, sides + 6, 'kozane');
   else if (lamellar) loft(mesh, stiffen(mesh, skirtRings(skirtTo(0.5), count(6), 0.45), 'rows', LOFT.stiff.panels), sides, { color: (ring, angle, index) => (index % 2 ? 'lace' : 'steel'), inflate: 1.24, capStart: false, capEnd: false, bones: () => hanging3 });
   // A long gown's skirt, belled out from the waist to below the knee.
   // A gown, or a skirt over another bottom (`gown`: bloomers under a bubble skirt).
@@ -6023,7 +6120,9 @@ export function* buildLoftBodySteps(body, { faceted = false, lowDetail = false, 
     for (let vertex = 0; vertex < positionArray.length / 3; vertex += 1) uvs.set(mesh.uvs.get(vertex) ?? FLAT_UV, vertex * 2);
   }
   // How loose the cloth hangs, point by point (measured while the skin under it is still here); not on a crowd's body.
-  let sway = lowDetail ? null : looseness(positionArray, colors, stiff, uvs, mesh.hung ?? null, mesh.kinds);
+  const bends = lowDetail ? null : new Float32Array(positionArray.length / 3);
+  const pins = lowDetail ? null : new Uint8Array(positionArray.length / 3);
+  let sway = lowDetail ? null : looseness(positionArray, colors, stiff, uvs, mesh.hung ?? null, mesh.kinds, mesh.bodyFall ?? null, bends, mesh.held ?? null, pins);
   // What a boned piece holds (a corset): the cloth worn on the same part within its span, under it or over it (a bodice's
   // foot, a skirt's band), is laced down with it and hangs no looser than it does: not at all.
   if (sway && mesh.ringOf && !faceted) {
@@ -6146,6 +6245,12 @@ export function* buildLoftBodySteps(body, { faceted = false, lowDetail = false, 
   // How each point's cloth moves by what it is (detailmaps.js drapeOf: its bending length and its weight): its swing scaled,
   // and its share of the wind (`air`, read by clothsway.js); armour (negative) keeps its own give.
   const air = sway ? clothDrape(sway, colors, look, clothContext) : null;
+  // (Armour's points carry their bend in the same attribute, clothsway.js: it takes no cloth's share of the wind.)
+  // (And cloth that armour pins, its share of the wind negative: it takes no soft swing.)
+  if (air) for (let vertex = 0; vertex < sway.length; vertex += 1) {
+    if (sway[vertex] < 0) air[vertex] = bends[vertex];
+    else if (pins[vertex] && sway[vertex] > 0) air[vertex] = -Math.max(air[vertex], 1e-3);
+  }
   stiffWeights(weights, stiff, mesh.kinds);
   // The base mesh's fat masses that follow the frame (fatslosh.js): an overweight trunk and up, not in a crowd; each point by the
   // share the trunk's bones carry of it (an arm or a thigh lying against the belly or a breast is not moved with it), not a rigid plate.

@@ -2594,10 +2594,16 @@ function buildPagodaHelm(group, head, r, steel, color, { laced = false, still = 
 // (Swinging more, as hair does, the user's call, 2026-11-18: was hz 2.2, damping 0.4, reach 2 cm, no twist.) `twist*`: the turn's
 // own spring, the tiers trailing the head round as it turns (at most `twistReach` rad about the helmet's upright axis).
 const PAGODA_SWAY = { hz: 1.6, damping: 0.3, trail: 0.02, reach: 0.05, jump: 0.7, top: -0.1, hem: -1.92, twistHz: 1.5, twistDamping: 0.3, twistReach: 0.15 };
-// The kabuto's shikoro as hung lames (the aventail's swing, pagodaSwing, with its own figures): five lacquered iron lames on silk
-// lacing, ~13 cm deep in all, swing as a pendulum of 2/3 of that (~1.7 Hz), the lacing damping them little (0.12 of critical);
-// its rows lag the head by up to `reach` m at the hem, the lower rows more (`curve`), and trail it round as it turns.
-const SHIKORO_SWAY = { hz: 1.7, damping: 0.12, trail: 0.02, reach: 0.045, jump: 0.7, curve: 1.2, twistHz: 1.4, twistDamping: 0.15, twistReach: 0.18 };
+// The kabuto's shikoro as laced lames (the aventail's swing, pagodaSwing, with its own figures). Each lame is one rigid plate of
+// lacquered iron or rawhide the guard's width, laced to the next with braid drawn tight through holes a centimetre or two
+// apart (kebiki or sugake odoshi), lapped a third over the next and riveted at the top to the bowl's foot: the guard is a stiff
+// bell, not a hanging fringe, and gives only by the lacing's slack, two or three millimetres a row (lifting most when the
+// shoulders push it). So its rows lag the head by at most `reach` (four rows' slack, at the hem), the lower more (`curve`), on a
+// stiff spring (`hz`: the lacing's pull back, not a free pendulum's) damped by the lames rubbing on one another and on the
+// silk (`damping`), and turn after it by no more than `twistReach` (rad, a couple of degrees). (Was hz 1.7, damping 0.12,
+// reach 4.5 cm, twist 0.18 rad, a free pendulum of lames: it swung and rang as a curtain.) Each row moves whole: one transform
+// a tier, no bending within it.
+const SHIKORO_SWAY = { hz: 3.2, damping: 0.45, trail: 0.01, reach: 0.01, jump: 0.7, curve: 1.2, twistHz: 3, twistDamping: 0.5, twistReach: 0.035 };
 
 const pagodaScratch = { at: new THREE.Vector3(), turn: new THREE.Quaternion(), move: new THREE.Vector3(), offset: new THREE.Matrix4(), spin: new THREE.Matrix4(), ahead: new THREE.Vector3(), euler: new THREE.Euler() };
 
