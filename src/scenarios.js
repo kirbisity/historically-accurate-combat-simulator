@@ -529,7 +529,7 @@ export function qiJiguangLevel({ morale = true, tactics = true, weapons = true, 
     : { front: WOKOU.front, spacing: 1.2, rowSpacing: 1.6, perRow: 8, loose: 0.25 };
   // The trench is dug before the squads where the battle draws them (SPREAD: the lines start further apart than a level's
   // own numbers put them, the works are not moved with them), the bank's back foot `before` m short of the shields.
-  const frontAt = WOKOU.front * spreadScale({ red: WOKOU.front, blue: WOKOU.front });
+  const frontAt = WOKOU.front * apartScale({ red: WOKOU.front, blue: WOKOU.front }, { scene: 'jiangnan', arena: { halfX: 14 } });
   const works = trench ? qiTrench(frontAt) : null;
   return {
     title: "Qi Jiguang's army",
@@ -637,7 +637,8 @@ const CATALAUNIAN = {
   huns: { rider: { steppeBow: 8 }, noble: { steppeBow: 2, spatha: 1 } },
   germans: { spearRound: 14, spathaRound: 10 },
   arena: { halfX: 58, halfZ: 38 },
-  front: 20,
+  // (20 until 2026-11-27: the lines start half as far apart again, the floor's 58 m room enough.)
+  front: 30,
 };
 
 // Carrhae, June 53 BC. Crassus's seven legions and four thousand horse, marching
@@ -659,8 +660,9 @@ const CARRHAE = {
   square: { sides: [7, 5], spacing: 1.25 },
   // Crassus's square stood under the arrows (it marched on only at night, in retreat): it holds its ground, shields locked.
   drill: { advance: false, square: true },
-  romanFront: 12,
-  parthianFront: 24,
+  // (12 and 24 until 2026-11-27: half as far apart again, inside the floor as it was.)
+  romanFront: 18,
+  parthianFront: 36,
   // The camels this far (m) in from the Parthians' end of the floor (on its middle line).
   train: { back: 3 },
   // The horse held: Publius's Gauls on the square's flanks, Surena's cataphracts (only they: `styles`) behind his
@@ -935,15 +937,23 @@ export function battleOf(key, { themes = true } = {}) {
  * place's fixed scenery leaves open (`room`: the town's house fronts, the
  * port's lane of containers, the water town's shops); the camera draws back
  * with the floor, short of a `room`'s `camera` (the square's house fronts).
+ * Where the place's fixed scenery stops the floor short (`room`), the armies are
+ * drawn apart only as far as it leaves (`fit`: the further side's front back by
+ * no more than the floor can grow), but never less than they were before the
+ * lines were set further apart (`before`: 1.5 and 12 m, until 2026-11-27).
  * A level may draw its armies apart by a factor of its own (`spread`): one
  * whose place is too small for the whole of it.
  * Only the battles: a duel (no `cast`) and the levels' own data
  * (SCENARIOS[key], the sandbox's fixtures and the fingerprint's) are left as they are.
  */
 export const SPREAD = {
-  factor: 1.5,
-  least: 12,
+  // (Half as far again as the 1.5 and 12 m before: `before`.)
+  factor: 2.25,
+  least: 18,
+  before: { factor: 1.5, least: 12 },
   room: {
+    // The fort's beach: the wet sand and the surf from 22.6 m (render.js buildCoast `shoreX`).
+    coastFort: { halfX: 21 },
     // Maidstone's square: the house fronts stand at 12.5 m (render.js buildTown); the camera never further out than they are.
     town: { halfX: 11.5, camera: 10.5 },
     // The water town's square: its shops at ±19.5 m (props/jiangnan.js JIANGNAN_PLAN), wine jars before them.
@@ -956,10 +966,18 @@ export const SPREAD = {
   },
 };
 
-/** How much each front is drawn back (SPREAD): by `factor`, to at least SPREAD.least between the lines, both sides drawn back alike. */
-function spreadScale(fronts, factor = SPREAD.factor) {
+/** How much each front is drawn back (SPREAD): by `factor`, to at least `least` m between the lines, both sides drawn back alike. */
+function spreadScale(fronts, factor = SPREAD.factor, least = SPREAD.least) {
   const gap = fronts.red + fronts.blue;
-  return gap > 0 ? Math.max(factor, SPREAD.least / gap) : factor;
+  return gap > 0 ? Math.max(factor, least / gap) : factor;
+}
+
+/** How much a level's fronts are drawn back (SPREAD): its own `spread` or SPREAD's, as far as its scene's `room` leaves, never less than `before`. */
+function apartScale(fronts, { spread, scene, arena }) {
+  const room = SPREAD.room[scene];
+  const before = spreadScale(fronts, spread ?? SPREAD.before.factor, SPREAD.before.least);
+  const fit = room ? 1 + (room.halfX - arena.halfX) / Math.max(1e-6, fronts.red, fronts.blue) : Infinity;
+  return Math.max(before, Math.min(spreadScale(fronts, spread), fit));
 }
 
 /** A battle with its armies drawn apart (SPREAD). */
@@ -968,10 +986,10 @@ export function drawnApart(level) {
   // An ambush (a side's `ambush`: Cajamarca) is laid where it was laid: its men are not in lines to draw apart.
   if (level.formation.red?.ambush || level.formation.blue?.ambush) return level;
   const fronts = Object.fromEntries(['red', 'blue'].map((corner) => [corner, level.formation[corner]?.front ?? 0]));
-  const scale = spreadScale(fronts, level.spread);
+  const room = SPREAD.room[level.scene];
+  const scale = apartScale(fronts, level);
   const formation = Object.fromEntries(['red', 'blue'].map((corner) => [corner, level.formation[corner]?.front === undefined ? level.formation[corner] : { ...level.formation[corner], front: fronts[corner] * scale }]));
   const back = Math.max(...['red', 'blue'].map((corner) => fronts[corner] * (scale - 1)));
-  const room = SPREAD.room[level.scene];
   const halfX = Math.min(room?.halfX ?? Infinity, level.arena.halfX + back);
   const grown = halfX / level.arena.halfX;
   const camera = level.camera && {

@@ -66,7 +66,7 @@ test('a subway fight runs to an end on the same physics, inside the platform', (
   assert.ok(world.fighters.every((fighter) => fighter.stats.thrown > 0));
 });
 
-test('the battles start further apart than the levels\' own lines: the gap half as wide again, the floor longer by as much, inside the place', () => {
+test('the battles start further apart than the levels\' own lines: the gap 2.25 times as wide, the floor longer by as much, inside the place', () => {
   // The gap before: the level's own fronts, with its wings' (the foot line the battle is fought on).
   const ownGap = (key) => {
     const level = SCENARIOS[key];
@@ -77,9 +77,14 @@ test('the battles start further apart than the levels\' own lines: the gap half 
   for (const key of Object.keys(SCENARIOS).filter((name) => SCENARIOS[name].cast && !SCENARIOS[name].formation.red.ambush)) {
     const played = battleOf(key);
     const gap = played.formation.red.front + played.formation.blue.front;
-    const factor = SCENARIOS[key].spread ?? SPREAD.factor;
-    assert.ok(Math.abs(gap - Math.max(ownGap(key) * factor, SPREAD.least)) < 1e-9, `${key}: ${ownGap(key)} m to ${gap} m`);
-    assert.ok(gap >= SPREAD.least, key);
+    // As wide as SPREAD (or the level's own `spread`) has it, else as far as the place's room lets the floor grow; never
+    // narrower than before (SPREAD.before).
+    const want = Math.max(ownGap(key) * (SCENARIOS[key].spread ?? SPREAD.factor), SPREAD.least);
+    const before = Math.max(ownGap(key) * (SCENARIOS[key].spread ?? SPREAD.before.factor), SPREAD.before.least);
+    const room = SPREAD.room[played.scene]?.halfX;
+    const near = (a, b) => Math.abs(a - b) < 1e-9;
+    assert.ok(gap >= before - 1e-9 && gap <= want + 1e-9, `${key}: ${ownGap(key)} m to ${gap} m`);
+    assert.ok(near(gap, want) || near(gap, before) || near(played.arena.halfX, room), `${key}: ${ownGap(key)} m to ${gap} m, short of ${want} m with room left`);
     // The floor is longer, never past the place's fixed scenery; no narrower.
     const own = SCENARIOS[key].wings?.arena ?? SCENARIOS[key].arena;
     assert.ok(played.arena.halfX >= own.halfX, key);
@@ -96,8 +101,9 @@ test('the battles start further apart than the levels\' own lines: the gap half 
       assert.ok((fighter.corner === 'red' ? -x : x) > played.formation[fighter.corner].front - ahead - 1, `${who} behind his line`);
     }
   }
-  // The two wokou levels: 16 m between the lines become 24.
+  // The two wokou levels: 16 m between the lines become 24 (the water town's shops leave no more); Zeelandia's 10 m 22, to the beach.
   assert.equal(battleOf('wokou').formation.red.front + battleOf('wokou').formation.blue.front, 24);
+  assert.ok(Math.abs(battleOf('zeelandia').formation.red.front + battleOf('zeelandia').formation.blue.front - 22) < 1e-9);
   // Qi Jiguang's squads keep their shape (each man's place in the layout), only further back.
   assert.deepEqual(battleOf('qiJiguang').formation.blue.layout, SCENARIOS.qiJiguang.formation.blue.layout);
 });

@@ -65,8 +65,10 @@ export const CUSTOM_BATTLE = {
     // is fought on (story/battles/02-wokou.js), level paving at the ground's own height, so the floor is the place's.
     get canaltown() { return (customCanalTownMade ??= customCanalTown()); },
   },
-  // A side drawn up as the level has it: ten or twelve abreast, the bows and guns in front (formation.js), the riders on the flanks.
-  order: { spacing: 1.2, rowSpacing: 1.5, perRow: 12, shootersFront: 4, frontShare: 0.3, frontMost: 14 },
+  // A side drawn up as the level has it: ten or twelve abreast, the bows and guns in front (formation.js), the riders on the flanks;
+  // its front 0.45 of the floor's half-length, at most 21 m (0.3 and 14 until 2026-11-27: the sides start half as far apart again).
+  // (A side too deep for its ground is drawn up nearer the middle: muster.js drawUp.)
+  order: { spacing: 1.2, rowSpacing: 1.5, perRow: 12, shootersFront: 4, frontShare: 0.45, frontMost: 21 },
   // A first visit: knights against samurai on the open field, the first kinds of each (the roster's most armoured first).
   first: { map: 'field', factions: { red: 'knights', blue: 'japanese' }, kinds: 3, each: 4 },
 };
