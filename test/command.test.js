@@ -30,18 +30,129 @@ test('orders are for a side of four or more: not a one-on-one; every battle begi
   assert.equal(COMMAND.minSide, 4);
 });
 
-test('To me: his men leave the ranks and gather round him, all within a few metres', () => {
+/** The spread (m, rms) of each man's displacement since `from` about their mean displacement, and that mean ([x, z]). */
+function displacement(men, from) {
+  const moved = men.filter((fighter) => from.has(fighter)).map((fighter) => [at(fighter)[0] - from.get(fighter)[0], at(fighter)[1] - from.get(fighter)[1]]);
+  const middle = [mean(moved.map((move) => move[0])), mean(moved.map((move) => move[1]))];
+  const spread = Math.sqrt(mean(moved.map((move) => (move[0] - middle[0]) ** 2 + (move[1] - middle[1]) ** 2)));
+  return { middle, spread };
+}
+// (On foot: the horse are not marched.)
+const placesNow = (men) => new Map(hearing(men).filter((fighter) => !fighter.mount).map((fighter) => [fighter, at(fighter)]));
+
+/** Run with the player walking the way `yaw` faces (not thought for), `seconds` long. */
+async function walkPlayer(world, player, yaw, seconds) {
+  const { advance } = await import('../src/physics.js');
+  const { thinkAll } = await import('../src/ai.js');
+  advance(world, seconds, (current, dt) => {
+    thinkAll(current, dt, new Set([player.id]));
+    player.yaw = yaw;
+    player.move = 1;
+    player.strafe = 0;
+    player.running = false;
+  });
+}
+
+test('To me with a formation: it comes to him whole and follows him as he goes, every man moved alike', async () => {
   const { world, player, men } = legion();
-  const before = mean(men.map((fighter) => apart(at(fighter), at(player))));
   giveOrder(world, player, 'rally');
   assert.equal(standingOrder(world, 'red'), 'rally');
+  assert.ok(world.commands.red.offset, 'a march, not rings');
+  runOrders(world, player, 2);
+  const from = placesNow(men);
+  const playerFrom = at(player);
+  // He walks off across the field (+z); the ranks come after him.
+  await walkPlayer(world, player, -Math.PI / 2, 6);
+  const { middle, spread } = displacement(hearing(men), from);
+  const walked = apart(at(player), playerFrom);
+  assert.ok(middle[1] > walked * 0.5, `the ranks followed: ${middle[1].toFixed(2)} m (he walked ${walked.toFixed(2)})`);
+  assert.ok(spread < 0.5, `the shape kept: each man's displacement within ${spread.toFixed(2)} m of the rest`);
+  // The formation's own anchor went with them (taken back, they stand where they are).
+  assert.ok(Math.abs(world.formations.red.anchor[1] - world.commands.red.anchor[1] - world.commands.red.offset[1]) < 1e-9);
+});
+
+test('To me from afar: the formation is brought up to him, its nearest man a few steps off', async () => {
+  const { world, player, men } = legion();
+  // He walks away behind his ranks first (red faces +x), then calls them.
+  await walkPlayer(world, player, Math.PI, 12);
+  const before = Math.min(...hearing(men).map((fighter) => apart(at(fighter), at(player))));
+  giveOrder(world, player, 'rally');
+  runOrders(world, player, 10);
+  const nearest = Math.min(...hearing(men).map((fighter) => apart(at(fighter), at(player))));
+  assert.ok(before > 5 && nearest < COMMAND.march.near + 1.5, `nearest man ${before.toFixed(1)} → ${nearest.toFixed(1)} m`);
+});
+
+test('Advance: the formation walks toward the enemy as one body, then charges home', () => {
+  // (The level's own legion, its lines some 40 m apart: room for a long walk before the charge.)
+  const { world, player, men } = orderBattle('legion', 1);
+  const command = giveOrder(world, player, 'advance');
+  assert.equal(standingOrder(world, 'red'), 'advance');
+  runOrders(world, player, 3);
+  const from = placesNow(men);
+  const offset = [...command.offset];
+  runOrders(world, player, 5);
+  assert.equal(standingOrder(world, 'red'), 'advance');
+  const { middle, spread } = displacement(hearing(men), from);
+  const way = towardEnemy(world, player);
+  const along = middle[0] * way[0] + middle[1] * way[1];
+  // At the march's walk, or (dressing on the slowest) as fast as men in armour step facing the enemy.
+  assert.ok(along / 5 > 0.6 && along / 5 <= COMMAND.march.advance + 0.05, `at a steady walk: ${(along / 5).toFixed(2)} m/s`);
+  assert.ok(apart(middle, [command.offset[0] - offset[0], command.offset[1] - offset[1]]) < 0.6, `with the offset: ${middle.map((v) => v.toFixed(2))} against ${(command.offset[0] - offset[0]).toFixed(2)}`);
+  assert.ok(spread < 0.4, `the shape kept: ${spread.toFixed(2)} m`);
+  // Near the enemy (Sekigahara's lines start some 25 m apart) the advance becomes a charge that way.
+  const near = orderBattle('sekigahara', 1);
+  const given = giveOrder(near.world, near.player, 'advance');
+  let charged = null;
+  for (let t = 0; t < 12 && !charged; t += 0.5) {
+    runOrders(near.world, near.player, 0.5);
+    if (standingOrder(near.world, 'red') === 'charge') charged = near.world.commands.red;
+  }
+  assert.ok(charged, 'it became a charge');
+  assert.equal(charged.fromAdvance, given.serial);
+  const foes = near.world.fighters.filter((fighter) => fighter.corner === 'blue' && fighter.state === 'up' && !fighter.mount);
+  const gap = Math.min(...hearing(near.men).filter((fighter) => !fighter.mount).map((fighter) => Math.min(...foes.map((foe) => apart(at(foe), at(fighter))))));
+  assert.ok(gap < COMMAND.march.chargeAt + 3, `charged from ${gap.toFixed(1)} m`);
+  assert.ok(charged.dir[0] * towardEnemy(near.world, near.player)[0] > 0.8, 'at the enemy');
+});
+
+test('Fall back: the formation steps back from the enemy as one body, far slower than it advances, facing them', () => {
+  const { world, player, men } = legion();
+  const command = giveOrder(world, player, 'fallback');
+  runOrders(world, player, 2);
+  const from = placesNow(men);
+  runOrders(world, player, 5);
+  const { middle, spread } = displacement(hearing(men), from);
+  const way = command.heading;
+  const back = -(middle[0] * way[0] + middle[1] * way[1]) / 5;
+  assert.ok(back > 0.2 && back < COMMAND.march.advance / 2, `back at ${back.toFixed(2)} m/s (the advance ${COMMAND.march.advance})`);
+  assert.ok(spread < 0.4, `the shape kept: ${spread.toFixed(2)} m`);
+  // Still facing them: each man's facing within a right angle of the way to the enemy.
+  const facing = hearing(men).filter((fighter) => Math.cos(fighter.yaw) * way[0] - Math.sin(fighter.yaw) * way[1] > 0);
+  assert.ok(facing.length >= hearing(men).length - 2, `${facing.length} of ${hearing(men).length} facing the enemy`);
+});
+
+test('Fall back stops at the field\'s edge, the shape kept', () => {
+  // The raiders of the wokou level stand near the end of their floor.
+  const { world, player, men } = orderBattle('wokou', 2);
+  const command = giveOrder(world, player, 'fallback');
   runOrders(world, player, 8);
-  const up = hearing(men);
-  const after = up.map((fighter) => apart(at(fighter), at(player)));
-  assert.ok(mean(after) < 3.5 && mean(after) < before, `mean ${mean(after).toFixed(2)} m (was ${before.toFixed(2)})`);
-  assert.ok(after.every((distance) => distance < 6), `all within 6 m: ${after.map((distance) => distance.toFixed(1)).join(' ')}`);
-  // (That they then stand still is not asserted: the Han crossbows shoot into them all the while, and since bolts drop a man
-  // (2026-11-03) the circle keeps closing up round the fallen.)
+  const offset = [...command.offset];
+  runOrders(world, player, 3);
+  assert.ok(apart(offset, command.offset) < 1e-9, 'halted');
+  const edge = world.arena.halfX - COMMAND.march.edge;
+  for (const fighter of hearing(men)) assert.ok(Math.abs(command.base[fighter.id][0] + command.offset[0]) <= edge + COMMAND.march.look);
+});
+
+test('the march by arms: Advance to the shot leaves the foot free; the horse are not walked; Free takes it back', () => {
+  const { world, player } = orderBattle('catalaunian', 1);
+  assert.equal(giveOrder(world, player, 'advance', { group: 'horse' }), null);
+  giveOrder(world, player, 'advance', { group: 'shot' });
+  assert.equal(standingOrder(world, 'red', 'shot'), 'advance');
+  assert.equal(standingOrder(world, 'red', 'foot'), 'free');
+  // An order to the shot does not move the foot's ranks.
+  assert.equal(world.groupCommands.red.shot.anchor, undefined);
+  giveOrder(world, player, 'free');
+  assert.equal(standingOrder(world, 'red', 'shot'), 'free');
 });
 
 test('To me in a loose crowd (no drill): the raiders gather round their man', () => {
@@ -106,7 +217,8 @@ test('Hold: the formation stops where it is and his men stand in their ranks; lo
 
 test('Free: the order taken back, the side goes its own way again (back to the ranks)', () => {
   const { world, player, men } = legion();
-  giveOrder(world, player, 'rally');
+  // Drawn up in a wedge, out of their ranks.
+  giveOrder(world, player, 'wedge', { dir: towardEnemy(world, player) });
   runOrders(world, player, 5);
   const formation = world.formations.red;
   const fromSlots = () => mean(hearing(men).map((fighter) => apart(at(fighter), slotAt(formation, fighter.slot))));

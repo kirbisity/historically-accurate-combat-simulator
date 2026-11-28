@@ -219,7 +219,8 @@ body[data-game="tutorial"] .fu-orders, body[data-game="tutorial"] .fu-order-said
 /* With the army orders up (the player has men to command: his comrades), the item row sits under their bar, not on it. */
 .fight-ui:has(.fu-orders:not([hidden])) .lv-items { left: calc(12px + env(safe-area-inset-left, 0px)); top: calc(112px + env(safe-area-inset-top, 0px)); }
 @media (max-width: 520px) {
-  .fight-ui:has(.fu-orders:not([hidden])) .lv-items { left: calc(8px + env(safe-area-inset-left, 0px)); top: calc(162px + env(safe-area-inset-top, 0px)); }
+  /* (Under the order row's second line on a phone: its orders run on to two lines.) */
+  .fight-ui:has(.fu-orders:not([hidden])) .lv-items { left: calc(8px + env(safe-area-inset-left, 0px)); top: calc(208px + env(safe-area-inset-top, 0px)); }
 }
 .lv-item[data-item="kit"] { width: 48px; }
 .lv-item[data-item="kit"] .lv-icon { color: var(--gold); }
@@ -282,4 +283,6 @@ html:lang(zh) :is(.fu-legend, .fu-toast-name, .fu-toast-outcome, .fu-btn-name) {
   .fu-orders { top: calc(66px + env(safe-area-inset-top, 0px)); left: calc(8px + env(safe-area-inset-left, 0px)); }
   .fu-orders .fu-order { width: 52px; height: 42px; font-size: 7.5px; letter-spacing: 0.02em; }
   .fu-orders .fu-fire { width: 62px; }
+  /* Eight orders and the fire order are wider than a phone held upright: the row runs on to a second line, never off the screen. */
+  .fu-order-row { flex-wrap: wrap; max-width: calc(100vw - 16px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)); }
 }

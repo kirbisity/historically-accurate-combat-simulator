@@ -42,6 +42,7 @@ import { wristFit } from './handform.js';
 import { handHold, updateHands } from './handview.js';
 import { buildAirPack, buildBackBox, buildBackPrint, buildBanner, buildSigns, signsLocal, buildFootwear, buildHand, buildHeadgear, buildSwinging, dressFor, handKind, roleColors, steelEnvironment, steelMaterial, tattooColor, buildHeadProp } from './wardrobe.js';
 import { buildHead, hairCurtain, hairCurtainSoft } from './face.js';
+import { EXPRESSION_CHANNELS } from './faceexpr.js';
 import { HELM_HEAD_BREADTH, HELM_SPAN } from './helmforms.js';
 import { photoFaceFor, skinScatter } from './photoface.js';
 import { capsules, capsuleEnds, halfPoints, point, WORLD } from './physics.js';
@@ -3904,6 +3905,9 @@ export function setLayer(fighterView, layer) {
 
 // ---- Per-frame update -----------------------------------------------------
 
+/** A face at rest: every expression channel at 0 (faceexpr.js), for a custom head whose man has gone out of range. */
+const NEUTRAL_EXPRESSION = Object.freeze(Object.fromEntries(EXPRESSION_CHANNELS.map((channel) => [channel, 0])));
+
 export function updateFighterView(fighterView, dt, time) {
   // (What a robot dog carries, bolted on its back, is drawn with the robot, not as a man: robotdogview.js.)
   if (fighterView.fighter.body.gear.bolted) {
@@ -4005,7 +4009,16 @@ export function updateFighterView(fighterView, dt, time) {
   // Hair also rests on the armour worn over the trunk (its reach behind the spine, measured when the armour was built).
   const trunk = colliders[1];
   const hairColliders = fighterView.armourBack > trunk.radius ? [...colliders, { a: trunk.a, b: trunk.b, radius: fighterView.armourBack, part: 'armour' }] : colliders;
-  if (!fighterView.headDetached) fighterView.head.update(step, fighter, time, hairColliders);
+  // (The battle's expression, faceexpr.js: stepped by main.js for the men near the camera, `expression`, else null. A stock head
+  // takes it as offsets to its rig; a custom head, facecustom/solver.js, as weights to its own bones and shapes, once more as
+  // neutral when he goes out of range so no far face is left holding a snarl.)
+  if (!fighterView.headDetached) {
+    fighterView.head.update?.(step, fighter, time, hairColliders, fighterView.expression ?? null);
+    if (fighterView.head.setExpression && (fighterView.expression || fighterView.expressionShown)) {
+      fighterView.head.setExpression(fighterView.expression ?? NEUTRAL_EXPRESSION);
+      fighterView.expressionShown = Boolean(fighterView.expression);
+    }
+  }
   // (His armour's wear first: a blow near a hung piece knocks it, a cut cord loosens it, a piece cut loose falls.)
   updateArmourWear(fighterView, fighter);
   for (const dangle of fighterView.dangles) dangle.update(step, colliders.slice(1));

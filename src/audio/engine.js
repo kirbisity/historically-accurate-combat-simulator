@@ -27,9 +27,10 @@ import { SOUND_FAMILIES, soundCandidates } from './families.js';
 import { gainOfLevel, sfxVoice } from './synth.js';
 import { createSampleBank } from './samples.js';
 import { breathHeard, breathPlan, playPlan, playWithSamples, uiSamplePlan } from './sfx/sampled.js';
-import { breathParams, cryRate, playBreath, voiceOfBody } from './sfx/voice.js';
+import { breathParams, CRY_KINDS, cryRate, playBreath, voiceOfBody } from './sfx/voice.js';
 import { playWhizz, whizzParams } from './sfx/ranged.js';
 import { CRIES, createCryDirector, voiceOfFighter } from './cries.js';
+import { FACE_EXPRESSION, noteVoice } from '../faceexpr.js';
 import { CHARGE, chargeOf } from './charge.js';
 import { FIRE_CALL, createFireCallWatcher, fireCallDin, fireCallDinAdd, fireCallDinEase, fireCallMasked, fireCallRank, fireCallStanding } from './firecall.js';
 import { createFlameSound } from './flamesound.js';
@@ -83,6 +84,15 @@ const BREATH = { others: 2, near: 7 };
 
 /** A fighter's mass (kg), summed once. */
 const MASSES = new WeakMap();
+/** A cry let through (cries.js: its kind, its delay and rate), given with the man's face from when it starts for as long as it sounds. */
+function noteCry(world, event) {
+  const listed = world.fighters?.[event.who];
+  const fighter = listed?.id === event.who ? listed : world.fighters?.find((man) => man.id === event.who);
+  const kind = CRY_KINDS[event.cry.kind];
+  if (!fighter || !kind) return;
+  noteVoice(fighter, event.cry.kind, (world.time ?? 0) + (event.cry.delay ?? 0), kind.seconds / (event.cry.rate || 1));
+}
+
 function fighterMass(fighter) {
   let mass = MASSES.get(fighter);
   if (mass === undefined) {
@@ -466,6 +476,8 @@ export function createAudioEngine(env = typeof window === 'undefined' ? null : w
     state.cursor = read.cursor;
     // (The fire orders watched even while the context sleeps, so an order given then is not called late when it wakes.)
     const calls = state.fireCall.tick(world, world.time ?? 0);
+    // (Each call's giver shouts it with his face too, heard or not: faceexpr.js.)
+    for (const call of calls) noteVoice(call.by, 'call', world.time ?? 0, FACE_EXPRESSION.voice.callSeconds);
     wake.watch();
     if (!state.ctx || state.ctx.state !== 'running') return;
     tick(info, thunder ? [...read.events, thunder] : read.events, step);
@@ -493,7 +505,10 @@ export function createAudioEngine(env = typeof window === 'undefined' ? null : w
       ctx.listener.setOrientation(...listener.forward, ...listener.up);
     }
     // The events of this tick, the voices among them rationed into cries (cries.js): gathered, limited, ranked against the playing voices, played.
-    const candidates = soundCandidates(state.cries.tick(events, world.fighters ?? [], listener, now), listener);
+    const voiced = state.cries.tick(events, world.fighters ?? [], listener, now);
+    // (A cry let through is given with the face as well, for as long as it sounds: faceexpr.js.)
+    for (const event of voiced) if (event.cry) noteCry(world, event);
+    const candidates = soundCandidates(voiced, listener);
     // The din a call is heard through (firecall.js): as it was before this tick's sounds (a side's call comes with its first shot,
     // which it gave the word for, so that shot does not drown it), then this tick's added.
     state.din = fireCallDinEase(state.din, dt);

@@ -858,7 +858,7 @@ function thinkEachMan(world, dt, playerIds) {
   moveFormations(world, dt, hurtShare);
   moveWings(world, dt);
   // The player's orders to his side (command.js).
-  keepOrders(world);
+  keepOrders(world, dt);
   // In a big fight, a fighter with nothing happening near him thinks ten
   // times a second (each on his own beat) rather than every step; and one the player cannot see deciding, less (AI.perceive).
   const staggered = fightTier(world) >= 3;

@@ -244,11 +244,20 @@ export const FACE_COUPLING_MOST = 0.2;
 /**
  * The fight's expressions, each at its full weight: bone changes as FACE_SCULPT's, with `side` ('left' or 'right') for one
  * that is not the same on both. A third to a half of a slider's throw: an expression is the muscles' pull on the skin,
- * a few millimetres. The first six are whole expressions; the rest are single pulls to mix.
+ * a few millimetres: the fight's driver (faceexpr.js) sends weights it has already capped at 0.55 to 0.8, so the full
+ * weight written here is a strong face and what is shown is two thirds of it. The first six are whole expressions; the
+ * rest are single pulls to mix. The brows and lids of a photo face are in its texture, which rides the mesh: moving the
+ * brow's and the eye's patches moves the painted brow and narrows or widens the painted eye. Fear's mouth is apart
+ * (`fearOpen`, `press`): the driver says which a man does (its `fearParts`: headExpressions).
  */
 export const FACE_EXPRESSIONS = {
   fury: [faceMove('browIn', 0, -0.05, -0.02), faceMove('browOut', 0, 0.015, 0), faceGrow('eye', 0, -0.2, 0), faceMove('alar', 0, 0.01, 0.02), faceMove('lipUpper', 0.005, 0.015, 0), faceMove('corner', 0, -0.025, 0), faceMove('jaw', 0.015, 0, 0)],
-  fear: [faceMove('browIn', 0, 0.05, 0), faceMove('brow', 0, 0.03, 0), faceGrow('eye', 0, 0.3, 0.05), faceMove('corner', -0.01, -0.01, 0.025), faceTurn('jaw', 'z', -0.05, 'hinge')],
+  fear: [faceMove('browIn', 0, 0.05, 0), faceMove('brow', 0, 0.03, 0), faceGrow('eye', 0, 0.3, 0.05), faceMove('corner', -0.01, -0.01, 0.025)],
+  fearOpen: [faceTurn('jaw', 'z', -0.06, 'hinge')],
+  // The lips pressed together and drawn thin; the jaw shifted to one side.
+  press: [faceMove('lipUpper', -0.008, -0.012, 0), faceMove('lipLower', -0.008, 0.012, 0), faceMove('corner', -0.004, 0, 0.012)],
+  jawLeft: [faceMove('jaw', 0, 0, 0.03)],
+  jawRight: [faceMove('jaw', 0, 0, -0.03)],
   shout: [faceTurn('jaw', 'z', -0.16, 'hinge'), faceMove('lipUpper', 0, 0.02, 0), faceMove('corner', -0.01, 0, 0.02), faceMove('browIn', 0, -0.025, -0.01), faceMove('alar', 0, 0, 0.015), faceMove('cheek', 0, 0.015, 0)],
   calm: [faceMove('brow', 0, 0.008, 0), faceGrow('eye', 0, -0.08, 0), faceMove('corner', 0, 0.006, 0)],
   pain: [faceMove('browIn', 0, -0.04, -0.02), faceGrow('eye', 0, -0.45, 0), faceMove('cheek', 0, 0.03, 0), faceMove('corner', -0.01, 0.01, 0.035), faceMove('lipUpper', 0, 0.02, 0), faceTurn('jaw', 'z', -0.04, 'hinge')],
@@ -512,7 +521,7 @@ export function compileExpressions(points, marks) {
     for (let at = 0; at < points.length; at += 3) {
       by[0] = 0; by[1] = 0; by[2] = 0;
       addMoves(instances, points[at], points[at + 1], points[at + 2], by, 0);
-      if (Math.abs(by[0]) + Math.abs(by[1]) + Math.abs(by[2]) < FACE_EXPRESSION.least) continue;
+      if (Math.abs(by[0]) + Math.abs(by[1]) + Math.abs(by[2]) < FACE_EXPRESSION_BLEND.least) continue;
       index.push(at / 3);
       delta.push(by[0], by[1], by[2]);
     }
@@ -521,11 +530,13 @@ export function compileExpressions(points, marks) {
   return compiled;
 }
 
-export const FACE_EXPRESSION = {
+export const FACE_EXPRESSION_BLEND = {
   // A point an expression moves by less than this (unit radii: a twentieth of a millimetre on a head) is left out of it.
   least: 5e-4,
   // A weight that has changed by less than this since the head was last written is not written again.
   still: 0.004,
+  // Fear's mouth: parted (`fearParts` true or not said: this share of fear's weight on `fearOpen`) or pressed (false: on `press`).
+  fearMouth: 0.8,
 };
 
 /**
@@ -627,12 +638,19 @@ export function headExpressions(head, scale) {
   const offsets = new Float32Array(unit.length);
   let last = {};
   let moved = false;
-  const set = (weights = {}) => {
-    const names = new Set([...Object.keys(weights), ...Object.keys(last)]);
+  const set = (weights) => {
+    // (Only the expressions there are, as numbers: any other key, and the driver's `fearParts` flag, is passed over.)
+    const wanted = {};
+    for (const [name, weight] of Object.entries(weights ?? {})) if (compiled[name] && typeof weight === 'number' && Number.isFinite(weight)) wanted[name] = Math.min(1, Math.max(0, weight));
+    if (wanted.fear) {
+      const mouth = weights.fearParts === false ? 'press' : 'fearOpen';
+      wanted[mouth] = Math.min(1, (wanted[mouth] ?? 0) + FACE_EXPRESSION_BLEND.fearMouth * wanted.fear);
+    }
+    const names = new Set([...Object.keys(wanted), ...Object.keys(last)]);
     let changed = false;
-    for (const name of names) if (compiled[name] && Math.abs((weights[name] ?? 0) - (last[name] ?? 0)) > FACE_EXPRESSION.still) changed = true;
+    for (const name of names) if (Math.abs((wanted[name] ?? 0) - (last[name] ?? 0)) > FACE_EXPRESSION_BLEND.still) changed = true;
     if (!changed) return false;
-    last = Object.fromEntries(Object.entries(weights).filter(([name]) => compiled[name]).map(([name, weight]) => [name, Math.min(1, Math.max(0, weight))]));
+    last = wanted;
     const any = blendExpressions(compiled, last, offsets, scale);
     const wrote = any || moved;
     moved = any;

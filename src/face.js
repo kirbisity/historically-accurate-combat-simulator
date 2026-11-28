@@ -28,6 +28,7 @@ import { buildHairMass, buildHairRim, headEllipsoid } from './hairmass.js';
 import { buildHairSwing, HAIR_SWING } from './hairswing.js';
 import { faceSculptor, headExpressions, presetBaseline } from './facecustom/solver.js';
 import { skinMaterialFor } from './facecustom/skin.js';
+import { stockOffsets } from './faceexpr.js';
 
 export const LOOK_OPTIONS = {
   hairStyle: ['spiky', 'cleanShort', 'fade', 'buzz', 'cornrows', 'bun', 'ponytail', 'midLong', 'long', 'dreads', 'topknot', 'sakayaki', 'ringletPigtails', 'ringlets', 'ringletUpdo', 'hime', 'bald'],
@@ -152,6 +153,9 @@ const FACE = {
   blinkSeconds: 0.12,
   winceSeconds: 0.45,
   bruiseShare: 0.6, // how red the face goes at full damage
+  // The widest the eyes open (the lid below 0: the eye's white taller than at rest, the lash raised): a fury or a fear widens them
+  // a quarter at most, past which a drawn eye reads as a cartoon's.
+  lidWidest: -0.25,
 };
 
 // ---- Skull --------------------------------------------------------------
@@ -654,7 +658,11 @@ export function buildHead(body, lookInput, skinHex, cornerHex) {
 
   // ---- Expression -------------------------------------------------------
   const face = { blinkIn: 1 + Math.random() * 3, blinking: 0, lid: 0, mouth: 0, brow: 0, flush: 0, gaze: [0, 0], gazeIn: 1 };
-  function update(dt, fighter, time, colliders = []) {
+  // The battle's expression on top (faceexpr.js: its weights, stepped for the men near the camera, `expression`; null for none),
+  // as offsets to this rig's own values, and the mouth's resting breadth to stretch or press from.
+  const offsets = stockOffsets(null);
+  const mouthRest = { line: mouthLine.scale.x, x: mouthLine.position.x };
+  function update(dt, fighter, time, colliders = [], expression = null) {
     for (const dangle of dangles) dangle.update(dt, colliders);
     face.blinkIn -= dt;
     if (face.blinkIn <= 0) {
@@ -670,15 +678,16 @@ export function buildHead(body, lookInput, skinHex, cornerHex) {
     // (Panting and the flush read the stamina below empty too: the player's overdraft pants faster, to the full.)
     const panting = Math.max(0, 0.45 - fighter.stamina) * 2 * (0.6 + 0.4 * Math.sin(time * Math.PI * 1.7 * (1 + WORLD.overdraft.breath.quicken * overdraftDepth(fighter.stamina))));
 
-    let lid = 0.1 * punching + 0.75 * wince + 0.45 * stunned;
+    stockOffsets(out ? null : expression, offsets);
+    let lid = 0.1 * punching + 0.75 * wince + 0.45 * stunned + offsets.lid;
     if (face.blinking > 0 || out) lid = 1;
-    const mouthOpen = out ? 0.6 : Math.min(1, 0.9 * wince + panting + 0.3 * stunned) * (punching ? 0.2 : 1);
-    const brow = Math.min(1, 0.8 * wince + 0.5 * punching) - 0.6 * stunned;
+    const mouthOpen = out ? 0.6 : Math.max(0, Math.min(1, Math.min(1, 0.9 * wince + panting + 0.3 * stunned) * (punching ? 0.2 : 1) + offsets.mouth));
+    const brow = Math.max(-1, Math.min(1, Math.min(1, 0.8 * wince + 0.5 * punching) - 0.6 * stunned + offsets.brow));
     const capacity = concussionCapacity(fighter);
     const damage = Math.min(1, Math.max(fighter.concussion / capacity + fighter.knockdowns * 0.25, fighter.damage.head ?? 0, fighter.broken.has('neck') ? 1 : 0));
-    const flush = Math.min(1, (1 - fighter.stamina) * 0.7 + damage * 0.5);
+    const flush = Math.min(1, (1 - fighter.stamina) * 0.7 + damage * 0.5 + offsets.flush);
     const ease = (target, current, speed) => current + (target - current) * Math.min(1, dt * speed);
-    face.lid = ease(Math.min(1, lid), face.lid, face.blinking > 0 ? 45 : 14);
+    face.lid = ease(Math.max(FACE.lidWidest, Math.min(1, lid)), face.lid, face.blinking > 0 ? 45 : 14);
     face.mouth = ease(mouthOpen, face.mouth, 12);
     face.brow = ease(brow, face.brow, 10);
     face.flush = ease(flush, face.flush, 2);
@@ -705,7 +714,14 @@ export function buildHead(body, lookInput, skinHex, cornerHex) {
     mouthLine.visible = face.mouth < 0.25;
     opening.visible = !mouthLine.visible;
     guard.visible = opening.visible;
-    opening.scale.set(0.5 + 0.5 * face.mouth, Math.max(0.15, face.mouth), 1);
+    const breadth = 1 + offsets.width;
+    opening.scale.set((0.5 + 0.5 * face.mouth) * breadth, Math.max(0.15, face.mouth), 1);
+    guard.scale.x = breadth;
+    mouthLine.scale.x = mouthRest.line * breadth;
+    for (const part of [mouthLine, opening, guard]) {
+      part.position.x = mouthRest.x + offsets.shift * r;
+      part.rotation.z = offsets.tilt;
+    }
     for (const disc of blush) disc.material.opacity = face.flush * 0.55;
     // A photo face's hair swings, and a blow to the head throws it.
     if (hairSwing) {
@@ -718,7 +734,8 @@ export function buildHead(body, lookInput, skinHex, cornerHex) {
       hairSwing.update(dt, group, colliders);
     }
     // A photo face blinks and winces with its eyelids drawn down in the shader.
-    if (skinMaterial.userData.lid) skinMaterial.userData.lid.value = face.lid;
+    // (Not wider than at rest: the photo's eye is in its map, and a lid raised past it would draw the lid up off the eye.)
+    if (skinMaterial.userData.lid) skinMaterial.userData.lid.value = Math.max(0, face.lid);
     assignColour(skinMaterial, 'color', baseSkin.clone().lerp(new THREE.Color(0x9c3b48), damage * FACE.bruiseShare));
   }
 
