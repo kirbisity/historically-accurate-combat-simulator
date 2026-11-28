@@ -28,29 +28,35 @@ export const FALLBACK_HEAD = {
     [0.2, 0.74, 0.5, 0.62, 0.96, 0.92, 0.94],
     [0.3, 0.48, 0.28, 0.39, 1.06, 0.92, 1.04],
     [0.385, 0.2, 0.11, 0.17, 1.07, 0.9, 1.066],
-    [0.44, -0.06, -0.056, -0.076, 1.0, 0.9, 1.03],
-    [0.5, -0.18, -0.13, -0.18, 1.0, 0.89, 0.99],
+    [0.44, -0.06, -0.056, -0.076, 1.045, 0.9, 1.03],
+    [0.5, -0.18, -0.13, -0.18, 1.03, 0.89, 0.99],
     [0.583, -0.38, -0.234, -0.3, 1.01, 0.87, 0.94],
-    [0.7, -0.72, -0.433, -0.544, 1.03, 0.78, 0.82],
-    [0.82, -1.02, -0.53, -0.677, 1.08, 0.72, 0.76],
-    [0.88, -1.2, -0.64, -0.82, 1.03, 0.69, 0.74],
+    [0.7, -0.72, -0.433, -0.544, 1.0, 0.78, 0.82],
+    [0.82, -1.02, -0.53, -0.677, 0.99, 0.72, 0.76],
+    [0.88, -1.2, -0.64, -0.82, 0.93, 0.69, 0.74],
   ],
-  // The face's structure is raised this many times its written height (photohead.js: written for the drawn head).
-  relief: 1.3,
+  // The face's structure is raised this many times its written height (photohead.js: written for the drawn head; as written,
+  // on this one: half as high again made the nose a beak).
+  relief: 1,
   // A woman's head against the man's the profile was read from: a lighter jaw and chin, a lower brow ridge.
   female: { jaw: 0.93, chin: 0.94, relief: 0.9 },
 };
 
-/** A profile's value at a row (between its entries, smoothly). */
+/** A profile's value at a row: a smooth curve through its entries (a cubic between each two, its slope at an entry the mean of the slopes either side). */
 function fallbackProfile(row, column) {
   const table = FALLBACK_HEAD.profile;
-  for (let index = 1; index < table.length; index += 1) {
-    if (row > table[index][0]) continue;
-    const [low, high] = [table[index - 1], table[index]];
-    const share = headSmooth(low[0], high[0], row);
-    return low[column] + (high[column] - low[column]) * share;
-  }
-  return table[table.length - 1][column];
+  const last = table.length - 1;
+  let index = 1;
+  while (index < last && row > table[index][0]) index += 1;
+  const slope = (at) => {
+    const [before, after] = [table[Math.max(0, at - 1)], table[Math.min(last, at + 1)]];
+    return (after[column] - before[column]) / (after[0] - before[0]);
+  };
+  const [low, high] = [table[index - 1], table[index]];
+  const span = high[0] - low[0];
+  const t = Math.min(1, Math.max(0, (row - low[0]) / span));
+  const [t2, t3] = [t * t, t * t * t];
+  return (2 * t3 - 3 * t2 + 1) * low[column] + (t3 - 2 * t2 + t) * span * slope(index - 1) + (-2 * t3 + 3 * t2) * high[column] + (t3 - t2) * span * slope(index);
 }
 
 /**

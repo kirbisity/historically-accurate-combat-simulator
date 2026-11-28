@@ -281,6 +281,12 @@ export const FACE_FLOW = {
   // The patches do not reach the back of the head (the nape, the scalp under a helmet, the neck's join): their weight fades
   // from full at `front[1]` (x, unit radii: just in front of the ear) to none at `front[0]` (behind it).
   front: [-0.25, 0.3],
+  // The most a patch of skin is stretched or crowded in all (the whole change's steepness there, every slider's pull on it
+  // added: a patch drawn out e^strain times). One slider at its end asks for 4 to 7; a dozen at their ends on one patch
+  // (every nose slider at once) ask for 50, which no mesh of this fineness can follow without its triangles turning over.
+  // Past this the pulls on a patch share it in proportion: each slider still does what it says, less far, where the face
+  // is already at the end of its skin.
+  strain: 9,
   // A patch's weight under this is none (the points it would move by a ten-thousandth of its throw are skipped).
   cut: 9,
 };
@@ -413,10 +419,9 @@ function steepness(bone) {
   return 2.3 * Math.max(Math.abs(bone.a), Math.abs(bone.b), Math.abs(bone.c));
 }
 
-/** The steps a set of instances needs: the steepest place (the patches that overlap at some bone, added) over FACE_FLOW.steep. */
-function flowStepsFor(instances) {
-  let steepest = 0;
-  for (const here of instances) {
+/** How steep the whole change is at each instance's bone: the patches that overlap there, added. */
+function strainAt(instances) {
+  return instances.map((here) => {
     let sum = 0;
     for (const other of instances) {
       const z = here.mirror === other.mirror ? here.cz : -here.cz;
@@ -424,10 +429,28 @@ function flowStepsFor(instances) {
       // (Half a reach nearer: a patch is steepest on its flank, not at its bone.)
       sum += steepness(other) * Math.exp(-(Math.max(0, Math.sqrt(far) - 0.7) ** 2));
     }
-    steepest = Math.max(steepest, sum);
-  }
-  return Math.min(FACE_FLOW.most, Math.max(1, Math.ceil(steepest / FACE_FLOW.steep)));
+    return sum;
+  });
 }
+
+/**
+ * What each instance keeps of its change where the skin is asked for more than it can take (FACE_FLOW.strain): the pulls
+ * that crowd one patch share what that patch can stretch, each in proportion.
+ */
+const strainShares = (instances) => strainAt(instances).map((strain) => Math.min(1, FACE_FLOW.strain / Math.max(strain, 1e-9)));
+
+/** An instance list with each one's change scaled by its share. */
+function sharedOut(instances, shares) {
+  instances.forEach((bone, index) => {
+    bone.a *= shares[index];
+    bone.b *= shares[index];
+    bone.c *= shares[index];
+  });
+  return instances;
+}
+
+/** The steps a set of instances needs: the steepest place over FACE_FLOW.steep. */
+const flowStepsFor = (instances) => Math.min(FACE_FLOW.most, Math.max(1, Math.ceil(Math.max(0, ...strainAt(instances)) / FACE_FLOW.steep)));
 
 const faceScaled = (driven, share) => driven.map(({ changes, amount }) => ({ changes, amount: amount * share }));
 const marksFlat = (marks, names) => names.flatMap((name) => marks[name]);
@@ -445,12 +468,13 @@ export function compileFace(face, { landmarks = FACE_LANDMARKS, baseline = null 
   const names = Object.keys(landmarks);
   let marks = derivedMarks(landmarks);
   if (!driven.length) return { steps: 0, frames: [], marks, identity: true, apply: (points, out) => copyPoints(points, out), point: (p) => p.slice() };
-  const steps = flowStepsFor(instancesOf(driven, marks));
+  const shares = strainShares(instancesOf(driven, marks));
+  const steps = flowStepsFor(sharedOut(instancesOf(driven, marks), shares));
   const perStep = faceScaled(driven, 1 / steps);
   const frames = [];
   let flat = marksFlat(landmarks, names);
   for (let step = 0; step < steps; step += 1) {
-    const frame = instancesOf(perStep, marks);
+    const frame = sharedOut(instancesOf(perStep, marks), shares);
     frames.push(frame);
     // The landmarks ride the skin: the next step's bones are where this one left them.
     const next = flat.slice();
@@ -515,7 +539,7 @@ export function compileExpressions(points, marks) {
   const compiled = {};
   const by = new Float64Array(3);
   for (const [name, changes] of Object.entries(FACE_EXPRESSIONS)) {
-    const instances = instancesOf([{ changes, amount: 1 }], marks);
+    const instances = instancesOf([{ changes, amount: FACE_EXPRESSION_BLEND.gain }], marks);
     const index = [];
     const delta = [];
     for (let at = 0; at < points.length; at += 3) {
@@ -535,6 +559,11 @@ export const FACE_EXPRESSION_BLEND = {
   least: 5e-4,
   // A weight that has changed by less than this since the head was last written is not written again.
   still: 0.004,
+  // The expressions' written pulls times this at the full weight. The driver's weights come capped at 0.55 to 0.8
+  // (faceexpr.js FACE_EXPRESSION.most), and on a photo face a brow moved 3 mm is hard to see at a duel's distance: at 1.6
+  // the capped weights show about what is written (a brow's 5 mm, a shout's jaw 9 degrees) and a full weight is a strong
+  // face, short of a cartoon's.
+  gain: 1.6,
   // Fear's mouth: parted (`fearParts` true or not said: this share of fear's weight on `fearOpen`) or pressed (false: on `press`).
   fearMouth: 0.8,
 };
