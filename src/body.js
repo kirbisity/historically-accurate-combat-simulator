@@ -472,7 +472,9 @@ export const PRESETS = {
   // (OUTFITS.samuraiTosei's nanbanDo set), the yari a mounted lord fought with; the katana at his belt. Mid-thirties, a
   // samurai's build.
   nanbanLord: {
-    name: 'Takayama Ukon', style: 'yari', sex: 'male', heightCm: 167, frame: 'medium', age: 35, exercise: 0.7, calories: 3720,
+    // 171 cm and 4150 kcal (was 167 cm, 3720: a light man, 72 kg, whose yari lost to every man in heavy armour; now 81 kg and the
+    // Ōdachi Champion's muscle: a daimyō fed as a lord, trained from boyhood. The user's call, 2026-11-28.)
+    name: 'Takayama Ukon', style: 'yari', sex: 'male', heightCm: 171, frame: 'medium', age: 35, exercise: 0.7, calories: 4150,
     outfit: { kind: 'samuraiTosei', design: 8 }, accessories: [],
     look: { skinTone: 'lightTan', hairStyle: 'sakayaki', hairColor: '#120d0a', facialHair: 'mustache', eyeColor: 'brown', faceRegion: 'japan' },
   },
