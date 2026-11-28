@@ -408,3 +408,36 @@ played (and the synth's chop under it before that): a meeting on a shaft is play
 | haftslide-1.mp3 | ScreenRecording_11-26-2026_00-53-47_1.mov | 0.136-0.545 | (none: told apart by shape, a sharp knock or a swell) | 0.056 | 2340 | clash: a blade drawn along a wooden shaft where the two bind and slide; after the knock when a blow is turned aside on it |
 | haftslide-2.mp3 | ScreenRecording_11-26-2026_00-53-47_1.mov | 1.946-2.445 | (none: told apart by shape, a sharp knock or a swell) | 0.046 | 2700 | clash: a blade drawn along a wooden shaft where the two bind and slide; after the knock when a blow is turned aside on it |
 | haftslide-3.mp3 | ScreenRecording_11-26-2026_00-53-47_1.mov | 3.920-4.445 | (none: told apart by shape, a sharp knock or a swell) | 0.000 | 2880 | clash: a blade drawn along a wooden shaft where the two bind and slide; after the knock when a blow is turned aside on it |
+
+## The tenth batch (2026-11-28): the word to fire
+
+Supplied by the owner, 2026-11-28: three short screen recordings, each a man shouting the order to fire, a flag and its country's
+name on screen, music under the voice. The call is what the commander shouts as his side's shot is let go (audio/firecall.js: Hold
+fire to Fire at will), in his faction's tongue, English where none is recorded. Each was cut otherwise than the takes above, since
+the music was as loud as the voice's quieter half: the voice taken out of the music first (Demucs htdemucs, its vocal stem), then a
+band-pass of 100 Hz to 7 kHz, a light FFT denoise (8 dB) for what the separation left, a gentle compressor (2.5:1 from -20 dB);
+trimmed from just before the voice rises within 20 dB of its loudest 5 ms to where it last stays within 38 dB, an 8 ms fade in and a
+natural fade out (80 ms; the Japanese call, still sounding when its recording ends, 250 ms); no reverb added (the game's acoustics
+give it its place). Loudness: each set to -13 LUFS, the men's cries' own (voice-male-scream-1 -13.5, hurt-8 -11.6, dying-1 -14.5),
+its peak then -4 to -3 dBFS rather than the -1 dBFS of the takes above. Each call also drawn out (tempo x0.909, 10% longer) and
+clipped (x1.11, 10% shorter) with ffmpeg atempo, its pitch kept, so the takes of a call differ in length (firecall.js picks one at
+random and plays it at the man's own pitch). A woman's call for each (firecall-*-f-1, played for a woman commanding, 3 dB quieter): the
+cleaned call raised 2.57 semitones whole (ffmpeg asetrate x1.16, its formants with it: a woman's vocal tract is about that much
+shorter), then 3.43 semitones more with its formants kept and its length given back (Rubber Band R3, `rubberband -3 -F -p 3.43 -t
+1.16`): 6 semitones in all (the shout's fundamental ~380-430 Hz to ~530-600 Hz), the formants up 2.6, so it is not a man's voice
+sped up; set to -13 LUFS under a limiter at -1 dBFS. MP3 32 kHz mono 40 kb/s. 12 files, 68 KB.
+
+| File | Source recording | Time (s) | On-screen label | Trim (s) | Bytes | Used for |
+|---|---|---|---|---|---|---|
+| firecall-zh-1.mp3 | ScreenRecording_11-28-2026_03-36-36_1.mov | 0.078-1.118 | (Chinese flag) 中国 | 0.012 | 5400 | the word to fire in Chinese: a commander of a Chinese faction (the Ming and the other Chinese kits, the Eight Banners and the Qing) as his side's shot is let go (firecall.js FIRE_CALL) |
+| firecall-zh-2.mp3 | ScreenRecording_11-28-2026_03-36-36_1.mov | 0.078-1.118 | (Chinese flag) 中国 | 0.012 | 5940 | derived: take 1 drawn out (atempo x0.909, the pitch kept) |
+| firecall-zh-3.mp3 | ScreenRecording_11-28-2026_03-36-36_1.mov | 0.078-1.118 | (Chinese flag) 中国 | 0.012 | 5040 | derived: take 1 clipped (atempo x1.11, the pitch kept) |
+| firecall-zh-f-1.mp3 | ScreenRecording_11-28-2026_03-36-36_1.mov | 0.078-1.118 | (Chinese flag) 中国 | 0.012 | 5400 | derived: take 1 raised to a woman's shout (pitch +6 semitones, formants +2.6); the call of a woman commanding |
+| firecall-ja-1.mp3 | ScreenRecording_11-28-2026_03-39-23_1.mov | 0.183-1.518 | (Japanese flag) 日本 | 0.012 | 7020 | the word to fire in Japanese: a commander of the Japanese faction (samurai, ashigaru and the rest), or a yakuza |
+| firecall-ja-2.mp3 | ScreenRecording_11-28-2026_03-39-23_1.mov | 0.183-1.518 | (Japanese flag) 日本 | 0.012 | 7560 | derived: take 1 drawn out (atempo x0.909, the pitch kept) |
+| firecall-ja-3.mp3 | ScreenRecording_11-28-2026_03-39-23_1.mov | 0.183-1.518 | (Japanese flag) 日本 | 0.012 | 6300 | derived: take 1 clipped (atempo x1.11, the pitch kept) |
+| firecall-ja-f-1.mp3 | ScreenRecording_11-28-2026_03-39-23_1.mov | 0.183-1.518 | (Japanese flag) 日本 | 0.012 | 7020 | derived: take 1 raised to a woman's shout (pitch +6 semitones, formants +2.6); the call of a woman commanding |
+| firecall-en-1.mp3 | ScreenRecording_11-28-2026_03-37-57_1.mov | 0.168-1.000 | (US flag) 美国 | 0.012 | 4500 | the word to fire in English: every other faction, and any whose language has no call recorded |
+| firecall-en-2.mp3 | ScreenRecording_11-28-2026_03-37-57_1.mov | 0.168-1.000 | (US flag) 美国 | 0.012 | 4680 | derived: take 1 drawn out (atempo x0.909, the pitch kept) |
+| firecall-en-3.mp3 | ScreenRecording_11-28-2026_03-37-57_1.mov | 0.168-1.000 | (US flag) 美国 | 0.012 | 4140 | derived: take 1 clipped (atempo x1.11, the pitch kept) |
+| firecall-en-f-1.mp3 | ScreenRecording_11-28-2026_03-37-57_1.mov | 0.168-1.000 | (US flag) 美国 | 0.012 | 4500 | derived: take 1 raised to a woman's shout (pitch +6 semitones, formants +2.6); the call of a woman commanding |

@@ -18,7 +18,7 @@ import { sweepReach } from '../physics/terrain.js';
 import { P } from '../body.js';
 import { overdraftDepth } from '../physics/overdraft.js';
 import { readSounds } from './log.js';
-import { EAR, airCutoff, allocateVoices, behindCutoff, createListener, distanceGain, earDirection, isMapWide, isPhone, placeListener } from './ear.js';
+import { EAR, airCutoff, allocateVoices, behindCutoff, createListener, distanceGain, earDirection, isMapWide, isPhone, levelAtEar, placeListener } from './ear.js';
 import { OPEN_ROOM, PROBE, copyRoom, createReverb, probeRays, reverbSend, roomFromProbe, smoothRoom } from './acoustics.js';
 import { countSectors, createFarField, createSectors } from './farfield.js';
 import { ambienceTargets, createAmbience } from './ambience.js';
@@ -31,6 +31,7 @@ import { breathParams, cryRate, playBreath, voiceOfBody } from './sfx/voice.js';
 import { playWhizz, whizzParams } from './sfx/ranged.js';
 import { CRIES, createCryDirector, voiceOfFighter } from './cries.js';
 import { CHARGE, chargeOf } from './charge.js';
+import { FIRE_CALL, createFireCallWatcher } from './firecall.js';
 import { createFlameSound } from './flamesound.js';
 import { createWake } from './wake.js';
 import { playUi, uiParams } from './sfx/ui.js';
@@ -123,6 +124,8 @@ export function createAudioEngine(env = typeof window === 'undefined' ? null : w
     breaths: new Map(), whizzed: new WeakSet(), excitement: 0, loud: 0, loudNow: 0, worldBorn: 0,
     // The cries rationed (cries.js), and each side's charge roar (charge.js): { sides (chargeOf's last), beds: corner → { source, gain, chain } }.
     cries: createCryDirector(), charge: { sides: null, beds: new Map() },
+    // The word to fire (firecall.js): the sides' fire orders watched, and the last few calls heard (for tools: status().fireCalls).
+    fireCall: createFireCallWatcher(), fireCalls: [],
     // The flamethrower's roar and what burns (flamesound.js).
     flame: createFlameSound(),
     bench: { room: null, ambience: null, far: null, open: false },
@@ -458,9 +461,12 @@ export function createAudioEngine(env = typeof window === 'undefined' ? null : w
     state.clock = 0;
     const read = readSounds(world, state.cursor);
     state.cursor = read.cursor;
+    // (The fire orders watched even while the context sleeps, so an order given then is not called late when it wakes.)
+    const calls = state.fireCall.tick(world, world.time ?? 0);
     wake.watch();
     if (!state.ctx || state.ctx.state !== 'running') return;
     tick(info, thunder ? [...read.events, thunder] : read.events, step);
+    for (const call of calls) fireCall(call);
   }
 
   function tick(info, events, dt) {
@@ -672,6 +678,24 @@ export function createAudioEngine(env = typeof window === 'undefined' ? null : w
       voice.chain.ends = recorded ?? playBreath(voice, voice.out, breath, now + 0.01, gainOfLevel(atEar), inhale);
     }
     for (const fighter of state.breaths.keys()) if (!wanted.includes(fighter)) state.breaths.delete(fighter);
+  }
+
+  /**
+   * The word to fire (firecall.js), shouted by the man who gave it: a voice at his head, at a bellowed order's level at the ear, at
+   * his own pitch (FIRE_CALL.pitch); a take of his language's, or the fallback's while his has not decoded.
+   */
+  function fireCall(call) {
+    const now = state.ctx.currentTime;
+    const seen = earDirection(listener, call.at[0], call.at[1], call.at[2]);
+    const atEar = levelAtEar(FIRE_CALL.level + call.db, seen.distance);
+    const set = [call.set, ...call.fallbacks].find((each) => state.samples?.pick(each)) ?? call.set;
+    const rate = call.rate;
+    const voice = placeVoice(call.at, 'voices', { atEar, direction: seen });
+    const ends = voice ? playPlan(state.samples, voice, { set, trim: 1, rate, seconds: null, fade: FIRE_CALL.fade, skip: 0, synth: null, synthGain: 0 }, now + 0.01 + seen.distance / 343, gainOfLevel(atEar)) : null;
+    if (voice && ends !== null) voice.chain.ends = ends;
+    else voice?.done();
+    state.fireCalls.push({ t: now, corner: call.corner, by: call.by.id, language: call.language, set, female: set.endsWith('-f'), at: call.at.map((v) => Math.round(v * 100) / 100), distance: Math.round(seen.distance * 100) / 100, atEar: Math.round(atEar), rate: Math.round(rate * 1000) / 1000, played: ends !== null });
+    if (state.fireCalls.length > 8) state.fireCalls.shift();
   }
 
   /** Arrows and bolts in the air: one going past within a few metres of the head whizzes, once, as it comes by. */
@@ -897,7 +921,7 @@ export function createAudioEngine(env = typeof window === 'undefined' ? null : w
       return () => listeners.delete(callback);
     },
     /** What is going on (the bench, tests): the context's state, voices playing, the room, the far field's sums. */
-    status: () => ({ running: state.ctx?.state === 'running', voices: state.active.length, budget: budget(), room: { ...state.room }, sectors, mode: speakers() ? 'stereo' : 'hrtf', music: state.music?.status() ?? null, samples: state.samples?.count() ?? 0, loops: Object.keys(state.ambience?.recorded ?? {}) }),
+    status: () => ({ running: state.ctx?.state === 'running', voices: state.active.length, budget: budget(), room: { ...state.room }, sectors, mode: speakers() ? 'stereo' : 'hrtf', music: state.music?.status() ?? null, samples: state.samples?.count() ?? 0, fireCalls: state.fireCalls.slice(), loops: Object.keys(state.ambience?.recorded ?? {}) }),
     context: () => state.ctx,
     /** Be told each tick what was heard (`fn({ now, events, candidates, voices, budget })`, a candidate `played` if it got a voice); null to stop. */
     trace(fn) {

@@ -24,7 +24,8 @@ const DIR = 'src/audio/samples';
 const FILE_CAP = 25 * 1024;
 // (The one-shot takes ~300 KB, the cries and the charge ~170 KB, the three ambience beds ~230 KB.)
 // (1000 KB since the lamellar and mail steps and the deflects, 2026-11-18: was 900; the custom page has room, 12.98 of its 15.5 MB.)
-const TOTAL_CAP = 1000 * 1024;
+// (1100 KB since the word to fire, 2026-11-28: twelve short calls, 68 KB, three languages, a man's and a woman's.)
+const TOTAL_CAP = 1100 * 1024;
 const half = () => 0.5;
 const plan = (event) => samplePlan(event.type, SOUND_FAMILIES[event.type].params(event), event, half);
 

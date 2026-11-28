@@ -99,6 +99,16 @@ export const SAMPLE_SETS = {
   // Cries (sfx/voice.js CRY_KINDS; chosen by audio/cries.js): a man's and a woman's, each a set per kind (a few composed of two pieces).
   // (A gag, cut from the user's recordings of 2026-11-24, a man's and a woman's, each with a lower take derived from it: the first sight and smell of filth, and a retch: physics/afflictions.js.)
   ...voiceSets({ male: { hurt: 11, scream: 6, moan: 5, fear: 5, dying: 4, gag: 2 }, female: { hurt: 8, scream: 6, moan: 6, fear: 4, dying: 3, gag: 2 } }),
+  // The word to fire (audio/firecall.js), shouted by the commander as his side's shot is let go: a call each in Chinese, Japanese and
+  // English (the owner's recordings of 2026-11-28, the music under them taken out).
+  // Each as said, drawn out and clipped (its tempo, the pitch kept): no two calls alike.
+  'firecall-zh': ['firecall-zh-1', 'firecall-zh-2', 'firecall-zh-3'],
+  'firecall-ja': ['firecall-ja-1', 'firecall-ja-2', 'firecall-ja-3'],
+  'firecall-en': ['firecall-en-1', 'firecall-en-2', 'firecall-en-3'],
+  // A woman's: each call raised to a woman's shout, its formants with it (samples/README.md).
+  'firecall-zh-f': ['firecall-zh-f-1'],
+  'firecall-ja-f': ['firecall-ja-f-1'],
+  'firecall-en-f': ['firecall-en-f-1'],
   // An army's charge roared: one loop (engine.js plays it under a large side running at the enemy: audio/charge.js).
   charge: ['charge-1'],
   // Explosions (cut from the user's grenade and big-explosion recordings of 10-31): a frag's blast (three), a flashbang's

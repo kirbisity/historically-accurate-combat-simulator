@@ -301,7 +301,8 @@ function shapePlaces(world, by, kind, way, group = 'all') {
 /**
  * Hold fire (`hold` true) or Fire at will, to every man of his side who hears him: a man told to hold looses nothing (no
  * arrow, no bolt, no ball: physics.js throwPunch) till told he may; the man played looses as he likes. Kept on the side
- * (`world.holdFire[corner]`) for the button and for men who come into the fight after it.
+ * (`world.holdFire[corner]`) for the button and for men who come into the fight after it; its serial (`world.fireSerial`)
+ * and its giver (`world.fireBy`) for the call heard as the shot is let go (audio/firecall.js).
  */
 export function giveFireOrder(world, by, hold) {
   world.holdFire ??= {};
@@ -310,6 +311,9 @@ export function giveFireOrder(world, by, hold) {
   world.orderCount = (world.orderCount ?? 0) + 1;
   world.fireSerial ??= {};
   world.fireSerial[by.corner] = world.orderCount;
+  // Who gave it (his id): the word is heard from where he stands (audio/firecall.js); nothing in the simulation reads it.
+  world.fireBy ??= {};
+  world.fireBy[by.corner] = by.id;
   return world.holdFire[by.corner];
 }
 
