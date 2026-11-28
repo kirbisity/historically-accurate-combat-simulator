@@ -12,6 +12,7 @@ import { P, PARTICLES } from './body.js';
 import { buildBodyMesh } from './bodymesh.js';
 import { dualQuaternionSkinning } from './dqskin.js';
 import { ClothSwing, swayCloth } from './clothsway.js';
+import { tuckHead } from './headtuck.js';
 import { BASE_BODY, NECK_JOIN } from './basebody.js';
 import { buildLoftBody, runSteps, TOPS } from './loftbody.js';
 import { BODY_STYLE_KEYS, DEFAULT_BODY_STYLE, buildSkinMesh, buildSkinMeshSteps, cachedSkinMesh, readySkinTextures, skinTextureKey, skinTexturesNow, skinTexturesSteps, storeSkinMesh, styleSpec } from './bodystyles.js';
@@ -2635,6 +2636,8 @@ function detailedView(view, fighter, simple) {
     const hid = HEADGEAR[kind]?.hidesHair && !headgear?.hidesHair && !simple ? headView.hideHair({ beard: true }) : null;
     return { kind, worn, loose: make(), hid };
   }).filter(Boolean);
+  // (The head and its hair drawn in under what is worn on it, till it comes off: headtuck.js, retuckHead.)
+  const headTuck = simple ? null : tuckHead(headView, [headgear?.group, ...headProps.map((prop) => prop.worn)]);
   const collar = new THREE.Group();
   collar.matrixAutoUpdate = false;
   layers.skin.add(collar);
@@ -2730,7 +2733,7 @@ function detailedView(view, fighter, simple) {
     baseColors, vertexSegment, damageVersion: -1, headProps, dangles, swings: headgear?.swings ?? [], steelMesh, steelOutline: skin.steelOutline, detailMeshes: skin.detailMeshes, detailOutlines: skin.detailOutlines,
     ...physicsLayer, head: headView, layer: 'skin', frames: built.bindFrames, lacquer, rigid, machine, bodyStyle,
     // The helmet as worn (lifted off and thrown when a blow knocks it off: updateProps), and whether it hid the face.
-    helmetWorn: headgear?.group ?? null, faceHidden, armourBack,
+    helmetWorn: headgear?.group ?? null, headTuck, faceHidden, armourBack,
   };
   if (later) queueSkin(fighterView, wanted);
   return fighterView;
@@ -4223,6 +4226,10 @@ export function updateProps(view, fighterViews, world) {
       owner.head.showHair?.();
       worn.hid = null;
     }
+    if (!worn.off) {
+      worn.off = true;
+      retuckHead(owner);
+    }
     if (!worn.loose.parent) {
       worn.loose.scale.setScalar(HEAD_SCALE);
       view.scene.add(worn.loose);
@@ -4255,6 +4262,13 @@ function flyHelmet(view, fighterViews, world, prop) {
 const HELMET_SPUN = new THREE.Quaternion();
 const HELMET_TURN = new THREE.Euler();
 
+/** A man's head drawn out again from under what came off it, and in under what he still wears (headtuck.js). */
+function retuckHead(owner) {
+  owner.headTuck?.();
+  const still = [owner.helmetWorn, ...(owner.headProps ?? []).filter((prop) => !prop.off).map((prop) => prop.worn)];
+  owner.headTuck = owner.head?.shell?.rest ? tuckHead(owner.head, still) : null;
+}
+
 /** The worn helmet taken off the head, its place, turn and size kept, into the scene; what it hid shown. */
 function liftHelmet(view, owner) {
   const object = owner.helmetWorn;
@@ -4269,6 +4283,7 @@ function liftHelmet(view, owner) {
   view.scene.add(object);
   owner.helmetWorn = null;
   owner.swings = [];
+  retuckHead(owner);
   if (owner.faceHidden) owner.head.group.traverse((part) => {
     if (part.isMesh && !part.userData.outline) part.visible = true;
   });
