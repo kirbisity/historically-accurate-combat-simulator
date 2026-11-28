@@ -6,7 +6,7 @@
 
 import { ETHNICITY_PRESETS, FACE_SLIDERS, normalizeFace, randomFace, similarFaces } from './core.js';
 import { faceStage, FACE_STAGE } from './stage.js';
-import { FACE_UI, faceText, facePreset, parseFaceText, readFaceStore, resetGroup, resetSlider, slidersByGroup, withSlider, writeFaceStore } from './state.js';
+import { FACE_UI, faceText, facePreset, parseFaceText, readFaceStore, resetGroup, resetSlider, slidersByGroup, sliderValue, withSlider, writeFaceStore } from './state.js';
 import { onLangChange, pick, t } from '../i18n.js';
 import { uiIcon, withIcon } from '../uiicons.js';
 
@@ -157,12 +157,12 @@ export function faceCustomScreen(root, { face: startFace = null, sex = null, onB
 
   function sliderRow(slider) {
     const name = pick({ en: slider.label, zh: slider.labelZh });
-    const range = faceEl('input', { type: 'range', min: FACE_UI.min, max: FACE_UI.max, step: 1, value: face.sliders[slider.id], ariaLabel: name });
-    const number = faceEl('input', { type: 'number', min: FACE_UI.min, max: FACE_UI.max, step: 1, value: face.sliders[slider.id], inputMode: 'numeric', ariaLabel: t('face.value', { name }) });
+    const range = faceEl('input', { type: 'range', min: FACE_UI.min, max: FACE_UI.max, step: 1, value: sliderValue(face, slider.id), ariaLabel: name });
+    const number = faceEl('input', { type: 'number', min: FACE_UI.min, max: FACE_UI.max, step: 1, value: sliderValue(face, slider.id), inputMode: 'numeric', ariaLabel: t('face.value', { name }) });
     range.addEventListener('input', () => setSlider(slider.id, range.value));
     // (A number half typed is let be; it is made a byte, and shown as one, when the field is left.)
     number.addEventListener('input', () => setSlider(slider.id, number.value, number));
-    number.addEventListener('change', () => { number.value = face.sliders[slider.id]; });
+    number.addEventListener('change', () => { number.value = sliderValue(face, slider.id); });
     sliderControls.set(slider.id, [range, number]);
     const reset = faceEl('button', { type: 'button', className: 'face-reset-slider', ariaLabel: t('face.resetSlider', { name }), title: t('face.resetSlider', { name }), onclick: () => adopt(resetSlider(face, slider.id)) }, uiIcon('reload'));
     const row = faceEl('div', { className: 'face-slider' }, faceEl('span', { className: 'face-slider-name', textContent: name }), range, number, reset);
@@ -204,7 +204,7 @@ export function faceCustomScreen(root, { face: startFace = null, sex = null, onB
     const next = withSlider(face, id, value);
     if (next === face) return;
     face = next;
-    for (const control of sliderControls.get(id) ?? []) if (control !== typing) control.value = face.sliders[id];
+    for (const control of sliderControls.get(id) ?? []) if (control !== typing) control.value = sliderValue(face, id);
     stage.setFace(face);
     settle();
   }
@@ -216,7 +216,7 @@ export function faceCustomScreen(root, { face: startFace = null, sex = null, onB
     const presetSelect = panel.querySelector('.face-preset');
     const presetChanged = presetSelect && presetSelect.value !== face.preset;
     if (presetChanged || panel.querySelector('.face-sex .on')?.dataset.sex !== face.sex) draw();
-    else for (const [id, controls] of sliderControls) for (const control of controls) control.value = face.sliders[id];
+    else for (const [id, controls] of sliderControls) for (const control of controls) control.value = sliderValue(face, id);
     settle();
   }
 

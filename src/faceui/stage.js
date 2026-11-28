@@ -19,9 +19,9 @@ export const FACE_STAGE = {
   ambient: { sky: 0x3a3a44, ground: 0x15110c, intensity: 0.28 },
   // Tone mapping: the lights above are set for ACES at this exposure.
   exposure: 1.05,
-  // The camera: a portrait lens, the head framed to this share of the view's height at the starting distance.
+  // The camera: a portrait lens, the view's height this many times the head's largest extent at the starting distance (room round it for the hair and the light).
   fov: 30,
-  frame: 1.55,
+  frame: 2.2,
   zoom: { min: 0.45, max: 2.6 },
   // The orbit: radians a drag of one pixel turns, how far above or below the head it may look, and the snap's ease (per second).
   turnPerPixel: 0.008,
@@ -33,8 +33,10 @@ export const FACE_STAGE = {
   forward: [1, 0, 0],
   // The Similar Faces thumbnails: their size in pixels (drawn once per variation into one target, then copied to each canvas).
   thumb: 128,
+  // The thumbnails' head drawn with the solver's far triangles (solver.js buildCustomHead `lod`): at 128 pixels the fine ones are lost.
+  thumbLod: 'far',
   // A three-quarter view for the thumbnails, so the profile and the front both read at that size, closer in than the main view's start.
-  thumbView: { yaw: 0.5, pitch: 0.08, zoom: 0.72 },
+  thumbView: { yaw: 0.5, pitch: 0.08, zoom: 0.62 },
   // Device pixel ratio's cap: past two the head gains nothing a phone's eye can see, and costs four times the pixels.
   maxPixelRatio: 2,
 };
@@ -88,7 +90,7 @@ export function faceStage(canvas, face, { insets = () => ({ right: 0, bottom: 0 
   scene.background = faceBackdrop();
   faceLights(scene);
   const camera = new THREE.PerspectiveCamera(FACE_STAGE.fov, 1, 0.01, 20);
-  let head = buildCustomHead(face, { detail: 'full' });
+  let head = buildCustomHead(face);
   scene.add(head.group);
   // The orbit's centre and distance, from the head's own size (any head the core builds is framed alike).
   const bounds = new THREE.Box3().setFromObject(head.group);
@@ -208,7 +210,7 @@ export function faceStage(canvas, face, { insets = () => ({ right: 0, bottom: 0 
       const thumbScene = new THREE.Scene();
       thumbScene.background = scene.background;
       faceLights(thumbScene);
-      const thumbHead = buildCustomHead(faces[0], { detail: 'thumb' });
+      const thumbHead = buildCustomHead(faces[0], { lod: FACE_STAGE.thumbLod });
       thumbScene.add(thumbHead.group);
       const target = new THREE.WebGLRenderTarget(size, size, { encoding: THREE.sRGBEncoding });
       const thumbCamera = new THREE.PerspectiveCamera(FACE_STAGE.fov, 1, 0.01, 20);

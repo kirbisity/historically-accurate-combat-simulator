@@ -4,3 +4,5 @@
 
 export { defaultFace, ETHNICITY_PRESETS, FACE_SLIDERS, faceFromJSON, faceToJSON, normalizeFace, randomFace, similarFaces } from '../facecustom-stub/schema.js';
 export { buildCustomHead } from '../facecustom-stub/solver.js';
+// (The skin's module too: the real one hands the solver its material pipeline as it loads.)
+export { skinMaterialFor, updateSkin } from '../facecustom-stub/skin.js';

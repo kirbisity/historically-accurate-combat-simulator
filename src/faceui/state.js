@@ -17,6 +17,9 @@ export const FACE_UI = {
   // The Similar Faces grid: how many variations (a 3 by 3 grid) and how far each slider may stray from the face, in slider steps.
   similarCount: 9,
   similarSpread: 36,
+  // Slider kinds not drawn as sliders: 'preset' (the ethnicity slider, schema.js) is the Ethnicity Preset select, which loads
+  // the preset's whole baseline rather than nudging one value.
+  pickedElsewhere: ['preset'],
 };
 
 /** A slider's value as the byte it is kept as: an integer in 0..255, or null when what was typed is no number. */
@@ -27,34 +30,46 @@ export function sliderByte(value) {
   return Math.max(FACE_UI.min, Math.min(FACE_UI.max, Math.round(number)));
 }
 
+/** Where a slider's value is kept on a face: `sliders` for a feature, `surface` for the skin's (schema.js kind 'surface'). */
+const faceHolder = (face, id) => (face.sliders && id in face.sliders ? 'sliders' : face.surface && id in face.surface ? 'surface' : null);
+
+/** A slider's value on a face, wherever it is kept (undefined for an id the face has not). */
+export function sliderValue(face, id) {
+  const holder = faceHolder(face, id);
+  return holder ? face[holder][id] : undefined;
+}
+
 /** The face with one slider set (the value made a byte; a value that is no number leaves the face as it was). */
 export function withSlider(face, id, value) {
   const held = sliderByte(value);
-  if (held === null || !(id in face.sliders)) return face;
-  return { ...face, sliders: { ...face.sliders, [id]: held } };
+  const holder = faceHolder(face, id);
+  if (held === null || !holder) return face;
+  return { ...face, [holder]: { ...face[holder], [id]: held } };
 }
 
 /** What a slider goes back to: its value in the face's own preset (its baseline for that sex), else the slider's neutral. */
 export function baselineOf(face, id) {
-  const base = defaultFace(face.preset, face.sex);
-  return base.sliders[id] ?? FACE_SLIDERS.find((slider) => slider.id === id)?.neutral ?? 128;
+  return sliderValue(defaultFace(face.preset, face.sex), id) ?? FACE_SLIDERS.find((slider) => slider.id === id)?.neutral ?? 128;
 }
 
 export const resetSlider = (face, id) => withSlider(face, id, baselineOf(face, id));
 
 /** Every slider of a group back to the preset's baseline. */
 export function resetGroup(face, group) {
-  const base = defaultFace(face.preset, face.sex);
-  const sliders = { ...face.sliders };
-  for (const slider of FACE_SLIDERS) if (slider.group === group && slider.id in base.sliders) sliders[slider.id] = base.sliders[slider.id];
-  return { ...face, sliders };
+  let next = face;
+  for (const slider of FACE_SLIDERS) if (slider.group === group && !FACE_UI.pickedElsewhere.includes(slider.kind)) next = withSlider(next, slider.id, baselineOf(face, slider.id));
+  return next;
 }
 
 /** A new preset or sex: the preset's baseline for that sex, the surface its own (a preset is a starting face, not a filter). */
 export const facePreset = (presetId, sex) => normalizeFace(defaultFace(presetId, sex));
 
-/** The sliders by group, in FACE_UI.groups' order (then any other group in the order it first appears). */
-export function slidersByGroup(sliders = FACE_SLIDERS) {
+/**
+ * The sliders the sidebar shows by group, in FACE_UI.groups' order (then any other group in the order it first appears); a
+ * slider picked elsewhere (the ethnicity slider: the preset select) left out.
+ */
+export function slidersByGroup(all = FACE_SLIDERS) {
+  const sliders = all.filter((slider) => !FACE_UI.pickedElsewhere.includes(slider.kind));
   const order = [...FACE_UI.groups, ...sliders.map((slider) => slider.group).filter((group) => !FACE_UI.groups.includes(group))];
   return [...new Set(order)].map((group) => ({ group, sliders: sliders.filter((slider) => slider.group === group) })).filter((entry) => entry.sliders.length);
 }
