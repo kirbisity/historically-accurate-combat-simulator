@@ -12,6 +12,7 @@ import { advance, createWorld, placeFighter, reachOf, throwPunch, WORLD } from '
 import { breakOpen } from '../src/physics/deflect.js';
 import { attackLayout, directFighter, newOrders, swingAt } from '../src/control.js';
 import { executionBlow } from '../src/finisher.js';
+import { readSounds } from '../src/audio/log.js';
 
 // The weapon classes, by a style of each; the foes, by armour.
 const CLASSES = { dagger: 'dagger', sword: 'longsword', polearm: 'halberd', blunt: 'mace', unarmed: 'boxing' };
@@ -174,4 +175,16 @@ test('through a real big deflect: the guard up at the last moment, the striker b
   // Still holding the guard as he taps, as a man does in the moment.
   const run = oneExecution(world, me, striker, orders, (seconds) => advance(world, seconds, step, 1 / 120));
   assert.ok(run.began !== null && run.began <= 0.05 && run.thrown, `begun ${run.began} s after the tap, the blow thrown`);
+});
+
+test('the press that asks for the execution is heard at once: the parry\'s ring, once however often he presses', () => {
+  const { world, me, him, orders, step } = opened('katana', 'none');
+  world.ear = { x: 0, z: 0, radius: 100 };
+  const rings = () => readSounds(world).events.filter((sound) => sound.type === 'clash' && sound.deflect && sound.byPlayer && !sound.big).length;
+  press(world, me, him, orders);
+  step(1 / 120);
+  assert.equal(rings(), 1);
+  press(world, me, him, orders);
+  step(1 / 120);
+  assert.equal(rings(), 1);
 });

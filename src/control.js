@@ -17,6 +17,7 @@ import { rigidAt } from './physics/gaps.js';
 import { handling } from './handling.js';
 import { RUN_STEER, runSteer } from './runsteer.js';
 import { jogSpeed, preferredWalk, runSpeed } from './physics/gait.js';
+import { soundEvent } from './audio/log.js';
 import { executable, executionOffered, FINISHER, finishTarget, startExecution, startFinisher, updateFinisher } from './finisher.js';
 import { lowTarget, startLowStrike, updateLowStrike } from './lowstrike.js';
 import { chargeAt, ringHeading } from './riding.js';
@@ -849,6 +850,9 @@ export function finishOnAttack(world, fighter, orders) {
   return Boolean(prey) && (prey.state === 'down' || executable(world, prey)) && startFinisher(world, fighter, prey, { range: FINISHER.tapReach });
 }
 
+// The parry's ring when an execution is asked for (askExecution): as hard a meeting as a firm deflect (sfx/sampled.js PLAYER_DEFLECT.joules).
+const EXECUTION_ASKED_JOULES = 150;
+
 /**
  * Any attack asked for (a tap anywhere on the fight, on him or not, a key, a press held) while a man stands broken open by his
  * big deflect within reach (finisher.js executionOffered): the execution. Asked once, it is his order (`orders.execute`) until
@@ -857,6 +861,11 @@ export function finishOnAttack(world, fighter, orders) {
 export function askExecution(world, fighter, orders) {
   const man = executionOffered(world, fighter, { locked: orders.lock });
   if (!man) return false;
+  // Heard the moment it is asked, before his body can begin it: the parry's ring (his deflect's recording, audio/sfx/sampled.js
+  // PLAYER_DEFLECT), on top of the big deflect's own. Once: a second press asks nothing new.
+  if (!orders.execute && fighter.player && world.ear) {
+    soundEvent(world, 'clash', { at: point(fighter.x, P.rHand), speed: 6, a: 'blade', b: 'blade', mass: fighter.weapon?.spec?.mass ?? 1, deflect: true, byPlayer: true, big: false, energy: EXECUTION_ASKED_JOULES });
+  }
   orders.execute = { target: man.id, at: world.time };
   orders.requests.length = 0;
   return true;

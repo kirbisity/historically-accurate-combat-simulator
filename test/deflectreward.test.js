@@ -26,11 +26,15 @@ test('the player\'s deflect is a moment in any fight, held a few frames and let 
   assert.equal(mine.kind, 'deflect');
   assert.ok(mine.always);
   // No slow-motion scene of its own (it was a fifth of the pace for over a second): its hold is the hit feel's, a tenth of a
-  // second at most, and the fight is back at nearly full pace within a third of one. The big deflect keeps its slow motion.
+  // second at most, and the fight is back at nearly full pace within a third of one. The big deflect and the execution after it
+  // have none either (the tap and the blow it asks for close together: the user's call, 2026-11-28); the big deflect's hold is a
+  // little longer than a deflect's.
   assert.equal(DRAMA.deflect.slowest, 1);
   const stop = HITFEEL.beats.deflect.stop;
   assert.ok(stop.slowest <= 0.05 && stop.seconds.heavy <= 0.12 && stop.seconds.heavy + stop.ease + stop.dilate.seconds <= 0.45);
-  assert.ok(DRAMA.bigDeflect.slowest <= 0.25 && DRAMA.bigDeflect.seconds >= 1);
+  assert.equal(DRAMA.bigDeflect.slowest, 1);
+  assert.equal(DRAMA.execution.slowest, 1);
+  assert.ok(HITFEEL.beats.bigDeflect.stop.seconds.heavy > stop.seconds.heavy);
   assert.equal(momentFor({ kind: 'deflect', byPlayer: false, fighter: 1, effects: [] }), null);
 });
 

@@ -35,11 +35,14 @@ export const DRAMA = {
   // and its answer). Its hold and the little slowing after it are the hit feel's (hitfeel.js HITFEEL.beats.deflect: a few frames,
   // then on). The user's call, 2026-11-21.
   deflect: { slowest: 1, seconds: 0.5, hold: 0.3, shake: 0.02, pushIn: 0.93, flash: 0 },
-  // The big deflect (WORLD.deflect.big): slower and longer, the camera in closer and a jolt, while the striker stands broken open.
-  bigDeflect: { slowest: 0.12, seconds: 2.2, hold: 1.0, shake: 0.05, pushIn: 0.82, flash: 0 },
-  // The execution after a big deflect (finisher.js): slower still, the camera closing hard on the man's head as the player kneels to
-  // him (as Sekiro and Dark Souls frame theirs); then the blow home, a sharp shake, slowest of all for an instant.
-  execution: { slowest: 0.1, seconds: 2.6, hold: 0.85, shake: 0.01, pushIn: 0.55, flash: 0 },
+  // The big deflect (WORLD.deflect.big): the camera in closer and a jolt, while the striker stands broken open; no slow motion of
+  // its own (it was an eighth of the pace for 2.2 s, { slowest: 0.12, seconds: 2.2, hold: 1 }: a long wait before the tap, and
+  // after it). Its hold is the hit feel's (hitfeel.js HITFEEL.beats.bigDeflect). The user's call, 2026-11-28.
+  bigDeflect: { slowest: 1, seconds: 0.9, hold: 0.4, shake: 0.05, pushIn: 0.82, flash: 0 },
+  // The execution after a big deflect (finisher.js): the camera closing hard on the man's head as the player steps in (as Sekiro
+  // and Dark Souls frame theirs), at full pace (it was a tenth of it for 2.6 s: the tap and the blow far apart); then the blow
+  // home, a sharp shake, slowest of all for an instant.
+  execution: { slowest: 1, seconds: 1.4, hold: 0.6, shake: 0.01, pushIn: 0.55, flash: 0 },
   executionBlow: { slowest: 0.06, seconds: 1.1, hold: 0.35, shake: 0.09, pushIn: 0.5, flash: 0 },
   // Real seconds to slow from full speed to the slowest: a slide, not a cut.
   easeIn: 0.18,
@@ -111,12 +114,16 @@ export function momentFor(event) {
   return null;
 }
 
-/** Begin a moment; a bigger one already playing is not cut short by a smaller. */
+/**
+ * Begin a moment; a bigger one already playing is not cut short by a smaller. Bigger is slower; of two as slow, the one the
+ * camera closes in nearer on (an execution taking over from the big deflect it follows, neither slowed).
+ */
 export function startMoment(drama, moment, now) {
   const spec = DRAMA[moment.kind];
   if (!spec) return;
   const current = drama.active;
-  if (current && now < current.start + DRAMA[current.kind].seconds && DRAMA[current.kind].slowest <= spec.slowest) return;
+  const playing = current ? DRAMA[current.kind] : null;
+  if (playing && now < current.start + playing.seconds && (playing.slowest < spec.slowest || (playing.slowest === spec.slowest && playing.pushIn <= spec.pushIn))) return;
   drama.active = { ...moment, start: now };
   if (spec.flash > 0) drama.flash = { start: now, strength: spec.flash };
 }
