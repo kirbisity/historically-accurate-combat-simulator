@@ -2215,3 +2215,68 @@ html:lang(zh) .story-chapter, html:lang(zh) .story-prompt, html:lang(zh) .boss-t
 /* The link to how armour protects (assets/armour.html), under the helmet in the gear step. */
 .wizard .armour-how { font-size: 0.85rem; color: inherit; opacity: 0.8; text-underline-offset: 3px; justify-self: start; }
 .wizard .armour-how:hover, .wizard .armour-how:focus-visible { opacity: 1; }
+
+/* ---- The face customizer (src/faceui/view.js) ---------------------------------------------------------------------------
+   The head's studio fills the screen; the sidebar floats over its right side, dark and see-through, in the catalogue's plates
+   and hairlines. On a phone the sidebar is a bottom sheet over the lower half, folding down to its header; the head stays
+   above it, turned with a finger. */
+.screen.face-custom { display: block; padding: 0; overflow: hidden; background: var(--bg); }
+.face-stage { position: absolute; inset: 0; }
+.face-canvas { display: block; width: 100%; height: 100%; touch-action: none; cursor: grab; }
+.face-canvas:active { cursor: grabbing; }
+.face-back { position: absolute; top: calc(12px + env(safe-area-inset-top, 0px)); left: calc(12px + env(safe-area-inset-left, 0px)); min-height: 44px; padding: 8px 16px; background: rgba(var(--pit), 0.6); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+.face-views { position: absolute; left: calc((100% - var(--face-side, 360px)) / 2); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); translate: -50% 0; background: rgba(var(--pit), 0.62); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+.face-views button { min-height: 40px; min-width: 64px; white-space: nowrap; font: 600 13px var(--display); letter-spacing: 0.06em; text-transform: uppercase; background: transparent; }
+.face-views button:hover { background: rgba(var(--ink), 0.1); }
+.face-panel { position: absolute; top: 12px; right: 12px; bottom: 12px; width: 336px; display: flex; flex-direction: column; gap: 10px; padding: 12px 14px; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; border: 1px solid var(--line); border-radius: var(--r-plate); background: rgba(var(--pit), 0.66); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); scrollbar-width: thin; }
+/* (In the game the sound button sits over the top right corner, above every screen: the sidebar starts below it.) */
+.arena:has(#sound-toggle:not([hidden])) .face-panel { top: 60px; }
+.face-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.face-head h1 { margin: 0; font: 700 26px/1 var(--title); text-transform: uppercase; letter-spacing: 0.06em; color: var(--gold); }
+.face-sheet-toggle { display: none; padding: 6px 10px; }
+.face-sheet-toggle .glyph { width: 18px; height: 18px; transition: rotate var(--quick) var(--ease); }
+.face-row { display: flex; flex-wrap: wrap; align-items: end; gap: 8px; }
+.face-preset-row label { flex: 1 1 140px; display: grid; gap: 4px; min-width: 0; }
+.face-preset-row label span, .face-slider-name { font: 600 11px var(--display); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.face-preset { width: 100%; min-height: 36px; padding: 4px 8px; background: rgba(var(--ink), 0.06); border: 1px solid var(--line); border-radius: var(--r); }
+.face-sex button { min-height: 36px; }
+.face-tools button { flex: 1 1 0; min-height: 38px; }
+.face-group { border-top: 1px solid var(--line); padding-top: 8px; }
+.face-group summary { display: flex; align-items: center; justify-content: space-between; gap: 8px; cursor: pointer; list-style: none; font: 700 13px var(--display); letter-spacing: 0.08em; text-transform: uppercase; color: var(--soft); min-height: 30px; }
+.face-group summary::-webkit-details-marker { display: none; }
+.face-group summary > span::before { content: ''; display: inline-block; width: 6px; height: 6px; margin: 0 8px 2px 1px; border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor; rotate: -45deg; transition: rotate var(--quick) var(--ease); }
+.face-group[open] summary > span::before { rotate: 45deg; }
+.face-group summary button { padding: 3px 8px; font: 500 11px var(--body); letter-spacing: 0.02em; text-transform: none; color: var(--muted); }
+.face-group-body { display: grid; gap: 6px; padding: 6px 0 2px; }
+.face-slider { display: grid; grid-template-columns: minmax(0, 1fr) 52px 26px; grid-template-rows: auto auto; align-items: center; column-gap: 6px; }
+.face-slider-name { grid-column: 1 / -1; color: var(--soft); text-transform: none; letter-spacing: 0.02em; font: 500 12px var(--body); }
+.face-slider input[type=range] { width: 100%; min-width: 0; margin: 0; height: 24px; accent-color: var(--gold); }
+.face-slider input[type=number] { width: 52px; padding: 3px 4px; font: 500 12px var(--mono); text-align: right; background: rgba(var(--ink), 0.06); border: 1px solid var(--line); border-radius: var(--r); -moz-appearance: textfield; }
+.face-slider input[type=number]::-webkit-inner-spin-button { opacity: 0.5; }
+.face-reset-slider { display: grid; place-items: center; width: 26px; height: 26px; padding: 0; background: transparent; border-color: transparent; color: var(--muted); }
+.face-reset-slider:hover { color: var(--fg); }
+.face-reset-slider .glyph { width: 15px; height: 15px; }
+.face-similar-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.face-thumb { padding: 0; aspect-ratio: 1; overflow: hidden; border: 1px solid var(--line); background: rgba(var(--ink), 0.04); }
+.face-thumb:hover, .face-thumb:focus-visible { border-color: rgba(var(--gilt), 0.8); }
+.face-thumb-canvas { display: block; width: 100%; height: 100%; }
+.face-file-buttons { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.face-file-buttons button { padding: 6px 4px; font-size: 12px; }
+.face-code { width: 100%; resize: vertical; padding: 6px 8px; font: 500 11px/1.35 var(--mono); color: var(--soft); background: rgba(var(--pit), 0.5); border: 1px solid var(--line); border-radius: var(--r); }
+.face-file-load { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.face-note { margin: 0; min-height: 1.3em; font-size: 12px; color: var(--gold); }
+.face-use { margin-top: auto; padding-top: 10px; border-top: 1px solid var(--line); }
+.face-use-button { width: 100%; min-height: 44px; }
+.face-wear-row { display: flex; align-items: center; gap: 10px; min-height: 40px; cursor: pointer; }
+.face-wear-row input { width: 18px; height: 18px; accent-color: var(--gold); }
+/* A phone: the sidebar a bottom sheet over the lower half (folded, only its header); the view snaps just above it. */
+@media (max-width: 720px) {
+  .face-panel, .arena:has(#sound-toggle:not([hidden])) .face-panel { top: auto; }
+  .face-panel { left: 0; right: 0; bottom: 0; width: auto; max-height: 52%; padding: 10px 14px calc(10px + env(safe-area-inset-bottom, 0px)); border-width: 1px 0 0; border-radius: var(--r-plate) var(--r-plate) 0 0; }
+  .face-panel.folded { max-height: none; }
+  .face-panel.folded > :not(.face-head) { display: none; }
+  .face-sheet-toggle { display: inline-grid; place-items: center; }
+  .face-panel.folded .face-sheet-toggle .glyph { rotate: 180deg; }
+  .face-views { left: 50%; bottom: calc(var(--face-sheet, 52%) + 10px); }
+  .face-slider input[type=range] { height: 32px; }
+}

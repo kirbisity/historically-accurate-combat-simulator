@@ -9,6 +9,7 @@ import { UI_BUILDER } from './ui-builder.js';
 import { UI_LEVEL } from './ui-level.js';
 import { UI_SQUAD } from './ui-squad.js';
 import { UI_CARDS } from './ui-cards.js';
+import { UI_FACEUI } from './ui-faceui.js';
 
-export const UI_TABLES = { UI_COMMON, UI_MENU, UI_FIGHT, UI_BUILDER, UI_LEVEL, UI_SQUAD, UI_CARDS };
+export const UI_TABLES = { UI_COMMON, UI_MENU, UI_FIGHT, UI_BUILDER, UI_LEVEL, UI_SQUAD, UI_CARDS, UI_FACEUI };
 export const UI = Object.assign({}, ...Object.values(UI_TABLES));
