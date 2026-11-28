@@ -14,7 +14,7 @@ import { outlineScale, prefilterFor } from './looks/kit.js';
 import { buildArenaHelm, buildGalea, buildLionHead, formMesh } from './arenaview.js';
 import { buildStechhelm } from './stechzeug.js';
 import { CLOTH_GARMENTS, clothMaterialOf, DETAIL_MAPS, HELMET_PART_TILES, HELMET_TILES, MOULDED_TILES } from './detailmaps.js';
-import { clothPropMaterial, wearTile } from './detailtex.js';
+import { armourDetailMaterial, bakedTileTextures, clothPropMaterial, wearTile } from './detailtex.js';
 import { HELM_STYLE } from './helmstyle.js';
 import { helmMapSheet, helmMapsReady, helmMaterial } from './helmmaps.js';
 import { buildWarMask, hairStrands, maskPointAt } from './menpo.js';
@@ -604,14 +604,15 @@ const BASHLYK = { fold: 0.9 };
 //   edge turned and roped;
 // - `rivets`: the lining's brass-capped rivets round the skull just over the brim, `rise` above its foot;
 // - `plume`: the plume holder riveted on behind the left ear (`at`: rad round from the front), `long` tall.
-// The rope of the turned edges: `rope` thick, a twist every `twist` along it.
+// The rope of the turned edges: `rope` thick, a twist every `twist` along it; drawn as a smooth roll wearing the rope's tile,
+// a section every `section` along it (a quarter of a head radius: the comb's and brim's curves stay round) and `radial` round.
 const MORION = {
   skull: { long: 1.22, broad: 1.04, foot: 0.12, high: 1.0 },
   comb: { long: 1.3, high: 1.78, thick: 0.07 },
   brim: { side: 0.4, point: 0.62, rise: 0.8, sharp: 6, sweep: 2.5, drop: 0.05 },
   rivets: { count: 16, rise: 0.12, r: 0.05 },
   plume: { at: 2.5, long: 0.42 },
-  rope: { r: 0.042, twist: 0.09 },
+  rope: { r: 0.042, twist: 0.09, section: 0.25, radial: 6 },
   brass: 0xc9a04a,
 };
 
@@ -621,7 +622,18 @@ const MORION = {
  */
 function ropedEdge(points, r, material, closed = false) {
   const curve = new THREE.CatmullRomCurve3(points.map(([x, y, z]) => new THREE.Vector3(x * r, y * r, z * r)), closed);
-  const segments = Math.max(16, Math.round(curve.getLength() / (MORION.rope.twist * r)) * 4);
+  const twists = Math.max(4, Math.round(curve.getLength() / (MORION.rope.twist * r)));
+  // Where the maps are drawn, a smooth roll wearing the rope's tile (detailmaps.js `rope`), a twist to a tile; else the twist
+  // modelled, four sections to a twist (some 6 000 triangles round a brim, each twist 3 pixels long at a duel's distance).
+  const roped = DETAIL_MAPS.on ? ropeMaterial(material) : null;
+  if (roped) {
+    const geometry = new THREE.TubeGeometry(curve, Math.max(16, Math.round(curve.getLength() / (MORION.rope.section * r))), MORION.rope.r * r, MORION.rope.radial, closed);
+    const uv = geometry.attributes.uv;
+    for (let index = 0; index < uv.count; index += 1) uv.setX(index, uv.getX(index) * twists);
+    geometry.setAttribute('uv2', uv);
+    return new THREE.Mesh(geometry, roped);
+  }
+  const segments = Math.max(16, twists * 4);
   const radial = 6;
   const geometry = new THREE.TubeGeometry(curve, segments, MORION.rope.r * r, radial, closed);
   const position = geometry.attributes.position;
@@ -638,6 +650,14 @@ function ropedEdge(points, r, material, closed = false) {
   }
   geometry.computeVertexNormals();
   return new THREE.Mesh(geometry, material);
+}
+
+const ropeMaterials = new WeakMap();
+/** A turned edge's metal wearing the rope's tile (one per metal), or null where the tile cannot be drawn. */
+function ropeMaterial(material) {
+  if (!bakedTileTextures('rope')) return null;
+  if (!ropeMaterials.has(material)) ropeMaterials.set(material, armourDetailMaterial(material.clone(), 'rope', { metalness: material.metalness ?? 1 }));
+  return ropeMaterials.get(material);
 }
 
 /**

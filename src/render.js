@@ -2687,7 +2687,9 @@ function detailedView(view, fighter, simple) {
     collar.add(buildRomanKit(body, dress.armor, view.steelEnv, steelMaterial, 'chest'));
     hips.add(buildRomanKit(body, dress.armor, view.steelEnv, steelMaterial, 'hips'));
   }
-  if (dress.armor?.kind === 'scissor') {
+  // The scissor's scales are the scale tile on his coat's shell (detailmaps.js) where the maps are drawn, as every scale coat's
+  // are; scale by scale (some 1100 plates, 95 000 triangles a man) only where the shell does not wear the tile.
+  if (dress.armor?.kind === 'scissor' && !skin.detailMeshes.some((mesh) => mesh.userData.detailMaps === 'scale')) {
     collar.add(buildScaleShirt(body, dress.armor.color, view.steelEnv, steelMaterial, 'chest'));
     hips.add(buildScaleShirt(body, dress.armor.color, view.steelEnv, steelMaterial, 'hips'));
   }

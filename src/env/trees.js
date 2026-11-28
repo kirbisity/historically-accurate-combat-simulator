@@ -597,10 +597,12 @@ void main() {
   #include <tonemapping_fragment>
 }`;
 
-/** One of the rock forms (config.js ENV.rocks.forms) as positions round its middle, three to a face, of unit size. */
-function envRockForm(form, random) {
-  const ball = new THREE.IcosahedronGeometry(1, 2);
-  const at = ball.attributes.position.array;
+/**
+ * One of the rock forms (config.js ENV.rocks.forms) as positions round its middle, three to a face, of unit size: `detail`
+ * the ball's subdivisions, and the form made at each of `details` from the same waves and cuts (so a stone drawn coarser is
+ * the same stone), as { [detail]: positions }.
+ */
+function envRockForm(form, random, details = [ENV.rocks.detail]) {
   const waves = [0, 1, 2].map(() => [random() * 4 - 2, random() * 4 - 2, random() * 4 - 2, random() * 6.28]);
   const cuts = [];
   for (let cut = 0; cut < form.cuts; cut += 1) {
@@ -610,6 +612,11 @@ function envRockForm(form, random) {
     const length = Math.hypot(x, y, z) || 1;
     cuts.push([x / length, y / length, z / length, form.keep + random() * 0.25]);
   }
+  return Object.fromEntries(details.map((detail) => [detail, envRockShaped(form, new THREE.IcosahedronGeometry(1, detail).attributes.position.array, waves, cuts)]));
+}
+
+/** A ball's positions (`at`, changed in place) pushed by a form's waves and cut flat by its planes. */
+function envRockShaped(form, at, waves, cuts) {
   for (let index = 0; index < at.length; index += 3) {
     let x = at[index];
     let y = at[index + 1];
@@ -684,15 +691,17 @@ export function envBuildSkyline(trees, footprints) {
 /** A place's rocks (envPlantRocks) as one mesh, each face flat. */
 export function envBuildRocks({ place, rocks, height }) {
   const random = envRandom(place.terrain.seed * 811 + 5);
-  const forms = ENV.rocks.forms.map((form) => envRockForm(form, random));
-  const total = rocks.reduce((sum, rock) => sum + forms[rock.form].length, 0);
+  const { detail, stone } = ENV.rocks;
+  const made = ENV.rocks.forms.map((form) => envRockForm(form, random, [detail, stone.detail]));
+  const formOf = (rock) => made[rock.form][rock.size < stone.below ? stone.detail : detail];
+  const total = rocks.reduce((sum, rock) => sum + formOf(rock).length, 0);
   const position = new Float32Array(total);
   const aRock = new Float32Array((total / 3) * 4);
   const aUp = new Float32Array(total / 3);
   const colour = new THREE.Color();
   let written = 0;
   for (const rock of rocks) {
-    const form = forms[rock.form];
+    const form = formOf(rock);
     const tall = ENV.rocks.forms[rock.form].scale[1] * rock.size;
     const cos = Math.cos(rock.turn);
     const sin = Math.sin(rock.turn);

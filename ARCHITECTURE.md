@@ -181,7 +181,10 @@ tile's height (loftbody.js `lacedShell`: the steppe's and the Chinese tile for `
 (`mesh.steelUv`). Each kind's u is offset by its band, which is how render.js `skinParts` draws those triangles apart in a
 material with the maps (`src/detailtex.js` `armourDetailMaterial`; the two cord masks in the albedo's and the normal map's
 alpha, drawn in the armour's `cord`, else its faction's `lamellarCord`, else its lace). oyoroi.js's laced panels wear the
-kozane too. The castle kit (kittex.js `stoneDetailMaps`) and the painted grounds of every place (ground/painted.js
+kozane too. Fine relief once modelled now rides these maps where they are drawn: the scissor's scales are his coat's scale
+shell (render.js no longer adds the 95 000-triangle instanced shirt), a banner hood's gilt studs are its coat's brigandine
+tile (chinahelmview.js `qingStuddedCloth`), a morion's roped edges a smooth roll wearing the `rope` tile drawn in code
+(drawntiles.js `ROPE_TILE`, wardrobe.js `ropedEdge`); with the maps off each is modelled as before. The castle kit (kittex.js `stoneDetailMaps`) and the painted grounds of every place (ground/painted.js
 `PAINTED_GROUND_BAKED`: a baked tile instead of a painted layer) share the ground tiles. `#maps=off` in the address draws
 everything as before (`boxer.detailMaps()`).
 

@@ -12,6 +12,7 @@
 // in Node.
 
 import { tkgNearReplay } from './geo.js';
+import { tkNearReach } from './place.js';
 
 /**
  * The numbers (m and ms). `show`: a block's detail is drawn while the nearest of the ground it covers is within this of
@@ -241,7 +242,7 @@ export function tkNearLayer({ cell, meshOf, group, attach, upload = null, free, 
         made.visible = true;
         for (const mesh of made.children) {
           const sphere = mesh.geometry.boundingSphere;
-          mesh.visible = sphere.center.distanceTo(focus) - sphere.radius < near;
+          mesh.visible = sphere.center.distanceTo(focus) - sphere.radius < tkNearReach(mesh.userData?.tkMaterial, near);
         }
       }
     },

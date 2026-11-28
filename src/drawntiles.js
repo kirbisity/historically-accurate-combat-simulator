@@ -356,5 +356,30 @@ function velvetTile(width = 256, height = 256) {
   return drawnBytes(layers, metres, metres, true);
 }
 
+// The rope filed into a turned edge (a morion's comb and brim: wardrobe.js ropedEdge), one twist along (u) and once round
+// (v) a roll `round` m about, its strand standing `depth` m proud of the groove between turns; drawn for a head of 0.1 m, the
+// rope 4.2 mm thick with a twist every 9 mm (wardrobe.js MORION.rope), as the twisted tube it replaces was.
+export const ROPE_TILE = { along: 0.009, round: 0.0264, depth: 0.0015 };
+
+function ropeTile(width = 64, height = 64) {
+  const spec = ROPE_TILE;
+  const layers = drawnLayers(width, height);
+  const { relief, shade, rough, metal, occlusion } = layers;
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      const at = y * width + x;
+      // One strand wound once round per twist: a rounded crown, a narrow groove where the turns meet.
+      const turn = ((x + 0.5) / width + (y + 0.5) / height) % 1;
+      const crown = Math.sqrt(Math.max(0, Math.sin(Math.PI * turn)));
+      relief[at] = spec.depth * crown;
+      shade[at] = 0.7 + 0.3 * crown;
+      occlusion[at] = 0.55 + 0.45 * crown;
+      rough[at] = 0.42 + 0.2 * (1 - crown);
+      metal[at] = 1;
+    }
+  }
+  return drawnBytes(layers, spec.along / width, spec.round / height, true);
+}
+
 /** The tiles drawn in code, by name: each a function that draws it ({ width, height, albedo, normal, orm }: RGBA bytes). */
-export const DRAWN_TILES = { corsetSatin: corsetSatinTile, lace: laceTile, paisley: paisleyTile, velvet: velvetTile };
+export const DRAWN_TILES = { corsetSatin: corsetSatinTile, lace: laceTile, paisley: paisleyTile, velvet: velvetTile, rope: ropeTile };

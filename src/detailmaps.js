@@ -105,6 +105,9 @@ export const DETAIL_ARMOUR = {
   // pine-cone, https://www.vam.ac.uk/articles/the-history-of-paisley); a coat collar's silk velvet, its cut pile laid one way.
   paisley: { band: 2200, tile: 0.05, drawn: true, fabric: true },
   velvet: { band: 2300, tile: 0.03, drawn: true, fabric: true },
+  // A turned edge's rope (drawntiles.js ROPE_TILE: one twist along, once round), worn by a roll drawn as a plain tube
+  // (wardrobe.js ropedEdge), not a field.
+  rope: { band: 2400, tile: [0.009, 0.0264], drawn: true },
 };
 const DETAIL_BANDS = Object.fromEntries(Object.entries(DETAIL_ARMOUR).map(([kind, spec]) => [spec.band, kind]));
 

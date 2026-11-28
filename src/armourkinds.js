@@ -615,7 +615,7 @@ export const ARMOR_KINDS = {
   // forearm in a steel tube (its crescent blade is the scissores, carried as
   // a shield), greaves on both shins.
   scissor: {
-    trunk: [-0.16, 0.98, 1.16, { scales: true }], belt: BALTEUS, collar: 'steel',
+    trunk: [-0.16, 0.98, 1.2, { scales: true }], belt: BALTEUS, collar: 'steel',
     upperArm: { r: [-0.25, 1.02, 1.32, MANICA], l: [-0.2, 0.5, 1.4, { scales: true }] }, forearm: { r: [-0.06, -0.02, 1.32, MANICA], l: [-0.1, 0.06, 1.55, 'steel'] },
     shin: [-0.1, 0.88, 1.32, 'steel'],
   },

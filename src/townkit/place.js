@@ -19,6 +19,11 @@ export const TK_PLACE = {
   // focus. 24 m is about four house fronts; 46 m is where a tile roll is under a pixel at the usual view. `merge`: what is
   // never switched is drawn this many blocks square at a time (tkMeshes).
   block: 24, near: 46, merge: 3,
+  // A material whose fine detail is drawn a shorter way than `near` (m): the tile rolls over a roof's sheet (geo.js tkgRoof),
+  // some 0.1 m across and 5 cm proud of the sheet, are 6 pixels across at 24 m on a screen 1080 rows high and their rise
+  // under 3; past that the sheet's own painted rolls and normal map (tex.js `rooftile`) read the same, and the rolls of every
+  // roof within 46 m were the most triangles of a town's frame (the canal town's 230 000 of 1.2 million).
+  nearBy: { rooftile: 24 },
   // The low tier (a phone, a slow integrated GPU): no fine detail at any distance, sheets at half size, no cube mirror.
   low: { near: 0, size: 256, mirror: false, rain: 0.5 },
   // The sun's own shadow camera while a kit place is shown: its half width round the camera's focus (m) and how far off
@@ -141,7 +146,7 @@ export function* tkMeshesSteps(blocks, materials, { tier = 'high', every = Infin
       if (batch.level === 'all' && (!wide || wideCasts) && batch.material !== 'water') casters.push(mesh);
       if (batch.level !== 'all') {
         mesh.visible = batch.level === 'far';
-        switched.push({ mesh, level: batch.level, centre: mesh.geometry.boundingSphere.center, radius: mesh.geometry.boundingSphere.radius });
+        switched.push({ mesh, level: batch.level, reach: batch.level === 'near' ? tkNearReach(batch.material, near) : near, centre: mesh.geometry.boundingSphere.center, radius: mesh.geometry.boundingSphere.radius });
       }
       if ((made += 1) % every === 0) yield;
     }
@@ -178,7 +183,7 @@ export function* tkMeshesSteps(blocks, materials, { tier = 'high', every = Infin
   group.userData.detail = (focus) => {
     const fine = near > 0 && tkTier() !== 'low';
     for (const entry of switched) {
-      const close = fine && entry.centre.distanceTo(focus) - entry.radius < near;
+      const close = fine && entry.centre.distanceTo(focus) - entry.radius < entry.reach;
       entry.mesh.visible = entry.level === 'near' ? close : !close;
     }
   };
@@ -188,6 +193,11 @@ export function* tkMeshesSteps(blocks, materials, { tier = 'high', every = Infin
     return count;
   };
   return group;
+}
+
+/** How far a material's near detail is drawn (m): the place's `near`, or less where TK_PLACE.nearBy says. */
+export function tkNearReach(material, near = TK_PLACE.near) {
+  return Math.min(near, TK_PLACE.nearBy[material] ?? near);
 }
 
 /**
@@ -202,6 +212,7 @@ export function tkNearMesh(batch, materials) {
   mesh.matrixAutoUpdate = false;
   mesh.name = `townkit:${batch.material}:near`;
   mesh.userData.nearDetail = true;
+  mesh.userData.tkMaterial = batch.material;
   batch.free();
   return mesh;
 }

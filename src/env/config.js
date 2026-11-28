@@ -665,6 +665,13 @@ export const ENV = {
       { cuts: 6, keep: 0.58, lump: 0.08, scale: [1.5, 0.3, 1.15] },
       { cuts: 6, keep: 0.56, lump: 0.1, scale: [0.7, 1.05, 0.56] },
     ],
+    // The ball each form is pushed from: an icosahedron subdivided `detail` times (2: 320 faces), enough for a boulder's
+    // faces and edges at arm's length. A stone under `stone.below` m (half its width) is made from a coarser ball
+    // (`stone.detail` 1: 80 faces) with the same waves and cuts: the field's hundreds of pebbles, 2 to 13 cm, were most of
+    // a place's rock triangles (mobei's 98 000) at 1 800 to 3 000 a square metre, where a 10 cm stone is 15 pixels across
+    // at 10 m on a screen 1080 rows high and its cut faces read the same from 80.
+    detail: 2,
+    stone: { below: 0.15, detail: 1 },
     // How much of its height is in the ground (a boulder sits in the soil, it does not rest on the grass).
     sink: 0.3,
     // Its colour, the lichen that blotches it and the moss on its top (display values). A grey gneiss or granite
