@@ -38,6 +38,9 @@ export const HEAD_LATTICE = {
   occlusion: { ...PHOTO_HEAD.occlusion, socket: 0 },
   // A crowd's head: every `coarse`-th point each way.
   coarse: 2,
+  // A head drawn small on the screen (face.js HEAD_LOD): the same points, every `far`-th each way joined (a quarter of the
+  // triangles), on the full head's own normals, tangents and photo, so its light and features are the full head's.
+  far: 2,
   // The jaw line (the atlas' row: the chin's underside, the jaw's angle, the nape under the hairline), under which the
   // scan's neck is taken up into a lid: the body's own neck meets the head along it. The scan's neck stood out of the body's
   // in front and at the sides (by up to 40 mm under a man's chin) and the two crossed at a glancing angle in a ragged seam.
@@ -107,6 +110,35 @@ export function mirrorLattice(half) {
 
 /** The whole lattice's shares round for a half's. */
 export const mirrorShares = (dus) => [...dus.slice(1).reverse().map((du) => -du), ...dus];
+
+/**
+ * The triangles of every `step`-th row and column of a whole lattice (`rowCount` rows of `stride` points, the half's
+ * columns mirrored about the middle one), the last row and the seam's columns always kept: a coarser surface over the same
+ * points, for a head drawn small (latticeIndices for the whole).
+ */
+export function thinnedIndices(rowCount, stride, step) {
+  const kept = (count) => {
+    const list = [];
+    for (let index = 0; index < count - 1; index += step) list.push(index);
+    list.push(count - 1);
+    return list;
+  };
+  const middle = (stride - 1) / 2;
+  const half = kept(middle + 1);
+  const columns = [...half.slice(1).reverse().map((k) => middle - k), ...half.map((k) => middle + k)];
+  const rows = kept(rowCount);
+  const indices = [];
+  for (let row = 0; row < rows.length - 1; row += 1) {
+    for (let column = 0; column < columns.length - 1; column += 1) {
+      const a = rows[row] * stride + columns[column];
+      const a1 = rows[row] * stride + columns[column + 1];
+      const b = rows[row + 1] * stride + columns[column];
+      const b1 = rows[row + 1] * stride + columns[column + 1];
+      indices.push(a, a1, b, b, a1, b1);
+    }
+  }
+  return indices;
+}
 
 /** The lattice's triangles: two for each cell. */
 export function latticeIndices(rowCount, stride) {
@@ -383,6 +415,8 @@ export function buildLatticeHead({ data, radius, skull, shape, atlas, region = {
     uvs,
     colors,
     indices: latticeIndices(rows.length, stride),
+    /** The same points joined coarser, for the head drawn small (face.js HEAD_LOD); none for a crowd's, coarse already. */
+    farIndices: coarse ? null : thinnedIndices(rows.length, stride, HEAD_LATTICE.far),
     /** The ink outline's share of its width per point (toon.js outlineFor): none along the lid, where the neck meets the head. */
     ink,
     /** Texture coordinates for a point near the head (an ear), in the head's local space: the nearest point's of its sides. */

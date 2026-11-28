@@ -156,3 +156,14 @@ test('the base body\'s table of the jaw line, the throat\'s ring and the ring ab
     }
   }
 });
+
+test('a head drawn small joins every second row and column of the same points: a quarter of the triangles, wound as the whole', async () => {
+  const { latticeIndices, thinnedIndices } = await import('../src/headlattice.js');
+  assert.deepEqual(thinnedIndices(5, 9, 1), latticeIndices(5, 9), 'a step of one is the whole lattice');
+  const far = thinnedIndices(72, 117, 2);
+  assert.equal(far.length / 3, 4176);
+  assert.ok(far.every((vertex) => vertex < 72 * 117));
+  // The last row and both seam columns are kept, so the head stays closed at the back and along the lid.
+  const used = new Set(far);
+  for (const column of [0, 116]) assert.ok(used.has(71 * 117 + column));
+});

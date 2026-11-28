@@ -77,6 +77,49 @@ function photoShape(female, morph) {
 // Makeup (look.makeup): `eyes` 'smoky' (a dark shadow round the eye),
 // `liner` 'winged' (a heavy upper line flicked out), `lowerLash` 'heavy',
 // `lips` a colour; and the shadow's own colour and strength.
+// A photo head drawn small on the screen is drawn from its coarse triangles (headlattice.js `farIndices`: the same points,
+// every second row and column joined, 4 176 triangles for 16 472) on the full head's normals, tangents and photo, so only
+// its outline and the depth of its folds are coarser, and those by under a pixel when it changes over (the user's call,
+// 2026-11-27). Chosen once a frame by the head's height on the screen (`px`: its bounding sphere's diameter in drawing
+// rows), with a band either side (`band`, a share) so a head at the change-over does not flicker between the two. 150 rows:
+// a duel's follow camera at 4.2 m draws a head about 95 rows high; a close-up, a design sheet's or the drama camera's
+// push-in, several hundred. `force`: 'near' or 'far' for every head (tests, comparisons), null to choose.
+export const HEAD_LOD = { on: true, px: 150, band: 0.08, force: null };
+
+const headLodSphere = new THREE.Sphere();
+const headLodSize = new THREE.Vector2();
+
+/** Which of a head's two triangle sets to draw for `camera` now: 'near' or 'far' (`was`: the one drawn last). */
+export function headLodFor(mesh, camera, rows, was = 'near') {
+  if (HEAD_LOD.force) return HEAD_LOD.force;
+  if (!HEAD_LOD.on || !camera?.isPerspectiveCamera) return 'near';
+  const geometry = mesh.geometry;
+  if (!geometry.boundingSphere) geometry.computeBoundingSphere();
+  headLodSphere.copy(geometry.boundingSphere).applyMatrix4(mesh.matrixWorld);
+  const distance = Math.max(1e-3, headLodSphere.center.distanceTo(camera.position));
+  const px = ((2 * headLodSphere.radius) / (2 * distance * Math.tan((camera.fov * Math.PI) / 360))) * rows * (camera.zoom ?? 1);
+  const edge = HEAD_LOD.px * (1 + (was === 'far' ? HEAD_LOD.band : -HEAD_LOD.band));
+  return px < edge ? 'far' : 'near';
+}
+
+/**
+ * A photo head's two triangle sets on its geometry (`near` the whole lattice, `far` its coarse joining), the one for the
+ * camera set as the geometry's index before each frame's draw (it stays for the shadow maps, drawn first next frame).
+ */
+function headLevels(mesh, farIndices) {
+  const geometry = mesh.geometry;
+  const levels = { near: geometry.index, far: new THREE.BufferAttribute(Uint32Array.from(farIndices), 1), now: 'near' };
+  geometry.userData.headLod = levels;
+  mesh.onBeforeRender = (renderer, scene, camera) => {
+    renderer.getDrawingBufferSize(headLodSize);
+    const level = headLodFor(mesh, camera, headLodSize.y, levels.now);
+    if (level === levels.now) return;
+    levels.now = level;
+    geometry.setIndex(levels[level]);
+  };
+  return levels;
+}
+
 export const MAKEUP = { shadow: 0x1a1316, shadowOpacity: 0.82, wing: 0.16, linerWeight: 1.8, lowerWeight: 0.03 };
 
 // Ringlets: corkscrew curls, `coil` (of r) about their line, `turns` along a lock.
@@ -399,6 +442,7 @@ export function buildHead(body, lookInput, skinHex, cornerHex) {
   const skull = new SoftShell(skullGeometry, skinMaterial, body.segments.head.fleshFirmness, { recomputeNormals: !photoHead });
   group.add(skull.mesh);
   skull.mesh.add(outlineFor(skull.mesh, 0.0035));
+  if (photoHead?.farIndices) headLevels(skull.mesh, photoHead.farIndices);
   for (const side of [1, -1]) {
     const ear = new THREE.Mesh(new THREE.SphereGeometry(1, 12, 10), skinMaterial);
     ear.scale.set(0.12 * r, 0.22 * r, 0.05 * r);
