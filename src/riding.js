@@ -489,7 +489,7 @@ export function ride(world, fighter, opponent, style, dt, { gunfight }) {
     off = Math.atan2(Math.sin(off), Math.cos(off));
     if (Math.abs(off) > RIDING.wheel.from) speed = Math.min(speed, wheelPace(horse, room));
     const clear = keepLane(world, fighter, heading, speed);
-    horse.goal = { heading: steerInside(world, horse, clear.heading), speed: clear.speed };
+    horse.goal = { heading: steerInside(world, horse, clear.heading, undefined, { at: [target[0], target[2]], corner: opponent.corner }), speed: clear.speed };
   };
   // A man down (or getting up) is let be: walk on, round him.
   if (opponent.state !== 'up') {
@@ -941,7 +941,7 @@ export function chargeAt(world, fighter, charge) {
     off = Math.atan2(Math.sin(off), Math.cos(off));
     if (Math.abs(off) > RIDING.wheel.from) speed = Math.min(speed, wheelPace(horse, room));
     const clear = keepLane(world, fighter, heading, speed);
-    horse.goal = { heading: steerInside(world, horse, clear.heading), speed: clear.speed };
+    horse.goal = { heading: steerInside(world, horse, clear.heading, undefined, { at: [target[0], target[2]], corner: opponent.corner }), speed: clear.speed };
   };
   if (charge.phase === 'charge') {
     // His near side, on his weapon side, at the room the riding AI gives a pass (ride()); the player's horse is ridden
