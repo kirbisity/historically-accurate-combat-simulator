@@ -433,7 +433,9 @@ and adjust only the numbers of each side.
   shown beyond `lodDistance`. Before the far body is made, a template's layers are kept one inside another
   (`coverLayers`, CROWD_VIEW `cover*`): a point standing a little out through the piece over its own is drawn in under
   it, and what is covered at every corner, by pieces the bones move alike, is left out (as a full man's skin under armour
-  is), so nothing under comes through the coarse rings and there is less to draw; a man the camera does not see is not posed or
+  is), so nothing under comes through the coarse rings and there is less to draw; and what hangs over the body follows the
+  body under it (`coverFollow`: a skirt parts between the legs, a boot's top bends with the shin; not a steel plate held to one
+  bone, nor past the end of the bone it would follow); a man the camera does not see is not posed or
   drawn; and a man far from the camera or outside the shadow map casts no
   shadow (`src/crowdlod.js` decides, `selectCrowdDraw` in `render.js` applies
   it). The man played, his lock and opponent, anyone within 3 m of him and the

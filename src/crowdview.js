@@ -82,6 +82,12 @@ export const CROWD_VIEW = {
   // differences, 0..2, at most this): the skin under a shirt that takes the skin's own weights, the lining of a helmet.
   // Under a piece weighted otherwise it could come out from under it, posed, and must be there to be seen.
   coverTogether: 0.3,
+  // What hangs over the body follows the body under it (followUnder): a coat's or brigandine's skirt parts between the legs as
+  // a man strides, a boot's top bends with the shin, and nothing under them comes out through them (the user's call, 2026-11-27).
+  coverFollow: true,
+  // How near (m) the body under a point must lie for the point to follow it: a skirt's cloth over the thigh, a boot's shaft round
+  // the shin, lie within a few centimetres; a shoe's sole is further from the shin above it, through the foot, and stays on the foot.
+  coverFollowReach: 0.05,
 };
 
 /**
@@ -299,11 +305,12 @@ const layerCellKey = (x, y, z) => (x * 1024 + y) * 1024 + z;
  * The first thing of another piece than `vertex`'s, drawn whenever it is (a helmet covers the scalp only while it is worn:
  * HEAD_VARIANT), that a ray from the vertex along `direction` meets within `reach`, if it is a layer met as `side` asks:
  * from inside (1: the triangle faces along the ray by `facing`, as a layer over the point does) or from outside (-1: it
- * faces back at it). Bare skin is never a layer (a limb's root inside the trunk's shoulder is a joint), nor is anything
+ * faces back at it). Bare skin is never a layer over a point (a limb's root inside the trunk's shoulder is a joint; `skinLayer`:
+ * it may be the body under one), nor is anything
  * met the other way first: a ray from the hip through the sleeve of the arm hanging beside it meets the sleeve's far side
  * from inside, and the near side, met first, says it is no layer over the hip. { triangle (its first corner), piece, u, v, t } or null.
  */
-export function castLayer(grid, vertex, direction, reach, side, facing) {
+export function castLayer(grid, vertex, direction, reach, side, facing, skinLayer = false) {
   const { position, indices, piece, variant, tried } = grid;
   const ox = position[vertex * 3], oy = position[vertex * 3 + 1], oz = position[vertex * 3 + 2];
   const [dx, dy, dz] = direction;
@@ -326,7 +333,7 @@ export function castLayer(grid, vertex, direction, reach, side, facing) {
       if (hit && hit.t <= reach && (!best || hit.t < best.t)) best = { triangle: corner, piece: piece[a], u: hit.u, v: hit.v, t: hit.t, along: hit.along, skin: grid.skin(a) && grid.skin(b) && grid.skin(c) };
     }
   }
-  return best && !best.skin && side * best.along >= facing ? best : null;
+  return best && (skinLayer || !best.skin) && side * best.along >= facing ? best : null;
 }
 
 /** Where a ray meets triangle a, b, c: { t, u, v, along (the cosine of its normal with the ray) }, or null. */
@@ -376,6 +383,62 @@ function weightGap(grid, skinIndex, skinWeight, vertex, cover) {
 }
 
 /**
+ * Each point of a piece lying over another takes the weights of the point under it (a ray in against its normal meets, within
+ * `reach`, the outside of another piece or the bare skin), where the two are weighted apart by more than `together`: a coat's
+ * skirt hung from the hips over a thigh going forward parts between the legs as the thighs part, a boot's shaft bends with the
+ * shin. Three passes, so a coat over a shirt over the skin takes the skin's through the shirt. Only alongside the bone the
+ * point under is mostly moved by (not past its end, a shoe's heel under the ankle). Not a steel plate held to one
+ * bone (a breastplate on the chest, a sabaton on the foot): plate does not bend with what is under it.
+ */
+function followUnder(grid, template, out, used, steelFrom, { reach, facing, together, over }) {
+  const skinIndex = template.attributes.skinIndex.array;
+  const skinWeight = template.attributes.skinWeight.array;
+  const steel = new Uint8Array(template.vertices);
+  for (let corner = steelFrom; corner < grid.indices.length; corner += 1) steel[grid.indices[corner]] = 1;
+  const rigidPlate = (vertex) => steel[vertex] && skinWeight[vertex * 4] >= 0.999;
+  const unders = new Map();
+  for (let vertex = 0; vertex < template.vertices; vertex += 1) {
+    if (!used[vertex] || grid.skin(vertex) || rigidPlate(vertex)) continue;
+    const [nx, ny, nz] = out(vertex);
+    const under = castLayer(grid, vertex, [-nx, -ny, -nz], reach, -1, facing, true);
+    if (under && over(under.piece, grid.piece[vertex])) unders.set(vertex, under);
+  }
+  // (Only alongside the bone it would follow: a point past the bone's end, a shoe's heel under the ankle, would swing with the
+  // shin round the joint it lies beyond.)
+  const position = template.attributes.position.array;
+  const alongside = (vertex, bone) => {
+    const frame = template.frames?.[bone];
+    if (!frame?.end) return true;
+    const axis = [0, 1, 2].map((k) => frame.end[k] - frame.origin[k]);
+    const length = axis[0] ** 2 + axis[1] ** 2 + axis[2] ** 2;
+    const t = [0, 1, 2].reduce((sum, k) => sum + (position[vertex * 3 + k] - frame.origin[k]) * axis[k], 0) / (length || 1);
+    return t >= 0 && t <= 1;
+  };
+  for (let pass = 0; pass < 3; pass += 1) {
+    const next = [];
+    for (const [vertex, under] of unders) {
+      if (weightGap(grid, skinIndex, skinWeight, vertex, under) <= together) continue;
+      const shares = [1 - under.u - under.v, under.u, under.v];
+      const weights = new Map();
+      shares.forEach((share, at) => {
+        for (const [bone, weight] of weightsOf(skinIndex, skinWeight, grid.indices[under.triangle + at])) weights.set(bone, (weights.get(bone) ?? 0) + weight * share);
+      });
+      const sorted = [...weights].sort((a, b) => b[1] - a[1]).slice(0, 4);
+      if (!alongside(vertex, sorted[0][0])) continue;
+      next.push([vertex, sorted]);
+    }
+    if (!next.length) break;
+    for (const [vertex, weights] of next) {
+      const sum = weights.reduce((total, [, weight]) => total + weight, 0) || 1;
+      for (let slot = 0; slot < 4; slot += 1) {
+        skinIndex[vertex * 4 + slot] = weights[slot]?.[0] ?? 0;
+        skinWeight[vertex * 4 + slot] = (weights[slot]?.[1] ?? 0) / sum;
+      }
+    }
+  }
+}
+
+/**
  * A crowd body's layers kept one inside another (CROWD_VIEW.coverLayers). A full man's skin under his armour is left out
  * (loftbody.js hideCovered); a crowd man's was all drawn, the skin under his shirt, the shirt under his coat, the trouser
  * leg in his boot, each a coarse ring of a few sides crossing the coarse ring over it between their corners: what lies under
@@ -392,7 +455,8 @@ function weightGap(grid, skinIndex, skinWeight, vertex, cover) {
  * In place, before the far body and the two heads are made from it; returns `kept` (the old vertex of each new one), for
  * another colouring of the same shape to be cut to (keptOf).
  */
-export function coverLayers(template, { reach = CROWD_VIEW.coverReach, facing = CROWD_VIEW.coverFacing, cell = CROWD_VIEW.coverCell, pull = CROWD_VIEW.coverPull, gap = CROWD_VIEW.coverGap, together = CROWD_VIEW.coverTogether, overMin = CROWD_VIEW.coverOverMin } = {}) {
+export function coverLayers(template, { reach = CROWD_VIEW.coverReach, facing = CROWD_VIEW.coverFacing, cell = CROWD_VIEW.coverCell, pull = CROWD_VIEW.coverPull, gap = CROWD_VIEW.coverGap, together = CROWD_VIEW.coverTogether, overMin = CROWD_VIEW.coverOverMin, follow = CROWD_VIEW.coverFollow, followReach = CROWD_VIEW.coverFollowReach } = {}) {
+  const steelFrom = template.bodyIndex.length;
   const drawn = new Uint32Array(template.bodyIndex.length + template.steelIndex.length);
   drawn.set(template.bodyIndex);
   drawn.set(template.steelIndex, template.bodyIndex.length);
@@ -409,6 +473,8 @@ export function coverLayers(template, { reach = CROWD_VIEW.coverReach, facing = 
   const out = (vertex) => [normal[vertex * 3], normal[vertex * 3 + 1], normal[vertex * 3 + 2]];
   const covers = new Array(count).fill(null);
   for (let vertex = 0; vertex < count; vertex += 1) if (used[vertex]) covers[vertex] = castLayer(grid, vertex, out(vertex), reach, 1, facing);
+  const skinIndex = template.attributes.skinIndex.array;
+  const skinWeight = template.attributes.skinWeight.array;
   // Which piece lies over which: piece P is over piece A where it covers many of A's points and A few of P's (as a full
   // man's layers are ranked: loftbody.js keepLayersInside). A point of A standing out through P is drawn in under it.
   const coveredBy = new Map();
@@ -421,6 +487,11 @@ export function coverLayers(template, { reach = CROWD_VIEW.coverReach, facing = 
     const under = coveredBy.get(`${piece}|${layer}`) ?? 0;
     return under >= overMin && under > 2 * (coveredBy.get(`${layer}|${piece}`) ?? 0);
   };
+  // What hangs over the body follows it (CROWD_VIEW.coverFollow): each point of a piece with something under it takes the
+  // weights of the point under it (the body's own, through every layer between: a few passes, innermost first), where the two
+  // were weighted apart, if its piece lies over that one (not one leg's boot against the other's). A steel plate held to one
+  // bone keeps it.
+  if (follow) followUnder(grid, template, out, used, steelFrom, { reach: followReach, facing, together, over });
   // (Only the points of a piece something lies over are tried: the outermost pieces, the head, the hands, are never under.)
   const underSome = new Set();
   for (const key of coveredBy.keys()) {
@@ -437,8 +508,6 @@ export function coverLayers(template, { reach = CROWD_VIEW.coverReach, facing = 
     covers[vertex] = hit;
     pulled += 1;
   }
-  const skinIndex = template.attributes.skinIndex.array;
-  const skinWeight = template.attributes.skinWeight.array;
   const covered = covers.map((cover, vertex) => Boolean(cover) && weightGap(grid, skinIndex, skinWeight, vertex, cover) <= together);
   // (Not the ring of covered points next to what is not: at the edge of a layer, a collar's, a cuff's, a coat's opening, the
   // eye looks in under it at a slant, and the layer beneath must be there to be seen, or the man is seen through.)
