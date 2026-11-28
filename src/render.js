@@ -45,7 +45,7 @@ import { HELM_HEAD_BREADTH, HELM_SPAN } from './helmforms.js';
 import { photoFaceFor, skinScatter } from './photoface.js';
 import { capsules, capsuleEnds, halfPoints, point, WORLD } from './physics.js';
 import { BONE, BONES, bindPoints, boneFrames, coherentFrames, frameMatrix, fromFrame, toFrame } from './rig.js';
-import { bakePieces, clusterColors, CROWD_VIEW, crowdBatch, crowdKey, crowdShapeKey, frameAt, HEAD_VARIANT, onlyVariant, simplifyTemplate, stretchedInverses, topologyOf, withoutVariant } from './crowdview.js';
+import { bakePieces, clusterColors, coverLayers, CROWD_VIEW, crowdBatch, crowdKey, crowdShapeKey, frameAt, HEAD_VARIANT, keptOf, onlyVariant, simplifyTemplate, stretchedInverses, topologyOf, withoutVariant } from './crowdview.js';
 import { chooseDraw, crowdLod } from './crowdlod.js';
 import { batchMan, beginCrowdBodies, disposeCrowdBodies, unbatchMan, warmCrowdBody } from './crowdbatch.js';
 import { geometryArrays, materialTextures, textureBytes } from './memstats.js';
@@ -3358,10 +3358,14 @@ function shareShape(view, shapeKey, template) {
   const topology = topologyOf(template);
   const shape = shapeKey === null ? null : view.crowdShapes.get(shapeKey);
   if (shape && shape.topology === topology) {
-    const far = { ...shape.far, colors: clusterColors(shape.far, template.colors), lacquer: template.lacquer, colorAttribute: null };
-    return { ...shape, colors: template.colors, lacquer: template.lacquer, colorAttribute: null, users: 0, far };
+    // (Its colours cut to the points the shape kept: coverLayers.)
+    const colors = shape.kept ? keptOf(template.colors, shape.kept, 3) : template.colors;
+    const far = { ...shape.far, colors: clusterColors(shape.far, colors), lacquer: template.lacquer, colorAttribute: null };
+    return { ...shape, colors, lacquer: template.lacquer, colorAttribute: null, users: 0, far };
   }
   template.topology = topology;
+  // (Its layers kept inside one another, and what they cover left out: before the far body is made from it.)
+  template.kept = CROWD_VIEW.coverLayers ? coverLayers(template) : null;
   template.far = farTemplate(template);
   splitHeads(template);
   splitHeads(template.far);
