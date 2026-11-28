@@ -309,8 +309,11 @@ export function headMix(lattice, region) {
  * The head's mesh on the model: what buildPhotoHead gives ({ positions, normals, uvs, colors, indices, uvAt, point, most,
  * mouthY, earZ }, the head's local space, radius applied). `data`: HEAD_GRID_DATA; `skull`: face.js SKULL; `shape`: the drawn
  * shape (its `morph` only); `atlas`: PHOTO_ATLAS; `region`: the fighter's shape; `jitter`: his proportions; `coarse`: a crowd's.
+ * `sculpt`: a made face's sculptor (facecustom/solver.js faceSculptor), run on the points in unit space once the body's morph
+ * has moved them: the head's surface, its lid, normals, tangents and the hair's ground all follow what it returns. None,
+ * the head is as it always was.
  */
-export function buildLatticeHead({ data, radius, skull, shape, atlas, region = {}, jitter = {}, coarse = false, female = false, lid = true }) {
+export function buildLatticeHead({ data, radius, skull, shape, atlas, region = {}, jitter = {}, coarse = false, female = false, lid = true, sculpt = null }) {
   const lattice = headLattice(data, female ? 'female' : 'male');
   const { shares, residual } = headMix(lattice, region);
   const step = coarse ? HEAD_LATTICE.coarse : 1;
@@ -353,7 +356,9 @@ export function buildLatticeHead({ data, radius, skull, shape, atlas, region = {
     const m = morphHeadPoint(p[0], p[1], p[2], morph);
     return p.map((value, axis) => value + (m[axis] - value) * PHOTO_HEAD.morphGain);
   };
-  const finalUnit = own.map(morphed);
+  const formed = own.map(morphed);
+  const sculpted = sculpt ? sculpt({ points: formed, uvs: formed.flatMap((_, vertex) => [0.5 + dus[vertex % stride], 1 - rows[Math.floor(vertex / stride)]]), rowCount: rows.length, stride }) : null;
+  const finalUnit = sculpted ? sculpted.points : formed;
   const final = finalUnit.map((p) => [p[0] * skull[0] * radius, p[1] * skull[1] * radius, p[2] * skull[2] * radius]);
   // The scan's neck under the jaw line taken up into a lid across it (HEAD_LATTICE.lid): the body's neck is drawn to meet the
   // head there (basebody.js neckUnderHead). Each column's points past the line on its point of the line, drawn in towards the
@@ -432,7 +437,8 @@ export function buildLatticeHead({ data, radius, skull, shape, atlas, region = {
     },
     /** The head's surface in a direction (unit space, skull scale applied, no radius): for hair and beards to sit on. */
     point: (x, y, z) => {
-      const p = morphed(ground(x, y, z));
+      const formedPoint = morphed(ground(x, y, z));
+      const p = sculpted ? sculpted.point(formedPoint) : formedPoint;
       return [p[0] * skull[0], p[1] * skull[1], p[2] * skull[2]];
     },
     most: FACE_MORPH.most,
@@ -440,5 +446,10 @@ export function buildLatticeHead({ data, radius, skull, shape, atlas, region = {
     mouthY: finalUnit[mouthRow * stride + middle][1] * skull[1],
     earZ: Math.abs(ground(-0.06, -0.08, 1)[2]),
     shares: Object.fromEntries(lattice.names.map((name, index) => [name, shares[index]])),
+    // For a made face (facecustom/solver.js): the points in unit space, the lattice's lay-out, and what the sculptor returned
+    // (the skin's stretch, the landmarks as the face left them: its expressions are worked out on these).
+    unit: finalUnit,
+    grid: { rowCount: rows.length, stride, lidRow: lid ? lidRow : rows.length - 1, rows },
+    sculpted,
   };
 }
