@@ -336,7 +336,8 @@ function gunServe(world, piece, dt) {
   // Elevation: on the mark, with its ball's drop over the flight (the quoin is quick; ballistics.js holdover, the drag's included).
   const flat = Math.hypot(piece.mark[0] - muzzle[0], piece.mark[2] - muzzle[2]);
   piece.elevation = Math.atan2(piece.mark[1] - muzzle[1], flat) + holdover(gunProjectile(piece, 'ball'), flat);
-  if (!piece.seated || Math.abs(turn) > ARTILLERY.laid) return;
+  // (Laid, but not fired in the fight's first seconds: command.js keepOrders `openingHoldUntil`.)
+  if (!piece.seated || Math.abs(turn) > ARTILLERY.laid || world.time < (world.openingHoldUntil ?? 0)) return;
   firePiece(world, piece, men[0]);
 }
 

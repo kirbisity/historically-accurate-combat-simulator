@@ -459,6 +459,9 @@ export const WORLD = {
   // The share of that he still gets in the middle of a blow of his own: he does not stop breathing to swing (at 0, as it was,
   // a man swinging at three about him got next to nothing back, and wore out in seconds).
   strikeRecovery: 0.6,
+  // The fight's first seconds (s), no man not played loosing an arrow, a bolt or a ball, nor a gun crew firing: time for the
+  // player to give Hold fire before the first volley, where he commands a side with shot (command.js keepOrders). The user's call, 2026-11-28.
+  openingHold: 2,
   // The guard held up (fighter.guardHeld: the player's guard button, control.js; an AI's block kept up through the blows coming,
   // ai.js keepGuard; both physics.js holdGuard): the block stays up, put back as each one runs out, set to meet the blow coming.
   // Held up, it is work, the same for anyone:

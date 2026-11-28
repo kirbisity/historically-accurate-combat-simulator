@@ -353,3 +353,24 @@ test('Hold fire: his bows loose nothing till Fire at will', async () => {
   assert.equal(shots(true), 0);
   assert.ok(shots(false) > 5);
 });
+
+test('the fight\'s first seconds: nobody but the man played looses, Hold fire given or not, then the bows go', async () => {
+  const { PRESETS } = await import('../src/body.js');
+  const { advance, WORLD } = await import('../src/physics.js');
+  const { thinkAll } = await import('../src/ai.js');
+  const red = [structuredClone(PRESETS.samurai), ...Array.from({ length: 5 }, () => structuredClone(PRESETS.archerYumi))];
+  const blue = Array.from({ length: 5 }, () => structuredClone(PRESETS.archerYumi));
+  const world = createWorld([...red.map((inputs) => ({ inputs, corner: 'red' })), ...blue.map((inputs) => ({ inputs, corner: 'blue' }))], { seed: 4, arena: { halfX: 40, halfZ: 40 } });
+  const player = world.fighters[0];
+  player.player = true;
+  world.fighters.forEach((fighter, index) => {
+    fighter.root[0] = fighter.corner === 'red' ? -14 : 14;
+    fighter.root[1] = (index % 6) * 1.5 - 4;
+  });
+  const loosed = () => world.fighters.filter((fighter) => fighter !== player).reduce((sum, fighter) => sum + fighter.stats.thrown, 0);
+  const think = (current, dt) => thinkAll(current, dt, new Set([player.id]));
+  advance(world, WORLD.openingHold - 0.05, think);
+  assert.equal(loosed(), 0);
+  advance(world, 6, think);
+  assert.ok(loosed() > 5);
+});

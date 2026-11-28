@@ -2683,8 +2683,9 @@ export function throwPunch(world, fighter, type, zone = null, { heavy = false, a
   if (spec?.kind === 'strike' && limbGone(fighter, spec.limb)) return false;
   // On a ladder his hands are on its rungs: he strikes only from its head, over the walk's edge (physics/ladders.js).
   if (fighter.climbing && !fighter.climbing.top) return false;
-  // (Told to hold his fire, command.js giveFireOrder: no arrow, bolt or ball loosed; the man played is his own master.)
-  if (spec?.path === 'aim' && fighter.holdFire && !fighter.player) return false;
+  // (Told to hold his fire, command.js giveFireOrder, or the fight's first seconds, command.js keepOrders `openingHoldUntil`: no arrow, bolt or ball
+  // loosed; the man played is his own master.)
+  if (spec?.path === 'aim' && (fighter.holdFire || world.time < (world.openingHoldUntil ?? 0)) && !fighter.player) return false;
   if (!spec || spec.kind !== 'strike' || (!target && !at) || fighter.punch || fighter.committed > 0 || fighter.throwing || fighter.state !== 'up' || (fighter.crawling && !fromKnees) || fighter.netted || fighter.pain || (fighter.stamina < drain && !overdraws(fighter)) || (spec.bash && !fighter.shield)) return false;
   // From the saddle only what is before him (WORLD.mount.arc: inRiderArc): nothing behind, nor square beside him.
   if (fighter.mount && !inRiderArc(fighter, at ?? point(target.x, P.pelvis))) return false;

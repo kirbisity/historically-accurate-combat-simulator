@@ -111,10 +111,10 @@ export const COMMAND = {
     dressed: 0.8,
     // How fast (rad/s) the way to the enemy is turned to as they move: the line wheels slowly, it does not swing.
     turn: 0.3,
-    // An advance turns into a charge with its front this near (m) the enemy's nearest man: the run-in at the end of an
-    // advance on foot, about a javelin's cast (the legion threw its pila and ran in from there); a man in kit cannot run
-    // much further and arrive fit to fight, so not more (a kit's own `drill.charge`, 5 to 8 m, is the last of the run).
-    chargeAt: 15,
+    // An advance turns into a charge with its front this near (m) the enemy's nearest man: the last of the run-in, as a kit's
+    // own `drill.charge` (5 to 8 m) is; a man in kit arrives fit to fight. (It was 15 m, a javelin's cast: the line broke into
+    // a run too far out. The user's call, 2026-11-28.)
+    chargeAt: 7,
     // Falling back: halted when any man's place `look` m further back is off the floor (within `edge` m of its side),
     // shut to a man (a house: physics/groundplan.js), or a longer walk than that (a wall or a ditch across it:
     // physics/fieldworks.js walkingDistance, more than `slack` m over).
@@ -680,6 +680,12 @@ const inStateToHear = (fighter) => fighter.state === 'up' && !fighter.panicked &
  * in the ranks out of them on an order is in the fight, not a pose behind it.
  */
 export function keepOrders(world, dt = 0) {
+  // The fight's first seconds, the first time orders are kept: no man not played shoots till `openingHoldUntil` where the man
+  // played gives a side with shot its orders (WORLD.openingHold: time to call Hold fire before the first volley).
+  if (world.openingHoldUntil === undefined) {
+    const giver = world.fighters.find((fighter) => fighter.player && canCommand(world, fighter) && hasShot(world, fighter));
+    world.openingHoldUntil = giver ? world.time + WORLD.openingHold : world.time;
+  }
   for (const arms of Object.values(world.groupCommands ?? {})) {
     for (const [group, command] of Object.entries(arms)) {
       const giver = world.fighters[command.by];

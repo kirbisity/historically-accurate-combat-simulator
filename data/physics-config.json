@@ -422,6 +422,7 @@
     }
    },
    "strikeRecovery": 0.6,
+   "openingHold": 2,
    "deflect": {
     "window": 0.45,
     "ref": "katana",
