@@ -2,7 +2,8 @@
 // level's battle, how near his men come to him after "To me", how far they
 // go the way he gave after "Charge" (at their middle, and turned toward a
 // flank; against the same battle left free),
-// and how still they stand on "Hold".
+// how still they stand on "Hold", and on the march ("Advance", "Fall back") how fast the men go and how far each man's
+// displacement strays from the rest (the formation's shape kept: near nothing), and when an advance became a charge.
 // Usage: node tools/orders.js [level=legion] [seconds=10] [seed=1]
 
 import { thinkAll } from '../src/ai.js';
@@ -83,6 +84,24 @@ export function measureOrders(level, seconds = 10, seed = 1) {
       meanMoved: mean(up.map((fighter) => apart(at(fighter), starts.get(fighter)))).toFixed(2),
       anchorMoved: anchor ? apart(anchor, world.formations.red.anchor).toFixed(2) : 'no formation',
     };
+  }
+  for (const kind of ['advance', 'fallback']) {
+    const { world, player, men } = orderBattle(level, seed);
+    const command = giveOrder(world, player, kind);
+    runOrders(world, player, 2);
+    const foot = men.filter((fighter) => fighter.state === 'up' && !fighter.mount && !fighter.panicked);
+    const starts = new Map(foot.map((fighter) => [fighter, at(fighter)]));
+    let charged = null;
+    let time = 0;
+    for (; time < seconds && !charged; time += 0.5) {
+      runOrders(world, player, 0.5);
+      if (world.commands?.red?.fromAdvance === command.serial) charged = time + 2.5;
+    }
+    const kept = foot.filter((fighter) => fighter.state === 'up' && !fighter.panicked);
+    const moved = kept.map((fighter) => [at(fighter)[0] - starts.get(fighter)[0], at(fighter)[1] - starts.get(fighter)[1]]);
+    const middle = [mean(moved.map((move) => move[0])), mean(moved.map((move) => move[1]))];
+    const spread = Math.sqrt(mean(moved.map((move) => (move[0] - middle[0]) ** 2 + (move[1] - middle[1]) ** 2)));
+    rows[kind] = { pace: `${(Math.hypot(middle[0], middle[1]) / time).toFixed(2)} m/s over ${time} s`, spread: `${spread.toFixed(2)} m`, charged: charged === null ? 'no' : `at ${charged} s` };
   }
   return rows;
 }

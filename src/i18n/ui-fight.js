@@ -221,6 +221,8 @@ export const UI_FIGHT = {
   'fightui.orders': { en: 'Orders to your men', zh: '向部下发令' },
   // The orders (command.js COMMAND_ORDERS) and what the player calls with each (fightui/command.js).
   'order.rally': { en: 'To me', zh: '向我靠拢' },
+  'order.advance': { en: 'Advance', zh: '前进' },
+  'order.fallback': { en: 'Fall back', zh: '后撤' },
   'order.charge': { en: 'Charge', zh: '冲锋' },
   'order.hold': { en: 'Hold', zh: '原地坚守' },
   'order.free': { en: 'Free', zh: '自由行动' },
@@ -233,6 +235,8 @@ export const UI_FIGHT = {
   'order.holdFire': { en: 'Hold fire', zh: '停止射击' },
   'order.fireAtWill': { en: 'Fire at will', zh: '自由射击' },
   'order.call.rally': { en: 'To me!', zh: '向我靠拢！' },
+  'order.call.advance': { en: 'Advance!', zh: '全军前进！' },
+  'order.call.fallback': { en: 'Fall back!', zh: '稳步后撤！' },
   'order.call.charge': { en: 'Charge!', zh: '冲啊！' },
   'order.call.hold': { en: 'Hold!', zh: '顶住！' },
   'order.call.free': { en: 'As you were', zh: '各自为战' },

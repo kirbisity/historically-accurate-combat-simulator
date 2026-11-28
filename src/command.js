@@ -2,10 +2,29 @@
 // side. An order is world state (`world.commands[corner]`), given by one man
 // (`by`) and kept until another is given; the AI reads it (ai.js: the
 // focus, then what he does, before his place in the ranks).
-//   To me (`rally`): his men break off and gather round him in loose rings,
-//     following as he goes; there they stand on guard, facing the nearest
-//     enemy, and fight only a man who comes within reach of them (never
-//     far from their place round him); shooters shoot from where they stand.
+//   To me (`rally`): where his men stand in a formation (drilled ranks with
+//     their slots, or a shape or places he drew them up in, or a march under
+//     way), the formation comes to him whole and follows him as he goes: kept
+//     where it stands to him if he is at it, else brought up till its nearest
+//     man is a few steps from him; every man moved by one shared offset
+//     (the march, below), a straggler back to his place in it. Where there is
+//     no formation to keep (a loose band), they break off and gather round
+//     him in loose rings, following as he goes. Either way they stand on
+//     guard, facing the nearest enemy, and fight only a man who comes within
+//     reach of them (never far from their place); shooters shoot from where
+//     they stand.
+//   Advance (`advance`), Fall back (`fallback`): the march. Every man's
+//     place is his place when the order was given (his slot in the ranks,
+//     his place in a shape drawn up, where he stood) moved by one offset the
+//     order shares, so the formation goes as one body and keeps its shape:
+//     toward the enemy's line (the way to the middle of their men, turned to
+//     it slowly as they move), at a steady walk, dressing on the slowest
+//     (the offset waits while the men are not up with it); or away from it,
+//     much slower, a step back at a time still facing them, halted at the
+//     field's edge and before a wall, a house or a ditch behind. Each man
+//     fights only a man who comes within reach of him, as on a Hold. Once
+//     the front of an advance is within a charge's run of the enemy
+//     (COMMAND.march.chargeAt) it becomes a Charge that way.
 //   Charge (`charge`): his men go at a run for the enemy in the way he
 //     gave (where he looked, or at the man he was locked on), each the
 //     nearest man in that way, and fight him; with nobody left in that way,
@@ -37,13 +56,16 @@
 // the shot told to hold while the foot comes to him and the horse charges. An order
 // to all (`world.commands[corner]`) takes back every order to an arm. Which arm a man
 // is in is read from him (groupOf), never listed. The horse are not walked about by
-// orders (a rider's footwork is his horse's): Charge lets them go from their wing, Hold
+// orders (a rider's footwork is his horse's, and a wing is only held or let go:
+// formation.js moveWings; so neither To me nor the march is theirs): Charge lets them go from their wing, Hold
 // reins them in where they are (holding as a wing does, formation.js moveWings, till an enemy is on them), Free gives them
 // back to their wing's own time to go.
 
 import { P } from './body.js';
 import { slotAt } from './formation.js';
 import { reachOf, throwPunch, WORLD } from './physics.js';
+import { walkingDistance } from './physics/fieldworks.js';
+import { groundOpen, groundPlanOf } from './physics/groundplan.js';
 
 export const COMMAND = {
   // A side this big (the player among them) takes orders: as many as have a standard, so a few men round him.
@@ -67,6 +89,39 @@ export const COMMAND = {
   // depth behind the one before; a line is `deep` ranks (`deepFrom` men or more, one rank more); a wedge's point `ahead` m
   // before him; a square's side long enough for its men round it.
   shape: { file: 0.95, rank: 1.15, deep: 2, deepFrom: 14, ahead: 1.2 },
+  // The march (Advance, Fall back, and To me where there is a formation to keep): every man's place moved by one offset.
+  march: {
+    // Advance (m/s): a steady walk in step, about a drilled pace of 0.75 m at 65 to the minute, the drill's own advance
+    // (formation.js DRILL.pace); a line that walks faster loses its dressing, and men in armour stepping forward facing the
+    // enemy (the fight's footwork, not a stride) make little more than this (a legionary about 0.87 m/s).
+    advance: 0.8,
+    // Fall back (m/s): a step back at a time, facing the enemy, the ground behind unseen and the files kept; well under half
+    // the advance (the user's call, 2026-11-28: slower than going forward).
+    fallBack: 0.35,
+    // To me (m/s): the formation following him at a man's ordinary walk (so it keeps up with him walking), at a jog
+    // (`run`) while it is more than `runFrom` m short of where it should stand to him.
+    rallyWalk: 1.3,
+    run: 2.4,
+    runFrom: 6,
+    // To me from afar (m): brought up till its nearest man's place is this far from him; nearer than this when the order is
+    // given, it keeps where it stands to him.
+    near: 2.5,
+    // The dressing: the offset goes on at its full pace while the men are on the median no further than `dressed` m from
+    // their places, slowing to a stop at twice that (the front waits, the rear closes up).
+    dressed: 0.8,
+    // How fast (rad/s) the way to the enemy is turned to as they move: the line wheels slowly, it does not swing.
+    turn: 0.3,
+    // An advance turns into a charge with its front this near (m) the enemy's nearest man: the run-in at the end of an
+    // advance on foot, about a javelin's cast (the legion threw its pila and ran in from there); a man in kit cannot run
+    // much further and arrive fit to fight, so not more (a kit's own `drill.charge`, 5 to 8 m, is the last of the run).
+    chargeAt: 15,
+    // Falling back: halted when any man's place `look` m further back is off the floor (within `edge` m of its side),
+    // shut to a man (a house: physics/groundplan.js), or a longer walk than that (a wall or a ditch across it:
+    // physics/fieldworks.js walkingDistance, more than `slack` m over).
+    look: 1,
+    edge: 1.2,
+    slack: 0.3,
+  },
 };
 
 // The shapes a side may be drawn up in, each its places ([x, z] in the frame of the way it faces: x ahead, z to the left).
@@ -83,6 +138,9 @@ export const COMMAND_GROUPS = [
 // The orders in the order of their buttons: icon, word, key.
 export const COMMAND_ORDERS = [
   { kind: 'rally', label: 'To me', key: '7' },
+  // The march: the whole formation toward the enemy's line, or back from it (keys left of To me's).
+  { kind: 'advance', label: 'Advance', key: '6' },
+  { kind: 'fallback', label: 'Fall back', key: '5' },
   { kind: 'charge', label: 'Charge', key: '8' },
   { kind: 'hold', label: 'Hold', key: '9' },
   { kind: 'free', label: 'Free', key: '0' },
@@ -93,6 +151,9 @@ export const COMMAND_ORDERS = [
   { kind: 'wedge', label: 'Wedge', key: 'x' },
   { kind: 'square', label: 'Square', key: 'b' },
 ];
+
+// The orders that march the formation (COMMAND.march): every man's place moved by one offset the order shares.
+export const MARCH_ORDERS = ['advance', 'fallback'];
 
 // Hold fire / Fire at will: its own button (one press each way), key H.
 export const FIRE_ORDER_KEY = 'h';
@@ -191,7 +252,9 @@ export function giveOrder(world, by, kind, { dir = null, group = 'all' } = {}) {
   // Hold to all or to the foot: the formation's anchor (the foot's ranks) stays where it is now.
   const formation = world.formations?.[by.corner];
   if (kind === 'hold' && formation && (group === 'all' || group === 'foot')) command.anchor = [...formation.anchor];
-  if (kind === 'rally') command.places = rallyPlaces(world, by, group);
+  // The march (and To me with a formation to keep): each man's place in the shape the side stands in now, and one offset.
+  if (MARCH_ORDERS.includes(kind) || (kind === 'rally' && keepsFormation(world, by, group))) startMarch(world, by, command);
+  else if (kind === 'rally') command.places = rallyPlaces(world, by, group);
   // Formation: each man's own place, fixed in the world ([x, z] by his id).
   if (kind === 'form') command.places = structuredClone(world.formPlaces[by.corner]);
   // A shape: each man's place in it, fixed in the world where it was drawn up.
@@ -368,11 +431,225 @@ function rallyPlaces(world, by, group = 'all') {
   return places;
 }
 
+/** The men of his side an order to `group` goes to (who hear him, on foot, not out of the fight), but him. */
+function menOf(world, by, group) {
+  return world.fighters.filter((fighter) => fighter.corner === by.corner && fighter !== by && fighter.state !== 'out' && !fighter.mount && hearsOrders(world, fighter) && (group === 'all' || groupOf(fighter) === group));
+}
+
+/** Whether an order's place for him stands in a shape: drawn up in one (a shape, Formation's places) or on the march. */
+const shapedPlace = (command, fighter) => (command.kind === 'form' || ORDER_SHAPES.includes(command.kind)) && Boolean(command.places?.[fighter.id]);
+
+/**
+ * Whether there is a formation for To me to keep: any of the men it goes to has his slot in his side's ranks, or a place
+ * in a shape he was drawn up in, or is on the march. A loose band has none: they gather round him in rings (rallyPlaces).
+ */
+function keepsFormation(world, by, group) {
+  return menOf(world, by, group).some((fighter) => {
+    if (fighter.slot && world.formations?.[fighter.formation]) return true;
+    const standing = commandOf(world, fighter);
+    return Boolean(standing) && standing.by !== fighter.id && (Boolean(standing.offset) || shapedPlace(standing, fighter));
+  });
+}
+
+/** Where a man stands in the shape his side is in now ([x, z]): his place on a march or in a shape, his slot in the ranks, or where he is. */
+function placeInShape(world, fighter) {
+  const standing = commandOf(world, fighter);
+  if (standing && standing.by !== fighter.id) {
+    if (standing.offset) {
+      const place = marchPlace(world, standing, fighter);
+      if (place) return place;
+    }
+    if (shapedPlace(standing, fighter)) return [...standing.places[fighter.id]];
+  }
+  const formation = fighter.slot ? world.formations?.[fighter.formation] : null;
+  return formation ? slotAt(formation, fighter.slot) : commandAt(fighter);
+}
+
+/**
+ * Start a march (Advance, Fall back, or To me keeping the formation) on its command: every man's place in the shape the
+ * side stands in (`base`, by his id), the offset they share (`offset`, none yet), the way to the enemy (`heading`); the
+ * formation's anchor where the order goes to its ranks (all, or the foot), moved with the offset (keepOrders). To me
+ * (`ref`): the offset is to be his own movement since, so the formation keeps where it stands to him; if he is not at it,
+ * with it first brought up along the way to him till its nearest man's place is COMMAND.march.near m from him.
+ */
+function startMarch(world, by, command) {
+  const base = {};
+  for (const fighter of menOf(world, by, command.group)) base[fighter.id] = placeInShape(world, fighter);
+  command.base = base;
+  command.offset = [0, 0];
+  const places = Object.values(base);
+  const centre = meanOf(places) ?? commandAt(by);
+  command.heading = wayToEnemy(world, by.corner, centre) ?? [...command.dir];
+  const formation = world.formations?.[by.corner];
+  if (formation && (command.group === 'all' || command.group === 'foot')) command.anchor = [...formation.anchor];
+  if (command.kind !== 'rally') return;
+  const him = commandAt(by);
+  let nearest = null;
+  for (const place of places) if (!nearest || commandApart(place, him) < commandApart(nearest, him)) nearest = place;
+  const apart = nearest ? commandApart(nearest, him) : 0;
+  const short = apart > COMMAND.march.near ? 1 - COMMAND.march.near / apart : 0;
+  // (The offset is to come to `him now - ref`: nothing, standing at it; the way to him less `near`, from afar.)
+  command.ref = nearest ? [him[0] - (him[0] - nearest[0]) * short, him[1] - (him[1] - nearest[1]) * short] : him;
+}
+
+/** The mean of some points ([x, z]), or null for none. */
+function meanOf(points) {
+  if (!points.length) return null;
+  let x = 0;
+  let z = 0;
+  for (const point of points) {
+    x += point[0] / points.length;
+    z += point[1] / points.length;
+  }
+  return [x, z];
+}
+
+/** The enemy a march goes toward: their men on their feet and fighting, on foot (their horse is not the line), else any. */
+function enemyLine(world, corner) {
+  const foes = world.fighters.filter((other) => other.corner !== corner && other.corner !== 'grey' && other.state === 'up' && !other.crawling && !other.fled);
+  const foot = foes.filter((other) => !other.mount);
+  return foot.length ? foot : foes;
+}
+
+/** The way ([x, z], a unit) from a point to the middle of the enemy's line, or null with no enemy. */
+function wayToEnemy(world, corner, from) {
+  const middle = meanOf(enemyLine(world, corner).map(commandAt));
+  if (!middle) return null;
+  const length = commandApart(middle, from);
+  return length > 1e-6 ? [(middle[0] - from[0]) / length, (middle[1] - from[1]) / length] : null;
+}
+
+/** His place on the march ([x, z]): his slot where the order moves his formation's anchor, else his place in its shape moved by its offset. */
+function marchPlace(world, command, fighter) {
+  const formation = command.anchor && fighter.slot ? world.formations?.[fighter.formation] : null;
+  if (formation && formation.members.includes(fighter.id)) return slotAt(formation, fighter.slot);
+  const base = command.base[fighter.id] ?? (fighter.order?.serial === command.serial ? fighter.order.joined : null);
+  return base ? [base[0] + command.offset[0], base[1] + command.offset[1]] : null;
+}
+
+/**
+ * Once a step, a march's offset moved on: the men on it (those it goes to who can hear it now), how far on the median each is
+ * from his place (the dressing: COMMAND.march.dressed), then by the order: Advance and Fall back along the way to the enemy
+ * (turned toward it at `turn` rad/s), the advance a charge once its front is within `chargeAt` m of their line, the fall
+ * back halted where any man's way back is shut; To me toward where it should stand to him.
+ */
+function marchOn(world, corner, command, dt) {
+  const spec = COMMAND.march;
+  const places = [];
+  const lags = [];
+  for (const fighter of world.fighters) {
+    if (fighter.corner !== corner || commandOf(world, fighter) !== command || !orderFor(world, fighter)) continue;
+    const place = marchPlace(world, command, fighter);
+    if (!place) continue;
+    places.push(place);
+    lags.push(commandApart(place, commandAt(fighter)));
+  }
+  if (!places.length || dt <= 0) return;
+  lags.sort((a, b) => a - b);
+  const lag = lags[Math.floor(lags.length / 2)];
+  const dressing = Math.max(0, Math.min(1, (2 * spec.dressed - lag) / spec.dressed));
+  if (command.kind === 'rally') {
+    const him = commandAt(world.fighters[command.by]);
+    const short = [him[0] - command.ref[0] - command.offset[0], him[1] - command.ref[1] - command.offset[1]];
+    const distance = Math.hypot(short[0], short[1]);
+    if (distance < 1e-6) return;
+    const step = Math.min(distance, (distance > spec.runFrom ? spec.run : spec.rallyWalk) * dressing * dt);
+    command.offset = [command.offset[0] + (short[0] / distance) * step, command.offset[1] + (short[1] / distance) * step];
+    return;
+  }
+  const centre = meanOf(places);
+  const want = wayToEnemy(world, corner, centre);
+  if (!want) return;
+  command.heading = turnedToward(command.heading, want, spec.turn * dt);
+  const heading = command.heading;
+  if (command.kind === 'advance') {
+    const front = frontOf(world, corner, command, places, centre);
+    if (front.gap <= spec.chargeAt) {
+      becomeCharge(world, corner, command, centre, front);
+      return;
+    }
+    const step = spec.advance * dressing * dt;
+    command.offset = [command.offset[0] + heading[0] * step, command.offset[1] + heading[1] * step];
+    return;
+  }
+  const step = spec.fallBack * dressing * dt;
+  if (step <= 0 || places.some((place) => shutBehind(world, place, heading))) return;
+  command.offset = [command.offset[0] - heading[0] * step, command.offset[1] - heading[1] * step];
+}
+
+/** A unit way turned toward another by at most `most` rad. */
+function turnedToward(way, want, most) {
+  const angle = Math.atan2(way[0] * want[1] - way[1] * want[0], way[0] * want[0] + way[1] * want[1]);
+  const turn = Math.max(-most, Math.min(most, angle));
+  const cos = Math.cos(turn);
+  const sin = Math.sin(turn);
+  return [way[0] * cos - way[1] * sin, way[0] * sin + way[1] * cos];
+}
+
+/**
+ * The march's front against the enemy, along its heading from the middle of its places: how far ahead its foremost place
+ * stands (`ahead`), how wide it is either side (`half`), and the gap from its front to the nearest of the enemy's line
+ * ahead of it and no further aside than its width and a charge's run (`gap`, m; Infinity with none).
+ */
+function frontOf(world, corner, command, places, centre) {
+  const heading = command.heading;
+  const left = [-heading[1], heading[0]];
+  let ahead = -Infinity;
+  let half = 0;
+  for (const place of places) {
+    const offset = [place[0] - centre[0], place[1] - centre[1]];
+    ahead = Math.max(ahead, offset[0] * heading[0] + offset[1] * heading[1]);
+    half = Math.max(half, Math.abs(offset[0] * left[0] + offset[1] * left[1]));
+  }
+  let gap = Infinity;
+  for (const foe of enemyLine(world, corner)) {
+    const offset = [foe.x[P.pelvis * 3] - centre[0], foe.x[P.pelvis * 3 + 2] - centre[1]];
+    const along = offset[0] * heading[0] + offset[1] * heading[1];
+    if (along < 0 || Math.abs(offset[0] * left[0] + offset[1] * left[1]) > half + COMMAND.march.chargeAt) continue;
+    gap = Math.min(gap, along - ahead);
+  }
+  return { ahead, half, gap };
+}
+
+/**
+ * The advance become a charge (COMMAND.charge) the way it was going: a new order of the same giver to the same arm. Its
+ * point (`at`, where the way in is measured from: inTheWay) set back behind the line's middle far enough that the charge's
+ * widening way takes in the enemy before the whole of its front, not only before its middle.
+ */
+function becomeCharge(world, corner, command, centre, front) {
+  const spec = COMMAND.charge;
+  const back = Math.max(0, (front.half - spec.width) / spec.spread - Math.max(0, front.gap) - front.ahead);
+  world.orderCount = (world.orderCount ?? 0) + 1;
+  const charge = {
+    kind: 'charge',
+    by: command.by,
+    at: [centre[0] - command.heading[0] * back, centre[1] - command.heading[1] * back],
+    dir: [...command.heading],
+    since: world.time,
+    serial: world.orderCount,
+    group: command.group,
+    fromAdvance: command.serial,
+  };
+  if (command.group === 'all') world.commands[corner] = charge;
+  else world.groupCommands[corner][command.group] = charge;
+}
+
+/** Whether the way back from a place (away from the enemy, `heading` toward them) is shut a step on: the floor's edge, a house, a wall or a ditch. */
+function shutBehind(world, place, heading) {
+  const spec = COMMAND.march;
+  const to = [place[0] - heading[0] * spec.look, place[1] - heading[1] * spec.look];
+  const arena = world.arena;
+  if (arena && (Math.abs(to[0]) > arena.halfX - spec.edge || Math.abs(to[1]) > arena.halfZ - spec.edge)) return true;
+  const plan = groundPlanOf(world);
+  if (plan && !groundOpen(plan, to[0], to[1])) return true;
+  return Boolean(arena?.works) && walkingDistance(world, place, to) > spec.look + spec.slack;
+}
+
 /** The order this man is to obey now, or null: none, or he is in no state to hear it. His own record of it is fresh for a new order. */
 function orderFor(world, fighter) {
-  const command = world.groupCommands?.[fighter.corner]?.[groupOf(fighter)] ?? world.commands?.[fighter.corner];
+  const command = commandOf(world, fighter);
   if (!command || command.by === fighter.id || !hearsOrders(world, fighter)) return null;
-  if (fighter.state !== 'up' || fighter.panicked || fighter.crawling || fighter.fled || fighter.mount) return null;
+  if (!inStateToHear(fighter)) return null;
   if (fighter.order?.serial !== command.serial) {
     const formation = fighter.slot ? world.formations?.[fighter.formation] : null;
     const slot = formation ? slotAt(formation, fighter.slot) : null;
@@ -384,17 +661,25 @@ function orderFor(world, fighter) {
       target: null,
       retargetAt: -Infinity,
       halted: false,
+      // On the march, a man who was in no state to hear when it was given: his place where he stands now, less the march so far.
+      joined: command.offset && !command.base[fighter.id] ? [commandAt(fighter)[0] - command.offset[0], commandAt(fighter)[1] - command.offset[1]] : null,
     };
   }
   return command;
 }
+
+/** The order over this man's arm (its own, else his side's), whether or not he hears it. */
+const commandOf = (world, fighter) => world.groupCommands?.[fighter.corner]?.[groupOf(fighter)] ?? world.commands?.[fighter.corner];
+
+/** Up and his own master: not broken, crawling away, fled, or on horseback. */
+const inStateToHear = (fighter) => fighter.state === 'up' && !fighter.panicked && !fighter.crawling && !fighter.fled && !fighter.mount;
 
 /**
  * Once a step, after the formations have moved: an order whose giver is
  * out of the fight lapses; a held formation's anchor stays put; and a man
  * in the ranks out of them on an order is in the fight, not a pose behind it.
  */
-export function keepOrders(world) {
+export function keepOrders(world, dt = 0) {
   for (const arms of Object.values(world.groupCommands ?? {})) {
     for (const [group, command] of Object.entries(arms)) {
       const giver = world.fighters[command.by];
@@ -405,11 +690,17 @@ export function keepOrders(world) {
     const giver = world.fighters[command.by];
     if (!giver || giver.state === 'out') delete world.commands[corner];
   }
+  // The march: each standing one's offset moved on (an advance may become a charge).
+  for (const [corner, command] of Object.entries(world.commands ?? {})) if (command.offset) marchOn(world, corner, command, dt);
+  for (const [corner, arms] of Object.entries(world.groupCommands ?? {})) {
+    for (const command of Object.values(arms)) if (command.offset) marchOn(world, corner, command, dt);
+  }
   for (const corner of ['red', 'blue']) {
     const formation = world.formations?.[corner];
     if (!formation) continue;
     const command = world.groupCommands?.[corner]?.foot ?? world.commands?.[corner];
-    if (command?.anchor) formation.anchor = [...command.anchor];
+    // (On the march, the anchor moved by the march's offset: the ranks go with it, and stand there when it is taken back.)
+    if (command?.anchor) formation.anchor = command.offset ? [command.anchor[0] + command.offset[0], command.anchor[1] + command.offset[1]] : [...command.anchor];
     for (const id of formation.members) {
       const fighter = world.fighters[id];
       if (!orderFor(world, fighter) || fighter.order.ranks) continue;
@@ -514,8 +805,9 @@ export function orderKeepsPlace(world, fighter) {
   return Boolean(command) && !(command.kind === 'hold' && fighter.order.ranks);
 }
 
-/** His place under the order ([x, z]): his ring's place round the giver, his place in the formation, or his own ground. */
+/** His place under the order ([x, z]): on the march, his place in its shape moved on; his ring's place round the giver, his place in the formation, or his own ground. */
 function placeFor(world, command, fighter) {
+  if (command.offset) return marchPlace(world, command, fighter);
   if (command.kind === 'form' || ORDER_SHAPES.includes(command.kind)) return command.places[fighter.id] ?? null;
   if (command.kind === 'rally') {
     const offset = command.places[fighter.id];

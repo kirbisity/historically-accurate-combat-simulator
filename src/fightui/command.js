@@ -1,6 +1,6 @@
 // The player's orders to his side on screen (command.js): a bar of buttons all one size along the top left, in two rows,
 // out of the fight's way (the status is low on the left, the Guard, Lock and special buttons down the right). The first
-// row: To me, Charge, Hold, Free, Formation, and Hold fire / Fire at will (where his side has shot). The second: the
+// row: To me, Advance, Fall back, Charge, Hold, Free, Formation, and Hold fire / Fire at will (where his side has shot). The second: the
 // arms, where his side has more than one (All, Foot, Shot, Horse; keys [ and ]: the orders go to the arm lit); or, while
 // Formation is open, the shapes (Line, Wedge, Square, and Places, back to the places set before the fight, where the side
 // has them), one press giving the order and closing them. The order standing is lit gold, as a choice is in the footer
@@ -15,13 +15,16 @@ export const FIGHT_UI_COMMAND = {
   // The call of a new order stays this long (s).
   callSeconds: 1.6,
   // What each order calls out.
-  calls: { rally: 'To me!', charge: 'Charge!', hold: 'Hold!', free: 'As you were', form: 'Back to formation!', line: 'Form line!', wedge: 'Form wedge!', square: 'Form square!' },
+  calls: { rally: 'To me!', advance: 'Advance!', fallback: 'Fall back!', charge: 'Charge!', hold: 'Hold!', free: 'As you were', form: 'Back to formation!', line: 'Form line!', wedge: 'Form wedge!', square: 'Form square!' },
 };
 
 // Each order's icon: plain strokes in the pill's colour (16 px).
 const FIGHT_UI_COMMAND_ICONS = {
   // Gathering in, to a point.
   rally: '<path d="M2 5l3 3-3 3M14 5l-3 3 3 3M5 2l3 3 3-3M5 14l3-3 3 3"/><circle cx="8" cy="8" r="1.2" fill="currentColor" stroke="none"/>',
+  // The ranks going forward, and stepping back: a rank of dots, an arrow before or behind it.
+  advance: '<g fill="currentColor" stroke="none"><circle cx="3.5" cy="12" r="1.2"/><circle cx="8" cy="12" r="1.2"/><circle cx="12.5" cy="12" r="1.2"/></g><path d="M8 9V2M5 5l3-3 3 3"/>',
+  fallback: '<g fill="currentColor" stroke="none"><circle cx="3.5" cy="4" r="1.2"/><circle cx="8" cy="4" r="1.2"/><circle cx="12.5" cy="4" r="1.2"/></g><path d="M8 7v7M5 11l3 3 3-3"/>',
   // On, at a run.
   charge: '<path d="M3 3l5 5-5 5M8 3l5 5-5 5"/>',
   // A shield: stand fast.
