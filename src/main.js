@@ -14,6 +14,7 @@ import { armourSpotAt, wearArmour, wearWork } from './physics/armourwear.js';
 import { advance, armourPieceAt, capsules, opponentFor, collapseAt, cutOff, dropWeapon, concussionCapacity, createWorld, perform, placeFighter, placeOnFloor, point, reviveFighter, startCrawl, throwPunch, WORLD } from './physics.js';
 import { bleedingFast } from './maiming.js';
 import { DEFAULT_LOOK, LOOK_OPTIONS } from './face.js';
+import { createExpression, expressionNear, stepExpression } from './faceexpr.js';
 import { activateLook, activateLookNow, activeLook, DEFAULT_LOOK_ID, drawFrame, OFFICIAL_LOOK_ID, flattenView, loadLook, lookById, lookIdFromSearch, lookList, LOOKS, rememberedLookId, rememberLook } from './looks.js';
 import { installLooksBench } from './looksbench.js';
 import { rigidMergeSwitch, rigidReport } from './rigidmerge.js';
@@ -1679,6 +1680,9 @@ function drawWorld(dt, drawIt = true) {
       continue;
     }
     view.group.visible = true;
+    // His face's expression (faceexpr.js), for a man near the camera whose face is drawn (not a baked crowd man): read from what
+    // he is doing, stepped at the fight's pace; null beyond, where it is not seen.
+    view.expression = !view.baked && !view.headDetached && expressionNear(view.fighter, scene.camera.position) ? stepExpression((view.expressionState ??= createExpression(view.fighter.id)), view.fighter, world, dt * (state.paused ? 0 : state.speed)) : null;
     updateFighterView(view, dt * (state.paused ? 0 : state.speed), world.time);
     updateArms(scene, view, drawnTime);
     updateStumps(view);
