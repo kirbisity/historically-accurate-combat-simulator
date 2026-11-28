@@ -450,3 +450,8 @@ and adjust only the numbers of each side.
   about 360 draws a frame to about 215, the picture the same. `boxer.rigidMerge()` says what each man is,
   `boxer.rigidMerge(false)` turns it off, to compare. The pressed-ground record (env/press.js) is sent to the card by
   the rows and columns changed (`envPressSend`), not whole each frame.
+- A full man's photo head (headlattice.js, 16 472 triangles) is drawn from a coarser joining of the same points
+  (`farIndices`: every second row and column, 4 176 triangles, on the full head's normals, tangents and photo) while it is
+  under 150 drawing rows high on the screen, with a band either side against flicker (face.js `HEAD_LOD`, the user's call,
+  2026-11-27); a duel's follow and watch cameras draw it far, a close-up or the drama camera's push-in near. The choice is
+  the geometry's index, set in the head mesh's onBeforeRender; positions, dents and anything done to them are shared.
