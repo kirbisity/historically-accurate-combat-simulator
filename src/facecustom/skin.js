@@ -21,7 +21,7 @@
 /* global THREE */
 import { ETHNICITY_PRESETS, normalizeFace, sliderOffset, surfaceValues } from './schema.js';
 import { registerFaceSkin } from './solver.js';
-import { PHOTO_ATLAS, photoSkinMaterial } from '../photoface.js';
+import { PHOTO_ATLAS, customPhotoCast, photoSkinMaterial } from '../photoface.js';
 import { regionTone } from '../faceregions.js';
 import { SKIN_TONES } from '../skintones.js';
 
@@ -262,4 +262,4 @@ export function updateSkin(material, faceInput) {
 /** The age slider as age lines (the photo shader's `faceWrinkles`, 0..1): none at neutral and younger, full at 255. */
 export const faceAgeLines = (face) => Math.min(1, Math.max(FACE_SKIN.wrinklesFrom, sliderOffset(face.sliders.age)));
 
-registerFaceSkin({ materialFor: skinMaterialFor, update: updateSkin });
+registerFaceSkin({ materialFor: skinMaterialFor, update: updateSkin, castFor: customPhotoCast });

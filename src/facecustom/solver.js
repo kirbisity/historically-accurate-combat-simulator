@@ -710,7 +710,7 @@ export const FACE_HEAD = {
 
 // The skin pipeline (skin.js) puts itself here when it loads: it needs three.js and the photo faces, which this file must
 // run without (Node: the tests, a tool).
-const faceSkinPipeline = { materialFor: null, update: null };
+const faceSkinPipeline = { materialFor: null, update: null, castFor: null };
 export function registerFaceSkin(pipeline) {
   Object.assign(faceSkinPipeline, pipeline);
 }
@@ -735,8 +735,10 @@ export function customHeadMesh(faceInput, opts = {}) {
 
 /**
  * A made face's head on its own (the customiser's preview, a portrait): `{ group, mesh, setFace(face), setExpression(weights),
- * dispose(), stats }`. `opts`: customHeadMesh's, and `cast` (the photo cast its maps come from: photoface.js customPhotoCast;
- * none, the procedural maps), `material` (one to use as it is). The mesh is the head alone, in the head's local space (x
+ * dispose(), stats }`. `opts`: customHeadMesh's, and `cast` (the photo cast its maps come from; not given, the face's own
+ * is made here, photoface.js customPhotoCast: its preset's regions' composites, made again when setFace changes the
+ * preset or the sex, and once the photo faces have loaded if they had not; null, or no photo faces, the procedural
+ * maps), `material` (one to use as it is). The mesh is the head alone, in the head's local space (x
  * forward, y up), no hair, ears or neck. `setFace` re-solves the same mesh in place; `setExpression` ({ fury, fear, shout,
  * calm, pain, smirk, ... } each 0..1: FACE_EXPRESSIONS) costs a few thousand additions and one buffer upload, and nothing
  * when the weights have not changed.
@@ -756,7 +758,14 @@ export function buildCustomHead(faceInput, opts = {}) {
   attribute('faceStretch', head.sculpted.stretch, 2);
   const far = opts.lod === 'far' && head.farIndices;
   geometry.setIndex(far ? head.farIndices : head.indices);
-  const material = opts.material ?? faceSkinPipeline.materialFor?.(face, { cast: opts.cast ?? null, sex: opts.sex ?? face.sex }) ?? new THREE.MeshStandardMaterial({ color: 0xc58c64, roughness: 0.7, vertexColors: true });
+  // The maps: the face's own cast unless one was handed in (or none asked for), and with it the material.
+  const ownCast = opts.cast === undefined && !opts.material;
+  const castOf = (made) => (ownCast ? faceSkinPipeline.castFor?.(made, { sex: opts.sex ?? made.sex, name: 'made face' }) ?? null : opts.cast ?? null);
+  const materialOf = (made, cast) => faceSkinPipeline.materialFor?.(made, { cast, sex: opts.sex ?? made.sex }) ?? new THREE.MeshStandardMaterial({ color: 0xc58c64, roughness: 0.7, vertexColors: true });
+  const castKeyOf = (made, cast) => `${made.preset}|${opts.sex ?? made.sex}|${cast ? cast.id : 'none'}`;
+  let cast = castOf(face);
+  let castKey = castKeyOf(face, cast);
+  let material = opts.material ?? materialOf(face, cast);
   const mesh = new THREE.Mesh(geometry, material);
   mesh.castShadow = true;
   const group = new THREE.Group();
@@ -780,6 +789,15 @@ export function buildCustomHead(faceInput, opts = {}) {
   }
   function setFace(next) {
     face = normalizeFace(next);
+    if (ownCast) {
+      const nextCast = castOf(face);
+      if (castKeyOf(face, nextCast) !== castKey) {
+        [cast, castKey] = [nextCast, castKeyOf(face, nextCast)];
+        material.dispose();
+        material = materialOf(face, cast);
+        mesh.material = material;
+      }
+    }
     faceSkinPipeline.update?.(material, face);
     if (faceShapeKey(face) === shapeKey) return;
     shapeKey = faceShapeKey(face);
@@ -801,6 +819,6 @@ export function buildCustomHead(faceInput, opts = {}) {
     if (!opts.material) material.dispose();
   }
   const stats = { points: head.positions.length / 3, triangles: geometry.index.count / 3 };
-  return { group, mesh, setFace, setExpression, dispose, stats, get face() { return face; }, get head() { return head; } };
+  return { group, mesh, setFace, setExpression, dispose, stats, get face() { return face; }, get head() { return head; }, get material() { return material; } };
 }
 
